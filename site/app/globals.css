@@ -1,0 +1,75 @@
+@import "tailwindcss";
+
+@theme {
+  /* Brand */
+  --color-ink: #050505;
+  --color-lime: #c8ff2e;
+  --color-lime-deep: #8bc41a;
+  --color-muted: #8e9288;
+  --color-faint: #6f736a;
+  --color-soft: #d6d9d0;
+  --color-tile: #0e100b;
+  --color-on-lime: #1e2410;
+
+  /* Contribution squares (dark → lime) */
+  --color-sq-0: #14170f;
+  --color-sq-1: #1d2e0e;
+  --color-sq-2: #355c12;
+  --color-sq-3: #6aa81a;
+
+  /* Native macOS chrome, as the app renders it */
+  --color-mac-panel: #111111;
+  --color-mac-window: #1a1a1a;
+  --color-mac-titlebar: #232323;
+  --color-mac-border: #3a3a3c;
+  --color-mac-divider: #262628;
+  --color-mac-control: #2c2c2e;
+  --color-mac-gray: #8e8e93;
+  --color-mac-label: #e5e5ea;
+  --color-mac-blue: #3478f6;
+  --color-mac-you: #121a28;
+  --color-mac-you-border: #1f3a5f;
+  --color-mac-you-text: #4a90ff;
+  --color-mac-green: #30d158;
+
+  --font-display: var(--font-inter-tight), ui-sans-serif, system-ui, sans-serif;
+  --font-mac: -apple-system, BlinkMacSystemFont, var(--font-inter), system-ui, sans-serif;
+
+  --animate-rise: rise 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+
+  @keyframes rise {
+    from {
+      opacity: 0;
+      transform: translateY(12px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+}
+
+@layer base {
+  html {
+    background: var(--color-ink);
+    color-scheme: dark;
+  }
+  body {
+    @apply bg-ink font-display text-pretty text-white antialiased;
+  }
+  a:focus-visible,
+  button:focus-visible {
+    outline: 2px solid var(--color-lime);
+    outline-offset: 3px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-delay: 0s !important;
+    transition-duration: 0.001ms !important;
+  }
+}

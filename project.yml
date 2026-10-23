@@ -1,0 +1,71 @@
+name: CommitStandings
+options:
+  bundleIdPrefix: com.addisonk
+  deploymentTarget:
+    macOS: "26.0"
+  developmentLanguage: en
+  createIntermediateGroups: true
+  generateEmptyDirectories: true
+  groupSortPosition: top
+
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    MACOSX_DEPLOYMENT_TARGET: "26.0"
+    SWIFT_STRICT_CONCURRENCY: complete
+    ENABLE_USER_SCRIPT_SANDBOXING: YES
+    CODE_SIGN_STYLE: Automatic
+    CODE_SIGN_IDENTITY: "-"
+
+packages:
+  Sparkle:
+    url: https://github.com/sparkle-project/Sparkle
+    from: 2.9.2
+
+targets:
+  CommitStandings:
+    type: application
+    platform: macOS
+    deploymentTarget: "26.0"
+    sources:
+      - path: CommitStandings
+    dependencies:
+      - package: Sparkle
+        product: Sparkle
+    # Use the checked-in Info.plist and entitlements as the sole source of truth.
+    # Generating them here would reset the version, updater settings, and sandbox.
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.addisonk.CommitStandings
+        GENERATE_INFOPLIST_FILE: NO
+        INFOPLIST_FILE: CommitStandings/Info.plist
+        CODE_SIGN_ENTITLEMENTS: CommitStandings/CommitStandings.entitlements
+        ENABLE_HARDENED_RUNTIME: YES
+
+  CommitStandingsTests:
+    type: bundle.unit-test
+    platform: macOS
+    deploymentTarget: "26.0"
+    sources:
+      - path: CommitStandingsTests
+    dependencies:
+      - target: CommitStandings
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.addisonk.CommitStandingsTests
+        GENERATE_INFOPLIST_FILE: YES
+        BUNDLE_LOADER: "$(TEST_HOST)"
+        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/CommitStandings.app/Contents/MacOS/CommitStandings"
+
+schemes:
+  CommitStandings:
+    build:
+      targets:
+        CommitStandings: all
+        CommitStandingsTests: [test]
+    test:
+      targets:
+        - CommitStandingsTests
+      gatherCoverageData: true
+    run:
+      config: Debug

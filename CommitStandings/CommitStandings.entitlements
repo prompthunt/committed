@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- Not sandboxed: this is a Developer ID-distributed menu-bar app (not Mac App
+	     Store), and the sandbox forced Sparkle through XPC helpers whose entitlements
+	     got stripped on build, breaking auto-updates. Unsandboxed, Sparkle updates work
+	     directly and the app keeps full network/keychain access without entitlements. -->
+</dict>
+</plist>

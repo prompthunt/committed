@@ -1,0 +1,45 @@
+# macOS
+.DS_Store
+
+# Xcode
+build/
+DerivedData/
+*.xcuserstate
+*.xcuserdatad/
+xcuserdata/
+*.xcworkspace/xcuserdata/
+*.xcodeproj/project.xcworkspace/xcuserdata/
+*.xcodeproj/xcuserdata/
+
+# Swift Package Manager
+.build/
+.swiftpm/
+Packages/
+Package.resolved
+
+# Distribution artifacts
+dist/
+*.dmg
+*.xcarchive
+*.xcresult
+
+# Conductor / agent workspaces
+.context/
+.claude/
+build-release/
+
+# Local configuration and signing material
+.env
+.env.*
+!.env.example
+*.p12
+*.pfx
+*.p8
+*.pem
+*.key
+*.mobileprovision
+*.provisionprofile
+Sparkle-private-key*
+.agent-context/
+.vercel/
+.wrangler/
