@@ -2,21 +2,9 @@ import { AppIcon, Glyph } from "@/components/Glyph";
 import { AnalyticsLink } from "@/components/AnalyticsLink";
 import { DemoMotionToggle, LoopProvider } from "@/components/useLoop";
 import { HeroRankPill, MenuBarScene, NotificationStack, PeopleWindow, Popover, WindowSwitcher } from "@/components/MacUI";
+import { ContributionStrip } from "@/components/ContributionStrip";
+import { HeroBackdrop } from "@/components/HeroBackdrop";
 import { DOWNLOAD_URL, RELEASES_URL, SOURCE_URL } from "@/lib/board";
-
-/* Deterministic contribution field behind the popover (same output on server and client). */
-const FIELD = (() => {
-  const scale = ["var(--color-sq-0)", "var(--color-sq-1)", "var(--color-sq-2)", "var(--color-sq-3)", "var(--color-lime)"];
-  let seed = 21;
-  const rnd = () => ((seed = (seed * 9301 + 49297) % 233280), seed / 233280);
-  const cells: string[] = [];
-  for (let w = 0; w < 27; w++)
-    for (let d = 0; d < 14; d++) {
-      const x = rnd() + (w / 27) * 0.5;
-      cells.push(scale[x < 0.4 ? 0 : x < 0.65 ? 1 : x < 0.88 ? 2 : x < 1.12 ? 3 : 4]);
-    }
-  return cells;
-})();
 
 function DownloadIcon() {
   return (
@@ -85,16 +73,7 @@ export default function Home() {
           >
             <div role="img" aria-label="Committed's menu-bar popover: today's board, with Addison trading places with friends and finishing first" className="contents">
               <div aria-hidden className="contents">
-                <div
-                  aria-hidden
-                  className="absolute top-[120px] left-1/2 w-[760px] -translate-x-1/2 overflow-hidden [mask-image:radial-gradient(closest-side,#000_30%,transparent)]"
-                >
-                  <div className="mx-auto grid w-max auto-cols-[22px] grid-flow-col grid-rows-[repeat(14,22px)] gap-1.5 opacity-55">
-                    {FIELD.map((c, i) => (
-                      <span key={i} className="size-[22px] rounded-[5px]" style={{ background: c }} />
-                    ))}
-                  </div>
-                </div>
+                <HeroBackdrop />
                 <div className="font-mac relative mb-2 ml-3.5 self-start text-[17px]">
                   <HeroRankPill />
                 </div>
@@ -106,6 +85,8 @@ export default function Home() {
             <DemoMotionToggle />
           </div>
         </main>
+
+        <ContributionStrip />
 
         {/* FEATURES */}
         <section aria-label="Features" className="mx-auto w-full max-w-[1240px] pt-6 pb-24">

@@ -15,10 +15,13 @@ npm run typecheck
 
 | Path | What it is |
 |---|---|
-| `app/page.tsx` | The page: hero + four feature tiles |
+| `app/page.tsx` | The page: hero, contribution strip, four feature tiles |
+| `components/HeroBackdrop.tsx` | The lime spotlight behind the hero popover |
+| `components/ContributionStrip.tsx` | Full-bleed contribution calendar between the hero and the tiles; sweeps in on first view |
 | `components/MacUI.tsx` | The app's native UI rebuilt in HTML (popover, notifications, menu bar, window switcher, People window) |
 | `components/useLoop.tsx` | One shared clock so every demo tells the same story; reduced-motion users get the final frame |
 | `lib/board.ts` | Demo data: people, per-frame counts, the app's real notification copy, download links |
+| `lib/contributions.ts` | Seeded, decorative contribution data for the strip and the spotlight dust |
 | `lib/glyph.ts` | The GitHub-cat trophy mark (from `MenuBarIcon.pdf`) as an SVG path |
 | `public/avatars/` | GitHub avatars for the demo board (public use approved by the owner) |
 | `app/icon.svg`, `app/opengraph-image.tsx` | Favicon and social card, generated at build |

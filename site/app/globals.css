@@ -64,6 +64,114 @@
   }
 }
 
+/* ── Contribution strip ─────────────────────────────────────────────── */
+.cs-strip[data-state="armed"] .cs-cell {
+  opacity: 0.12;
+  scale: 0.55;
+}
+.cs-strip[data-state="lit"] .cs-cell {
+  animation: cs-light 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  animation-delay: calc(var(--w) * 14ms + var(--d) * 22ms);
+}
+@keyframes cs-light {
+  from {
+    opacity: 0.12;
+    scale: 0.55;
+  }
+}
+
+/* ── Hero spotlight ─────────────────────────────────────────────────── */
+.bd-spot i {
+  position: absolute;
+  left: 50%;
+}
+.bd-spot-lamp,
+.bd-spot-floor {
+  translate: -50% -50%;
+  border-radius: 50%;
+}
+.bd-spot-beam {
+  top: -6%;
+  width: 1100px;
+  height: 1000px;
+  translate: -50% 0;
+  transform-origin: 50% 0;
+  background: conic-gradient(
+    from 146deg at 50% 0%,
+    transparent 0deg,
+    rgb(200 255 46 / 0.06) 8deg,
+    rgb(200 255 46 / 0.22) 22deg,
+    rgb(200 255 46 / 0.3) 34deg,
+    rgb(200 255 46 / 0.22) 46deg,
+    rgb(200 255 46 / 0.06) 60deg,
+    transparent 68deg
+  );
+  mask: linear-gradient(#000, rgb(0 0 0 / 0.6) 55%, transparent 82%);
+  animation: bd-sway 10s ease-in-out infinite alternate;
+}
+.bd-spot-beam-core {
+  background: conic-gradient(
+    from 166deg at 50% 0%,
+    transparent 0deg,
+    rgb(220 255 120 / 0.2) 14deg,
+    transparent 28deg
+  );
+  animation-duration: 13s;
+}
+.bd-spot-lamp {
+  top: -6%;
+  width: 260px;
+  height: 70px;
+  background: radial-gradient(closest-side, rgb(235 255 170 / 0.75), rgb(200 255 46 / 0.2) 50%, transparent);
+}
+.bd-spot-floor {
+  top: 90%;
+  width: 700px;
+  height: 150px;
+  background: radial-gradient(closest-side, rgb(200 255 46 / 0.34), rgb(106 168 26 / 0.14) 50%, transparent);
+  animation: bd-breathe 7s ease-in-out infinite alternate;
+}
+.bd-spot-dust {
+  position: absolute;
+  border-radius: 50%;
+  background: #e8ffb0;
+  box-shadow: 0 0 6px rgb(200 255 46 / 0.8);
+  animation: bd-dust linear infinite;
+}
+
+@keyframes bd-sway {
+  from {
+    rotate: -4deg;
+  }
+  to {
+    rotate: 4deg;
+  }
+}
+@keyframes bd-breathe {
+  from {
+    scale: 0.9;
+    opacity: 0.75;
+  }
+  to {
+    scale: 1.06;
+    opacity: 1;
+  }
+}
+@keyframes bd-dust {
+  0% {
+    translate: 0 0;
+    opacity: 0;
+  }
+  20%,
+  70% {
+    opacity: 0.9;
+  }
+  100% {
+    translate: 18px -90px;
+    opacity: 0;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
