@@ -61,10 +61,10 @@ export default function Home() {
             </h1>
             <div className="flex flex-col gap-3">
               <p className="max-w-[34rem] text-xl leading-relaxed text-soft">
-                A GitHub leaderboard for your Mac’s menu bar. Sign in with GitHub to
+                A GitHub leaderboard for your Mac’s menu bar. Connect GitHub to
                 automatically add friends you follow and teammates from your organizations.
               </p>
-              <p className="text-sm text-muted">Reads contribution counts, never your code.</p>
+              <p className="text-sm text-muted">No sign-up. Reads contribution counts, never your code.</p>
             </div>
             <div className="flex flex-col items-start gap-3.5">
               <AnalyticsLink
@@ -152,7 +152,7 @@ export default function Home() {
                   No invites needed.
                 </h2>
                 <p className="text-base leading-normal text-muted">
-                  Your friends don’t need Committed installed. Sign in with GitHub to find
+                  Your friends don’t need Committed installed. Connect GitHub to find
                   people you follow and teammates from your organizations, then choose who stays on your board.
                 </p>
               </div>

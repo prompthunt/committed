@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// First-run gate: "Sign in with GitHub" → device-flow code → polling. Opens the
+/// First-run gate: "Connect GitHub" → device-flow code → polling. Opens the
 /// verification URL automatically when the code appears, with a manual button +
 /// copy-to-clipboard as backup.
 struct SignInView: View {
@@ -29,9 +29,13 @@ struct SignInView: View {
                 Button {
                     Task { await auth.signIn() }
                 } label: {
-                    GitHubButtonLabel(title: "Sign in with GitHub")
+                    GitHubButtonLabel(title: "Connect GitHub")
                 }
                 .buttonStyle(GitHubButtonStyle())
+                Text("Read-only access to your profile, who you follow, and your organizations. Committed never sees your code.")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
 
             case .connecting(let userCode, let verificationURL):
                 Text("Enter this code at github.com/login/device")

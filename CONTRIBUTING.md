@@ -18,8 +18,8 @@ xcodebuild -scheme CommitStandings -configuration Debug \
 
 Xcode resolves Sparkle through Swift Package Manager. No Apple distribution
 certificate, notarization credential, or GitHub token is required to build and run
-the tests. The test host uses in-memory credentials and does not sign in to GitHub.
-Using the app's live board requires signing in with your own GitHub account.
+the tests. The test host uses in-memory credentials and does not connect to GitHub.
+Using the app's live board requires connecting your own GitHub account.
 
 The checked-in `CommitStandings.xcodeproj` is ready to open in Xcode. Keep it at
 the repository root. `project.yml` is the optional XcodeGen specification; it reads

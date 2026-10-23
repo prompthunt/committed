@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// The ⋯ overflow, rendered inline as a grouped card: app actions (About / Refresh / Check for
-/// Updates / Automatic Updates / Launch at Login), then People, then account (Log out / Quit).
+/// Updates / Automatic Updates / Launch at Login), then People, then account (Disconnect GitHub / Quit).
 /// Tapping an action dismisses via `close`; the preference toggles leave it open.
 struct OverflowMenu: View {
     @Environment(StandingsStore.self) private var store
@@ -49,7 +49,7 @@ struct OverflowMenu: View {
             // Account + quit
             MenuDivider()
             if auth.isSignedIn {
-                MenuRow(title: "Log out", action: act { auth.signOut() })
+                MenuRow(title: "Disconnect GitHub", action: act { auth.signOut() })
             }
             MenuRow(title: "Quit \(HeaderBar.appName)", action: act { MacSystem.quit() })
         }

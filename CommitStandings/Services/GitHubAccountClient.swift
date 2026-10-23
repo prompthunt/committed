@@ -11,7 +11,7 @@ struct GitHubAccountClient: Sendable {
         case invalidResponse
         var errorDescription: String? {
             switch self {
-            case .response(401): return "Your GitHub session expired. Sign out and sign in again."
+            case .response(401): return "Your GitHub connection expired. Disconnect GitHub, then connect again."
             case .response(403): return "GitHub denied access. Check organization access or try again later."
             case .response(429): return "GitHub is limiting requests. Try again later."
             case .response(let status): return "GitHub couldn’t load your people (HTTP \(status))."
