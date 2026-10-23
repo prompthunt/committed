@@ -5,8 +5,12 @@ verification commands are in [README.md](README.md).
 
 ## Design decisions
 
-- One hero and a four-card feature grid. Keep the page short; do not add sections,
-  pricing, testimonials, or extra copy without agreement.
+- One hero, a contribution strip, and a four-card feature grid. Keep the page short;
+  do not add sections, pricing, testimonials, or extra copy without agreement.
+- The hero popover sits under a lime spotlight: a beam from above, a pool of light
+  below, and drifting dust (`components/HeroBackdrop.tsx`, `.bd-spot-*` in
+  `globals.css`). The contribution squares live in the full-bleed strip that
+  separates the hero from the feature grid (`components/ContributionStrip.tsx`).
 - Lime `#C8FF2E` on near-black `#050505`, white type. Contribution-square ramp:
   `#14170F → #1D2E0E → #355C12 → #6AA81A → #C8FF2E`.
 - Inter Tight for marketing text; native system typography inside the app mockups.

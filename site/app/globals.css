@@ -80,110 +80,21 @@
   }
 }
 
-/* ── Hero backdrops (design exploration; see components/HeroBackdrop.tsx) ── */
-.bd-aura i,
-.bd-spot i,
-.bd-track i {
+/* ── Hero spotlight ─────────────────────────────────────────────────── */
+.bd-spot i {
   position: absolute;
   left: 50%;
-  top: 50%;
+}
+.bd-spot-lamp,
+.bd-spot-floor {
   translate: -50% -50%;
   border-radius: 50%;
 }
-
-/* 1 · Aura */
-.bd-aura-core {
-  width: 820px;
-  height: 900px;
-  background: radial-gradient(
-    closest-side,
-    rgb(200 255 46 / 0.62),
-    rgb(139 196 26 / 0.36) 36%,
-    rgb(53 92 18 / 0.22) 62%,
-    transparent
-  );
-  animation: bd-breathe 7s ease-in-out infinite alternate;
-}
-.bd-aura-rays {
-  width: 900px;
-  height: 900px;
-  background: conic-gradient(
-    from 0deg,
-    transparent,
-    rgb(200 255 46 / 0.5) 40deg,
-    transparent 95deg,
-    rgb(106 168 26 / 0.45) 160deg,
-    transparent 215deg,
-    rgb(200 255 46 / 0.4) 275deg,
-    transparent 320deg,
-    rgb(106 168 26 / 0.3) 345deg,
-    transparent
-  );
-  mask: radial-gradient(closest-side, transparent 20%, #000 42%, transparent 82%);
-  animation: bd-spin 40s linear infinite;
-}
-.bd-aura-flare {
-  width: 280px;
-  height: 280px;
-  background: radial-gradient(closest-side, rgb(220 255 120 / 0.45), transparent);
-}
-.bd-aura-flare-a {
-  left: 30%;
-  top: 26%;
-  animation: bd-drift-a 11s ease-in-out infinite alternate;
-}
-.bd-aura-flare-b {
-  left: 72%;
-  top: 74%;
-  width: 340px;
-  height: 340px;
-  animation: bd-drift-b 13s ease-in-out infinite alternate;
-}
-
-.bd-aura-rim {
-  top: calc(50% + 4px) !important;
-  width: 336px;
-  height: 490px;
-  border-radius: 24px !important;
-  box-shadow:
-    0 0 24px 2px rgb(220 255 120 / 0.55),
-    0 0 90px 18px rgb(200 255 46 / 0.32),
-    0 0 220px 60px rgb(106 168 26 / 0.28);
-  animation: bd-glow 7s ease-in-out infinite alternate;
-}
-
-/* 2 · Mesh */
-.bd-mesh {
-  isolation: isolate;
-  mask: radial-gradient(closest-side, #000 30%, transparent);
-}
-.bd-mesh i {
-  position: absolute;
-  left: var(--x);
-  top: var(--y);
-  width: var(--s);
-  height: var(--s);
-  translate: -50% -50%;
-  border-radius: 50%;
-  background: radial-gradient(closest-side, var(--c), transparent);
-  mix-blend-mode: screen;
-  animation: 16s ease-in-out infinite alternate;
-}
-.bd-grain {
-  position: absolute;
-  inset: 0;
-  mix-blend-mode: overlay;
-  opacity: 0.55;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .5 0 0 0 0 .5 0 0 0 0 .5 0 0 0 1.6 -.3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-}
-
-/* 3 · Spotlight */
 .bd-spot-beam {
-  top: -6% !important;
+  top: -6%;
   width: 1100px;
   height: 1000px;
-  translate: -50% 0 !important;
-  border-radius: 0 !important;
+  translate: -50% 0;
   transform-origin: 50% 0;
   background: conic-gradient(
     from 146deg at 50% 0%,
@@ -208,13 +119,13 @@
   animation-duration: 13s;
 }
 .bd-spot-lamp {
-  top: -6% !important;
+  top: -6%;
   width: 260px;
   height: 70px;
   background: radial-gradient(closest-side, rgb(235 255 170 / 0.75), rgb(200 255 46 / 0.2) 50%, transparent);
 }
 .bd-spot-floor {
-  top: 90% !important;
+  top: 90%;
   width: 700px;
   height: 150px;
   background: radial-gradient(closest-side, rgb(200 255 46 / 0.34), rgb(106 168 26 / 0.14) 50%, transparent);
@@ -228,44 +139,14 @@
   animation: bd-dust linear infinite;
 }
 
-/* 4 · Track */
-.bd-track {
-  mask: radial-gradient(closest-side, #000 55%, transparent);
+@keyframes bd-sway {
+  from {
+    rotate: -4deg;
+  }
+  to {
+    rotate: 4deg;
+  }
 }
-.bd-track-glow {
-  width: 520px;
-  height: 660px;
-  top: calc(50% + 20px) !important;
-  border-radius: 40% !important;
-  background: radial-gradient(closest-side, rgb(200 255 46 / 0.24), transparent);
-}
-.bd-track-lane {
-  animation: bd-ripple 5s ease-in-out infinite;
-}
-.bd-track-racer {
-  position: absolute;
-  left: 0;
-  top: 0;
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: var(--color-sq-3);
-  box-shadow: 0 0 10px rgb(106 168 26 / 0.6);
-  offset-rotate: 0deg;
-  animation: bd-lap linear infinite;
-}
-.bd-track-racer-lead {
-  width: 9px;
-  height: 9px;
-  background: var(--color-lime);
-  box-shadow: 0 0 0 3px rgb(200 255 46 / 0.18), 0 0 18px 4px rgb(200 255 46 / 0.55);
-}
-
-/* 5 · Aurora */
-.bd-aurora {
-  mask: radial-gradient(closest-side, #000 60%, transparent);
-}
-
 @keyframes bd-breathe {
   from {
     scale: 0.9;
@@ -274,40 +155,6 @@
   to {
     scale: 1.06;
     opacity: 1;
-  }
-}
-@keyframes bd-glow {
-  from {
-    opacity: 0.65;
-  }
-}
-@keyframes bd-spin {
-  to {
-    rotate: 360deg;
-  }
-}
-@keyframes bd-drift-a {
-  to {
-    translate: calc(-50% + 70px) calc(-50% + 50px);
-  }
-}
-@keyframes bd-drift-b {
-  to {
-    translate: calc(-50% - 60px) calc(-50% - 70px);
-  }
-}
-@keyframes bd-drift-c {
-  to {
-    translate: calc(-50% - 80px) calc(-50% + 40px);
-    scale: 1.15;
-  }
-}
-@keyframes bd-sway {
-  from {
-    rotate: -4deg;
-  }
-  to {
-    rotate: 4deg;
   }
 }
 @keyframes bd-dust {
@@ -322,23 +169,6 @@
   100% {
     translate: 18px -90px;
     opacity: 0;
-  }
-}
-@keyframes bd-ripple {
-  0%,
-  100% {
-    opacity: 0.55;
-  }
-  12% {
-    opacity: 1;
-  }
-}
-@keyframes bd-lap {
-  from {
-    offset-distance: 0%;
-  }
-  to {
-    offset-distance: 100%;
   }
 }
 
