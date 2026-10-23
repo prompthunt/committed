@@ -54,7 +54,7 @@ final class AuthModel {
         errorMessage = nil
         switch await auth.requestDeviceCode() {
         case .failure(let error):
-            errorMessage = "Couldn’t start sign-in: \(message(for: error))"
+            errorMessage = "Couldn’t connect to GitHub: \(message(for: error))"
         case .success(let code):
             phase = .connecting(userCode: code.userCode, verificationURL: code.verificationUri)
             switch await auth.pollForToken(deviceCode: code.deviceCode, interval: code.interval, expiresIn: code.expiresIn) {
@@ -97,9 +97,9 @@ final class AuthModel {
         switch error {
         case .network(let m): return "Network error: \(m)"
         case .parseFailed(let m): return "Unexpected response: \(m)"
-        case .denied: return "Sign-in was denied."
+        case .denied: return "The GitHub connection was declined."
         case .expired: return "The code expired. Try again."
-        case .unexpected(let m): return "Sign-in failed: \(m)"
+        case .unexpected(let m): return "Couldn’t connect to GitHub: \(m)"
         }
     }
 }
