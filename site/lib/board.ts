@@ -6,6 +6,7 @@ export const DOWNLOAD_URL =
   "https://github.com/prompthunt/commit-standings-releases/releases/latest/download/Committed.dmg";
 export const RELEASES_URL =
   "https://github.com/prompthunt/commit-standings-releases/releases/latest";
+export const SOURCE_URL = "https://github.com/prompthunt/committed";
 
 export const ME = { name: "Addison", handle: "addisonk", avatar: "/avatars/addisonk.png" };
 

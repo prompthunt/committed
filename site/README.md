@@ -44,8 +44,34 @@ www to the apex. Hosting credentials and account administration notes stay outsi
 this repository.
 
 Cloudflare Web Analytics still uses the existing property. The root layout now loads
-its verified public beacon explicitly because Pages no longer injects it. No additional
-analytics property or credentials are needed.
+its verified public beacon explicitly because Pages no longer injects it.
+
+## Download measurement
+
+PostHog measures page views, `download_clicked` (hero/footer placement), and
+`github_clicked` (header). Set `NEXT_PUBLIC_POSTHOG_KEY` to the project's public,
+write-only token in Vercel's **production** environment before building. Never use
+a personal API key. Contributor builds work without it; localhost and preview
+hostnames never send events. See `.env.example`.
+
+Enable **Cookieless server hash mode → Stateless** in the PostHog project's web
+analytics settings. The SDK uses cookieless mode with no person profiles, session
+recording, autocapture, heatmaps, or surveys. Links remain ordinary anchors and
+work with JavaScript or analytics blocked; click events use `sendBeacon` without
+delaying navigation.
+
+Button clicks are download intent, not completed downloads or installations.
+GitHub separately reports `download_count` for each release asset. To inspect all
+published releases (including the stable and versioned DMGs):
+
+```sh
+gh api --paginate repos/prompthunt/commit-standings-releases/releases \
+  --jq '.[] | select(.draft == false) | .tag_name as $tag | .assets[] | select(.name | endswith(".dmg")) | [$tag, .name, .download_count] | @tsv'
+```
+
+DMG counts include repeat downloads and verification requests. Sparkle `.app.zip`
+downloads are updates and should be reported separately. For launch attribution,
+use campaign links such as `?utm_source=x&utm_medium=social&utm_campaign=launch`.
 
 ## Demo snapshot
 
