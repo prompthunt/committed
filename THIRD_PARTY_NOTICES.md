@@ -7,7 +7,8 @@ documentation. Third-party dependencies and assets retain their respective terms
   [license](https://github.com/sparkle-project/Sparkle/blob/2.x/LICENSE). Swift Package
   Manager retrieves it; the release packaging includes the framework's resources.
 - Inter Tight fonts are distributed under the SIL Open Font License, included at
-  [site/app/fonts/OFL.txt](site/app/fonts/OFL.txt).
+  [site/app/fonts/OFL.txt](site/app/fonts/OFL.txt) and, for the launch film's variable
+  font, [video/launch/assets/fonts/OFL.txt](video/launch/assets/fonts/OFL.txt).
 - GitHub marks and GitHub profile avatars belong to their respective owners. Their
   inclusion is not an endorsement and does not grant trademark or image rights.
   The root MIT license does not relicense those third-party images.
