@@ -1,0 +1,1672 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <title>Committed — launch film</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <script src="timing.js"></script>
+    <style>
+      @font-face {
+        font-family: "Inter Tight";
+        src: url("assets/fonts/InterTight-Variable.ttf") format("truetype");
+        font-weight: 100 900;
+        font-display: block;
+      }
+      :root {
+        --ink: #050505;
+        --lime: #c8ff2e;
+        --muted: #8e9288;
+        --soft: #d6d9d0;
+        --sq0: #15180f;
+        --sq1: #1d2e0e;
+        --sq2: #355c12;
+        --sq3: #6aa81a;
+        --mac-panel: #111111;
+        --mac-border: #3a3a3c;
+        --mac-divider: #262628;
+        --mac-control: #2c2c2e;
+        --mac-gray: #8e8e93;
+        --mac-label: #e5e5ea;
+        --mac-blue: #2f6ce8;
+        --mac-you: #121a28;
+        --mac-you-border: #1f3a5f;
+        --mac-you-text: #4a90ff;
+        --mac-green: #30d158;
+        --display: "Inter Tight", system-ui, sans-serif;
+        --mac: system-ui, sans-serif;
+        --mono: ui-monospace, monospace;
+      }
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        width: 1920px;
+        height: 1080px;
+        overflow: hidden;
+        background: var(--ink);
+        color: #fff;
+        -webkit-font-smoothing: antialiased;
+      }
+      #root {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        font-family: var(--display);
+      }
+      #stage,
+      #grain,
+      #vignette {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+      }
+      #grain {
+        opacity: 0.07;
+        mix-blend-mode: overlay;
+        background-size: 256px 256px;
+      }
+      #vignette {
+        background: radial-gradient(ellipse at 50% 50%, transparent 58%, rgba(0, 0, 0, 0.5) 100%);
+      }
+      .clip {
+        position: absolute;
+        inset: 0;
+        background: transparent;
+      }
+      .lime {
+        color: var(--lime);
+      }
+      svg.glyph {
+        display: block;
+        fill: currentColor;
+      }
+
+      /* ---------- 01 · the graph ---------- */
+      #headline {
+        position: absolute;
+        left: 138px;
+        top: 168px;
+        font-size: 168px;
+        line-height: 0.95;
+        font-weight: 780;
+        letter-spacing: -0.055em;
+      }
+      #headline .line {
+        display: block;
+        white-space: nowrap;
+      }
+      #headline .mask {
+        display: inline-block;
+        overflow: hidden;
+        vertical-align: top;
+        padding: 0 0.04em 0.06em 0;
+      }
+      #headline .w,
+      #headline .lt {
+        display: inline-block;
+      }
+
+      /* ---------- 02 · the board ---------- */
+      #desk {
+        position: absolute;
+        inset: 0;
+      }
+      .ui {
+        font-family: var(--mac);
+        zoom: 1.8;
+      }
+      #menubar {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 1067px;
+        height: 30px;
+        background: rgba(255, 255, 255, 0.07);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        color: var(--mac-label);
+        font-size: 13px;
+      }
+      #menubar > * {
+        position: absolute;
+      }
+      #pill {
+        left: 840px;
+        top: 3px;
+        width: 62px;
+        height: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 5px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.2);
+        color: #fff;
+        font-weight: 600;
+        font-size: 13px;
+      }
+      #pill svg {
+        width: 14px;
+        height: 14px;
+      }
+      #mb-wifi {
+        left: 911px;
+        top: 8px;
+      }
+      #mb-battery {
+        left: 940px;
+        top: 9px;
+      }
+      #mb-clock {
+        left: 974px;
+        top: 0;
+        line-height: 30px;
+      }
+
+      #rank-block {
+        position: absolute;
+        left: 112px;
+        top: 150px;
+        width: 1000px;
+      }
+      #kicker {
+        font-size: 46px;
+        font-weight: 620;
+        letter-spacing: -0.03em;
+        color: var(--soft);
+      }
+      #numeral {
+        display: flex;
+        align-items: flex-start;
+        height: 600px;
+        margin-top: 4px;
+      }
+      #num-hash {
+        font-size: 300px;
+        line-height: 1;
+        font-weight: 760;
+        letter-spacing: -0.06em;
+        color: rgba(200, 255, 46, 0.5);
+        margin-top: 92px;
+        margin-right: 6px;
+      }
+      #num-window {
+        position: relative;
+        width: 440px;
+        height: 600px;
+        overflow: hidden;
+      }
+      #num-entry,
+      #num-col {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+      }
+      #num-entry {
+        height: 600px;
+      }
+      #num-col span {
+        display: block;
+        height: 600px;
+        font-size: 640px;
+        line-height: 600px;
+        font-weight: 800;
+        letter-spacing: -0.07em;
+        font-variant-numeric: tabular-nums;
+      }
+      #rank-label {
+        margin-top: 10px;
+        margin-left: 14px;
+        font-family: var(--mono);
+        font-size: 22px;
+        letter-spacing: 0.2em;
+        color: var(--muted);
+      }
+
+      #pop-wrap {
+        position: absolute;
+        left: 1262px;
+        top: 66px;
+        width: 612px;
+      }
+      #popover {
+        width: 340px;
+        overflow: hidden;
+        border-radius: 22px;
+        border: 1px solid var(--mac-border);
+        background: var(--mac-panel);
+        box-shadow:
+          0 0 0 0.5px rgba(0, 0, 0, 0.8),
+          0 40px 90px -20px rgba(0, 0, 0, 0.95);
+      }
+      .pop-head {
+        display: flex;
+        height: 44px;
+        align-items: center;
+        justify-content: space-between;
+        border-bottom: 1px solid var(--mac-divider);
+        padding: 0 16px;
+        font-size: 15px;
+        font-weight: 700;
+      }
+      .dots {
+        display: flex;
+        gap: 3px;
+      }
+      .dots i {
+        display: block;
+        width: 3px;
+        height: 3px;
+        border-radius: 50%;
+        background: #98989d;
+      }
+      .pop-body {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        padding: 10px 12px 12px;
+      }
+      .synced {
+        padding: 0 4px;
+        font-size: 11px;
+        color: var(--mac-gray);
+      }
+      .segs {
+        display: flex;
+        align-items: center;
+        align-self: center;
+        border-radius: 8px;
+        background: var(--mac-control);
+        padding: 2px;
+        font-size: 13px;
+        color: var(--mac-label);
+      }
+      .segs span {
+        padding: 4px 14px;
+      }
+      .segs .on {
+        border-radius: 6px;
+        background: var(--mac-blue);
+        color: #fff;
+      }
+      .segs .rule {
+        width: 1px;
+        height: 12px;
+        padding: 0;
+        background: #48484a;
+      }
+      .you-card {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        border-radius: 14px;
+        border: 1px solid var(--mac-you-border);
+        background: var(--mac-you);
+        padding: 14px;
+      }
+      .you-card img {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+      }
+      .you-name {
+        display: flex;
+        flex: 1;
+        flex-direction: column;
+        font-size: 14px;
+        line-height: 1.25;
+      }
+      .you-name b {
+        font-weight: 700;
+      }
+      .you-name span {
+        font-weight: 600;
+        color: var(--mac-gray);
+      }
+      .you-count {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+      }
+      #you-count {
+        font-family: var(--display);
+        font-size: 34px;
+        line-height: 1;
+        font-weight: 800;
+        letter-spacing: -0.04em;
+        font-variant-numeric: tabular-nums;
+      }
+      .caps {
+        margin-top: 4px;
+        font-size: 8px;
+        font-weight: 600;
+        letter-spacing: 0.14em;
+        color: #aeaeb2;
+      }
+      .tracking {
+        display: flex;
+        justify-content: space-between;
+        padding: 2px 8px 0;
+        font-size: 11px;
+        color: var(--mac-gray);
+      }
+      #rows {
+        position: relative;
+        height: 240px;
+        list-style: none;
+      }
+      #rows li {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 0;
+        height: 38px;
+      }
+      .row-in {
+        display: flex;
+        height: 38px;
+        align-items: center;
+        gap: 10px;
+        border-radius: 10px;
+        border: 1px solid transparent;
+        padding: 0 12px 0 8px;
+        font-size: 14px;
+      }
+      .row-in.me {
+        border-color: var(--mac-you-border);
+        background: var(--mac-you);
+      }
+      .r-rank {
+        width: 26px;
+        text-align: right;
+        font-size: 12px;
+        color: var(--mac-gray);
+      }
+      .row-in img {
+        width: 26px;
+        height: 26px;
+        border-radius: 50%;
+      }
+      .r-name {
+        display: flex;
+        flex: 1;
+        align-items: center;
+        gap: 6px;
+        font-weight: 500;
+      }
+      .me .r-name {
+        font-weight: 700;
+      }
+      .badge {
+        border-radius: 999px;
+        background: var(--mac-you-border);
+        padding: 1px 7px;
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--mac-you-text);
+      }
+      .r-chev {
+        width: 14px;
+        height: 14px;
+        margin-right: 10px;
+        fill: none;
+        stroke-width: 2.4;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+      .r-count {
+        width: 32px;
+        text-align: right;
+        font-weight: 600;
+        font-variant-numeric: tabular-nums;
+      }
+      .r-sq {
+        display: grid;
+        grid-template-columns: 5px 5px;
+        gap: 1.5px;
+        margin-left: 4px;
+      }
+      .r-sq i {
+        display: block;
+        width: 5px;
+        height: 5px;
+        border-radius: 1px;
+      }
+      #cursor {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 34px;
+        height: 50px;
+      }
+
+      /* ---------- 03 · the nudge ---------- */
+      .marquee {
+        position: absolute;
+        left: 0;
+        white-space: nowrap;
+        font-size: 230px;
+        line-height: 1;
+        font-weight: 820;
+        letter-spacing: -0.05em;
+      }
+      #mq1 {
+        top: 40px;
+        color: transparent;
+        -webkit-text-stroke: 2px rgba(200, 255, 46, 0.42);
+      }
+      #mq2 {
+        top: 796px;
+        color: #1d2e0e;
+      }
+      #notes {
+        position: absolute;
+        left: 518px;
+        top: 318px;
+        width: 884px;
+        height: 340px;
+      }
+      .note-wrap {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 884px;
+      }
+      .note {
+        zoom: 2.6;
+        display: flex;
+        gap: 12px;
+        width: 340px;
+        border-radius: 18px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        background: rgba(30, 30, 32, 0.97);
+        padding: 12px 14px;
+        box-shadow: 0 18px 40px -16px rgba(0, 0, 0, 0.7);
+      }
+      #note-b .note {
+        box-shadow:
+          0 18px 40px -16px rgba(0, 0, 0, 0.7),
+          0 0 60px -12px rgba(200, 255, 46, 0.35);
+      }
+      .note-icon {
+        display: flex;
+        flex: none;
+        width: 34px;
+        height: 34px;
+        align-items: center;
+        justify-content: center;
+        border-radius: 9px;
+        background: linear-gradient(#1c1e1c, #070807);
+        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+        color: var(--lime);
+      }
+      .note-icon svg {
+        width: 21px;
+        height: 21px;
+      }
+      .note-text {
+        display: flex;
+        min-width: 0;
+        flex: 1;
+        flex-direction: column;
+        gap: 1px;
+      }
+      .note-title {
+        display: flex;
+        justify-content: space-between;
+        gap: 8px;
+        font-size: 13px;
+        font-weight: 700;
+      }
+      .note-title small {
+        font-size: 11px;
+        font-weight: 400;
+        color: var(--mac-gray);
+      }
+      .note-body {
+        font-size: 13px;
+        color: #c7c7cc;
+      }
+
+      /* ---------- 04 · any window ---------- */
+      #seg-wrap {
+        position: absolute;
+        left: 0;
+        top: 128px;
+        width: 1920px;
+        display: flex;
+        justify-content: center;
+      }
+      .wseg {
+        zoom: 2.6;
+        position: relative;
+        display: flex;
+        border-radius: 8px;
+        background: var(--mac-control);
+        padding: 2px;
+        font-size: 13px;
+      }
+      .wseg span {
+        position: relative;
+        width: 86px;
+        line-height: 26px;
+        text-align: center;
+      }
+      #wseg-hl {
+        position: absolute;
+        left: 2px;
+        top: 2px;
+        width: 86px;
+        height: 26px;
+        border-radius: 6px;
+        background: var(--lime);
+      }
+      #count-wrap {
+        position: absolute;
+        left: 0;
+        top: 300px;
+        width: 1920px;
+        text-align: center;
+      }
+      #count {
+        font-size: 330px;
+        line-height: 1;
+        font-weight: 800;
+        letter-spacing: -0.05em;
+        font-variant-numeric: tabular-nums;
+      }
+      #count-meta {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 18px;
+        margin-top: 36px;
+        font-family: var(--mono);
+        font-size: 24px;
+        letter-spacing: 0.2em;
+        color: var(--muted);
+      }
+      #count-meta img {
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+      }
+      #count-meta b {
+        font-weight: 600;
+        color: var(--soft);
+      }
+      #range-label {
+        position: absolute;
+        right: 270px;
+        top: 728px;
+        font-family: var(--mono);
+        font-size: 22px;
+        letter-spacing: 0.2em;
+        color: var(--lime);
+      }
+
+      /* ---------- 05 · the mark ---------- */
+      #icon {
+        position: absolute;
+        left: 508.5px;
+        top: 68.5px;
+        width: 903px;
+        height: 903px;
+        opacity: 0;
+      }
+      #tile {
+        position: absolute;
+        inset: 0;
+        overflow: hidden;
+        border-radius: 208px;
+        background: linear-gradient(#1c1e1c, #070807);
+        box-shadow:
+          inset 0 3px 0 rgba(255, 255, 255, 0.16),
+          inset 0 0 0 3px rgba(255, 255, 255, 0.07),
+          0 80px 220px -60px rgba(200, 255, 46, 0.45);
+      }
+      #tile-sheen {
+        position: absolute;
+        top: -20%;
+        left: 0;
+        width: 40%;
+        height: 140%;
+        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.14), transparent);
+      }
+      #icon-glyph {
+        position: absolute;
+        left: 171.5px;
+        top: 171.5px;
+        width: 560px;
+        height: 560px;
+        color: var(--lime);
+        filter: drop-shadow(0 0 48px rgba(200, 255, 46, 0.5));
+      }
+      #wordmark {
+        position: absolute;
+        left: 0;
+        top: 438px;
+        width: 1920px;
+        text-align: center;
+        font-size: 176px;
+        line-height: 1;
+        font-weight: 780;
+        letter-spacing: -0.055em;
+      }
+      #wordmark .mask {
+        display: inline-block;
+        overflow: hidden;
+        padding: 0 0.02em 0.05em;
+      }
+      #wordmark .ch {
+        display: inline-block;
+      }
+      #tagline {
+        position: absolute;
+        left: 0;
+        top: 644px;
+        width: 1920px;
+        text-align: center;
+        font-size: 56px;
+        font-weight: 600;
+        letter-spacing: -0.035em;
+        color: var(--soft);
+      }
+      #tagline .tw {
+        display: inline-block;
+      }
+      #cta {
+        position: absolute;
+        left: 0;
+        top: 768px;
+        width: 1920px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 36px;
+      }
+      #btn {
+        position: relative;
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        overflow: hidden;
+        height: 84px;
+        border-radius: 20px;
+        background: var(--lime);
+        padding: 0 38px;
+        font-size: 33px;
+        font-weight: 640;
+        letter-spacing: -0.02em;
+        color: var(--ink);
+      }
+      #btn-sheen {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 30%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.55), transparent);
+      }
+      #url {
+        font-size: 36px;
+        font-weight: 600;
+        letter-spacing: -0.02em;
+        color: #fff;
+      }
+      #req {
+        position: absolute;
+        left: 0;
+        top: 884px;
+        width: 1920px;
+        text-align: center;
+        font-family: var(--mono);
+        font-size: 22px;
+        letter-spacing: 0.16em;
+        color: var(--muted);
+      }
+
+      /* ---------- HUD ---------- */
+      #hud-in {
+        position: absolute;
+        inset: 0;
+      }
+      #chapter {
+        position: absolute;
+        left: 72px;
+        top: 1004px;
+        display: flex;
+        gap: 18px;
+        font-family: var(--mono);
+        font-size: 20px;
+        letter-spacing: 0.16em;
+        color: var(--muted);
+        white-space: pre;
+      }
+      #ch-num {
+        color: var(--lime);
+      }
+      #ticks {
+        position: absolute;
+        right: 72px;
+        top: 1006px;
+        display: flex;
+        gap: 6px;
+      }
+      #ticks i {
+        display: block;
+        width: 14px;
+        height: 14px;
+        border-radius: 3px;
+        background: var(--sq0);
+      }
+    </style>
+  </head>
+  <body>
+    <svg width="0" height="0" style="position: absolute" aria-hidden="true">
+      <defs>
+        <symbol id="glyph" viewBox="0 0 16 16">
+          <path
+            d="M 0.945 3.391 C 1.309 3.184 1.699 3.16 2.09 3.152 C 2.359 3.148 2.629 3.152 2.895 3.148 C 3.066 3.148 3.082 3.125 3.062 2.961 C 3 2.359 3.023 1.758 3.18 1.172 C 3.266 0.848 3.551 0.672 3.879 0.746 C 4.508 0.883 5.012 1.238 5.488 1.648 C 5.508 1.668 5.531 1.684 5.543 1.703 C 5.75 2.004 6 2.02 6.348 1.918 C 7.281 1.645 8.238 1.613 9.203 1.793 C 9.477 1.848 9.746 1.914 10.008 1.996 C 10.113 2.031 10.18 2.012 10.254 1.934 C 10.695 1.453 11.219 1.082 11.824 0.84 C 12.039 0.754 12.262 0.656 12.508 0.758 C 12.68 0.824 12.793 0.938 12.855 1.105 C 12.945 1.348 12.98 1.605 13 1.863 C 13.023 2.215 13.039 2.57 12.988 2.926 C 12.957 3.137 12.977 3.148 13.191 3.152 C 13.578 3.16 13.965 3.145 14.352 3.172 C 15.027 3.215 15.68 3.73 15.887 4.379 C 16.055 4.895 16.008 5.414 15.93 5.934 C 15.832 6.57 15.602 7.16 15.262 7.711 C 14.785 8.484 14.148 9.086 13.359 9.523 C 12.438 10.035 11.441 10.293 10.391 10.371 C 9.973 10.398 9.625 10.648 9.633 11.141 C 9.637 11.574 9.594 12.008 9.707 12.43 C 9.863 13.016 10.199 13.445 10.824 13.578 C 10.973 13.613 11.129 13.605 11.277 13.648 C 11.828 13.812 12.066 14.555 11.703 14.996 C 11.555 15.176 11.359 15.246 11.129 15.246 C 9.688 15.242 8.246 15.246 6.805 15.246 C 6.199 15.246 5.598 15.246 4.996 15.246 C 4.555 15.246 4.262 15.012 4.195 14.609 C 4.129 14.207 4.371 13.793 4.75 13.664 C 4.887 13.621 5.031 13.609 5.172 13.586 C 5.609 13.512 5.938 13.27 6.152 12.883 C 6.316 12.59 6.395 12.27 6.41 11.938 C 6.426 11.672 6.414 11.402 6.414 11.133 C 6.418 10.664 6.086 10.387 5.645 10.363 C 4.465 10.297 3.363 9.977 2.363 9.344 C 1.344 8.695 0.664 7.777 0.254 6.648 C 0.016 5.988 -0.059 5.312 0.043 4.625 C 0.125 4.078 0.445 3.668 0.945 3.391 Z M 1.68 6.645 C 2.086 7.574 3.492 8.773 4.082 8.695 C 4.082 8.684 4.082 8.672 4.078 8.664 C 4.055 8.621 4.027 8.574 3.996 8.535 C 3.551 7.879 3.238 7.168 3.086 6.391 C 2.969 5.781 2.906 5.16 2.984 4.535 C 3 4.41 2.961 4.355 2.828 4.359 C 2.59 4.363 2.352 4.355 2.117 4.359 C 1.723 4.367 1.422 4.629 1.391 5 C 1.34 5.562 1.426 6.109 1.68 6.645 Z M 14.621 5.926 C 14.672 5.676 14.707 5.422 14.695 5.16 C 14.676 4.648 14.391 4.363 13.879 4.359 C 13.68 4.359 13.484 4.367 13.289 4.355 C 13.152 4.352 13.113 4.395 13.129 4.535 C 13.203 5.246 13.137 5.953 12.961 6.645 C 12.812 7.234 12.566 7.789 12.25 8.312 C 12.176 8.434 12.078 8.539 12.031 8.684 C 12.992 8.461 14.246 7.473 14.621 5.926 Z"
+          />
+        </symbol>
+      </defs>
+    </svg>
+
+    <div id="root" data-composition-id="main" data-start="0" data-duration="15" data-width="1920" data-height="1080">
+      <!-- Shared background: every contribution square in the film lives on this canvas. Not a clip. -->
+      <canvas id="stage" width="1920" height="1080"></canvas>
+
+      <!-- 01 · the graph -->
+      <section id="s1" class="clip" data-start="0" data-duration="3.29" data-track-index="1">
+        <h1 id="headline">
+          <span class="line"
+            ><span class="mask"><span class="w" id="w-who">Who</span></span>
+            <span class="mask"><span class="w" id="w-shipped">shipped</span></span></span
+          >
+          <span class="line"><span class="w" id="w-more">more</span> <span class="w lime" id="w-today"><span class="lt">t</span><span class="lt">o</span><span class="lt">d</span><span class="lt">a</span><span class="lt">y</span><span class="lt">?</span></span></span>
+        </h1>
+      </section>
+
+      <!-- 02 · the board -->
+      <section id="s2" class="clip" data-start="2.93" data-duration="5.976" data-track-index="2">
+        <div id="desk" data-layout-allow-overlap data-layout-allow-occlusion>
+          <div id="menubar" class="ui">
+            <span id="pill"
+              ><svg class="glyph" aria-hidden="true"><use href="#glyph" /></svg><span id="pill-rank">#3</span></span
+            >
+            <svg id="mb-wifi" width="17" height="13" viewBox="0 0 17 13" fill="currentColor" aria-hidden="true">
+              <path
+                d="M8.5 2.5c2.3 0 4.4.9 6 2.4l1.2-1.3C13.8 1.8 11.3.7 8.5.7S3.2 1.8 1.3 3.6l1.2 1.3c1.6-1.5 3.7-2.4 6-2.4zm0 3.5c1.4 0 2.6.5 3.6 1.4l1.2-1.3C12 4.9 10.3 4.2 8.5 4.2S5 4.9 3.7 6.1l1.2 1.3c1-.9 2.2-1.4 3.6-1.4zm0 3.4c.5 0 1 .2 1.3.5L8.5 11.3 7.2 9.9c.3-.3.8-.5 1.3-.5z"
+              />
+            </svg>
+            <svg id="mb-battery" width="24" height="12" viewBox="0 0 24 12" fill="none" aria-hidden="true">
+              <rect x=".5" y=".5" width="20" height="11" rx="3" stroke="currentColor" />
+              <rect x="2" y="2" width="14" height="8" rx="1.5" fill="currentColor" />
+              <rect x="21.5" y="4" width="1.6" height="4" rx=".8" fill="currentColor" />
+            </svg>
+            <span id="mb-clock">Wed 4:12 PM</span>
+          </div>
+
+          <div id="rank-block">
+            <div id="kicker">Your rank, live in the menu bar.</div>
+            <div id="numeral">
+              <span id="num-hash">#</span>
+              <div id="num-window">
+                <div id="num-entry">
+                  <div id="num-col" data-layout-allow-overflow><span>1</span><span>2</span><span>3</span></div>
+                </div>
+              </div>
+            </div>
+            <div id="rank-label">YOUR RANK · TODAY</div>
+          </div>
+
+          <div id="pop-wrap">
+            <div id="popover" class="ui">
+              <div class="pop-head">Committed<span class="dots"><i></i><i></i><i></i></span></div>
+              <div class="pop-body">
+                <span class="synced" data-layout-ignore>Synced 2 sec ago</span>
+                <div class="segs"><span class="on">Today</span><span>7 days</span><span class="rule"></span><span>30 days</span></div>
+                <div class="you-card">
+                  <img src="assets/avatars/addisonk.png" alt="" />
+                  <span class="you-name"><b>Addison</b><span>@addisonk</span></span>
+                  <span class="you-count"><span id="you-count">80</span><span class="caps" data-layout-ignore>CONTRIBUTIONS</span></span>
+                </div>
+                <div class="tracking" data-layout-ignore><span>Tracking 6 people</span><span>People…</span></div>
+                <ol id="rows"></ol>
+              </div>
+            </div>
+          </div>
+
+          <svg id="cursor" viewBox="0 0 17 25" aria-hidden="true">
+            <path d="M1.5 1.5v19.2l4.6-4.4 3.1 7.2 3.3-1.4-3.1-7.1h6.3z" fill="#000" stroke="#fff" stroke-width="1.4" stroke-linejoin="round" />
+          </svg>
+        </div>
+      </section>
+
+      <!-- 03 · the nudge -->
+      <section id="s3" class="clip" data-start="6.93" data-duration="1.976" data-track-index="3" data-layout-allow-overflow>
+        <div id="mq1" class="marquee" aria-hidden="true" data-layout-ignore>YOU PASSED MVANHORN ✦ YOU PASSED MVANHORN ✦ YOU PASSED MVANHORN ✦</div>
+        <div id="mq2" class="marquee" aria-hidden="true" data-layout-ignore>KEEP CLIMBING ✦ KEEP CLIMBING ✦ KEEP CLIMBING ✦ KEEP CLIMBING ✦</div>
+        <div id="notes" data-layout-allow-overlap data-layout-allow-occlusion>
+          <div class="note-wrap" id="note-a">
+            <div class="note ui">
+              <span class="note-icon"><svg class="glyph" aria-hidden="true"><use href="#glyph" /></svg></span>
+              <span class="note-text">
+                <span class="note-title"><span>😤 mvanhorn passed you</span><small>1m ago</small></span>
+                <span class="note-body">They're ahead 124–85. Time to catch up!</span>
+              </span>
+            </div>
+          </div>
+          <div class="note-wrap" id="note-b">
+            <div class="note ui">
+              <span class="note-icon"><svg class="glyph" aria-hidden="true"><use href="#glyph" /></svg></span>
+              <span class="note-text">
+                <span class="note-title"><span>🎉 You passed mvanhorn!</span><small>now</small></span>
+                <span class="note-body">You're ahead 223–124. Keep climbing!</span>
+              </span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 04 · any window -->
+      <section id="s4" class="clip" data-start="8.90625" data-duration="2.17" data-track-index="4">
+        <div id="seg-wrap">
+          <div class="wseg ui">
+            <i id="wseg-hl"></i>
+            <span id="wseg-0">Today</span><span id="wseg-1">7 days</span><span id="wseg-2">30 days</span>
+          </div>
+        </div>
+        <div id="count-wrap">
+          <div id="count">223</div>
+          <div id="count-meta"><img src="assets/avatars/addisonk.png" alt="" /><b>@ADDISONK</b><span>CONTRIBUTIONS</span></div>
+        </div>
+        <div id="range-label">TODAY</div>
+      </section>
+
+      <!-- 05 · the mark -->
+      <section id="s6" class="clip" data-start="12.53" data-duration="2.47" data-track-index="5">
+        <div id="icon">
+          <div id="tile"><i id="tile-sheen"></i></div>
+          <svg id="icon-glyph" class="glyph" aria-hidden="true"><use href="#glyph" /></svg>
+        </div>
+        <h2 id="wordmark"></h2>
+        <p id="tagline">
+          <span class="tw">A</span> <span class="tw">little</span> <span class="tw">friendly</span>
+          <span class="tw lime">competition.</span>
+        </p>
+        <div id="cta">
+          <span id="btn"
+            ><i id="btn-sheen"></i
+            ><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M12 4v11" />
+              <path d="m7 10 5 5 5-5" />
+              <path d="M5 20h14" /></svg
+            >Download for Mac</span
+          >
+          <span id="url">gitcommitted.app</span>
+        </div>
+        <div id="req">MACOS 26+ · APPLE SILICON &amp; INTEL</div>
+      </section>
+
+      <!-- HUD: chapter label + a tiny contribution graph as the progress bar -->
+      <section id="hud" class="clip" data-start="0" data-duration="12.7" data-track-index="6">
+        <div id="hud-in">
+          <div id="chapter"><span id="ch-num">01</span><span id="ch-text"></span></div>
+          <div id="ticks"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+        </div>
+      </section>
+
+      <div id="grain"></div>
+      <div id="vignette"></div>
+
+      <audio id="score" src="assets/score.wav" data-start="0" data-duration="15" data-track-index="7" data-volume="1"></audio>
+    </div>
+
+    <script>
+      (() => {
+        const { at, cue, BEAT, BAR, kicks } = window.TIMING;
+        const W = 1920;
+        const H = 1080;
+        const CX = W / 2;
+        const CY = H / 2;
+
+        // ---------- helpers ----------
+        const ease = (n) => gsap.parseEase(n);
+        const expoOut = ease("expo.out");
+        const expoInOut = ease("expo.inOut");
+        const p2Out = ease("power2.out");
+        const p2In = ease("power2.in");
+        const p3InOut = ease("power3.inOut");
+        const p4InOut = ease("power4.inOut");
+        const sineInOut = ease("sine.inOut");
+        const backOut = ease("back.out(2.4)");
+        const clamp01 = (x) => (x < 0 ? 0 : x > 1 ? 1 : x);
+        const prog = (t, t0, d) => clamp01((t - t0) / d);
+        const lerp = (a, b, p) => a + (b - a) * p;
+        const bump = (x) => Math.sin(Math.PI * clamp01(x));
+        const hex = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
+        const mix = (a, b, p) => [lerp(a[0], b[0], p), lerp(a[1], b[1], p), lerp(a[2], b[2], p)];
+        const rgb = (c) => `rgb(${c[0] | 0},${c[1] | 0},${c[2] | 0})`;
+        const mulberry = (seed) => () => {
+          seed = (seed + 0x6d2b79f5) >>> 0;
+          let t = seed;
+          t = Math.imul(t ^ (t >>> 15), t | 1);
+          t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+          return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+        };
+        const hash = (n) => mulberry((n * 2654435761) >>> 0)();
+        const quad = (a, c, b, u) => ({
+          x: (1 - u) * (1 - u) * a.x + 2 * (1 - u) * u * c.x + u * u * b.x,
+          y: (1 - u) * (1 - u) * a.y + 2 * (1 - u) * u * c.y + u * u * b.y,
+        });
+
+        const INK = hex("#050505");
+        const LIME = hex("#c8ff2e");
+        const LIME_HI = hex("#efffc4");
+        const LEVELS = ["#15180f", "#1d2e0e", "#355c12", "#6aa81a", "#c8ff2e"].map(hex);
+
+        // Beat pulse: decays after every kick, so the squares breathe with the track.
+        const pulse = (t) => {
+          let v = 0;
+          for (const k of kicks) if (t >= k && t - k < 0.6) v = Math.max(v, Math.exp(-(t - k) * 7));
+          return v;
+        };
+
+        // ---------- the year: 52 full weeks plus Sun–Wed of this one ----------
+        const DAYS = 368;
+        const TODAY = DAYS - 1;
+        const rnd = mulberry(21);
+        const cells = [];
+        for (let d = 0; d < DAYS; d++) {
+          const col = Math.floor(d / 7);
+          const row = d % 7;
+          const weekend = row === 0 || row === 6;
+          const x = rnd() * 0.85 + (d / TODAY) * 0.55 + 0.12 * Math.sin(d / 17) - (weekend ? 0.3 : 0);
+          const level = d === TODAY ? 4 : x < 0.38 ? 0 : x < 0.58 ? 1 : x < 0.78 ? 2 : x < 0.98 ? 3 : 4;
+          cells.push({ d, col, row, level, r1: rnd(), r2: rnd(), r3: rnd() });
+        }
+        const graphPos = (c, pitch, cx, cy) => ({ x: cx + (c.col - 26) * pitch, y: cy + (c.row - 3) * pitch });
+
+        // Shot 1 geometry
+        const P1 = 31;
+        const G1 = { x: CX, y: 700 };
+        const today = cells[TODAY];
+        const todayWorld = graphPos(today, P1, G1.x, G1.y);
+        for (const c of cells) {
+          const dist = Math.hypot(c.col - today.col, c.row - today.row);
+          c.appear = cue.ripple + 0.06 + Math.pow(dist / 52, 0.9) * 0.5 + c.r1 * 0.04;
+          c.fall = cue.collapse + (c.col / 52) * 0.2 + c.r2 * 0.05;
+        }
+        const cam1 = (t) => {
+          const p = expoInOut(prog(t, cue.ripple, 0.62));
+          const z = Math.exp(Math.log(7) * (1 - p)) * (1 + 0.035 * sineInOut(prog(t, cue.drop, 1.8)));
+          return { z, cx: lerp(todayWorld.x, CX, p), cy: lerp(todayWorld.y, CY, p) };
+        };
+        const toScreen = (w, cam) => ({ x: (w.x - cam.cx) * cam.z + CX, y: (w.y - cam.cy) * cam.z + CY });
+
+        // Where today's square lands: the glyph inside the menu-bar rank pill (menu bar is zoomed 1.8×).
+        const PILL = { x: 858.5 * 1.8, y: 15 * 1.8 };
+        const FLY0 = cue.flight;
+
+        // Shot 4 geometry
+        const P4 = 26;
+        const G4 = { x: CX, y: 860 };
+        const daysAgo = (c) => TODAY - c.d;
+        const lightAt = (c) => {
+          const k = daysAgo(c);
+          if (k === 0) return cue.windows;
+          if (k < 7) return cue.week + k * 0.03;
+          if (k < 30) return cue.month + (k - 7) * 0.012;
+          return Infinity;
+        };
+
+        // ---------- the trophy, sampled from the brand glyph ----------
+        const GLYPH = new Path2D(document.querySelector("#glyph path").getAttribute("d"));
+        const probe = document.createElement("canvas").getContext("2d");
+        const sample = (R) => {
+          const out = [];
+          for (let py = 0; py < R; py++)
+            for (let px = 0; px < R; px++)
+              if (probe.isPointInPath(GLYPH, ((px + 0.5) / R) * 16, ((py + 0.5) / R) * 16)) out.push({ px, py });
+          return out;
+        };
+        let R = 40;
+        let pixels = sample(R);
+        while (pixels.length > DAYS) pixels = sample(--R);
+        const TROPHY = { x: CX, y: 520, size: 560 };
+        const TP = TROPHY.size / R;
+        const T0 = { x: TROPHY.x - TROPHY.size / 2, y: TROPHY.y - TROPHY.size / 2 };
+        const fine2 = sample(R * 2);
+        const fine4 = sample(R * 4);
+
+        // Spread the spare squares evenly through the year, then pair the rest with
+        // trophy pixels column by column so the strip condenses instead of scrambling.
+        const spare = DAYS - pixels.length;
+        const isSpare = new Set();
+        for (let k = 0; k < spare; k++) isSpare.add(Math.floor(((k + 0.5) * DAYS) / spare));
+        const ordered = [...pixels].sort((a, b) => a.px - b.px || a.py - b.py);
+        let pi = 0;
+        for (const c of cells) {
+          const s = graphPos(c, P4, G4.x, G4.y);
+          c.start = s;
+          if (isSpare.has(c.d)) {
+            c.spare = true;
+            c.target = { x: TROPHY.x + (c.r1 - 0.5) * 120, y: TROPHY.y + (c.r2 - 0.5) * 120 };
+            c.delay = c.r3 * 0.4;
+          } else {
+            const p = ordered[pi++];
+            c.px = p.px;
+            c.py = p.py;
+            c.target = { x: T0.x + (p.px + 0.5) * TP, y: T0.y + (p.py + 0.5) * TP };
+            // the trophy fills from its base up
+            c.delay = (1 - p.py / R) * 0.5 + c.r3 * 0.1;
+            const shade = clamp01(0.35 + 0.75 * (1 - (p.px + p.py) / (2 * R)) + (c.r1 - 0.5) * 0.3);
+            c.tcolor = shade < 0.5 ? mix(LEVELS[3], LIME, shade * 2) : mix(LIME, LIME_HI, (shade - 0.5) * 0.7);
+          }
+          const side = c.r2 < 0.5 ? -1 : 1;
+          c.ctrl = { x: (s.x + c.target.x) / 2 + side * (60 + c.r1 * 160), y: Math.min(s.y, c.target.y) - 80 - c.r3 * 160 };
+          c.spin = side * (Math.PI / 2);
+        }
+
+        // ---------- canvas ----------
+        const canvas = document.getElementById("stage");
+        const ctx = canvas.getContext("2d");
+        const glow = (() => {
+          const g = document.createElement("canvas");
+          g.width = g.height = 128;
+          const gx = g.getContext("2d");
+          const grad = gx.createRadialGradient(64, 64, 0, 64, 64, 64);
+          grad.addColorStop(0, "rgba(200,255,46,0.9)");
+          grad.addColorStop(0.35, "rgba(200,255,46,0.25)");
+          grad.addColorStop(1, "rgba(200,255,46,0)");
+          gx.fillStyle = grad;
+          gx.fillRect(0, 0, 128, 128);
+          return g;
+        })();
+
+        function square(x, y, size, color, alpha = 1, rot = 0) {
+          if (size <= 0.2 || alpha <= 0.003) return;
+          if (x < -size || x > W + size || y < -size || y > H + size) return;
+          ctx.save();
+          ctx.translate(x, y);
+          if (rot) ctx.rotate(rot);
+          ctx.globalAlpha = alpha;
+          ctx.fillStyle = typeof color === "string" ? color : rgb(color);
+          ctx.beginPath();
+          ctx.roundRect(-size / 2, -size / 2, size, size, size * 0.2);
+          ctx.fill();
+          ctx.restore();
+        }
+        function bloom(x, y, size, alpha) {
+          if (alpha <= 0.003) return;
+          ctx.save();
+          ctx.globalCompositeOperation = "lighter";
+          ctx.globalAlpha = alpha;
+          ctx.drawImage(glow, x - size / 2, y - size / 2, size, size);
+          ctx.restore();
+        }
+        function radial(x, y, r, color, alpha) {
+          if (alpha <= 0.003) return;
+          const g = ctx.createRadialGradient(x, y, 0, x, y, r);
+          g.addColorStop(0, `rgba(${color[0]},${color[1]},${color[2]},${alpha})`);
+          g.addColorStop(1, `rgba(${color[0]},${color[1]},${color[2]},0)`);
+          ctx.fillStyle = g;
+          ctx.fillRect(0, 0, W, H);
+        }
+        function wallpaper(alpha) {
+          if (alpha <= 0) return;
+          ctx.save();
+          ctx.globalAlpha = alpha;
+          const g = ctx.createRadialGradient(W * 0.3, 0, 0, W * 0.3, 0, W * 1.25);
+          g.addColorStop(0, "#23301a");
+          g.addColorStop(0.55, "#0e100b");
+          g.addColorStop(1, "#050505");
+          ctx.fillStyle = g;
+          ctx.fillRect(0, 0, W, H);
+          ctx.restore();
+        }
+        function glyphAt(x, y, size, color, alpha) {
+          ctx.save();
+          ctx.globalAlpha = alpha;
+          ctx.translate(x - size / 2, y - size / 2);
+          ctx.scale(size / 16, size / 16);
+          ctx.fillStyle = color;
+          ctx.fill(GLYPH);
+          ctx.restore();
+        }
+
+        // ---------- shot 1: one square, then the year ----------
+        function drawGraph(t, pl) {
+          const cam = cam1(t);
+          radial(CX, 700, 900, LIME, (0.07 * prog(t, cue.ripple, 0.8) + 0.03 * pl) * (1 - prog(t, cue.collapse, 0.5)));
+          for (const c of cells) {
+            if (c.d === TODAY || t < c.appear) continue;
+            const a = prog(t, c.appear, 0.4);
+            const s = backOut(a);
+            let color = mix(LIME, LEVELS[c.level], p2Out(prog(t, c.appear + 0.04, 0.45)));
+            if (c.level >= 2) color = mix(color, LIME, 0.18 * pl);
+            const p = toScreen(graphPos(c, P1, G1.x, G1.y), cam);
+            let dy = 0;
+            let rot = 0;
+            let alpha = 1;
+            if (t >= c.fall) {
+              const f = prog(t, c.fall, 0.62);
+              dy = 1300 * f * f;
+              rot = (c.r2 - 0.5) * 2.6 * f;
+              alpha = 1 - p2In(f);
+            }
+            square(p.x, p.y + dy, P1 * 0.82 * cam.z * s, color, alpha, rot);
+          }
+        }
+        function drawToday(t) {
+          if (t < cue.seed) return;
+          if (t >= cue.board) {
+            // landed: the lime mark lingers and dissolves into the white menu-bar glyph
+            const k = 1 - prog(t, cue.board, 0.14);
+            if (k <= 0) return;
+            bloom(PILL.x, PILL.y, 90, 0.6 * k);
+            glyphAt(PILL.x, PILL.y, 25 * 1.1, "#c8ff2e", k);
+            return;
+          }
+          const cam = cam1(Math.min(t, FLY0));
+          const base = P1 * 0.82;
+          const pop = backOut(prog(t, cue.seed, 0.42));
+          // seed ring
+          const rp = prog(t, cue.seed, 0.7);
+          if (rp > 0 && rp < 1) {
+            const p = toScreen(todayWorld, cam);
+            const sz = base * cam.z * (1 + 1.6 * expoOut(rp));
+            ctx.save();
+            ctx.globalAlpha = 0.7 * (1 - rp);
+            ctx.strokeStyle = "#c8ff2e";
+            ctx.lineWidth = 4;
+            ctx.beginPath();
+            ctx.roundRect(p.x - sz / 2, p.y - sz / 2, sz, sz, sz * 0.2);
+            ctx.stroke();
+            ctx.restore();
+          }
+          if (t < FLY0) {
+            const p = toScreen(todayWorld, cam);
+            const antic = 1 + 0.35 * p2Out(prog(t, cue.collapse, 0.12));
+            const sz = base * cam.z * pop * antic;
+            bloom(p.x, p.y, sz * 3.4, 0.55);
+            square(p.x, p.y, sz, LIME);
+            return;
+          }
+          // flight to the menu bar, with a short smear behind it
+          const A = toScreen(todayWorld, cam1(FLY0));
+          const B = PILL;
+          const C = { x: A.x + 180, y: 260 };
+          const span = cue.board - FLY0;
+          for (let k = 5; k >= 0; k--) {
+            const u = p3InOut(prog(t - k * 0.012, FLY0, span));
+            const p = quad(A, C, B, u);
+            const sz = lerp(base * 1.35, 25, u);
+            const morph = prog(u, 0.7, 0.3);
+            const alpha = k === 0 ? 1 : 0.28 * (1 - k / 6);
+            if (k === 0) bloom(p.x, p.y, sz * 3.2, 0.5);
+            square(p.x, p.y, sz, LIME, alpha * (1 - morph), u * Math.PI);
+            if (morph > 0) glyphAt(p.x, p.y, sz * 1.1, "#c8ff2e", alpha * morph);
+          }
+        }
+
+        // ---------- shot 2/3: wallpaper, rank bursts, rack focus ----------
+        const NUM_CENTER = { x: 520, y: 520 };
+        const bursts = [cue.climb1, cue.climb2].map((te, bi) => {
+          const r = mulberry(900 + bi);
+          return {
+            te,
+            parts: Array.from({ length: bi ? 34 : 22 }, (_, i) => ({
+              ang: (i / (bi ? 34 : 22)) * Math.PI * 2 + r() * 0.4,
+              dist: (bi ? 260 : 180) + r() * 260,
+              size: 9 + r() * 20,
+              spin: (r() - 0.5) * 6,
+              level: 2 + Math.floor(r() * 3),
+            })),
+          };
+        });
+        function drawBoardBg(t, pl) {
+          wallpaper(prog(t, cue.board - 0.35, 0.5));
+          const won = t >= cue.climb2 ? 1 : t >= cue.climb1 && t < cue.passed ? 1 : 0;
+          const glowIn = prog(t, cue.board, 0.6);
+          radial(NUM_CENTER.x, NUM_CENTER.y, 700, LIME, (0.06 + 0.06 * won + 0.04 * pl) * glowIn);
+          radial(1570, 520, 700, LIME, 0.035 * glowIn);
+          for (const b of bursts) {
+            const p = prog(t, b.te, 0.95);
+            if (p <= 0 || p >= 1) continue;
+            const d = expoOut(p);
+            for (const q of b.parts) {
+              square(
+                NUM_CENTER.x + Math.cos(q.ang) * q.dist * d,
+                NUM_CENTER.y + Math.sin(q.ang) * q.dist * d,
+                q.size * (1 - 0.5 * p),
+                LEVELS[q.level],
+                1 - p2In(p),
+                q.spin * d,
+              );
+            }
+          }
+          // rack focus: the board drops back behind the notification
+          const dark = expoOut(prog(t, cue.nudge - 0.05, 0.55));
+          if (dark > 0) {
+            ctx.fillStyle = `rgba(0,0,0,${0.55 * dark})`;
+            ctx.fillRect(0, 0, W, H);
+            radial(CX, 480, 760, LIME, 0.11 * dark + 0.03 * pl);
+          }
+        }
+
+        // ---------- shot 4: the year as a strip, lit by window ----------
+        function stripState(c, t) {
+          const tl0 = lightAt(c);
+          const h = t >= tl0 ? prog(t, tl0, 0.18) : 0;
+          const dim = prog(t, cue.windows + 0.2, 0.3);
+          return { h, alpha: lerp(1, lerp(0.3, 1, h), dim), pop: 1 + 0.3 * bump(prog(t, tl0, 0.3)) };
+        }
+        function drawStrip(t, pl) {
+          radial(CX, -120, 1000, LIME, 0.1 + 0.03 * pl);
+          for (const c of cells) {
+            const tA = cue.windows + (c.col / 52) * 0.18 + c.r1 * 0.03;
+            const s = backOut(prog(t, tA, 0.28));
+            const st = stripState(c, t);
+            let color = mix(LEVELS[Math.max(c.level, st.h > 0 ? 2 : 0)], LIME, 0.3 * st.h + 0.1 * pl * st.h);
+            if (st.h > 0) bloom(c.start.x, c.start.y, P4 * 2.6, 0.22 * st.h);
+            square(c.start.x, c.start.y, P4 * 0.82 * s * st.pop, color, st.alpha);
+          }
+        }
+
+        // ---------- shot 5: the year becomes the trophy, then the mark ----------
+        function trophyScale(t) {
+          if (t < at(7, 3)) return 1;
+          if (t < at(7, 4, 0.8)) return 1 + 0.04 * sineInOut(prog(t, at(7, 3), at(7, 4, 0.8) - at(7, 3)));
+          if (t < cue.impact) return lerp(1.04, 0.965, p2In(prog(t, at(7, 4, 0.8), cue.impact - at(7, 4, 0.8))));
+          return lerp(0.965, 1, expoOut(prog(t, cue.impact, 0.12)));
+        }
+        const GLINT0 = at(7, 3, 0.5);
+        function drawTrophy(t, pl) {
+          const sc = trophyScale(t);
+          const sx = (x) => TROPHY.x + (x - TROPHY.x) * sc;
+          const sy = (y) => TROPHY.y + (y - TROPHY.y) * sc;
+          radial(TROPHY.x, TROPHY.y, 760, LIME, 0.04 + 0.12 * prog(t, cue.build, 1.8) + 0.04 * pl);
+          const glintPos = lerp(-0.35, 1.35, sineInOut(prog(t, GLINT0, 0.6)));
+          for (const c of cells) {
+            const u = p3InOut(prog(t, cue.build + c.delay, 0.56));
+            const st = stripState(c, cue.build);
+            const from = mix(LEVELS[Math.max(c.level, st.h > 0 ? 2 : 0)], LIME, 0.3 * st.h);
+            if (c.spare) {
+              const p = quad(c.start, c.ctrl, c.target, u);
+              square(sx(p.x), sy(p.y), P4 * 0.82 * (1 - u), from, st.alpha * (1 - u), c.spin * u);
+              continue;
+            }
+            const p = quad(c.start, c.ctrl, c.target, u);
+            let color = mix(from, c.tcolor, u);
+            if (u >= 1) {
+              const g = Math.exp(-Math.pow(((c.px + c.py) / (2 * R) - glintPos) / 0.07, 2));
+              color = mix(color, LIME_HI, 0.85 * g + 0.15 * pl);
+            }
+            const size = lerp(P4 * 0.82, TP * 0.84, u) * sc;
+            square(sx(p.x), sy(p.y), size, color, lerp(st.alpha, 1, u), c.spin * (1 - u) * (u > 0 ? 1 : 0));
+          }
+        }
+        function drawMosaic(t) {
+          // the pixel trophy sharpens: R → 2R → 4R, then hands off to the vector mark
+          const dt = t - cue.impact;
+          const sc = trophyScale(t);
+          const size = TROPHY.size * sc;
+          const x0 = TROPHY.x - size / 2;
+          const y0 = TROPHY.y - size / 2;
+          bloom(TROPHY.x, TROPHY.y, 1400, 0.5 * (1 - prog(t, cue.impact, 0.5)));
+          const [list, res] = dt < 0.033 ? [pixels, R] : dt < 0.067 ? [fine2, R * 2] : [fine4, R * 4];
+          const p = size / res;
+          ctx.fillStyle = dt < 0.033 ? "#e4ff9a" : "#c8ff2e";
+          for (const q of list) ctx.fillRect(x0 + q.px * p + p * 0.06, y0 + q.py * p + p * 0.06, p * 0.88, p * 0.88);
+        }
+        function drawEndField(t) {
+          const reveal = prog(t, cue.impact + 0.1, 0.9);
+          if (reveal <= 0) return;
+          const pitch = 46;
+          const drift = (t - cue.impact) * 14;
+          for (let gx = 0; gx < 43; gx++)
+            for (let gy = -1; gy < 25; gy++) {
+              const x = gx * pitch + 4;
+              const y = gy * pitch + 10 - drift;
+              const d = Math.hypot(x - CX, y - 300) / 1100;
+              const a = clamp01((reveal - d) * 3);
+              if (a <= 0) continue;
+              const n = hash(gx * 131 + gy * 7 + 11);
+              const lvl = n < 0.62 ? 0 : n < 0.95 ? 1 : 2;
+              // quiet behind the type, a little livelier toward the edges
+              square(x, y, pitch * 0.8, LEVELS[lvl], a * (0.42 - 0.34 * clamp01(1.25 - d * 1.5)));
+            }
+          radial(CX, 300, 640, LIME, 0.12 * reveal);
+        }
+        function drawShockwave(t) {
+          const p = prog(t, cue.impact, 0.9);
+          if (p <= 0 || p >= 1) return;
+          const r = 120 + 1100 * expoOut(p);
+          ctx.save();
+          ctx.globalAlpha = 0.6 * (1 - p);
+          ctx.strokeStyle = "#c8ff2e";
+          ctx.lineWidth = 10 * (1 - p) + 1;
+          ctx.beginPath();
+          ctx.arc(TROPHY.x, TROPHY.y, r, 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.restore();
+        }
+
+        function draw(t) {
+          ctx.setTransform(1, 0, 0, 1, 0, 0);
+          ctx.globalAlpha = 1;
+          ctx.globalCompositeOperation = "source-over";
+          ctx.fillStyle = "#050505";
+          ctx.fillRect(0, 0, W, H);
+          const pl = pulse(t);
+          if (t < cue.collapse + 0.95) {
+            wallpaper(prog(t, cue.board - 0.35, 0.5));
+            drawGraph(t, pl);
+            drawToday(t);
+          } else if (t < cue.windows) {
+            drawBoardBg(t, pl);
+          } else if (t < cue.build) {
+            drawStrip(t, pl);
+          } else if (t < cue.impact) {
+            drawTrophy(t, pl);
+          } else {
+            drawEndField(t);
+            drawShockwave(t);
+            if (t < cue.impact + 0.1) drawMosaic(t);
+          }
+        }
+
+        // ---------- the board: counts, ranks and rows as functions of time ----------
+        const PEOPLE = ["mvanhorn", "addisonk", "jamielottering", "danielkinsner", "jmzzll", "kropdx"];
+        const ME = 1;
+        const BASE = [83, 80, 84, 47, 53, 24]; // first frame of the site's demo; ends on verified counts
+        const countOf = (i, t) => {
+          if (i === 0) return lerp(83, 124, p2Out(prog(t, cue.passed - 0.24, 0.24)));
+          if (i === ME) {
+            if (t < cue.climb1) return lerp(80, 85, p2Out(prog(t, cue.climb1 - 0.24, 0.24)));
+            return lerp(85, 223, expoOut(prog(t, cue.climb2 - 0.36, 0.36)));
+          }
+          return BASE[i];
+        };
+        const ranksAt = (counts) => {
+          const order = counts.map((_, i) => i).sort((a, b) => counts[b] - counts[a]);
+          const r = [];
+          order.forEach((idx, k) => (r[idx] = k));
+          return r;
+        };
+        const EVENTS = [cue.climb1, cue.passed, cue.climb2];
+        const SNAP = [0, ...EVENTS].map((te) => ranksAt(PEOPLE.map((_, i) => countOf(i, te + 0.001))));
+        const baseRank = SNAP[0];
+        const stageAt = (t) => EVENTS.filter((te) => t >= te).length;
+        const ROW = 40;
+        const CHEVRON = {
+          up1: "M6 15l6-6 6 6",
+          up2: "M6 12l6-6 6 6M6 18l6-6 6 6",
+          down1: "M6 9l6 6 6-6",
+          down2: "M6 6l6 6 6-6M6 12l6 6 6-6",
+        };
+        const shade = (value, max) => {
+          const f = max > 0 ? Math.min(1, value / max) : 0;
+          const c = (lo, hi) => Math.round(lo + (hi - lo) * f);
+          return `rgb(${c(155, 46)},${c(233, 160)},${c(168, 67)})`;
+        };
+
+        const rowsEl = document.getElementById("rows");
+        const rowEls = PEOPLE.map((handle, i) => {
+          const li = document.createElement("li");
+          li.innerHTML = `<div class="row-in${i === ME ? " me" : ""}">
+            <span class="r-rank"></span><img src="assets/avatars/${handle}.png" alt="" />
+            <span class="r-name">${handle}${i === ME ? '<span class="badge">you</span>' : ""}</span>
+            <svg class="r-chev" viewBox="0 0 24 24" aria-hidden="true"><path d="" /></svg>
+            <span class="r-count"></span><span class="r-sq"><i></i><i></i><i></i><i></i></span></div>`;
+          rowsEl.appendChild(li);
+          return {
+            li,
+            inner: li.firstElementChild,
+            rank: li.querySelector(".r-rank"),
+            chev: li.querySelector(".r-chev"),
+            chevPath: li.querySelector(".r-chev path"),
+            count: li.querySelector(".r-count"),
+            sq: [...li.querySelectorAll(".r-sq i")],
+          };
+        });
+        const youCountEl = document.getElementById("you-count");
+        const pillRankEl = document.getElementById("pill-rank");
+        const numCol = document.getElementById("num-col");
+        const numDigits = [...numCol.children];
+
+        function board(t) {
+          const stage = stageAt(t);
+          const counts = PEOPLE.map((_, i) => Math.round(countOf(i, t)));
+          const max = Math.max(...counts);
+          const now = SNAP[stage];
+          const prev = SNAP[Math.max(0, stage - 1)];
+          const move = stage ? p4InOut(prog(t, EVENTS[stage - 1], 0.5)) : 1;
+          rowEls.forEach((r, i) => {
+            const y = lerp(prev[i], now[i], move) * ROW;
+            r.li.style.transform = `translateY(${y.toFixed(2)}px)`;
+            r.li.style.zIndex = i === ME ? 2 : 1;
+            r.rank.textContent = `#${now[i] + 1}`;
+            r.count.textContent = counts[i];
+            const moved = baseRank[i] - now[i];
+            const d = moved > 1 ? CHEVRON.up2 : moved === 1 ? CHEVRON.up1 : moved === -1 ? CHEVRON.down1 : moved < -1 ? CHEVRON.down2 : "";
+            r.chevPath.setAttribute("d", d);
+            r.chev.style.stroke = moved > 0 ? "var(--mac-green)" : "var(--mac-gray)";
+            const sq = shade(counts[i], max);
+            r.sq.forEach((s) => (s.style.background = sq));
+          });
+          youCountEl.textContent = counts[ME];
+          const myRank = now[ME] + 1;
+          pillRankEl.textContent = `#${myRank}`;
+          // odometer: 3 → 1 → 2 → 1
+          const shown = stage ? lerp(prev[ME] + 1, myRank, expoInOut(prog(t, EVENTS[stage - 1], 0.42))) : 3;
+          numCol.style.transform = `translateY(${(-(shown - 1) * 600).toFixed(1)}px)`;
+          // the numeral turns lime while you hold #1
+          const wasFirst = stage && prev[ME] === 0 ? 1 : 0;
+          const isFirst = myRank === 1 ? 1 : 0;
+          const limeAmt = stage ? lerp(wasFirst, isFirst, prog(t, EVENTS[stage - 1], 0.3)) : 0;
+          const c = mix([255, 255, 255], LIME, limeAmt);
+          numDigits.forEach((el) => {
+            el.style.color = rgb(c);
+            el.style.textShadow = `0 0 ${80 * limeAmt}px rgba(200,255,46,${0.45 * limeAmt})`;
+          });
+        }
+
+        // ---------- windows: Today → 7 days → 30 days ----------
+        const countEl = document.getElementById("count");
+        const rangeEl = document.getElementById("range-label");
+        const hlEl = document.getElementById("wseg-hl");
+        const segEls = [0, 1, 2].map((i) => document.getElementById(`wseg-${i}`));
+        const windowCount = (t) => {
+          if (t < cue.week) return 223;
+          if (t < cue.month) return lerp(223, 2072, expoOut(prog(t, cue.week, 0.36)));
+          return lerp(2072, 5917, ease("power4.out")(prog(t, cue.month, 0.39)));
+        };
+        function windows(t) {
+          countEl.textContent = Math.round(windowCount(t)).toLocaleString("en-US");
+          const pos = 86 * (expoInOut(prog(t, cue.week, 0.34)) + expoInOut(prog(t, cue.month, 0.34)));
+          hlEl.style.transform = `translateX(${pos.toFixed(2)}px)`;
+          segEls.forEach((el, i) => {
+            const near = clamp01(1 - Math.abs(pos / 86 - i));
+            el.style.color = rgb(mix(hex("#e5e5ea"), INK, near));
+            el.style.fontWeight = near > 0.5 ? 600 : 400;
+          });
+          rangeEl.textContent = t < cue.week ? "TODAY" : t < cue.month ? "LAST 7 DAYS" : "LAST 30 DAYS";
+        }
+
+        // ---------- HUD ----------
+        const CHAPTERS = [
+          { t: 0.25, n: "01", s: "YOUR GRAPH" },
+          { t: cue.board, n: "02", s: "FRIENDS & TEAMMATES, RANKED" },
+          { t: cue.nudge, n: "03", s: "A NUDGE WHEN RANKS CHANGE" },
+          { t: cue.windows, n: "04", s: "TODAY · 7 DAYS · 30 DAYS" },
+          { t: cue.build, n: "05", s: "READS COUNTS, NEVER YOUR CODE" },
+        ];
+        const GLYPHS = "ABCDEFGHJKLMNPRSTUVWXYZ0123456789#/+";
+        const chNum = document.getElementById("ch-num");
+        const chText = document.getElementById("ch-text");
+        const tickEls = [...document.querySelectorAll("#ticks i")];
+        function hud(t, pl) {
+          const ch = [...CHAPTERS].reverse().find((c) => t >= c.t) ?? CHAPTERS[0];
+          const e = t - ch.t;
+          const tick = Math.floor(t * 40);
+          chNum.textContent = ch.n;
+          chText.textContent = [...ch.s]
+            .map((s, i) => {
+              if (s === " ") return " ";
+              const r = i * 0.016;
+              if (e < r) return " ";
+              if (e < r + 0.14) return GLYPHS[Math.floor(hash(i * 977 + tick) * GLYPHS.length)];
+              return s;
+            })
+            .join("");
+          tickEls.forEach((el, b) => {
+            const p = (t - at(b + 1)) / BAR;
+            let c = LEVELS[0];
+            if (p >= 1) c = LIME;
+            else if (p >= 0) c = mix(LEVELS[1 + Math.min(2, Math.floor(p * 4))], LIME, 0.25 * pl);
+            el.style.background = rgb(c);
+          });
+        }
+
+        // ---------- grain ----------
+        const grainEl = document.getElementById("grain");
+        (() => {
+          const g = document.createElement("canvas");
+          g.width = g.height = 256;
+          const gx = g.getContext("2d");
+          const img = gx.createImageData(256, 256);
+          const r = mulberry(7);
+          for (let i = 0; i < img.data.length; i += 4) {
+            const v = (r() * 255) | 0;
+            img.data[i] = img.data[i + 1] = img.data[i + 2] = v;
+            img.data[i + 3] = 255;
+          }
+          gx.putImageData(img, 0, 0);
+          grainEl.style.backgroundImage = `url(${g.toDataURL()})`;
+        })();
+
+        function frame(t) {
+          draw(t);
+          board(t);
+          windows(t);
+          hud(t, pulse(t));
+          const f = Math.floor(t * 30);
+          grainEl.style.backgroundPosition = `${Math.floor(hash(f) * 256)}px ${Math.floor(hash(f + 999) * 256)}px`;
+        }
+
+        // ---------- wordmark letters ----------
+        document.getElementById("wordmark").innerHTML = [..."Committed"]
+          .map((ch) => `<span class="mask"><span class="ch">${ch}</span></span>`)
+          .join("");
+
+        // ---------- timeline ----------
+        const tl = gsap.timeline({ paused: true });
+        const clock = { t: 0 };
+        tl.to(clock, { t: 15, duration: 15, ease: "none", onUpdate: () => frame(clock.t) }, 0);
+
+        // 01 · headline — four words, four entrances, on the beat
+        tl.fromTo("#w-who", { yPercent: 110 }, { yPercent: 0, duration: 0.55, ease: "expo.out" }, cue.drop);
+        tl.fromTo("#w-shipped", { yPercent: 110 }, { yPercent: 0, duration: 0.6, ease: "expo.out" }, cue.drop + 0.08);
+        tl.fromTo(
+          "#w-more",
+          { opacity: 0, scale: 1.9, filter: "blur(24px)" },
+          { opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.42, ease: "power4.out" },
+          at(2, 1, 0.5),
+        );
+        // "today?" lands as a spread that snaps shut, letter by letter
+        tl.fromTo(
+          "#w-today .lt",
+          { opacity: 0, x: (i) => 90 + i * 70 },
+          { opacity: 1, x: 0, duration: 0.5, ease: "expo.out", stagger: 0.012 },
+          at(2, 2),
+        );
+        tl.fromTo("#w-today", { scale: 1.08 }, { scale: 1, duration: 0.4, ease: "back.out(3)", immediateRender: false }, at(2, 2) + 0.22);
+        tl.to("#w-who, #w-shipped", { yPercent: -110, duration: 0.22, ease: "power3.in", stagger: 0.03 }, at(2, 4, 0.4));
+        tl.to("#w-more, #w-today", { y: -60, opacity: 0, duration: 0.2, ease: "power2.in", stagger: 0.03 }, at(2, 4, 0.4) + 0.03);
+
+        // 02 · menu bar, click, popover
+        tl.fromTo("#menubar", { y: -40, opacity: 0 }, { y: 0, opacity: 1, duration: 0.35, ease: "power3.out" }, cue.board - 0.3);
+        tl.fromTo("#pill", { scale: 1.6, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.45, ease: "back.out(2.6)" }, cue.board);
+        for (const te of EVENTS)
+          tl.fromTo("#pill", { scale: 1.3 }, { scale: 1, duration: 0.4, ease: "back.out(3)", immediateRender: false }, te);
+        tl.fromTo("#cursor", { x: 1730, y: 780, opacity: 0 }, { x: 1556, y: 30, opacity: 1, duration: 0.4, ease: "power3.inOut" }, cue.board - 0.02);
+        tl.to("#cursor", { scale: 0.82, duration: 0.06, ease: "power2.out", yoyo: true, repeat: 1, transformOrigin: "0% 0%" }, cue.click - 0.06);
+        tl.to("#cursor", { x: 1700, y: 360, opacity: 0, duration: 0.45, ease: "power2.in" }, cue.click + 0.28);
+        tl.fromTo(
+          "#pop-wrap",
+          { opacity: 0, y: -24, scale: 0.9, filter: "blur(14px)", transformOrigin: "50% 0%" },
+          { opacity: 1, y: 0, scale: 1, filter: "blur(0px)", duration: 0.55, ease: "expo.out" },
+          cue.click,
+        );
+        tl.fromTo(".row-in", { opacity: 0, x: 24 }, { opacity: 1, x: 0, duration: 0.4, ease: "power3.out", stagger: 0.035 }, cue.click + 0.1);
+        tl.fromTo("#kicker", { opacity: 0, x: -50 }, { opacity: 1, x: 0, duration: 0.6, ease: "power3.out" }, cue.board + 0.05);
+        tl.fromTo("#num-hash", { opacity: 0, x: -80 }, { opacity: 1, x: 0, duration: 0.7, ease: "expo.out" }, cue.board + 0.12);
+        // slot-machine entrance: the column starts below the window, rolls 1 → 2 and lands on 3
+        tl.fromTo("#num-entry", { y: 1800 }, { y: 0, duration: 0.9, ease: "power4.out" }, cue.click + 0.04);
+        tl.fromTo("#rank-label", { opacity: 0 }, { opacity: 1, duration: 0.4, ease: "none" }, cue.click + 0.3);
+        tl.fromTo("#numeral", { x: 0 }, { x: -18, duration: 0.07, ease: "power1.inOut", yoyo: true, repeat: 3, immediateRender: false }, cue.passed);
+        tl.fromTo("#desk", { scale: 1 }, { scale: 1.025, duration: cue.nudge - cue.board, ease: "sine.inOut" }, cue.board);
+
+        // 03 · rack focus to the notifications
+        tl.fromTo(
+          "#desk",
+          { scale: 1.025, filter: "blur(0px) brightness(1)" },
+          { scale: 0.9, filter: "blur(18px) brightness(0.5)", duration: 0.6, ease: "expo.out", immediateRender: false },
+          cue.nudge,
+        );
+        tl.fromTo("#mq1", { x: 0, opacity: 0 }, { x: -760, opacity: 1, duration: 1.95, ease: "none" }, cue.nudge - 0.05);
+        tl.fromTo("#mq2", { x: -900, opacity: 0 }, { x: -140, opacity: 1, duration: 1.95, ease: "none" }, cue.nudge - 0.05);
+        tl.fromTo("#notes", { rotationX: 14, rotationY: -12, transformPerspective: 1600 }, { rotationX: 3, rotationY: 6, duration: 1.95, ease: "sine.inOut" }, cue.nudge - 0.05);
+        tl.fromTo("#note-a", { opacity: 0, y: -150, scale: 0.9 }, { opacity: 1, y: 0, scale: 1, duration: 0.5, ease: "expo.out" }, cue.nudge);
+        tl.to("#note-a", { opacity: 0.5, y: 151, scale: 0.95, duration: 0.45, ease: "power3.inOut" }, cue.nudge2);
+        tl.fromTo("#note-b", { opacity: 0, y: -170, scale: 0.92 }, { opacity: 1, y: 0, scale: 1, duration: 0.55, ease: "back.out(1.5)" }, cue.nudge2);
+
+        // 04 · windows (hard cut in)
+        tl.fromTo("#seg-wrap", { y: -40, opacity: 0 }, { y: 0, opacity: 1, duration: 0.3, ease: "power4.out" }, cue.windows);
+        tl.fromTo("#count-wrap", { scale: 1.18, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.34, ease: "expo.out" }, cue.windows);
+        tl.fromTo("#range-label", { opacity: 0, x: 30 }, { opacity: 1, x: 0, duration: 0.3, ease: "power2.out" }, cue.windows + 0.15);
+        for (const te of [cue.week, cue.month])
+          tl.fromTo("#count", { scale: 1.08 }, { scale: 1, duration: 0.45, ease: "power3.out", immediateRender: false }, te);
+        tl.to("#seg-wrap", { y: -50, opacity: 0, duration: 0.24, ease: "power3.in" }, cue.build - 0.2);
+        tl.to("#count-wrap", { scale: 0.9, opacity: 0, duration: 0.24, ease: "power2.in" }, cue.build - 0.16);
+        tl.to("#range-label", { opacity: 0, duration: 0.18, ease: "none" }, cue.build - 0.16);
+
+        // 05 · the mark — vector takes over from the mosaic, then pulls back into the app icon
+        const SNAPT = cue.impact + 0.1;
+        tl.set("#icon", { opacity: 1 }, SNAPT);
+        tl.fromTo("#tile", { opacity: 0 }, { opacity: 1, duration: 0.25, ease: "power1.out" }, SNAPT + 0.04);
+        tl.fromTo("#icon", { x: 0, y: 0, scale: 1 }, { x: 0, y: -220, scale: 220 / 903, duration: 0.56, ease: "expo.inOut" }, SNAPT);
+        tl.fromTo("#wordmark .ch", { yPercent: 112 }, { yPercent: 0, duration: 0.62, ease: "expo.out", stagger: 0.024 }, SNAPT + 0.2);
+        tl.fromTo(
+          "#tagline .tw",
+          { opacity: 0, y: 26, filter: "blur(10px)" },
+          { opacity: 1, y: 0, filter: "blur(0px)", duration: 0.5, ease: "power3.out", stagger: 0.045 },
+          SNAPT + 0.3,
+        );
+        tl.fromTo("#cta", { opacity: 0, y: 22, scale: 0.95 }, { opacity: 1, y: 0, scale: 1, duration: 0.5, ease: "back.out(1.6)" }, SNAPT + 0.36);
+        tl.fromTo("#req", { opacity: 0 }, { opacity: 1, duration: 0.35, ease: "none" }, SNAPT + 0.46);
+        tl.fromTo("#tile-sheen", { xPercent: -140 }, { xPercent: 300, duration: 0.8, ease: "power2.inOut" }, at(8, 3, 0.25));
+        tl.fromTo("#btn-sheen", { xPercent: -120 }, { xPercent: 420, duration: 0.7, ease: "power2.inOut" }, at(8, 3, 0.55));
+
+        // HUD
+        tl.fromTo("#hud-in", { opacity: 0 }, { opacity: 1, duration: 0.4, ease: "none" }, 0.2);
+        tl.to("#hud-in", { opacity: 0, duration: 0.2, ease: "none" }, cue.impact - 0.17);
+
+        frame(0);
+        window.__timelines["main"] = tl;
+        tl.seek(0);
+      })();
+    </script>
+  </body>
+</html>

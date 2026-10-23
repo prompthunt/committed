@@ -1,0 +1,6 @@
+# HyperFrames working state (snapshots, check reports, render segments)
+.hyperframes/
+renders/.hf-segments/
+node_modules/
+# full-quality render master (~23 MB); the committed renders/committed-launch.mp4 is the web encode
+renders/*-master.mp4
