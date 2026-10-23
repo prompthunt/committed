@@ -1,4 +1,3 @@
-import type { ReactNode } from "react";
 import { AppIcon, Glyph } from "@/components/Glyph";
 import { AnalyticsLink } from "@/components/AnalyticsLink";
 import { DemoMotionToggle, LoopProvider } from "@/components/useLoop";
@@ -26,19 +25,6 @@ function DownloadIcon() {
       <path d="m7 10 5 5 5-5" />
       <path d="M5 20h14" />
     </svg>
-  );
-}
-
-function Check({ children }: { children: ReactNode }) {
-  return (
-    <li className="flex items-center gap-3">
-      <span aria-hidden className="flex size-6 shrink-0 items-center justify-center rounded-[7px] bg-lime">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#050505" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="m5 12 5 5 9-10" />
-        </svg>
-      </span>
-      {children}
-    </li>
   );
 }
 
@@ -73,11 +59,13 @@ export default function Home() {
             <h1 className="text-[clamp(48px,6.2vw,92px)] leading-[0.96] font-[750] tracking-[-0.055em]">
               A little friendly <span className="text-lime">competition.</span>
             </h1>
-            <ul className="flex flex-col gap-3 text-xl leading-snug text-soft">
-              <Check>Compare GitHub contributions with friends</Check>
-              <Check>Check your rank from the menu bar</Check>
-              <Check>Reads counts, never your code</Check>
-            </ul>
+            <div className="flex flex-col gap-3">
+              <p className="max-w-[34rem] text-xl leading-relaxed text-soft">
+                A GitHub leaderboard for your Mac’s menu bar. Sign in with GitHub to
+                automatically add friends you follow and teammates from your organizations.
+              </p>
+              <p className="text-sm text-muted">Reads contribution counts, never your code.</p>
+            </div>
             <div className="flex flex-col items-start gap-3.5">
               <AnalyticsLink
                 href={DOWNLOAD_URL}
@@ -164,8 +152,8 @@ export default function Home() {
                   No invites needed.
                 </h2>
                 <p className="text-base leading-normal text-muted">
-                  Sign in with GitHub to load friends you follow and teammates from your organizations.
-                  They don’t need Committed installed, and you choose who stays on your board.
+                  Your friends don’t need Committed installed. Sign in with GitHub to find
+                  people you follow and teammates from your organizations, then choose who stays on your board.
                 </p>
               </div>
               <PeopleWindow />
