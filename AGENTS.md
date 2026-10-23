@@ -4,6 +4,22 @@ Read [CONTRIBUTING.md](CONTRIBUTING.md) for setup and verification. Product beha
 is documented in [PRODUCT.md](PRODUCT.md). Keep personal machine setup and account
 administration notes outside this repository.
 
+## Public commit metadata
+
+Use a GitHub noreply address for maintainer-authored commits in this public repo.
+GitHub's default squash-merge author can use the account's primary email even when
+the branch commits use noreply. For maintainer-authored PRs, merge with an explicit
+noreply author and the verified head SHA:
+
+```sh
+gh pr merge <number> --repo prompthunt/committed --squash \
+  --author-email 1869968+addisonk@users.noreply.github.com \
+  --match-head-commit <head-sha>
+```
+
+Preserve external contributors' authorship and their chosen public email. Do not
+substitute the maintainer's identity for someone else's contribution.
+
 macOS menu-bar app (SwiftUI) showing a GitHub-contributions leaderboard among friends.
 Distributed as a Developer ID-signed, notarized app that auto-updates via **Sparkle**.
 
