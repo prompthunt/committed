@@ -13,19 +13,18 @@ verification commands are in [README.md](README.md).
 - The cards use the editorial treatment chosen on 2026-10-24 (PR #9). Each card is
   indexed and left-aligned: a monospace folio line (`01 Setup`), one visual, and a
   bottom-anchored headline. The cards come in three inks: lime (connect, macOS), paper
-  `#EFEEE7` (privacy, time frame), and ink `#0C0D0A` (the rest). Visuals are product
-  crops or type: the Connect GitHub sheet cropped off the corner, a live results table,
-  a redacted diff, the rank as a numeral, the repo name, a 30-day contribution calendar, and a ⌘.
+  `#EFEEE7` (privacy, time frame), and ink `#0C0D0A` (the rest). Each visual is a crop of
+  a real app screen (`components/MacUI.tsx`), using the app's copy: the setup screen
+  (`SignInView`), the People window (`FullRankingsView`), the private-contributions tip,
+  the menu-bar item, the popover's segmented control and summary card, the
+  notifications, and the `⋯` menu's checkboxes. Open source shows the repo name.
 - Each card is a CSS size container, and its type uses `cqi` clamps. This keeps the
   type proportional from 320px phones through iPhone Duo's outer (466pt) and inner
   (951pt) displays to the 1,240px desktop container. The desktop grid starts at 1100px.
 - The notification card has a Mac menu bar flush with its top edge, a demo clock,
   translucent glass banners underneath on the right, and a bottom-left caption.
-- The time-frame card uses editorial text tabs rather than the native segmented
-  control. Its calendar shows the last 30 days Monday-first, ending on today (Wednesday, to
-  match the alerts clock) with today ringed; the selected range lights up in the
-  contribution-square ramp and the label names the range. The per-day split is illustrative; only the Today, 7-day, and 30-day totals come
-  from the snapshot.
+- The time-frame card uses the popover's real segmented control (native blue) and summary
+  card; the control works and switches between the Today, 7-day, and 30-day totals.
 - The hero popover sits under a lime spotlight: a beam from above, a pool of light
   below, and drifting dust (`components/HeroBackdrop.tsx`, `.bd-spot-*` in
   `globals.css`). Below 840px the hero stacks: the popover centers under the copy and the

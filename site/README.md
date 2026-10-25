@@ -16,7 +16,7 @@ npm run typecheck
 | Path | What it is |
 |---|---|
 | `app/page.tsx` | The page: hero, contribution strip, feature grid |
-| `components/FeatureGrid.tsx`, `FeatureGrid.module.css` | Eight editorial feature cards: live results table, interactive time-frame calendar, rank numeral, and the top-menu-bar notification scene |
+| `components/FeatureGrid.tsx`, `FeatureGrid.module.css` | Eight editorial feature cards, each cropping a real app screen: setup, People window, privacy tip, menu-bar item, time-frame control, notifications, and the `⋯` menu |
 | `components/HeroBackdrop.tsx` | The lime spotlight behind the hero popover |
 | `components/ContributionStrip.tsx` | Full-bleed contribution calendar between the hero and the tiles; sweeps in on first view |
 | `components/MacUI.tsx` | Shared native popover, menu-bar rank pill, and glass notification banners |
@@ -97,8 +97,7 @@ and each notification describes its corresponding lead change using the native c
 Addison's 7-day total is 2,072; 30-day total is 5,917. Sources:
 `https://github.com/users/{handle}/contributions`, matching `ContributionsParser.swift`.
 People rows match native You labels rather than invented per-person source badges.
-The feature grid's time-frame tabs change the static demo totals (the per-day squares are
-illustrative); its other animated
+The feature grid's time-frame control changes the static demo totals; its other animated
 previews follow the shared clock and pause control. The notification card keeps a
 340px maximum banner width and a flush top menu bar with an illustrative clock.
 The hero retains native blue. `../scripts/render-app-icon.sh` exports the approved lime
