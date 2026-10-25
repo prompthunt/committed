@@ -5,8 +5,16 @@ verification commands are in [README.md](README.md).
 
 ## Design decisions
 
-- One hero, a contribution strip, and a four-card feature grid. Keep the page short;
+- One hero, a contribution strip, and an eight-card feature grid. Keep the page short;
   do not add sections, pricing, testimonials, or extra copy without agreement.
+- The approved wide-anchor grid has two large cards (GitHub connection and rank
+  notifications), two medium cards (friends/teammates and time frames), and four
+  compact cards (privacy, menu-bar rank, open source, and native macOS). Small
+  cards use a short label and one visual. Medium/large cards use centered content,
+  padding, and inner maximum widths so app previews do not stretch to fill a tile.
+- The notification card has a Mac menu bar flush with its top edge, a demo clock,
+  translucent glass banners underneath on the right, and a bottom-aligned caption.
+  The desktop grid fills the existing 1,240px container; smaller screens reflow it.
 - The hero popover sits under a lime spotlight: a beam from above, a pool of light
   below, and drifting dust (`components/HeroBackdrop.tsx`, `.bd-spot-*` in
   `globals.css`). The contribution squares live in the full-bleed strip that

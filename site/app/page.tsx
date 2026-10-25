@@ -1,7 +1,8 @@
 import { AppIcon, Glyph } from "@/components/Glyph";
 import { AnalyticsLink } from "@/components/AnalyticsLink";
 import { DemoMotionToggle, LoopProvider } from "@/components/useLoop";
-import { HeroRankPill, MenuBarScene, NotificationStack, PeopleWindow, Popover, WindowSwitcher } from "@/components/MacUI";
+import { HeroRankPill, Popover } from "@/components/MacUI";
+import { FeatureGrid } from "@/components/FeatureGrid";
 import { ContributionStrip } from "@/components/ContributionStrip";
 import { HeroBackdrop } from "@/components/HeroBackdrop";
 import { DOWNLOAD_URL, RELEASES_URL, SOURCE_URL } from "@/lib/board";
@@ -15,9 +16,6 @@ function DownloadIcon() {
     </svg>
   );
 }
-
-const tile = "rounded-[28px] border transition-[transform,border-color] duration-300 hover:-translate-y-1";
-const darkTile = `${tile} border-white/[.08] bg-tile hover:border-lime/35`;
 
 export default function Home() {
   return (
@@ -88,59 +86,7 @@ export default function Home() {
 
         <ContributionStrip />
 
-        {/* FEATURES */}
-        <section aria-label="Features" className="mx-auto w-full max-w-[1240px] pt-6 pb-24">
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-            <article className={`${tile} flex min-h-[360px] flex-wrap items-center justify-between gap-7 border-transparent bg-lime p-9 text-ink lg:col-span-2`}>
-              <div className="flex min-w-0 flex-[1_1_300px] flex-col gap-3.5">
-                <span className="text-xs font-bold tracking-[.12em]">RANK NOTIFICATIONS</span>
-                <h2 className="text-[clamp(38px,4vw,56px)] leading-[0.95] font-[750] tracking-[-0.05em]">
-                  Get a nudge when ranks change.
-                </h2>
-                <p className="text-[17px] leading-relaxed font-medium text-on-lime">
-                  Get an alert when you pass a friend or they pass you. Opt in from the ⋯ menu.
-                </p>
-              </div>
-              <div className="flex min-w-0 flex-[0_1_340px] justify-center">
-                <NotificationStack />
-              </div>
-            </article>
-
-            <article className={`${darkTile} flex min-h-[360px] flex-col justify-between gap-5 overflow-hidden pb-8`}>
-              <MenuBarScene />
-              <div className="flex flex-col gap-2 px-8">
-                <h2 className="text-[25px] leading-tight font-bold tracking-[-0.03em]">Your rank at a glance</h2>
-                <p className="text-[15px] leading-normal text-muted">
-                  Keep an eye on your rank beside the app icon. Your board refreshes about every five minutes.
-                </p>
-              </div>
-            </article>
-
-            <article className={`${darkTile} flex min-h-[360px] flex-col justify-between gap-5 p-8`}>
-              <WindowSwitcher />
-              <div className="flex flex-col gap-2">
-                <h2 className="text-[25px] leading-tight font-bold tracking-[-0.03em]">Pick your time frame</h2>
-                <p className="text-[15px] leading-normal text-muted">
-                  Compare today’s contributions, or look back over the past 7 or 30 days.
-                </p>
-              </div>
-            </article>
-
-            <article className={`${darkTile} flex min-h-[360px] flex-wrap items-center gap-9 p-9 lg:col-span-2`}>
-              <div className="flex min-w-0 flex-[1_1_280px] flex-col gap-3">
-                <span className="text-xs font-bold tracking-[.12em] text-lime">YOUR PEOPLE</span>
-                <h2 className="text-[clamp(32px,3.4vw,46px)] leading-none font-[750] tracking-[-0.045em]">
-                  No invites needed.
-                </h2>
-                <p className="text-base leading-normal text-muted">
-                  Your friends don’t need Committed installed. Connect GitHub to find
-                  people you follow and teammates from your organizations, then choose who stays on your board.
-                </p>
-              </div>
-              <PeopleWindow />
-            </article>
-          </div>
-        </section>
+        <FeatureGrid />
 
         <footer className="mx-auto flex w-full max-w-[1240px] flex-wrap items-center justify-between gap-4 border-t border-white/[.08] pt-7 pb-10 text-sm text-muted">
           <span className="flex items-center gap-2.5">

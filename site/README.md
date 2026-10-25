@@ -15,10 +15,11 @@ npm run typecheck
 
 | Path | What it is |
 |---|---|
-| `app/page.tsx` | The page: hero, contribution strip, four feature tiles |
+| `app/page.tsx` | The page: hero, contribution strip, feature grid |
+| `components/FeatureGrid.tsx`, `FeatureGrid.module.css` | Eight feature tiles with bounded app previews, interactive time frames, and the top-menu-bar notification scene |
 | `components/HeroBackdrop.tsx` | The lime spotlight behind the hero popover |
 | `components/ContributionStrip.tsx` | Full-bleed contribution calendar between the hero and the tiles; sweeps in on first view |
-| `components/MacUI.tsx` | The app's native UI rebuilt in HTML (popover, notifications, menu bar, window switcher, People window) |
+| `components/MacUI.tsx` | Shared native popover, menu-bar rank pill, and glass notification banners |
 | `components/useLoop.tsx` | One shared clock so every demo tells the same story; reduced-motion users get the final frame |
 | `lib/board.ts` | Demo data: people, per-frame counts, the app's real notification copy, download links |
 | `lib/contributions.ts` | Seeded, decorative contribution data for the strip and the spotlight dust |
@@ -95,7 +96,10 @@ and each notification describes its corresponding lead change using the native c
 
 Addison's 7-day total is 2,072; 30-day total is 5,917. Sources:
 `https://github.com/users/{handle}/contributions`, matching `ContributionsParser.swift`.
-People rows match native You/Hidden labels rather than invented per-person source badges.
+People rows match native You labels rather than invented per-person source badges.
+The feature grid's time-frame buttons change the static demo totals; its other animated
+previews follow the shared clock and pause control. The notification card keeps a
+340px maximum banner width and a flush top menu bar with an illustrative clock.
 The hero retains native blue. `../scripts/render-app-icon.sh` exports the approved lime
 glyph to the master PNG and native iconset; the public app keeps its old icon until the next app release.
 
