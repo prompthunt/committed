@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { FRAME_COUNT } from "@/lib/board";
 
 const LoopContext = createContext(0);
@@ -43,6 +43,36 @@ export function LoopProvider({ children, interval = 2800 }: { children: ReactNod
 }
 
 export const useFrame = () => useContext(LoopContext);
+export const useMotionPaused = () => useContext(MotionContext).paused;
+
+/** Drive a subtree's demos from its own timeline (the hero scene) instead of the shared clock. */
+export function FrameOverride({ frame, children }: { frame: number; children: ReactNode }) {
+  return <LoopContext.Provider value={frame}>{children}</LoopContext.Provider>;
+}
+
+/** Ease a number toward its target so counts tick up instead of jumping. */
+export function useTween(target: number, duration = 700) {
+  const [value, setValue] = useState(target);
+  const current = useRef(target);
+  useEffect(() => {
+    const from = current.current;
+    if (from === target || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      current.current = target;
+      setValue(target);
+      return;
+    }
+    const start = performance.now();
+    let raf = requestAnimationFrame(function tick(now) {
+      const t = Math.min(1, (now - start) / duration);
+      const next = Math.round(from + (target - from) * (1 - Math.pow(1 - t, 3)));
+      current.current = next;
+      setValue(next);
+      if (t < 1) raf = requestAnimationFrame(tick);
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [target, duration]);
+  return value;
+}
 
 /** Pause every demo together without adding controls to the app mockup itself. */
 export function DemoMotionToggle() {

@@ -25,12 +25,17 @@ verification commands are in [README.md](README.md).
   translucent glass banners underneath on the right, and a bottom-left caption.
 - The time-frame card uses the popover's real segmented control (native blue) and summary
   card; the control works and switches between the Today, 7-day, and 30-day totals.
-- The hero popover sits under a lime spotlight: a beam from above, a pool of light
-  below, and drifting dust (`components/HeroBackdrop.tsx`, `.bd-spot-*` in
-  `globals.css`). Below 840px the hero stacks: the popover centers under the copy and the
-  spotlight drops its lamp and beam, leaving the pool of light and dust behind the popover. The
-  contribution squares live in the full-bleed strip that
-  separates the hero from the feature grid (`components/ContributionStrip.tsx`).
+- The hero is centered copy (title, one-line description, download) over a Mac desktop
+  (`components/HeroDesktop.tsx`, `.desk-*` in `globals.css`), framed as a 1,000px-max
+  display with a bezel from 640px up and edge to edge on phones: a lime wallpaper, a
+  real macOS menu bar, and the Committed popover hanging from its menu-bar item, measured
+  so it stays centered under the item and on screen. A 12.9s timeline plays the app in
+  use: banners arrive as friends trade places, a cursor opens the board, you pass
+  mvanhorn live (counts tick, the rank flips, contribution squares burst from the item),
+  then the board closes. It starts on the open board, pauses off screen and with the
+  shared pause control, and shows the final board for reduced motion. The contribution
+  squares live in the full-bleed strip that separates the hero from the feature grid
+  (`components/ContributionStrip.tsx`).
 - Lime `#C8FF2E` on near-black `#050505`, white type. Contribution-square ramp:
   `#14170F → #1D2E0E → #355C12 → #6AA81A → #C8FF2E`.
 - Inter Tight for marketing text; native system typography inside the app mockups.
