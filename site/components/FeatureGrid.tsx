@@ -4,6 +4,7 @@ import { useState, type CSSProperties, type ReactNode } from "react";
 import { NotificationStack, RankPill } from "./MacUI";
 import { useFrame } from "./useLoop";
 import { avatar, board, DAILY, fmt, SOURCE_URL, WINDOW_COUNTS } from "@/lib/board";
+import { SQUARE_SCALE } from "@/lib/contributions";
 import styles from "./FeatureGrid.module.css";
 
 /*
@@ -73,22 +74,28 @@ const PERIODS = ["Today", "7 days", "30 days"];
 const PERIOD_DESCRIPTIONS = ["Today", "Past 7 days", "Past 30 days"];
 const PERIOD_DAYS = [1, 7, 30];
 
+/** Contribution-square shade (1–4) for a day, relative to the busiest day in the window. */
+const BUSIEST = Math.max(...DAILY);
+const squareLevel = (n: number) => {
+  const f = n / BUSIEST;
+  return f < 0.28 ? 1 : f < 0.5 ? 2 : f < 0.75 ? 3 : 4;
+};
+
 function TimeFrame() {
   const [selected, setSelected] = useState(0);
   const total = WINDOW_COUNTS[selected];
-  const max = Math.max(...DAILY);
   return (
     <div className={styles.timeDemo}>
       <div aria-hidden className={styles.timeFigure}>
         <span key={total} className={styles.timeTotal}>{fmt(total)}</span>
         <span className={styles.timeUnit}>contributions</span>
       </div>
-      <div aria-hidden className={styles.bars}>
+      <div aria-hidden className={styles.squares}>
         {DAILY.map((n, i) => (
           <i
             key={i}
             data-on={i >= DAILY.length - PERIOD_DAYS[selected] || undefined}
-            style={vars({ "--h": `${Math.max(6, (n / max) * 100)}%`, "--i": DAILY.length - 1 - i })}
+            style={vars({ "--c": SQUARE_SCALE[squareLevel(n)], "--i": DAILY.length - 1 - i })}
           />
         ))}
       </div>
