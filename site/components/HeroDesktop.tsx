@@ -84,7 +84,7 @@ function usePrefersReducedMotion() {
 }
 
 export function HeroDesktop() {
-  const scene = useRef<HTMLElement>(null);
+  const scene = useRef<HTMLDivElement>(null);
   const pill = useRef<HTMLSpanElement>(null);
   const pop = useRef<HTMLDivElement>(null);
   const reduce = usePrefersReducedMotion();
@@ -146,11 +146,12 @@ export function HeroDesktop() {
 
   return (
     <section
-      ref={scene}
       aria-label="Committed's menu-bar popover on a Mac desktop: notifications arrive as friends trade places, then the board opens and Addison takes first"
       data-paused={paused || undefined}
-      className="desk relative -mx-[clamp(20px,5vw,72px)] overflow-hidden border-t border-white/10"
+      className="desk-frame desk relative max-sm:-mx-[clamp(20px,5vw,72px)] sm:mx-auto sm:w-full sm:max-w-[1000px]"
     >
+      {/* The screen: edge to edge on phones, a framed display with a bezel from sm up. */}
+      <div ref={scene} className="desk-screen relative overflow-hidden">
       <div aria-hidden className="desk-wallpaper absolute inset-0"><i /><i /></div>
       <FrameOverride frame={step.frame}>
         <div aria-hidden className="font-mac relative">
@@ -159,7 +160,7 @@ export function HeroDesktop() {
             <AppleLogo />
             <span className="font-bold text-white">Finder</span>
             {APP_MENUS.map((menu) => (
-              <span key={menu} className="max-md:hidden">{menu}</span>
+              <span key={menu} className="max-lg:hidden">{menu}</span>
             ))}
             <span className="ml-auto flex items-center gap-[18px] whitespace-nowrap max-sm:gap-3">
               <span
@@ -215,7 +216,7 @@ export function HeroDesktop() {
           </div>
 
           {/* The popover hangs from the Committed item, centred under it and kept on screen. */}
-          <div className="px-4 pt-2 pb-24">
+          <div className="px-4 pt-2 pb-24 sm:pb-16">
             <div
               ref={pop}
               data-open={step.open || undefined}
@@ -245,6 +246,7 @@ export function HeroDesktop() {
       </FrameOverride>
       <div className="absolute right-5 bottom-5 z-30 size-11">
         <DemoMotionToggle />
+      </div>
       </div>
     </section>
   );
