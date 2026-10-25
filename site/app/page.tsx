@@ -39,8 +39,8 @@ export default function Home() {
         </header>
 
         {/* HERO */}
-        <main className="mx-auto flex w-full max-w-[1240px] flex-1 flex-col gap-y-14 pt-4 pb-12 lg:flex-row lg:items-center lg:justify-between lg:gap-x-16">
-          <div className="flex min-w-0 animate-rise flex-col gap-7 lg:flex-[1_1_440px]">
+        <main className="mx-auto flex w-full max-w-[1240px] flex-1 flex-col gap-y-14 pt-4 pb-12 min-[840px]:flex-row min-[840px]:items-center min-[840px]:justify-between min-[840px]:gap-x-10 lg:gap-x-16">
+          <div className="flex min-w-0 animate-rise flex-col gap-7 min-[840px]:flex-[1_1_360px] lg:flex-[1_1_440px]">
             <AppIcon size={96} />
             <h1 className="text-[clamp(48px,6.2vw,92px)] leading-[0.96] font-[750] tracking-[-0.055em]">
               A little friendly <span className="text-lime">competition.</span>
@@ -67,7 +67,7 @@ export default function Home() {
           </div>
 
           <div
-            className="relative flex w-full max-w-[380px] min-w-0 animate-rise flex-col items-center self-center [animation-delay:150ms] lg:flex-[0_1_380px] lg:self-auto"
+            className="relative flex w-full max-w-[380px] min-w-0 animate-rise flex-col items-center self-center [animation-delay:150ms] min-[840px]:flex-[0_1_360px] min-[840px]:self-auto lg:flex-[0_1_380px]"
           >
             <div role="img" aria-label="Committed's menu-bar popover: today's board, with Addison trading places with friends and finishing first" className="contents">
               <div aria-hidden className="contents">

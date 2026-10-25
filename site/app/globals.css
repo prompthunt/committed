@@ -155,7 +155,7 @@
 }
 
 /* Stacked hero: no lamp or beam above the popover, just the pool of light and dust. */
-@media (max-width: 1023px) {
+@media (max-width: 839px) {
   .bd-spot-beam,
   .bd-spot-lamp {
     display: none;
