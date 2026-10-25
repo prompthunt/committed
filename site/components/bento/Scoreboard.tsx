@@ -85,7 +85,7 @@ function SplitFlap({ value }: { value: number }) {
     <span aria-hidden className={s.flaps}>
       {digits.map((d, i) => (
         <span key={i} className={s.flap}>
-          <span key={`${d}-${value}`} className={s.flapDigit} style={vars({ "--i": i })}>{d}</span>
+          <span key={`${d}-${value}`} className={`${s.flapDigit} ${i < 4 - String(value).length ? s.flapPad : ""}`} style={vars({ "--i": i })}>{d}</span>
         </span>
       ))}
     </span>

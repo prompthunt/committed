@@ -74,7 +74,7 @@
 }
 .flap::after { content:""; position:absolute; inset:50% 0 auto; height:1px; background:#050505; }
 .flapDigit { font:800 58px/1 var(--font-display); font-variant-numeric:tabular-nums; letter-spacing:-.03em; transform-origin:50% 50%; animation:sb-flip .55s cubic-bezier(.3,1.4,.5,1) both; animation-delay:calc(var(--i) * 70ms); }
-.flaps .flap:first-child .flapDigit { color:#5b6150; }
+.flapPad { color:#5b6150; }
 @keyframes sb-flip { from { transform:rotateX(-100deg); opacity:.2; } }
 .flapLabel { margin-top:10px; font:700 10px/1 var(--font-display); letter-spacing:.22em; text-transform:uppercase; color:var(--color-muted); }
 .segments { display:flex; gap:6px; margin-top:20px; }
