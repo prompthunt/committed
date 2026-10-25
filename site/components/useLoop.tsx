@@ -43,6 +43,7 @@ export function LoopProvider({ children, interval = 2800 }: { children: ReactNod
 }
 
 export const useFrame = () => useContext(LoopContext);
+export const useMotionPaused = () => useContext(MotionContext).paused;
 
 /** Pause every demo together without adding controls to the app mockup itself. */
 export function DemoMotionToggle() {

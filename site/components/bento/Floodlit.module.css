@@ -1,0 +1,178 @@
+/* ── Surface: a lit stage with grain and a pointer-tracked rim ─────────── */
+.card {
+  position:relative; isolation:isolate; overflow:hidden; display:flex; flex-direction:column; align-items:center; text-align:center;
+  padding:32px; border-radius:24px; color:white;
+  background:
+    radial-gradient(90% 75% at var(--lx,50%) var(--ly,-10%), rgb(200 255 46 / var(--la,.075)), transparent 70%),
+    linear-gradient(180deg,#10130c,#090b06);
+  box-shadow:inset 0 1px 0 rgb(255 255 255 / .08), inset 0 0 0 1px rgb(255 255 255 / .045), 0 40px 70px -50px #000;
+}
+.card::before {
+  content:""; position:absolute; inset:0; z-index:-1; pointer-events:none; opacity:.09; mix-blend-mode:overlay;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+.card::after {
+  content:""; position:absolute; inset:0; z-index:5; pointer-events:none; border-radius:inherit; padding:1px; opacity:0; transition:opacity .4s;
+  background:radial-gradient(240px circle at var(--mx,50%) var(--my,50%), rgb(200 255 46 / .7), rgb(200 255 46 / .12) 45%, transparent 70%);
+  mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite:xor; mask-composite:exclude;
+}
+@media (hover:hover) and (pointer:fine) {
+  .card:hover::after { opacity:1; }
+}
+.card h2 {
+  margin:0; font-size:32px; line-height:1.03; font-weight:680; letter-spacing:-.04em;
+  background:linear-gradient(180deg,#fff 35%,#c5c9bd); -webkit-background-clip:text; background-clip:text; color:transparent;
+}
+.card p { margin:10px 0 0; max-width:340px; font-size:15px; line-height:1.4; color:var(--color-muted); }
+.small { justify-content:flex-end; gap:18px; padding:22px 14px 24px; }
+.small h2 { font-size:22px; }
+.root[data-paused] :is(.ring, .satellite img, .wallpaper i, .leader .dial::before) { animation-play-state:paused; }
+
+/* ── Connect: lime slab, embossed squares, followers in orbit ───────────── */
+.connect { background:radial-gradient(70% 90% at 50% 100%, #d9ff6a, var(--color-lime) 60%); color:var(--color-ink); box-shadow:inset 0 1px 0 rgb(255 255 255 / .5), 0 40px 80px -50px rgb(200 255 46 / .5); }
+.connect h2 { font-size:48px; line-height:.98; background:none; color:var(--color-ink); }
+.connect p { color:var(--color-on-lime); }
+.connect::before { opacity:.18; }
+.connectSquares {
+  position:absolute; inset:0; z-index:-1; pointer-events:none;
+  background-image:linear-gradient(90deg, transparent 15px, rgb(200 255 46) 15px), linear-gradient(transparent 15px, rgb(200 255 46) 15px);
+  background-color:rgb(139 196 26 / .35); background-size:19px 19px;
+  mask:radial-gradient(60% 70% at 50% 72%, #000, transparent 75%);
+}
+.connectStage { position:relative; display:grid; place-items:center; flex:1; width:100%; min-height:190px; margin-top:8px; }
+.sheet { position:relative; z-index:2; box-shadow:0 1px 0 rgb(255 255 255 / .06) inset, 0 30px 50px -18px rgb(5 5 5 / .55), 0 8px 16px -8px rgb(5 5 5 / .4); }
+.orbit { position:absolute; left:50%; top:50%; width:0; height:0; scale:1 .36; }
+.ring {
+  --r:250px; position:absolute; left:calc(var(--r) * -1); top:calc(var(--r) * -1); width:calc(var(--r) * 2); height:calc(var(--r) * 2);
+  border-radius:50%; border:2px dashed rgb(5 5 5 / .22); animation:fl-orbit 48s linear infinite;
+}
+.satellite { position:absolute; left:50%; top:50%; width:0; height:0; transform:rotate(var(--a)) translateX(var(--r)) rotate(calc(var(--a) * -1)); }
+.satellite img {
+  position:absolute; left:-19px; top:-19px; width:38px; height:38px; border-radius:50%; max-width:none;
+  border:2px solid var(--color-lime); box-shadow:0 10px 18px -8px rgb(5 5 5 / .6);
+  scale:1 2.7778; animation:fl-orbit-back 48s linear infinite;
+}
+@keyframes fl-orbit { to { rotate:360deg; } }
+@keyframes fl-orbit-back { to { rotate:-360deg; } }
+
+/* ── Friends: contribution gauges, the leader wears the trophy ─────────── */
+.people { justify-content:space-between; }
+.gauges { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:18px 10px; width:100%; max-width:330px; margin-top:18px; font-family:var(--font-mac); }
+.gauge { display:flex; flex-direction:column; align-items:center; min-width:0; }
+.dial { position:relative; display:grid; place-items:center; width:64px; height:64px; }
+.dial svg { position:absolute; inset:0; rotate:-90deg; overflow:visible; }
+.dial img { width:48px; height:48px; border-radius:50%; }
+.track { fill:none; stroke:rgb(255 255 255 / .08); stroke-width:3; }
+.arc { fill:none; stroke:#9a9e93; stroke-width:3; stroke-linecap:round; transition:stroke-dashoffset 1s cubic-bezier(.2,.8,.2,1), stroke .4s; }
+.gaugeYou .arc { stroke:var(--color-lime); }
+.leader .dial::before { content:""; position:absolute; inset:-14px; border-radius:50%; background:radial-gradient(closest-side, rgb(200 255 46 / .28), transparent); animation:fl-pulse 2.8s ease-in-out infinite; }
+.leader .arc { filter:drop-shadow(0 0 4px rgb(200 255 46 / .8)); }
+.crown { position:absolute; right:-4px; top:-4px; display:grid; place-items:center; width:22px; height:22px; border-radius:50%; background:var(--color-lime); color:var(--color-ink); box-shadow:0 0 0 3px #0d1009; }
+.crown svg { width:13px; height:13px; }
+.gaugeName { max-width:100%; margin-top:8px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:11px; color:var(--color-muted); }
+.gaugeCount { font-size:15px; font-weight:650; font-variant-numeric:tabular-nums; }
+@keyframes fl-pulse { 50% { opacity:.45; scale:.9; } }
+
+/* ── Privacy: a blurred diff behind a glass lock ───────────────────────── */
+.redacted { position:relative; display:grid; place-items:center; width:132px; height:76px; }
+.code { display:flex; flex-direction:column; gap:7px; width:100%; padding:10px 12px; border-radius:10px; background:#0a0c08; box-shadow:inset 0 0 0 1px rgb(255 255 255 / .07); filter:blur(2.2px); }
+.codeLine { display:flex; gap:5px; }
+.codeLine:nth-child(2), .codeLine:nth-child(5) { padding-left:12px; }
+.codeLine i { height:5px; border-radius:3px; background:#3c4234; }
+.codeLine i:nth-child(2) { background:#6aa81a; }
+.codeLine:nth-child(3) i:last-child, .codeLine:nth-child(4) i { background:#8bc41a99; }
+.lock {
+  position:absolute; display:grid; place-items:center; width:46px; height:46px; border-radius:14px; color:var(--color-lime);
+  background:linear-gradient(160deg, rgb(255 255 255 / .16), rgb(255 255 255 / .04)); backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px);
+  box-shadow:inset 0 1px 0 rgb(255 255 255 / .25), inset 0 0 0 1px rgb(255 255 255 / .08), 0 12px 24px -10px #000, 0 0 30px -6px rgb(200 255 46 / .4);
+}
+.lock svg { width:24px; height:24px; }
+
+/* ── Menu-bar rank: a strip of menu bar under its own beam ─────────────── */
+.menuStrip { position:relative; align-self:stretch; margin-inline:-14px; font-family:var(--font-mac); }
+.menuBeam {
+  position:absolute; left:50%; bottom:50%; width:220px; height:160px; translate:-38% 0; pointer-events:none;
+  background:conic-gradient(from 160deg at 50% 0%, transparent, rgb(200 255 46 / .22) 20deg, transparent 40deg);
+  mask:linear-gradient(transparent, #000);
+}
+.menuItems {
+  position:relative; display:flex; align-items:center; justify-content:center; gap:14px; height:38px;
+  border-block:1px solid rgb(255 255 255 / .08); background:rgb(255 255 255 / .06); color:var(--color-mac-label); font-size:14px;
+}
+.menuItems svg { width:16px; height:16px; opacity:.75; }
+.menuPill { padding:4px 10px; font-size:15px; box-shadow:0 0 0 1px rgb(200 255 46 / .35), 0 0 24px rgb(200 255 46 / .45); background:rgb(200 255 46 / .16) !important; }
+
+/* ── Open source: a commit graph merging into main ─────────────────────── */
+.sourceLink { display:flex; flex-direction:column; align-items:center; justify-content:flex-end; gap:12px; height:100%; width:100%; }
+.graph { width:132px; height:48px; overflow:visible; }
+.graphMain, .graphBranch { fill:none; stroke-width:2; stroke-linecap:round; }
+.graphMain { stroke:#3b4231; }
+.graphBranch { stroke:#6aa81a; stroke-dasharray:3 4; }
+.node { fill:#0d1009; stroke:#59604e; stroke-width:2; }
+.nodeBranch { fill:#0d1009; stroke:#6aa81a; stroke-width:2; }
+.head { fill:var(--color-lime); filter:drop-shadow(0 0 6px var(--color-lime)); }
+.repo { margin-top:-4px; font:500 11px/1 ui-monospace, "SF Mono", Menlo, monospace; color:var(--color-faint); transition:color .2s; }
+.sourceLink:hover .repo { color:var(--color-lime); }
+.sourceLink:hover .head { animation:fl-pulse 1.2s ease-in-out infinite; }
+
+/* ── Time frame: the native control drives a lit calendar ──────────────── */
+.time { justify-content:center; }
+.timeDemo { width:100%; max-width:292px; margin-top:22px; font-family:var(--font-mac); }
+.segments { display:flex; gap:2px; padding:3px; border-radius:9px; background:var(--color-mac-control); box-shadow:inset 0 0 0 1px rgb(255 255 255 / .04); }
+.segments button { flex:1; min-width:0; min-height:44px; padding:4px 5px; border:0; border-radius:7px; color:var(--color-mac-label); font-size:12px; white-space:nowrap; cursor:pointer; transition:background-color .2s; }
+.segments button[aria-pressed="true"] { background:var(--color-mac-blue); color:white; box-shadow:0 6px 16px -8px var(--color-mac-blue); }
+.calendar { display:grid; grid-template-columns:repeat(10,1fr); gap:5px; margin-top:18px; }
+.calendar i { aspect-ratio:1; border-radius:5px; background:#13160e; box-shadow:inset 0 0 0 1px rgb(255 255 255 / .03); transition:background-color .35s, box-shadow .35s, scale .35s; transition-delay:calc(var(--i) * 14ms); scale:.86; }
+.calendar i[data-on] { background:var(--c); scale:1; box-shadow:0 0 14px -2px color-mix(in srgb, var(--c) 80%, transparent); }
+.calendar i[data-on]:last-child { background:var(--color-lime); box-shadow:0 0 18px 0 rgb(200 255 46 / .6); }
+.timeTotal { display:flex; align-items:baseline; justify-content:space-between; margin-top:16px; padding-top:14px; border-top:1px solid rgb(255 255 255 / .07); }
+.timeTotal span { font:750 38px/1 var(--font-display); letter-spacing:-.045em; font-variant-numeric:tabular-nums; }
+.timeTotal small { font-size:11px; color:var(--color-muted); }
+
+/* ── Alerts: glass banners over a lit wallpaper ────────────────────────── */
+.alerts { padding:0 0 30px; justify-content:flex-start; background:#090b06; }
+.wallpaper { position:absolute; inset:0; z-index:-1; overflow:hidden; mask:linear-gradient(#000 30%, transparent 85%); }
+.wallpaper i { position:absolute; border-radius:50%; filter:blur(50px); animation:fl-drift 16s ease-in-out infinite alternate; }
+.wallpaper i:nth-child(1) { right:-6%; top:-30%; width:62%; height:120%; background:rgb(200 255 46 / .34); }
+.wallpaper i:nth-child(2) { right:30%; top:10%; width:42%; height:70%; background:rgb(53 92 18 / .7); animation-duration:21s; animation-direction:alternate-reverse; }
+.wallpaper i:nth-child(3) { left:-10%; top:-20%; width:40%; height:80%; background:rgb(30 60 52 / .8); animation-duration:19s; }
+@keyframes fl-drift { to { translate:-8% 10%; scale:1.12; } }
+.desktopScene { flex-shrink:0; width:100%; min-height:210px; font-family:var(--font-mac); }
+.menuBar { display:flex; align-items:center; justify-content:flex-end; gap:12px; height:30px; padding:0 20px; background:rgb(10 12 8 / .35); backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px); border-bottom:1px solid rgb(255 255 255 / .08); color:var(--color-mac-label); font-size:12px; white-space:nowrap; }
+.menuBar > span:first-child { gap:5px; padding:3px 7px; border-radius:5px; font-size:12px; }
+.menuBar > svg { width:15px; height:15px; }
+.notifications { width:calc(100% - 32px); max-width:340px; margin:12px 16px 0 auto; text-align:left; }
+.alertCaption { display:flex; flex-direction:column; align-items:center; margin-top:auto; padding:12px 32px 0; }
+.alertCaption h2 { max-width:460px; font-size:42px; line-height:.98; }
+
+/* ── macOS: the app icon on a glossy floor ─────────────────────────────── */
+.pedestal { position:relative; display:flex; flex-direction:column; align-items:center; }
+.pedestalBeam { position:absolute; bottom:30px; left:50%; width:160px; height:170px; translate:-50% 0; background:conic-gradient(from 160deg at 50% 0%, transparent, rgb(200 255 46 / .16) 20deg, transparent 40deg); mask:linear-gradient(transparent, #000); pointer-events:none; }
+.reflection { height:22px; overflow:hidden; scale:1 -1; opacity:.3; mask:linear-gradient(to top, #000, transparent 55%); -webkit-mask:linear-gradient(to top, #000, transparent 55%); }
+.reflection > div { margin-top:-38px; }
+
+@media (min-width:640px) and (max-width:1199px) {
+  .card { padding-inline:24px; }
+  .alerts { padding-inline:0; }
+  .small { padding-inline:10px; }
+  .small h2 { font-size:20px; }
+}
+@media (max-width:639px) {
+  .card { padding:28px 22px; }
+  .card h2 { font-size:28px; }
+  .connect h2 { font-size:40px; }
+  .ring { --r:180px; }
+  .small { padding:20px 10px; gap:14px; }
+  .small h2 { font-size:20px; }
+  .gauges { gap:14px 6px; }
+  .redacted { width:116px; }
+  .alerts { padding:0 0 28px; }
+  .alertCaption { padding-inline:20px; }
+  .alertCaption h2 { font-size:34px; }
+  .menuBar { gap:9px; padding-inline:12px; font-size:11px; }
+  .menuItems { gap:10px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ring, .satellite img, .wallpaper i, .leader .dial::before { animation:none; }
+}
