@@ -15,18 +15,21 @@ verification commands are in [README.md](README.md).
   bottom-anchored headline. The cards come in three inks: lime (connect, macOS), paper
   `#EFEEE7` (privacy, time frame), and ink `#0C0D0A` (the rest). Visuals are product
   crops or type: the Connect GitHub sheet cropped off the corner, a live results table,
-  a redacted diff, the rank as a numeral, the repo name, a 30-day bar chart, and a ⌘.
+  a redacted diff, the rank as a numeral, the repo name, 30 days of contribution squares, and a ⌘.
 - Each card is a CSS size container, and its type uses `cqi` clamps. This keeps the
   type proportional from 320px phones through iPhone Duo's outer (466pt) and inner
   (951pt) displays to the 1,240px desktop container. The desktop grid starts at 1100px.
 - The notification card has a Mac menu bar flush with its top edge, a demo clock,
   translucent glass banners underneath on the right, and a bottom-left caption.
 - The time-frame card uses editorial text tabs rather than the native segmented
-  control. The 30 daily bars are illustrative; only the Today, 7-day, and 30-day
-  totals come from the snapshot.
+  control. Its 30 squares use the contribution-square ramp and light up for the selected
+  range. The per-day split is illustrative; only the Today, 7-day, and 30-day totals come
+  from the snapshot.
 - The hero popover sits under a lime spotlight: a beam from above, a pool of light
   below, and drifting dust (`components/HeroBackdrop.tsx`, `.bd-spot-*` in
-  `globals.css`). The contribution squares live in the full-bleed strip that
+  `globals.css`). Below 1024px the hero stacks: the popover centers under the copy and the
+  spotlight shrinks to the popover column, so the lamp never lands on the text. The
+  contribution squares live in the full-bleed strip that
   separates the hero from the feature grid (`components/ContributionStrip.tsx`).
 - Lime `#C8FF2E` on near-black `#050505`, white type. Contribution-square ramp:
   `#14170F → #1D2E0E → #355C12 → #6AA81A → #C8FF2E`.

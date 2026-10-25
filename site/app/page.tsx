@@ -39,8 +39,8 @@ export default function Home() {
         </header>
 
         {/* HERO */}
-        <main className="mx-auto flex w-full max-w-[1240px] flex-1 flex-wrap items-center justify-between gap-x-16 gap-y-14 pt-4 pb-12">
-          <div className="flex min-w-0 flex-[1_1_440px] animate-rise flex-col gap-7">
+        <main className="mx-auto flex w-full max-w-[1240px] flex-1 flex-col gap-y-14 pt-4 pb-12 lg:flex-row lg:items-center lg:justify-between lg:gap-x-16">
+          <div className="flex min-w-0 animate-rise flex-col gap-7 lg:flex-[1_1_440px]">
             <AppIcon size={96} />
             <h1 className="text-[clamp(48px,6.2vw,92px)] leading-[0.96] font-[750] tracking-[-0.055em]">
               A little friendly <span className="text-lime">competition.</span>
@@ -67,7 +67,7 @@ export default function Home() {
           </div>
 
           <div
-            className="relative flex min-w-0 flex-[0_1_380px] animate-rise flex-col items-center [animation-delay:150ms]"
+            className="relative mt-12 flex w-full max-w-[380px] min-w-0 animate-rise flex-col items-center self-center [animation-delay:150ms] lg:mt-0 lg:flex-[0_1_380px] lg:self-auto"
           >
             <div role="img" aria-label="Committed's menu-bar popover: today's board, with Addison trading places with friends and finishing first" className="contents">
               <div aria-hidden className="contents">

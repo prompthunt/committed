@@ -12,10 +12,14 @@ const DUST = (() => {
   }));
 })();
 
-/** A stage light on the leader: a lime beam from above and a pool of light below the popover. */
+/**
+ * A stage light on the leader: a lime beam from above and a pool of light below the popover.
+ * When the hero stacks (below lg), it shrinks to the popover column so the lamp sits just above
+ * the rank pill instead of over the copy.
+ */
 export function HeroBackdrop() {
   return (
-    <div className="bd-spot pointer-events-none absolute top-[54%] left-1/2 h-[860px] w-[920px] -translate-x-1/2 -translate-y-1/2">
+    <div className="bd-spot pointer-events-none absolute top-[54%] left-1/2 h-[860px] w-[920px] -translate-x-1/2 -translate-y-1/2 max-lg:top-[-20px] max-lg:h-[640px] max-lg:translate-y-0">
       <i className="bd-spot-beam" />
       <i className="bd-spot-beam bd-spot-beam-core" />
       <i className="bd-spot-lamp" />
