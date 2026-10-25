@@ -1,10 +1,9 @@
-import { AppIcon, Glyph } from "@/components/Glyph";
+import { Glyph } from "@/components/Glyph";
 import { AnalyticsLink } from "@/components/AnalyticsLink";
-import { DemoMotionToggle, LoopProvider } from "@/components/useLoop";
-import { HeroRankPill, Popover } from "@/components/MacUI";
+import { LoopProvider } from "@/components/useLoop";
+import { HeroDesktop } from "@/components/HeroDesktop";
 import { FeatureGrid } from "@/components/FeatureGrid";
 import { ContributionStrip } from "@/components/ContributionStrip";
-import { HeroBackdrop } from "@/components/HeroBackdrop";
 import { DOWNLOAD_URL, RELEASES_URL, SOURCE_URL } from "@/lib/board";
 
 function DownloadIcon() {
@@ -39,50 +38,26 @@ export default function Home() {
         </header>
 
         {/* HERO */}
-        <main className="mx-auto flex w-full max-w-[1240px] flex-1 flex-col gap-y-14 pt-4 pb-12 min-[840px]:flex-row min-[840px]:items-center min-[840px]:justify-between min-[840px]:gap-x-10 lg:gap-x-16">
-          <div className="flex min-w-0 animate-rise flex-col gap-7 min-[840px]:flex-[1_1_360px] lg:flex-[1_1_440px]">
-            <AppIcon size={96} />
-            <h1 className="text-[clamp(48px,6.2vw,92px)] leading-[0.96] font-[750] tracking-[-0.055em]">
-              A little friendly <span className="text-lime">competition.</span>
-            </h1>
-            <div className="flex flex-col gap-3">
-              <p className="max-w-[34rem] text-xl leading-relaxed text-soft">
-                A GitHub leaderboard for your Mac’s menu bar. Connect GitHub to
-                automatically add friends you follow and teammates from your organizations.
-              </p>
-              <p className="text-sm text-muted">No sign-up. Reads contribution counts, never your code.</p>
-            </div>
-            <div className="flex flex-col items-start gap-3.5">
-              <AnalyticsLink
-                href={DOWNLOAD_URL}
-                event="download_clicked"
-                placement="hero"
-                className="inline-flex min-h-14 items-center gap-2.5 rounded-xl bg-lime px-6.5 text-[17px] font-semibold text-ink transition-[filter,box-shadow] duration-200 hover:shadow-[0_0_0_4px_rgba(200,255,46,.2),0_12px_36px_-10px_rgba(200,255,46,.55)] hover:brightness-105"
-              >
-                <DownloadIcon />
-                Download for Mac
-              </AnalyticsLink>
-              <span className="text-sm text-muted">macOS 26+ · Apple silicon &amp; Intel</span>
-            </div>
-          </div>
-
-          <div
-            className="relative flex w-full max-w-[380px] min-w-0 animate-rise flex-col items-center self-center [animation-delay:150ms] min-[840px]:flex-[0_1_360px] min-[840px]:self-auto lg:flex-[0_1_380px]"
-          >
-            <div role="img" aria-label="Committed's menu-bar popover: today's board, with Addison trading places with friends and finishing first" className="contents">
-              <div aria-hidden className="contents">
-                <HeroBackdrop />
-                <div className="font-mac relative mb-2 ml-3.5 self-start text-[17px]">
-                  <HeroRankPill />
-                </div>
-                <div className="relative w-full flex justify-center">
-                  <Popover />
-                </div>
-              </div>
-            </div>
-            <DemoMotionToggle />
+        <main className="mx-auto flex w-full max-w-[1240px] flex-col items-center gap-6 pt-10 pb-16 text-center sm:pt-16">
+          <h1 className="max-w-[14ch] animate-rise text-[clamp(46px,7vw,96px)] leading-[0.94] font-[750] tracking-[-0.055em] text-balance">
+            A little friendly <span className="text-lime">competition.</span>
+          </h1>
+          <p className="max-w-[30rem] animate-rise text-xl leading-relaxed text-soft [animation-delay:90ms]">A GitHub leaderboard for your Mac’s menu bar.</p>
+          <div className="mt-2 flex animate-rise flex-col items-center gap-3.5 [animation-delay:180ms]">
+            <AnalyticsLink
+              href={DOWNLOAD_URL}
+              event="download_clicked"
+              placement="hero"
+              className="inline-flex min-h-14 items-center gap-2.5 rounded-xl bg-lime px-6.5 text-[17px] font-semibold text-ink transition-[filter,box-shadow] duration-200 hover:shadow-[0_0_0_4px_rgba(200,255,46,.2),0_12px_36px_-10px_rgba(200,255,46,.55)] hover:brightness-105"
+            >
+              <DownloadIcon />
+              Download for Mac
+            </AnalyticsLink>
+            <span className="text-sm text-muted">macOS 26+ · Apple silicon &amp; Intel</span>
           </div>
         </main>
+
+        <HeroDesktop />
 
         <ContributionStrip />
 

@@ -2,7 +2,7 @@
 
 import { Fragment, type ReactNode } from "react";
 import { board, fmt, ME, avatar } from "@/lib/board";
-import { useFrame } from "./useLoop";
+import { useFrame, useTween } from "./useLoop";
 import { Glyph } from "./Glyph";
 
 /* Small pieces of the app's native UI, rebuilt in HTML. */
@@ -37,6 +37,11 @@ function YouBadge() {
   return (
     <span className="rounded-full bg-mac-you-border px-[7px] py-px text-[11px] font-semibold text-mac-you-text">you</span>
   );
+}
+
+/** A count that ticks to its new value. */
+export function Ticker({ value }: { value: number }) {
+  return <>{fmt(useTween(value))}</>;
 }
 
 export const WINDOWS = ["Today", "7 days", "30 days"] as const;
@@ -86,7 +91,7 @@ export function WindowPicker({
 /** The summary card above the board: your avatar, name, handle and count for the window. */
 export function YouSummary({ count }: { count: number }) {
   return (
-    <div className="font-mac flex items-center gap-3 rounded-[14px] border border-mac-you-border bg-mac-you p-3.5 text-white">
+    <div data-you-summary className="font-mac flex items-center gap-3 rounded-[14px] border border-mac-you-border bg-mac-you p-3.5 text-white">
       <img src={ME.avatar} alt="" className="size-[50px] shrink-0 rounded-full object-cover" />
       <span className="flex min-w-0 flex-1 flex-col leading-tight">
         <span className="text-sm font-bold">{ME.name}</span>
@@ -94,7 +99,7 @@ export function YouSummary({ count }: { count: number }) {
       </span>
       <span className="flex flex-col items-end">
         <span className="font-display text-[34px] leading-none font-extrabold tracking-[-0.04em] tabular-nums">
-          {fmt(count)}
+          <Ticker value={count} />
         </span>
         <span className="mt-1 text-[8px] font-semibold tracking-[.14em] text-[#aeaeb2]">CONTRIBUTIONS</span>
       </span>
@@ -148,7 +153,7 @@ export function Popover() {
               >
                 {r.chevron && <path d={r.chevron} />}
               </svg>
-              <span className="w-8 text-right text-sm font-semibold tabular-nums">{r.count}</span>
+              <span className="w-8 text-right text-sm font-semibold tabular-nums"><Ticker value={r.count} /></span>
               <span aria-hidden className="ml-1 grid grid-cols-2 gap-[1.5px]">
                 {[0, 1, 2, 3].map((k) => (
                   <span key={k} className="size-[5px] rounded-[1px]" style={{ background: r.square }} />
