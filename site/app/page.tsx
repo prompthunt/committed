@@ -67,7 +67,7 @@ export default function Home() {
           </div>
 
           <div
-            className="relative mt-12 flex w-full max-w-[380px] min-w-0 animate-rise flex-col items-center self-center [animation-delay:150ms] lg:mt-0 lg:flex-[0_1_380px] lg:self-auto"
+            className="relative flex w-full max-w-[380px] min-w-0 animate-rise flex-col items-center self-center [animation-delay:150ms] lg:flex-[0_1_380px] lg:self-auto"
           >
             <div role="img" aria-label="Committed's menu-bar popover: today's board, with Addison trading places with friends and finishing first" className="contents">
               <div aria-hidden className="contents">

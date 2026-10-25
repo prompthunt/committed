@@ -16,7 +16,7 @@ npm run typecheck
 | Path | What it is |
 |---|---|
 | `app/page.tsx` | The page: hero, contribution strip, feature grid |
-| `components/FeatureGrid.tsx`, `FeatureGrid.module.css` | Eight editorial feature cards: live results table, interactive time-frame squares, rank numeral, and the top-menu-bar notification scene |
+| `components/FeatureGrid.tsx`, `FeatureGrid.module.css` | Eight editorial feature cards: live results table, interactive time-frame calendar, rank numeral, and the top-menu-bar notification scene |
 | `components/HeroBackdrop.tsx` | The lime spotlight behind the hero popover |
 | `components/ContributionStrip.tsx` | Full-bleed contribution calendar between the hero and the tiles; sweeps in on first view |
 | `components/MacUI.tsx` | Shared native popover, menu-bar rank pill, and glass notification banners |

@@ -81,23 +81,40 @@ const squareLevel = (n: number) => {
   return f < 0.28 ? 1 : f < 0.5 ? 2 : f < 0.75 ? 3 : 4;
 };
 
+/*
+ * A month calendar of the last 30 days, Monday first, ending today (a Wednesday, matching
+ * the menu-bar clock in the alerts card). Cell 0 is the Monday before the window; the four
+ * cells after today are the rest of this week.
+ */
+const WEEKDAYS = ["M", "T", "W", "T", "F", "S", "S"];
+const CALENDAR = Array.from({ length: 35 }, (_, cell) => cell - 1);
+
 function TimeFrame() {
   const [selected, setSelected] = useState(0);
   const total = WINDOW_COUNTS[selected];
+  const first = DAILY.length - PERIOD_DAYS[selected];
   return (
     <div className={styles.timeDemo}>
       <div aria-hidden className={styles.timeFigure}>
-        <span key={total} className={styles.timeTotal}>{fmt(total)}</span>
-        <span className={styles.timeUnit}>contributions</span>
-      </div>
-      <div aria-hidden className={styles.squares}>
-        {DAILY.map((n, i) => (
-          <i
-            key={i}
-            data-on={i >= DAILY.length - PERIOD_DAYS[selected] || undefined}
-            style={vars({ "--c": SQUARE_SCALE[squareLevel(n)], "--i": DAILY.length - 1 - i })}
-          />
-        ))}
+        <div className={styles.timeCount}>
+          <span key={total} className={styles.timeTotal}>{fmt(total)}</span>
+          <span className={styles.timeUnit}>Contributions<br />{PERIOD_DESCRIPTIONS[selected]}</span>
+        </div>
+        <div className={styles.calendar}>
+          {WEEKDAYS.map((day, i) => <b key={i}>{day}</b>)}
+          {CALENDAR.map((day, cell) =>
+            day < 0 || day >= DAILY.length ? (
+              <i key={cell} data-state={day < 0 ? "before" : "after"} />
+            ) : (
+              <i
+                key={cell}
+                data-state={day >= first ? "on" : "off"}
+                data-today={day === DAILY.length - 1 || undefined}
+                style={vars({ "--c": SQUARE_SCALE[squareLevel(DAILY[day])], "--i": DAILY.length - 1 - day })}
+              />
+            ),
+          )}
+        </div>
       </div>
       <div role="group" aria-label="Demo contribution time frame" className={styles.tabs}>
         {PERIODS.map((period, index) => (

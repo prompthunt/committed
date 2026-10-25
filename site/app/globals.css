@@ -154,6 +154,14 @@
   animation: bd-dust linear infinite;
 }
 
+/* Stacked hero: no lamp or beam above the popover, just the pool of light and dust. */
+@media (max-width: 1023px) {
+  .bd-spot-beam,
+  .bd-spot-lamp {
+    display: none;
+  }
+}
+
 @keyframes bd-sway {
   from {
     rotate: -4deg;

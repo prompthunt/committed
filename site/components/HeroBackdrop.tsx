@@ -14,8 +14,8 @@ const DUST = (() => {
 
 /**
  * A stage light on the leader: a lime beam from above and a pool of light below the popover.
- * When the hero stacks (below lg), it shrinks to the popover column so the lamp sits just above
- * the rank pill instead of over the copy.
+ * When the hero stacks (below lg), it shrinks to the popover column and drops the lamp and beam
+ * (see globals.css), leaving the pool of light and dust behind the popover.
  */
 export function HeroBackdrop() {
   return (

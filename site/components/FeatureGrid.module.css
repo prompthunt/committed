@@ -94,12 +94,17 @@
 /* ── 06 Time frame: a printed chart with tab controls ──────────────────── */
 .time h2 { margin:18px 0 0; }
 .timeDemo { display:flex; flex-direction:column; margin-top:auto; padding-top:20px; }
-.timeFigure { display:flex; flex-wrap:wrap; align-items:baseline; justify-content:space-between; gap:4px 12px; }
+.timeFigure { display:flex; flex-wrap:wrap; align-items:flex-end; justify-content:space-between; gap:16px; }
+.timeCount { display:flex; flex-direction:column; gap:10px; }
 .timeTotal { font:700 clamp(48px, 19cqi, 64px)/.9 var(--font-display); letter-spacing:-.06em; font-variant-numeric:tabular-nums; animation:fade-rise .5s cubic-bezier(.2,.8,.2,1) both; }
-.timeUnit { font:500 11px/1 ui-monospace, "SF Mono", Menlo, monospace; letter-spacing:.06em; text-transform:uppercase; color:var(--sub); }
-.squares { display:grid; grid-template-columns:repeat(10, minmax(0,34px)); gap:4px; margin-top:14px; }
-.squares i { aspect-ratio:1; border-radius:22%; background:#dcdbd2; transition:background-color .3s, scale .3s; transition-delay:calc(var(--i) * 12ms); scale:.9; }
-.squares i[data-on] { background:var(--c); scale:1; }
+.timeUnit { font:500 11px/1.35 ui-monospace, "SF Mono", Menlo, monospace; letter-spacing:.06em; text-transform:uppercase; color:var(--sub); }
+.calendar { --cell:clamp(12px, 5cqi, 20px); display:grid; grid-template-columns:repeat(7, var(--cell)); gap:3px; }
+.calendar b { padding-bottom:2px; font:500 9px/1 ui-monospace, "SF Mono", Menlo, monospace; text-align:center; color:var(--sub); }
+.calendar i { aspect-ratio:1; border-radius:24%; transition:background-color .3s; transition-delay:calc(var(--i) * 12ms); }
+.calendar i[data-state="off"] { background:#dcdbd2; }
+.calendar i[data-state="on"] { background:var(--c); }
+.calendar i[data-state="after"] { box-shadow:inset 0 0 0 1px rgb(5 5 5 / .12); }
+.calendar i[data-today] { box-shadow:0 0 0 2px #efeee7, 0 0 0 3.5px var(--color-ink); }
 .tabs { display:flex; gap:20px; margin-top:4px; }
 .tabs button { position:relative; min-height:44px; padding:0; border:0; font:600 14px/1 var(--font-display); letter-spacing:-.01em; white-space:nowrap; color:var(--sub); cursor:pointer; transition:color .2s; }
 .tabs button::after { content:""; position:absolute; left:0; right:0; bottom:10px; height:2px; background:var(--color-ink); scale:0 1; transform-origin:0 50%; transition:scale .3s cubic-bezier(.2,.8,.2,1); }
