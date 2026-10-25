@@ -2,7 +2,7 @@ import { AppIcon, Glyph } from "@/components/Glyph";
 import { AnalyticsLink } from "@/components/AnalyticsLink";
 import { DemoMotionToggle, LoopProvider } from "@/components/useLoop";
 import { HeroRankPill, Popover } from "@/components/MacUI";
-import { BentoExplorer } from "@/components/bento/BentoExplorer";
+import { FeatureGrid } from "@/components/FeatureGrid";
 import { ContributionStrip } from "@/components/ContributionStrip";
 import { HeroBackdrop } from "@/components/HeroBackdrop";
 import { DOWNLOAD_URL, RELEASES_URL, SOURCE_URL } from "@/lib/board";
@@ -86,7 +86,7 @@ export default function Home() {
 
         <ContributionStrip />
 
-        <BentoExplorer />
+        <FeatureGrid />
 
         <footer className="mx-auto flex w-full max-w-[1240px] flex-wrap items-center justify-between gap-4 border-t border-white/[.08] pt-7 pb-10 text-sm text-muted">
           <span className="flex items-center gap-2.5">

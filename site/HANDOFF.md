@@ -9,12 +9,21 @@ verification commands are in [README.md](README.md).
   do not add sections, pricing, testimonials, or extra copy without agreement.
 - The approved wide-anchor grid has two large cards (GitHub connection and rank
   notifications), two medium cards (friends/teammates and time frames), and four
-  compact cards (privacy, menu-bar rank, open source, and native macOS). Small
-  cards use a short label and one visual. Medium/large cards use centered content,
-  padding, and inner maximum widths so app previews do not stretch to fill a tile.
+  compact cards (privacy, menu-bar rank, open source, and native macOS).
+- The cards use the editorial treatment chosen on 2026-10-24 (PR #9). Each card is
+  indexed and left-aligned: a monospace folio line (`01 Setup`), one visual, and a
+  bottom-anchored headline. The cards come in three inks: lime (connect, macOS), paper
+  `#EFEEE7` (privacy, time frame), and ink `#0C0D0A` (the rest). Visuals are product
+  crops or type: the Connect GitHub sheet cropped off the corner, a live results table,
+  a redacted diff, the rank as a numeral, the repo name, a 30-day bar chart, and a ⌘.
+- Each card is a CSS size container, and its type uses `cqi` clamps. This keeps the
+  type proportional from 320px phones through iPhone Duo's outer (466pt) and inner
+  (951pt) displays to the 1,240px desktop container. The desktop grid starts at 1100px.
 - The notification card has a Mac menu bar flush with its top edge, a demo clock,
-  translucent glass banners underneath on the right, and a bottom-aligned caption.
-  The desktop grid fills the existing 1,240px container; smaller screens reflow it.
+  translucent glass banners underneath on the right, and a bottom-left caption.
+- The time-frame card uses editorial text tabs rather than the native segmented
+  control. The 30 daily bars are illustrative; only the Today, 7-day, and 30-day
+  totals come from the snapshot.
 - The hero popover sits under a lime spotlight: a beam from above, a pool of light
   below, and drifting dust (`components/HeroBackdrop.tsx`, `.bd-spot-*` in
   `globals.css`). The contribution squares live in the full-bleed strip that
@@ -24,8 +33,8 @@ verification commands are in [README.md](README.md).
 - Inter Tight for marketing text; native system typography inside the app mockups.
 - Lead with friendly competition among friends; teammates are a secondary audience.
   Describe GitHub contributions rather than commits, output, or work performance.
-- Mockups follow the real SwiftUI app. Preserve native blue selection and You/Hidden
-  labels. Notification text must match `NotificationService.copy(for:)`.
+- App mockups (hero popover, menu bar, notifications, connect sheet) follow the real
+  SwiftUI app. Preserve native blue selection and You/Hidden labels in them. Notification text must match `NotificationService.copy(for:)`.
 - Avatars and handles in the demo were approved for public use. Counts are a static
   public-data snapshot; animation frames illustrate rank changes rather than replaying
   recorded events. See the demo notes in [README.md](README.md).

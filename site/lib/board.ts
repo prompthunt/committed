@@ -2,6 +2,8 @@
 // The final frame and window totals are a public-calendar snapshot from 2026-10-22
 // (America/Los_Angeles). Earlier frames illustrate rank changes, not recorded events.
 
+import { seeded } from "./contributions";
+
 export const DOWNLOAD_URL =
   "https://github.com/prompthunt/commit-standings-releases/releases/latest/download/Committed.dmg";
 export const RELEASES_URL =
@@ -24,6 +26,23 @@ export const PEOPLE: Person[] = [
 export const avatar = (handle: string) => `/avatars/${handle}.png`;
 
 export const WINDOW_COUNTS = [223, 2072, 5917];
+
+/**
+ * Thirty illustrative daily totals for the time-frame chart. The last day is Today, the last
+ * seven sum to 7 days and all thirty sum to 30 days; only those three totals are verified.
+ */
+export const DAILY: number[] = (() => {
+  const rnd = seeded(23);
+  const spread = (n: number, total: number) => {
+    const w = Array.from({ length: n }, (_, i) => 0.35 + rnd() + (i % 7 === 5 || i % 7 === 6 ? -0.25 : 0));
+    const sum = w.reduce((a, b) => a + b, 0);
+    const out = w.map((x) => Math.round((x / sum) * total));
+    out[n - 1] += total - out.reduce((a, b) => a + b, 0);
+    return out;
+  };
+  const [today, week, month] = WINDOW_COUNTS;
+  return [...spread(23, month - week), ...spread(6, week - today), today];
+})();
 const TODAY_COUNTS = [124, WINDOW_COUNTS[0], 84, 47, 53, 24];
 const jamie = TODAY_COUNTS[2];
 const firstLead = jamie + 1;
