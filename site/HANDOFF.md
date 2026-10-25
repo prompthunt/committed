@@ -28,7 +28,7 @@ verification commands are in [README.md](README.md).
   from the snapshot.
 - The hero popover sits under a lime spotlight: a beam from above, a pool of light
   below, and drifting dust (`components/HeroBackdrop.tsx`, `.bd-spot-*` in
-  `globals.css`). Below 1024px the hero stacks: the popover centers under the copy and the
+  `globals.css`). Below 840px the hero stacks: the popover centers under the copy and the
   spotlight drops its lamp and beam, leaving the pool of light and dust behind the popover. The
   contribution squares live in the full-bleed strip that
   separates the hero from the feature grid (`components/ContributionStrip.tsx`).

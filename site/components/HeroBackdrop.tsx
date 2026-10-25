@@ -14,12 +14,12 @@ const DUST = (() => {
 
 /**
  * A stage light on the leader: a lime beam from above and a pool of light below the popover.
- * When the hero stacks (below lg), it shrinks to the popover column and drops the lamp and beam
+ * When the hero stacks (below 840px), it shrinks to the popover column and drops the lamp and beam
  * (see globals.css), leaving the pool of light and dust behind the popover.
  */
 export function HeroBackdrop() {
   return (
-    <div className="bd-spot pointer-events-none absolute top-[54%] left-1/2 h-[860px] w-[920px] -translate-x-1/2 -translate-y-1/2 max-lg:top-[-20px] max-lg:h-[640px] max-lg:translate-y-0">
+    <div className="bd-spot pointer-events-none absolute top-[54%] left-1/2 h-[860px] w-[920px] -translate-x-1/2 -translate-y-1/2 max-[839px]:top-[-20px] max-[839px]:h-[640px] max-[839px]:translate-y-0">
       <i className="bd-spot-beam" />
       <i className="bd-spot-beam bd-spot-beam-core" />
       <i className="bd-spot-lamp" />
