@@ -102,7 +102,7 @@
 .bars i[data-on] { background:var(--color-ink); }
 .bars i[data-on]:last-child { background:#6aa81a; }
 .tabs { display:flex; gap:20px; margin-top:4px; }
-.tabs button { position:relative; min-height:44px; padding:0; border:0; font:600 14px/1 var(--font-display); letter-spacing:-.01em; white-space:nowrap; color:#6f716a; cursor:pointer; transition:color .2s; }
+.tabs button { position:relative; min-height:44px; padding:0; border:0; font:600 14px/1 var(--font-display); letter-spacing:-.01em; white-space:nowrap; color:var(--sub); cursor:pointer; transition:color .2s; }
 .tabs button::after { content:""; position:absolute; left:0; right:0; bottom:10px; height:2px; background:var(--color-ink); scale:0 1; transform-origin:0 50%; transition:scale .3s cubic-bezier(.2,.8,.2,1); }
 .tabs button:hover, .tabs button[aria-pressed="true"] { color:var(--color-ink); }
 .tabs button[aria-pressed="true"]::after { scale:1 1; }
