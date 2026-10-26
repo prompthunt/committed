@@ -80,13 +80,56 @@
 }
 
 /* ── Contribution strip ─────────────────────────────────────────────── */
+/*
+ * Columns stretch to the grid's width. Narrower screens drop the oldest weeks (the first
+ * 7 × n cells, since the grid flows by column) so the squares stay near full size.
+ */
+.cs-strip {
+  --weeks: 64;
+}
+.cs-grid {
+  grid-template-columns: repeat(var(--weeks), minmax(0, 1fr));
+  grid-template-rows: repeat(7, auto);
+}
+@media (max-width: 639px) {
+  .cs-strip {
+    --weeks: 20;
+  }
+  .cs-cell:nth-child(-n + 308) {
+    display: none;
+  }
+}
+@media (min-width: 640px) and (max-width: 767px) {
+  .cs-strip {
+    --weeks: 32;
+  }
+  .cs-cell:nth-child(-n + 224) {
+    display: none;
+  }
+}
+@media (min-width: 768px) and (max-width: 1023px) {
+  .cs-strip {
+    --weeks: 40;
+  }
+  .cs-cell:nth-child(-n + 168) {
+    display: none;
+  }
+}
+@media (min-width: 1024px) and (max-width: 1279px) {
+  .cs-strip {
+    --weeks: 52;
+  }
+  .cs-cell:nth-child(-n + 84) {
+    display: none;
+  }
+}
 .cs-strip[data-state="armed"] .cs-cell {
   opacity: 0.12;
   scale: 0.55;
 }
 .cs-strip[data-state="lit"] .cs-cell {
   animation: cs-light 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) both;
-  animation-delay: calc(var(--w) * 14ms + var(--d) * 22ms);
+  animation-delay: calc((var(--w) - 64 + var(--weeks)) * 14ms + var(--d) * 22ms);
 }
 @keyframes cs-light {
   from {

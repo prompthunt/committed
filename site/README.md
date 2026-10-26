@@ -18,7 +18,7 @@ npm run typecheck
 | `app/page.tsx` | The page: hero, contribution strip, feature grid |
 | `components/FeatureGrid.tsx`, `FeatureGrid.module.css` | Eight editorial feature cards, each cropping a real app screen: setup, People window, privacy tip, menu-bar item, time-frame control, notifications, and the `⋯` menu |
 | `components/HeroDesktop.tsx` | The hero's Mac desktop: menu bar, wallpaper, and the popover playing the app in use |
-| `components/ContributionStrip.tsx` | Full-bleed contribution calendar between the hero and the tiles; sweeps in on first view |
+| `components/ContributionStrip.tsx` | Grid-width contribution calendar between the hero and the tiles (fewer weeks on narrow screens); sweeps in on first view |
 | `components/MacUI.tsx` | Shared native popover, menu-bar rank pill, and glass notification banners |
 | `components/useLoop.tsx` | One shared clock so every demo tells the same story; reduced-motion users get the final frame |
 | `lib/board.ts` | Demo data: people, per-frame counts, the app's real notification copy, download links |
