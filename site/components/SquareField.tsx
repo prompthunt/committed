@@ -321,7 +321,7 @@ function Field({ mode, around }: { mode: number; around: RefObject<HTMLDivElemen
     <canvas
       ref={ref}
       aria-hidden
-      className="pointer-events-none absolute -top-[clamp(100px,14vw,220px)] left-1/2 h-[calc(100%+clamp(100px,14vw,220px)+clamp(96px,12vw,200px))] -z-10 w-screen -translate-x-1/2 [mask-image:linear-gradient(to_bottom,transparent,#000_22%,#000_78%,transparent)]"
+      className="pointer-events-none absolute -top-[clamp(100px,14vw,220px)] left-1/2 h-[calc(100%+clamp(100px,14vw,220px)+clamp(120px,16vw,280px))] -z-10 w-screen -translate-x-1/2 [mask-image:linear-gradient(to_bottom,transparent,#000_22%,#000_78%,transparent)]"
     />
   );
 }
@@ -357,7 +357,7 @@ export function SquareField({ children }: { children: ReactNode }) {
 
   const mode = VARIANTS.findIndex((v) => v.id === variant);
   return (
-    <div ref={around} className="relative mb-[clamp(96px,12vw,200px)]">
+    <div ref={around} className="relative mb-[clamp(120px,16vw,280px)]">
       {variant !== "off" && <Field key={variant} mode={mode} around={around} />}
       {children}
       {mounted && createPortal(<Switcher value={variant} onChange={choose} />, document.body)}
