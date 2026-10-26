@@ -10,12 +10,13 @@ import { useMotionPaused } from "./useLoop";
  * interference gradient, seen through a row of glass rods tilted 0.73 rad. Here one fragment
  * shader draws every variant on a single canvas, driven by the same interference function.
  *
- * The switcher (bottom of the page, keys 1–5, or ?bg=<id>) flips between them for review.
+ * The switcher (bottom of the page, keys 1–6, or ?bg=<id>) flips between them for review.
  * Once one is picked, keep that variant, delete the rest and the switcher.
  */
 
 export const VARIANTS = [
   { id: "glass", label: "Glass" },
+  { id: "tiles", label: "Tiles" },
   { id: "calendar", label: "Calendar" },
   { id: "pulse", label: "Pulse" },
   { id: "floor", label: "Floor" },
@@ -38,7 +39,7 @@ uniform float uPx;    // device px per CSS px
 uniform float uTime;  // seconds
 uniform int uMode;
 uniform vec4 uDesk;   // desk rect in CSS px, GL orientation: x, y (bottom), w, h
-uniform vec4 uHead;   // headline rect, same orientation (glass only)
+uniform vec4 uHead;   // headline rect, same orientation (glass and tiles)
 out vec4 outColor;
 
 const vec3 INK = vec3(0.0196);
@@ -110,16 +111,21 @@ float lamp(vec2 c, float t) {
   return exp(-dot(q, q) * 1.4);
 }
 
-vec3 slab(vec2 p, float t) {
-  vec2 c;
-  cellAt(p, c);
+// The glow's colour at c: the wave runs through the square greens up to a near-white highlight.
+// Raycast cubes its colour; the power keeps the falloff tight so the glow's edge drops to black.
+vec3 light(vec2 c, float t) {
   float v = wave(c / uRes * 1.6, t);
   vec3 col = mix(SQ[2], SQ[3], smoothstep(0.1, 0.45, v));
   col = mix(col, SQ[4], smoothstep(0.45, 0.75, v));
   col = mix(col, HOT, smoothstep(0.8, 1.0, v));
-  // Raycast cubes its colour; this keeps the falloff tight so the glow's edge drops to black.
-  float light = pow(lamp(c, t), 1.5) * 1.5;
-  return col * light * coverage(roundSquare(p - c, HALF, RADIUS), 1.5);
+  // On phones the glow fills the screen behind the headline, so it runs dimmer there.
+  return col * pow(lamp(c, t), 1.5) * 1.5 * mix(0.6, 1.0, smoothstep(420.0, 1000.0, uRes.x));
+}
+
+vec3 slab(vec2 p, float t) {
+  vec2 c;
+  cellAt(p, c);
+  return light(c, t) * coverage(roundSquare(p - c, HALF, RADIUS), 1.5);
 }
 
 vec3 glass(vec2 p) {
@@ -142,7 +148,31 @@ vec3 glass(vec2 p) {
   return INK + acc + rim;
 }
 
-// 2 · Calendar: a living contribution graph, only the five real square colours.
+// 2 · Tiles: the same glow seen through a tilted grid of square glass tiles instead of rods.
+// Each tile bends the light like a pillow lens, splits it slightly by channel, and catches a rim
+// highlight on its upper-left edge; the gaps between tiles show the glow dimmed and unbent.
+vec3 tiles(vec2 p) {
+  const float A = 0.73;
+  mat2 R = mat2(cos(A), sin(A), -sin(A), cos(A));
+  float t = uTime * 0.1 + 30.0;
+  float s = clamp(uRes.x * 0.07, 64.0, 112.0);
+  vec2 o = uHead.xy + uHead.zw * 0.5;
+  vec2 q = R * (p - o);
+  vec2 l = q - floor(q / s + 0.5) * s;
+  float hs = s * 0.46;
+  float sd = roundSquare(l, hs, s * 0.12);
+  vec2 u = clamp(l / hs, -0.999, 0.999);
+  vec2 bend = transpose(R) * (-u * s * 0.32 / sqrt(1.0 - 0.8 * u * u));
+  vec3 lit = vec3(light(p + bend, t).r, light(p + bend * 1.05, t).g, light(p + bend * 1.1, t).b);
+  float m = max(abs(u.x), abs(u.y));
+  lit *= 0.6 + 0.4 * (1.0 - m * m * m * m);
+  float edge = smoothstep(-7.0, -1.0, sd) * max(dot(normalize(l + 1e-4), vec2(-0.7071, 0.7071)), 0.0);
+  lit += edge * (0.02 + 0.5 * lamp(p, t)) * HOT * 0.35;
+  vec3 gap = light(p, t) * 0.3;
+  return INK + mix(gap, lit, coverage(sd, 1.0 / uPx));
+}
+
+// 3 · Calendar: a living contribution graph, only the five real square colours.
 vec3 calendar(vec2 p) {
   vec2 c;
   vec2 cell = cellAt(p, c);
@@ -153,7 +183,7 @@ vec3 calendar(vec2 p) {
   return mix(INK, ramp(e), coverage(roundSquare(p - c, HALF, RADIUS), 1.0 / uPx) * vis);
 }
 
-// 3 · Pulse: rings of light leave the desk's edge, like a push landing.
+// 4 · Pulse: rings of light leave the desk's edge, like a push landing.
 vec3 pulse(vec2 p) {
   vec2 c;
   vec2 cell = cellAt(p, c);
@@ -175,7 +205,7 @@ vec3 pulse(vec2 p) {
   return mix(INK, col, coverage(roundSquare(p - c, HALF, RADIUS), 1.0 / uPx) * vis);
 }
 
-// 4 · Floor: the desk stands on a calendar receding to a horizon behind it.
+// 5 · Floor: the desk stands on a calendar receding to a horizon behind it.
 vec3 floorGrid(vec2 p) {
   vec2 dc = deskCenter();
   float horizon = uDesk.y + uDesk.w * 0.42;
@@ -198,8 +228,9 @@ void main() {
   vec2 p = gl_FragCoord.xy / uPx;
   vec3 col;
   if (uMode == 0) col = glass(p);
-  else if (uMode == 1) col = calendar(p);
-  else if (uMode == 2) col = pulse(p);
+  else if (uMode == 1) col = tiles(p);
+  else if (uMode == 2) col = calendar(p);
+  else if (uMode == 3) col = pulse(p);
   else col = floorGrid(p);
   outColor = vec4(col, 1.0);
 }`;
@@ -212,12 +243,12 @@ function compile(gl: WebGL2RenderingContext, type: number, source: string) {
   return shader;
 }
 
-// Canvas extents for the desk-only variants; glass also reaches up behind the headline.
+// Canvas extents for the desk-only variants; glass and tiles also reach up behind the headline.
 const BELOW = "clamp(120px,16vw,280px)";
 const HEAD_PAD = 180;
 
 function Field({ mode, around }: { mode: number; around: RefObject<HTMLDivElement | null> }) {
-  const tall = mode === 0;
+  const tall = mode <= 1;
   const ref = useRef<HTMLCanvasElement>(null);
   const paused = useMotionPaused();
   const pausedRef = useRef(paused);
@@ -359,7 +390,7 @@ function Field({ mode, around }: { mode: number; around: RefObject<HTMLDivElemen
 /** Wraps the hero desktop with the square field behind it, plus the temporary variant switcher. */
 export function SquareField({ children }: { children: ReactNode }) {
   const around = useRef<HTMLDivElement>(null);
-  const [variant, setVariant] = useState<VariantId>("glass");
+  const [variant, setVariant] = useState<VariantId>("tiles");
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
