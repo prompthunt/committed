@@ -34,7 +34,7 @@ verification commands are in [README.md](README.md).
   mvanhorn live (counts tick, the rank flips, contribution squares burst from the item),
   then the board closes. It starts on the open board, pauses off screen and with the
   shared pause control, and shows the final board for reduced motion. The contribution
-  squares live in the full-bleed strip that separates the hero from the feature grid
+  squares live in the grid-width strip that separates the hero from the feature grid
   (`components/ContributionStrip.tsx`).
 - Lime `#C8FF2E` on near-black `#050505`, white type. Contribution-square ramp:
   `#14170F → #1D2E0E → #355C12 → #6AA81A → #C8FF2E`.

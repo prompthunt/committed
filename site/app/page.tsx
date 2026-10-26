@@ -38,9 +38,9 @@ export default function Home() {
         </header>
 
         {/* HERO */}
-        <main className="mx-auto flex w-full max-w-[1240px] flex-col items-center gap-6 pt-10 pb-16 text-center sm:pt-16">
+        <main className="mx-auto flex w-full max-w-[1240px] flex-col items-center gap-6 pt-10 pb-[clamp(64px,9vw,144px)] text-center sm:pt-16 lg:pt-32">
           <h1 className="max-w-[14ch] animate-rise text-[clamp(46px,7vw,96px)] leading-[0.94] font-[750] tracking-[-0.055em] text-balance">
-            A little friendly <span className="text-lime">competition.</span>
+            Who shipped more <span className="text-lime">today?</span>
           </h1>
           <p className="max-w-[30rem] animate-rise text-xl leading-relaxed text-soft [animation-delay:90ms]">A GitHub leaderboard for your Mac’s menu bar.</p>
           <div className="mt-2 flex animate-rise flex-col items-center gap-3.5 [animation-delay:180ms]">
