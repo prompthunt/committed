@@ -34,8 +34,8 @@ verification commands are in [README.md](README.md).
   mvanhorn live (counts tick, the rank flips, contribution squares burst from the item),
   then the board closes. It starts on the open board, pauses off screen and with the
   shared pause control, and shows the final board for reduced motion. Behind it, a WebGL
-  field of contribution squares lit after raycast.com's hero (`components/SquareField.tsx`);
-  seven variants are under review behind a temporary switcher (keys 1–8, `?bg=`).
+  grid of contribution squares lit after raycast.com's hero (`components/SquareField.tsx`):
+  a compact glow just above the desk, bent by each square like a glass tile, at 50% opacity.
 - Lime `#C8FF2E` on near-black `#050505`, white type. Contribution-square ramp:
   `#14170F → #1D2E0E → #355C12 → #6AA81A → #C8FF2E`.
 - Inter Tight for marketing text; native system typography inside the app mockups.
