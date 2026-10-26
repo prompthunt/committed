@@ -26,10 +26,10 @@ verification commands are in [README.md](README.md).
 - The time-frame card uses the popover's real segmented control (native blue) and summary
   card; the control works and switches between the Today, 7-day, and 30-day totals.
 - The hero is centered copy (title, one-line description, download) over a Mac desktop
-  (`components/HeroDesktop.tsx`, `.desk-*` in `globals.css`), framed as a 1,000px-max
-  display with a bezel from 640px up and edge to edge on phones: a lime wallpaper, a
-  real macOS menu bar, and the Committed popover hanging from its menu-bar item, measured
-  so it stays centered under the item and on screen. A 12.9s timeline plays the app in
+  (`components/HeroDesktop.tsx`, `.desk-*` in `globals.css`), framed as a display as wide
+  as the feature grid (1,240px max) with a bezel from 640px up and edge to edge on phones:
+  a lime wallpaper, a real macOS menu bar, and the Committed popover hanging from its
+  menu-bar item, measured so it stays centered under the item and on screen. A 12.9s timeline plays the app in
   use: banners arrive as friends trade places, a cursor opens the board, you pass
   mvanhorn live (counts tick, the rank flips, contribution squares burst from the item),
   then the board closes. It starts on the open board, pauses off screen and with the

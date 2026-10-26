@@ -148,7 +148,7 @@ export function HeroDesktop() {
     <section
       aria-label="Committed's menu-bar popover on a Mac desktop: notifications arrive as friends trade places, then the board opens and Addison takes first"
       data-paused={paused || undefined}
-      className="desk-frame desk relative max-sm:-mx-[clamp(20px,5vw,72px)] sm:mx-auto sm:w-full sm:max-w-[1000px]"
+      className="desk-frame desk relative max-sm:-mx-[clamp(20px,5vw,72px)] sm:mx-auto sm:w-full sm:max-w-[1240px]"
     >
       {/* The screen: edge to edge on phones, a framed display with a bezel from sm up. */}
       <div ref={scene} className="desk-screen relative overflow-hidden">
