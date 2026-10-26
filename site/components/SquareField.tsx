@@ -10,13 +10,14 @@ import { useMotionPaused } from "./useLoop";
  * interference gradient, seen through a row of glass rods tilted 0.73 rad. Here one fragment
  * shader draws every variant on a single canvas, driven by the same interference function.
  *
- * The switcher (bottom of the page, keys 1–6, or ?bg=<id>) flips between them for review.
+ * The switcher (bottom of the page, keys 1–7, or ?bg=<id>) flips between them for review.
  * Once one is picked, keep that variant, delete the rest and the switcher.
  */
 
 export const VARIANTS = [
   { id: "glass", label: "Glass" },
   { id: "tiles", label: "Tiles" },
+  { id: "mosaic", label: "Mosaic" },
   { id: "calendar", label: "Calendar" },
   { id: "pulse", label: "Pulse" },
   { id: "floor", label: "Floor" },
@@ -39,7 +40,7 @@ uniform float uPx;    // device px per CSS px
 uniform float uTime;  // seconds
 uniform int uMode;
 uniform vec4 uDesk;   // desk rect in CSS px, GL orientation: x, y (bottom), w, h
-uniform vec4 uHead;   // headline rect, same orientation (glass and tiles)
+uniform vec4 uHead;   // headline rect, same orientation (glass, tiles, mosaic)
 out vec4 outColor;
 
 const vec3 INK = vec3(0.0196);
@@ -113,13 +114,17 @@ float lamp(vec2 c, float t) {
 
 // The glow's colour at c: the wave runs through the square greens up to a near-white highlight.
 // Raycast cubes its colour; the power keeps the falloff tight so the glow's edge drops to black.
+float glowAt(vec2 c, float t) {
+  // On phones the glow fills the screen behind the headline, so it runs dimmer there.
+  return pow(lamp(c, t), 1.5) * 1.5 * mix(0.6, 1.0, smoothstep(420.0, 1000.0, uRes.x));
+}
+
 vec3 light(vec2 c, float t) {
   float v = wave(c / uRes * 1.6, t);
   vec3 col = mix(SQ[2], SQ[3], smoothstep(0.1, 0.45, v));
   col = mix(col, SQ[4], smoothstep(0.45, 0.75, v));
   col = mix(col, HOT, smoothstep(0.8, 1.0, v));
-  // On phones the glow fills the screen behind the headline, so it runs dimmer there.
-  return col * pow(lamp(c, t), 1.5) * 1.5 * mix(0.6, 1.0, smoothstep(420.0, 1000.0, uRes.x));
+  return col * glowAt(c, t);
 }
 
 vec3 slab(vec2 p, float t) {
@@ -172,7 +177,35 @@ vec3 tiles(vec2 p) {
   return INK + mix(gap, lit, coverage(sd, 1.0 / uPx));
 }
 
-// 3 · Calendar: a living contribution graph, only the five real square colours.
+// 3 · Mosaic: Tiles at contribution-square scale, each tile its own calendar level. The glow
+// lights them through the same lens bend; the gaps stay dark, like the contribution graph.
+vec3 mosaic(vec2 p) {
+  const float A = 0.73;
+  mat2 R = mat2(cos(A), sin(A), -sin(A), cos(A));
+  float t = uTime * 0.1 + 30.0;
+  float s = clamp(uRes.x * 0.028, 26.0, 44.0);
+  vec2 o = uHead.xy + uHead.zw * 0.5;
+  vec2 q = R * (p - o);
+  vec2 cell = floor(q / s + 0.5);
+  vec2 l = q - cell * s;
+  float hs = s * 0.42;
+  float sd = roundSquare(l, hs, s * 0.14);
+  vec2 centre = o + transpose(R) * (cell * s);
+  float e = wave(centre / uRes * 1.6, uTime * 0.12 + 40.0) * 0.7 + hash(cell) * 0.5 - 0.2;
+  vec3 col = ramp(e);
+  vec2 u = clamp(l / hs, -0.999, 0.999);
+  vec2 bend = transpose(R) * (-u * s * 0.32 / sqrt(1.0 - 0.8 * u * u));
+  vec3 lum = vec3(glowAt(p + bend, t), glowAt(p + bend * 1.05, t), glowAt(p + bend * 1.1, t));
+  float m = max(abs(u.x), abs(u.y));
+  vec3 lit = (col + HOT * 0.35 * smoothstep(0.85, 1.0, e)) * lum * (0.6 + 0.4 * (1.0 - m * m * m * m));
+  float edge = smoothstep(-s * 0.12, -0.8, sd) * max(dot(normalize(l + 1e-4), vec2(-0.7071, 0.7071)), 0.0);
+  lit += edge * (0.02 + 0.5 * lamp(p, t)) * HOT * 0.25;
+  // Bright lime tiles swallow the lime "today?", so the glow dips behind the headline.
+  lit *= 1.0 - 0.5 * exp(-max(rectDist(centre, uHead), 0.0) / 40.0);
+  return INK + lit * coverage(sd, 1.0 / uPx);
+}
+
+// 4 · Calendar: a living contribution graph, only the five real square colours.
 vec3 calendar(vec2 p) {
   vec2 c;
   vec2 cell = cellAt(p, c);
@@ -183,7 +216,7 @@ vec3 calendar(vec2 p) {
   return mix(INK, ramp(e), coverage(roundSquare(p - c, HALF, RADIUS), 1.0 / uPx) * vis);
 }
 
-// 4 · Pulse: rings of light leave the desk's edge, like a push landing.
+// 5 · Pulse: rings of light leave the desk's edge, like a push landing.
 vec3 pulse(vec2 p) {
   vec2 c;
   vec2 cell = cellAt(p, c);
@@ -205,7 +238,7 @@ vec3 pulse(vec2 p) {
   return mix(INK, col, coverage(roundSquare(p - c, HALF, RADIUS), 1.0 / uPx) * vis);
 }
 
-// 5 · Floor: the desk stands on a calendar receding to a horizon behind it.
+// 6 · Floor: the desk stands on a calendar receding to a horizon behind it.
 vec3 floorGrid(vec2 p) {
   vec2 dc = deskCenter();
   float horizon = uDesk.y + uDesk.w * 0.42;
@@ -229,8 +262,9 @@ void main() {
   vec3 col;
   if (uMode == 0) col = glass(p);
   else if (uMode == 1) col = tiles(p);
-  else if (uMode == 2) col = calendar(p);
-  else if (uMode == 3) col = pulse(p);
+  else if (uMode == 2) col = mosaic(p);
+  else if (uMode == 3) col = calendar(p);
+  else if (uMode == 4) col = pulse(p);
   else col = floorGrid(p);
   outColor = vec4(col, 1.0);
 }`;
@@ -243,12 +277,12 @@ function compile(gl: WebGL2RenderingContext, type: number, source: string) {
   return shader;
 }
 
-// Canvas extents for the desk-only variants; glass and tiles also reach up behind the headline.
+// Canvas extents for the desk-only variants; glass, tiles and mosaic also reach up behind the headline.
 const BELOW = "clamp(120px,16vw,280px)";
 const HEAD_PAD = 180;
 
 function Field({ mode, around }: { mode: number; around: RefObject<HTMLDivElement | null> }) {
-  const tall = mode <= 1;
+  const tall = mode <= 2;
   const ref = useRef<HTMLCanvasElement>(null);
   const paused = useMotionPaused();
   const pausedRef = useRef(paused);
@@ -390,7 +424,7 @@ function Field({ mode, around }: { mode: number; around: RefObject<HTMLDivElemen
 /** Wraps the hero desktop with the square field behind it, plus the temporary variant switcher. */
 export function SquareField({ children }: { children: ReactNode }) {
   const around = useRef<HTMLDivElement>(null);
-  const [variant, setVariant] = useState<VariantId>("tiles");
+  const [variant, setVariant] = useState<VariantId>("mosaic");
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
