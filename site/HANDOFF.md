@@ -5,7 +5,7 @@ verification commands are in [README.md](README.md).
 
 ## Design decisions
 
-- One hero, a contribution strip, and an eight-card feature grid. Keep the page short;
+- One hero and an eight-card feature grid. Keep the page short;
   do not add sections, pricing, testimonials, or extra copy without agreement.
 - The approved wide-anchor grid has two large cards (GitHub connection and rank
   notifications), two medium cards (friends/teammates and time frames), and four
@@ -33,9 +33,9 @@ verification commands are in [README.md](README.md).
   use: banners arrive as friends trade places, a cursor opens the board, you pass
   mvanhorn live (counts tick, the rank flips, contribution squares burst from the item),
   then the board closes. It starts on the open board, pauses off screen and with the
-  shared pause control, and shows the final board for reduced motion. The contribution
-  squares live in the grid-width strip that separates the hero from the feature grid
-  (`components/ContributionStrip.tsx`).
+  shared pause control, and shows the final board for reduced motion. Behind it, a WebGL
+  field of contribution squares lit after raycast.com's hero (`components/SquareField.tsx`);
+  four variants are under review behind a temporary switcher (keys 1–5, `?bg=`).
 - Lime `#C8FF2E` on near-black `#050505`, white type. Contribution-square ramp:
   `#14170F → #1D2E0E → #355C12 → #6AA81A → #C8FF2E`.
 - Inter Tight for marketing text; native system typography inside the app mockups.
