@@ -422,7 +422,7 @@ function Field({ mode, around }: { mode: number; around: RefObject<HTMLDivElemen
     <canvas
       ref={ref}
       aria-hidden
-      className={`pointer-events-none absolute left-1/2 -z-10 w-screen -translate-x-1/2 ${
+      className={`pointer-events-none absolute left-1/2 -z-10 w-screen opacity-50 -translate-x-1/2 ${
         tall
           ? "[mask-image:linear-gradient(to_bottom,transparent,#000_4%)]"
           : "-top-[clamp(100px,14vw,220px)] h-[calc(100%+clamp(100px,14vw,220px)+clamp(120px,16vw,280px))] [mask-image:linear-gradient(to_bottom,transparent,#000_22%,#000_78%,transparent)]"
