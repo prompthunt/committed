@@ -35,7 +35,7 @@ verification commands are in [README.md](README.md).
   then the board closes. It starts on the open board, pauses off screen and with the
   shared pause control, and shows the final board for reduced motion. Behind it, a WebGL
   field of contribution squares lit after raycast.com's hero (`components/SquareField.tsx`);
-  five variants are under review behind a temporary switcher (keys 1–6, `?bg=`).
+  four variants are under review behind a temporary switcher (keys 1–5, `?bg=`).
 - Lime `#C8FF2E` on near-black `#050505`, white type. Contribution-square ramp:
   `#14170F → #1D2E0E → #355C12 → #6AA81A → #C8FF2E`.
 - Inter Tight for marketing text; native system typography inside the app mockups.

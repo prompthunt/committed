@@ -10,15 +10,11 @@ import { useMotionPaused } from "./useLoop";
  * interference gradient, seen through a row of glass rods tilted 0.73 rad. Here one fragment
  * shader draws every variant on a single canvas, driven by the same interference function.
  *
- * Diamond is the user's follow-up idea: big squares forming a diamond whose top sits behind the
- * headline and whose widest rows fade out behind the desk.
- *
- * The switcher (bottom of the page, keys 1–6, or ?bg=<id>) flips between them for review.
+ * The switcher (bottom of the page, keys 1–5, or ?bg=<id>) flips between them for review.
  * Once one is picked, keep that variant, delete the rest and the switcher.
  */
 
 export const VARIANTS = [
-  { id: "diamond", label: "Diamond" },
   { id: "glass", label: "Glass" },
   { id: "calendar", label: "Calendar" },
   { id: "pulse", label: "Pulse" },
@@ -42,8 +38,7 @@ uniform float uPx;    // device px per CSS px
 uniform float uTime;  // seconds
 uniform int uMode;
 uniform vec4 uDesk;   // desk rect in CSS px, GL orientation: x, y (bottom), w, h
-uniform vec4 uHead;   // headline rect, same orientation (diamond only)
-uniform float uPitch; // diamond square pitch, CSS px
+uniform vec4 uHead;   // headline rect, same orientation (glass only)
 out vec4 outColor;
 
 const vec3 INK = vec3(0.0196);
@@ -105,17 +100,25 @@ vec2 cellAt(vec2 p, out vec2 centre) {
 
 float halo(vec2 p, float reach) { return exp(-max(deskDist(p), 0.0) / reach); }
 
-// 1 · Glass: lit squares in a slab behind the desk, seen through tilted glass rods.
+// 1 · Glass: squares lit by a compact glow behind the headline, seen through tilted glass rods.
+// Like Raycast's cube, the light is about a third of the screen wide and black around it, so the
+// rods only show where there is light behind them.
+float lamp(vec2 c, float t) {
+  vec2 centre = uHead.xy + uHead.zw * vec2(0.5, 0.35) + vec2(sin(t * 3.0), cos(t * 2.3)) * 40.0;
+  float rx = clamp(uRes.x * 0.22, 170.0, 480.0);
+  vec2 q = (c - centre) / vec2(rx, rx * 0.7);
+  return exp(-dot(q, q) * 1.4);
+}
+
 vec3 slab(vec2 p, float t) {
   vec2 c;
   cellAt(p, c);
   float v = wave(c / uRes * 1.6, t);
-  vec3 col = mix(SQ[1], SQ[3], smoothstep(0.25, 0.6, v));
-  col = mix(col, SQ[4], smoothstep(0.6, 0.85, v));
-  col = mix(col, HOT, smoothstep(0.85, 1.0, v));
-  // A hard-edged slab a little larger than the desk; the rods break its edge into bars.
-  float d = deskDist(c);
-  float light = (1.0 - smoothstep(20.0, 110.0, d)) * 0.85 + 0.15 * exp(-max(d, 0.0) / 140.0);
+  vec3 col = mix(SQ[2], SQ[3], smoothstep(0.1, 0.45, v));
+  col = mix(col, SQ[4], smoothstep(0.45, 0.75, v));
+  col = mix(col, HOT, smoothstep(0.8, 1.0, v));
+  // Raycast cubes its colour; this keeps the falloff tight so the glow's edge drops to black.
+  float light = pow(lamp(c, t), 1.5) * 1.5;
   return col * light * coverage(roundSquare(p - c, HALF, RADIUS), 1.5);
 }
 
@@ -135,7 +138,7 @@ vec3 glass(vec2 p) {
     acc.b += slab(q + bend * 1.06, t).b;
   }
   acc *= 0.25 * (0.55 + 0.45 * sqrt(max(1.0 - u * u, 0.0)));
-  float rim = exp(-pow((u + 0.55) * 7.0, 2.0)) * 0.035 * halo(p, 420.0);
+  float rim = exp(-pow((u + 0.55) * 7.0, 2.0)) * 0.05 * lamp(p, t);
   return INK + acc + rim;
 }
 
@@ -191,35 +194,12 @@ vec3 floorGrid(vec2 p) {
   return mix(col, ramp(e), cov * fog * (0.35 + 0.65 * spread));
 }
 
-// 5 · Diamond: six columns of big squares stacked into a diamond above the desk. Its top row
-// sits behind the headline; its widest rows fade out as they slide behind the desk.
-vec3 diamond(vec2 p) {
-  float deskTop = uDesk.y + uDesk.w;
-  vec2 o = vec2(deskCenter().x, deskTop);
-  vec2 cell = floor((p - o) / uPitch);
-  vec2 local = p - o - (cell + 0.5) * uPitch;
-  vec2 c = o + (cell + 0.5) * uPitch;
-  // Rows counted up from the desk: widths 6, 6, 4, 2, and 4, 2 continuing behind it.
-  float shape = abs(cell.x + 0.5) + max(cell.y - 1.0, -cell.y);
-  if (shape > 2.5) return INK;
-  float n = hash(cell + 3.1);
-  float v = wave(c / uRes * 1.2, uTime * 0.12 + 50.0);
-  float e = 0.16 + 0.36 * v + 0.26 * n + 0.24 * step(2.0, shape);
-  // Keep the hero copy legible: dim squares in the column from the headline down to the desk.
-  float top = uHead.y + uHead.w;
-  e *= 1.0 - 0.55 * exp(-max(rectDist(c, vec4(uHead.x, deskTop, uHead.z, top - deskTop)), 0.0) / (0.3 * uPitch));
-  e *= smoothstep(deskTop - 0.3 * uPitch, deskTop + 0.9 * uPitch, p.y);
-  float cov = coverage(roundSquare(local, uPitch * 0.435, max(2.0, uPitch * 0.02)), 1.0 / uPx);
-  return mix(INK, mix(ramp(e), HOT, smoothstep(0.9, 1.0, e)), cov * smoothstep(0.02, 0.1, e));
-}
-
 void main() {
   vec2 p = gl_FragCoord.xy / uPx;
   vec3 col;
-  if (uMode == 0) col = diamond(p);
-  else if (uMode == 1) col = glass(p);
-  else if (uMode == 2) col = calendar(p);
-  else if (uMode == 3) col = pulse(p);
+  if (uMode == 0) col = glass(p);
+  else if (uMode == 1) col = calendar(p);
+  else if (uMode == 2) col = pulse(p);
   else col = floorGrid(p);
   outColor = vec4(col, 1.0);
 }`;
@@ -232,7 +212,7 @@ function compile(gl: WebGL2RenderingContext, type: number, source: string) {
   return shader;
 }
 
-// Canvas extents for the desk-only variants; the diamond also reaches up behind the headline.
+// Canvas extents for the desk-only variants; glass also reaches up behind the headline.
 const BELOW = "clamp(120px,16vw,280px)";
 const HEAD_PAD = 180;
 
@@ -267,7 +247,7 @@ function Field({ mode, around }: { mode: number; around: RefObject<HTMLDivElemen
     gl.useProgram(program);
     const u = (name: string) => gl.getUniformLocation(program, name);
     const uRes = u("uRes"), uPx = u("uPx"), uTime = u("uTime"), uMode = u("uMode"), uDesk = u("uDesk");
-    const uHead = u("uHead"), uPitch = u("uPitch");
+    const uHead = u("uHead");
     gl.uniform1i(uMode, mode);
 
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -292,7 +272,7 @@ function Field({ mode, around }: { mode: number; around: RefObject<HTMLDivElemen
         canvas.style.height = `calc(100% + ${above}px + ${BELOW})`;
       }
       // The glass variant is blurred anyway, so it renders at 1x to keep its 12 samples cheap.
-      const px = mode === 1 ? 1 : Math.min(window.devicePixelRatio || 1, 1.5);
+      const px = mode === 0 ? 1 : Math.min(window.devicePixelRatio || 1, 1.5);
       const box = canvas.getBoundingClientRect();
       const d = desk.getBoundingClientRect();
       canvas.width = Math.round(box.width * px);
@@ -302,9 +282,6 @@ function Field({ mode, around }: { mode: number; around: RefObject<HTMLDivElemen
       gl.uniform1f(uPx, canvas.width / box.width);
       gl.uniform4f(uDesk, d.left - box.left, box.bottom - d.bottom, d.width, d.height);
       if (head) gl.uniform4f(uHead, (box.width - head.offsetWidth) / 2, box.height - HEAD_PAD - head.offsetHeight, head.offsetWidth, head.offsetHeight);
-      // Six columns, and four rows between the header and the desk.
-      const headerBottom = document.querySelector("header")?.getBoundingClientRect().bottom ?? 0;
-      gl.uniform1f(uPitch, Math.min(box.width / 6.5, (d.top - headerBottom) / 4, 160));
     };
 
     const draw = () => {
@@ -382,7 +359,7 @@ function Field({ mode, around }: { mode: number; around: RefObject<HTMLDivElemen
 /** Wraps the hero desktop with the square field behind it, plus the temporary variant switcher. */
 export function SquareField({ children }: { children: ReactNode }) {
   const around = useRef<HTMLDivElement>(null);
-  const [variant, setVariant] = useState<VariantId>("diamond");
+  const [variant, setVariant] = useState<VariantId>("glass");
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
