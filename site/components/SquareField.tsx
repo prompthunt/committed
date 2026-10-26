@@ -10,7 +10,7 @@ import { useMotionPaused } from "./useLoop";
  * interference gradient, seen through a row of glass rods tilted 0.73 rad. Here one fragment
  * shader draws every variant on a single canvas, driven by the same interference function.
  *
- * The switcher (bottom of the page, keys 1–7, or ?bg=<id>) flips between them for review.
+ * The switcher (bottom of the page, keys 1–8, or ?bg=<id>) flips between them for review.
  * Once one is picked, keep that variant, delete the rest and the switcher.
  */
 
@@ -18,6 +18,7 @@ export const VARIANTS = [
   { id: "glass", label: "Glass" },
   { id: "tiles", label: "Tiles" },
   { id: "mosaic", label: "Mosaic" },
+  { id: "straight", label: "Straight" },
   { id: "calendar", label: "Calendar" },
   { id: "pulse", label: "Pulse" },
   { id: "floor", label: "Floor" },
@@ -40,7 +41,7 @@ uniform float uPx;    // device px per CSS px
 uniform float uTime;  // seconds
 uniform int uMode;
 uniform vec4 uDesk;   // desk rect in CSS px, GL orientation: x, y (bottom), w, h
-uniform vec4 uHead;   // headline rect, same orientation (glass, tiles, mosaic)
+uniform vec4 uHead;   // headline rect, same orientation (glass, tiles, mosaic, straight)
 out vec4 outColor;
 
 const vec3 INK = vec3(0.0196);
@@ -179,8 +180,8 @@ vec3 tiles(vec2 p) {
 
 // 3 · Mosaic: Tiles at contribution-square scale, each tile its own calendar level. The glow
 // lights them through the same lens bend; the gaps stay dark, like the contribution graph.
-vec3 mosaic(vec2 p) {
-  const float A = 0.73;
+// A is the tilt: 0.73 rad like Raycast's rods, or 0 for a straight calendar grid.
+vec3 mosaic(vec2 p, float A) {
   mat2 R = mat2(cos(A), sin(A), -sin(A), cos(A));
   float t = uTime * 0.1 + 30.0;
   float s = clamp(uRes.x * 0.028, 26.0, 44.0);
@@ -262,9 +263,10 @@ void main() {
   vec3 col;
   if (uMode == 0) col = glass(p);
   else if (uMode == 1) col = tiles(p);
-  else if (uMode == 2) col = mosaic(p);
-  else if (uMode == 3) col = calendar(p);
-  else if (uMode == 4) col = pulse(p);
+  else if (uMode == 2) col = mosaic(p, 0.73);
+  else if (uMode == 3) col = mosaic(p, 0.0);
+  else if (uMode == 4) col = calendar(p);
+  else if (uMode == 5) col = pulse(p);
   else col = floorGrid(p);
   outColor = vec4(col, 1.0);
 }`;
@@ -277,12 +279,12 @@ function compile(gl: WebGL2RenderingContext, type: number, source: string) {
   return shader;
 }
 
-// Canvas extents for the desk-only variants; glass, tiles and mosaic also reach up behind the headline.
+// Canvas extents for the desk-only variants; glass, tiles and both mosaics also reach up behind the headline.
 const BELOW = "clamp(120px,16vw,280px)";
 const HEAD_PAD = 180;
 
 function Field({ mode, around }: { mode: number; around: RefObject<HTMLDivElement | null> }) {
-  const tall = mode <= 2;
+  const tall = mode <= 3;
   const ref = useRef<HTMLCanvasElement>(null);
   const paused = useMotionPaused();
   const pausedRef = useRef(paused);
