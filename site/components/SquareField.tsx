@@ -10,11 +10,15 @@ import { useMotionPaused } from "./useLoop";
  * interference gradient, seen through a row of glass rods tilted 0.73 rad. Here one fragment
  * shader draws every variant on a single canvas, driven by the same interference function.
  *
- * The switcher (bottom of the page, keys 1–5, or ?bg=<id>) flips between them for review.
+ * Diamond is the user's follow-up idea: big squares forming a diamond whose top sits behind the
+ * headline and whose widest rows fade out behind the desk.
+ *
+ * The switcher (bottom of the page, keys 1–6, or ?bg=<id>) flips between them for review.
  * Once one is picked, keep that variant, delete the rest and the switcher.
  */
 
 export const VARIANTS = [
+  { id: "diamond", label: "Diamond" },
   { id: "glass", label: "Glass" },
   { id: "calendar", label: "Calendar" },
   { id: "pulse", label: "Pulse" },
@@ -38,6 +42,8 @@ uniform float uPx;    // device px per CSS px
 uniform float uTime;  // seconds
 uniform int uMode;
 uniform vec4 uDesk;   // desk rect in CSS px, GL orientation: x, y (bottom), w, h
+uniform vec4 uHead;   // headline rect, same orientation (diamond only)
+uniform float uPitch; // diamond square pitch, CSS px
 out vec4 outColor;
 
 const vec3 INK = vec3(0.0196);
@@ -76,10 +82,12 @@ float wave(vec2 xy, float t) {
 
 vec2 deskCenter() { return uDesk.xy + uDesk.zw * 0.5; }
 
-float deskDist(vec2 p) {
-  vec2 d = abs(p - deskCenter()) - uDesk.zw * 0.5;
+float rectDist(vec2 p, vec4 r) {
+  vec2 d = abs(p - r.xy - r.zw * 0.5) - r.zw * 0.5;
   return length(max(d, 0.0)) + min(max(d.x, d.y), 0.0);
 }
+
+float deskDist(vec2 p) { return rectDist(p, uDesk); }
 
 float roundSquare(vec2 q, float size, float r) {
   vec2 d = abs(q) - vec2(size - r);
@@ -183,12 +191,35 @@ vec3 floorGrid(vec2 p) {
   return mix(col, ramp(e), cov * fog * (0.35 + 0.65 * spread));
 }
 
+// 5 · Diamond: six columns of big squares stacked into a diamond above the desk. Its top row
+// sits behind the headline; its widest rows fade out as they slide behind the desk.
+vec3 diamond(vec2 p) {
+  float deskTop = uDesk.y + uDesk.w;
+  vec2 o = vec2(deskCenter().x, deskTop);
+  vec2 cell = floor((p - o) / uPitch);
+  vec2 local = p - o - (cell + 0.5) * uPitch;
+  vec2 c = o + (cell + 0.5) * uPitch;
+  // Rows counted up from the desk: widths 6, 6, 4, 2, and 4, 2 continuing behind it.
+  float shape = abs(cell.x + 0.5) + max(cell.y - 1.0, -cell.y);
+  if (shape > 2.5) return INK;
+  float n = hash(cell + 3.1);
+  float v = wave(c / uRes * 1.2, uTime * 0.12 + 50.0);
+  float e = 0.16 + 0.36 * v + 0.26 * n + 0.24 * step(2.0, shape);
+  // Keep the hero copy legible: dim squares in the column from the headline down to the desk.
+  float top = uHead.y + uHead.w;
+  e *= 1.0 - 0.55 * exp(-max(rectDist(c, vec4(uHead.x, deskTop, uHead.z, top - deskTop)), 0.0) / (0.3 * uPitch));
+  e *= smoothstep(deskTop - 0.3 * uPitch, deskTop + 0.9 * uPitch, p.y);
+  float cov = coverage(roundSquare(local, uPitch * 0.435, max(2.0, uPitch * 0.02)), 1.0 / uPx);
+  return mix(INK, mix(ramp(e), HOT, smoothstep(0.9, 1.0, e)), cov * smoothstep(0.02, 0.1, e));
+}
+
 void main() {
   vec2 p = gl_FragCoord.xy / uPx;
   vec3 col;
-  if (uMode == 0) col = glass(p);
-  else if (uMode == 1) col = calendar(p);
-  else if (uMode == 2) col = pulse(p);
+  if (uMode == 0) col = diamond(p);
+  else if (uMode == 1) col = glass(p);
+  else if (uMode == 2) col = calendar(p);
+  else if (uMode == 3) col = pulse(p);
   else col = floorGrid(p);
   outColor = vec4(col, 1.0);
 }`;
@@ -201,7 +232,12 @@ function compile(gl: WebGL2RenderingContext, type: number, source: string) {
   return shader;
 }
 
+// Canvas extents for the desk-only variants; the diamond also reaches up behind the headline.
+const BELOW = "clamp(120px,16vw,280px)";
+const HEAD_PAD = 180;
+
 function Field({ mode, around }: { mode: number; around: RefObject<HTMLDivElement | null> }) {
+  const tall = mode === 0;
   const ref = useRef<HTMLCanvasElement>(null);
   const paused = useMotionPaused();
   const pausedRef = useRef(paused);
@@ -231,6 +267,7 @@ function Field({ mode, around }: { mode: number; around: RefObject<HTMLDivElemen
     gl.useProgram(program);
     const u = (name: string) => gl.getUniformLocation(program, name);
     const uRes = u("uRes"), uPx = u("uPx"), uTime = u("uTime"), uMode = u("uMode"), uDesk = u("uDesk");
+    const uHead = u("uHead"), uPitch = u("uPitch");
     gl.uniform1i(uMode, mode);
 
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -244,10 +281,18 @@ function Field({ mode, around }: { mode: number; around: RefObject<HTMLDivElemen
     let since = 0;
 
     const measure = () => {
-      const desk = around.current?.querySelector(".desk-frame");
-      if (!desk) return;
+      const wrap = around.current;
+      const desk = wrap?.querySelector(".desk-frame");
+      if (!wrap || !desk) return;
+      // Offsets ignore transforms, so the headline's rise animation doesn't skew the measurement.
+      const head = document.querySelector<HTMLElement>("main h1");
+      if (tall && head) {
+        const above = wrap.offsetTop - head.offsetTop + HEAD_PAD;
+        canvas.style.top = `${-above}px`;
+        canvas.style.height = `calc(100% + ${above}px + ${BELOW})`;
+      }
       // The glass variant is blurred anyway, so it renders at 1x to keep its 12 samples cheap.
-      const px = mode === 0 ? 1 : Math.min(window.devicePixelRatio || 1, 1.5);
+      const px = mode === 1 ? 1 : Math.min(window.devicePixelRatio || 1, 1.5);
       const box = canvas.getBoundingClientRect();
       const d = desk.getBoundingClientRect();
       canvas.width = Math.round(box.width * px);
@@ -256,6 +301,10 @@ function Field({ mode, around }: { mode: number; around: RefObject<HTMLDivElemen
       gl.uniform2f(uRes, box.width, box.height);
       gl.uniform1f(uPx, canvas.width / box.width);
       gl.uniform4f(uDesk, d.left - box.left, box.bottom - d.bottom, d.width, d.height);
+      if (head) gl.uniform4f(uHead, (box.width - head.offsetWidth) / 2, box.height - HEAD_PAD - head.offsetHeight, head.offsetWidth, head.offsetHeight);
+      // Six columns, and four rows between the header and the desk.
+      const headerBottom = document.querySelector("header")?.getBoundingClientRect().bottom ?? 0;
+      gl.uniform1f(uPitch, Math.min(box.width / 6.5, (d.top - headerBottom) / 4, 160));
     };
 
     const draw = () => {
@@ -315,13 +364,17 @@ function Field({ mode, around }: { mode: number; around: RefObject<HTMLDivElemen
       kick.current = () => {};
       gl.deleteProgram(program);
     };
-  }, [mode, around]);
+  }, [mode, tall, around]);
 
   return (
     <canvas
       ref={ref}
       aria-hidden
-      className="pointer-events-none absolute -top-[clamp(100px,14vw,220px)] left-1/2 h-[calc(100%+clamp(100px,14vw,220px)+clamp(120px,16vw,280px))] -z-10 w-screen -translate-x-1/2 [mask-image:linear-gradient(to_bottom,transparent,#000_22%,#000_78%,transparent)]"
+      className={`pointer-events-none absolute left-1/2 -z-10 w-screen -translate-x-1/2 ${
+        tall
+          ? "[mask-image:linear-gradient(to_bottom,transparent,#000_4%)]"
+          : "-top-[clamp(100px,14vw,220px)] h-[calc(100%+clamp(100px,14vw,220px)+clamp(120px,16vw,280px))] [mask-image:linear-gradient(to_bottom,transparent,#000_22%,#000_78%,transparent)]"
+      }`}
     />
   );
 }
@@ -329,7 +382,7 @@ function Field({ mode, around }: { mode: number; around: RefObject<HTMLDivElemen
 /** Wraps the hero desktop with the square field behind it, plus the temporary variant switcher. */
 export function SquareField({ children }: { children: ReactNode }) {
   const around = useRef<HTMLDivElement>(null);
-  const [variant, setVariant] = useState<VariantId>("glass");
+  const [variant, setVariant] = useState<VariantId>("diamond");
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
