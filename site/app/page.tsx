@@ -3,7 +3,7 @@ import { AnalyticsLink } from "@/components/AnalyticsLink";
 import { LoopProvider } from "@/components/useLoop";
 import { HeroDesktop } from "@/components/HeroDesktop";
 import { FeatureGrid } from "@/components/FeatureGrid";
-import { ContributionStrip } from "@/components/ContributionStrip";
+import { SquareField } from "@/components/SquareField";
 import { DOWNLOAD_URL, RELEASES_URL, SOURCE_URL } from "@/lib/board";
 
 function DownloadIcon() {
@@ -19,7 +19,7 @@ function DownloadIcon() {
 export default function Home() {
   return (
     <LoopProvider>
-      <div className="flex min-h-svh flex-col overflow-x-hidden px-[clamp(20px,5vw,72px)]">
+      <div className="isolate flex min-h-svh flex-col overflow-x-hidden px-[clamp(20px,5vw,72px)]">
         <header className="flex min-h-[88px] items-center justify-between gap-4">
           <a href="/" className="flex items-center gap-2.5">
             <Glyph className="size-5 text-lime" />
@@ -57,9 +57,9 @@ export default function Home() {
           </div>
         </main>
 
-        <HeroDesktop />
-
-        <ContributionStrip />
+        <SquareField>
+          <HeroDesktop />
+        </SquareField>
 
         <FeatureGrid />
 
