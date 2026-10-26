@@ -42,6 +42,7 @@ uniform float uTime;  // seconds
 uniform int uMode;
 uniform vec4 uDesk;   // desk rect in CSS px, GL orientation: x, y (bottom), w, h
 uniform vec4 uHead;   // headline rect, same orientation (glass, tiles, mosaic, straight)
+uniform vec4 uCopy;   // headline down to the download caption, same orientation
 out vec4 outColor;
 
 const vec3 INK = vec3(0.0196);
@@ -107,9 +108,11 @@ float halo(vec2 p, float reach) { return exp(-max(deskDist(p), 0.0) / reach); }
 // Like Raycast's cube, the light is about a third of the screen wide and black around it, so the
 // rods only show where there is light behind them.
 float lamp(vec2 c, float t) {
-  vec2 centre = uHead.xy + uHead.zw * vec2(0.5, 0.35) + vec2(sin(t * 3.0), cos(t * 2.3)) * 40.0;
+  // Centred just above the desk's top edge, so the desk covers the glow's lower half.
+  float y = mix(uDesk.y + uDesk.w, uHead.y + uHead.w * 0.5, 0.3);
+  vec2 centre = vec2(uHead.x + uHead.z * 0.5, y) + vec2(sin(t * 3.0), cos(t * 2.3)) * 40.0;
   float rx = clamp(uRes.x * 0.22, 170.0, 480.0);
-  vec2 q = (c - centre) / vec2(rx, rx * 0.7);
+  vec2 q = (c - centre) / vec2(rx, rx * 0.85);
   return exp(-dot(q, q) * 1.4);
 }
 
@@ -201,8 +204,8 @@ vec3 mosaic(vec2 p, float A) {
   vec3 lit = (col + HOT * 0.35 * smoothstep(0.85, 1.0, e)) * lum * (0.6 + 0.4 * (1.0 - m * m * m * m));
   float edge = smoothstep(-s * 0.12, -0.8, sd) * max(dot(normalize(l + 1e-4), vec2(-0.7071, 0.7071)), 0.0);
   lit += edge * (0.02 + 0.5 * lamp(p, t)) * HOT * 0.25;
-  // Bright lime tiles swallow the lime "today?", so the glow dips behind the headline.
-  lit *= 1.0 - 0.5 * exp(-max(rectDist(centre, uHead), 0.0) / 40.0);
+  // Bright lime tiles swallow the lime "today?" and the small caption, so the glow dips behind the copy.
+  lit *= 1.0 - 0.55 * exp(-max(rectDist(centre, uCopy), 0.0) / 40.0);
   return INK + lit * coverage(sd, 1.0 / uPx);
 }
 
@@ -314,7 +317,7 @@ function Field({ mode, around }: { mode: number; around: RefObject<HTMLDivElemen
     gl.useProgram(program);
     const u = (name: string) => gl.getUniformLocation(program, name);
     const uRes = u("uRes"), uPx = u("uPx"), uTime = u("uTime"), uMode = u("uMode"), uDesk = u("uDesk");
-    const uHead = u("uHead");
+    const uHead = u("uHead"), uCopy = u("uCopy");
     gl.uniform1i(uMode, mode);
 
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -348,7 +351,12 @@ function Field({ mode, around }: { mode: number; around: RefObject<HTMLDivElemen
       gl.uniform2f(uRes, box.width, box.height);
       gl.uniform1f(uPx, canvas.width / box.width);
       gl.uniform4f(uDesk, d.left - box.left, box.bottom - d.bottom, d.width, d.height);
-      if (head) gl.uniform4f(uHead, (box.width - head.offsetWidth) / 2, box.height - HEAD_PAD - head.offsetHeight, head.offsetWidth, head.offsetHeight);
+      if (head) {
+        gl.uniform4f(uHead, (box.width - head.offsetWidth) / 2, box.height - HEAD_PAD - head.offsetHeight, head.offsetWidth, head.offsetHeight);
+        const last = head.parentElement?.lastElementChild as HTMLElement | null;
+        const copy = last ? last.offsetTop + last.offsetHeight - head.offsetTop : head.offsetHeight;
+        gl.uniform4f(uCopy, (box.width - head.offsetWidth) / 2, box.height - HEAD_PAD - copy, head.offsetWidth, copy);
+      }
     };
 
     const draw = () => {
