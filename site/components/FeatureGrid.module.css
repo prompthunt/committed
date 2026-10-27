@@ -1,5 +1,5 @@
 /* ── Layout: the approved wide-anchor grid ─────────────────────────────── */
-.section { width:100%; max-width:1240px; margin-inline:auto; padding-block:24px 96px; }
+.section { width:100%; max-width:1240px; margin-inline:auto; padding-top:24px; }
 .grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); grid-template-areas:"connect connect" "people time" "privacy menu" "alerts alerts" "source mac"; gap:12px; }
 .connect { grid-area:connect; min-height:412px; }
 .people { grid-area:people; min-height:412px; }

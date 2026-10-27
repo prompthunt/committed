@@ -5,7 +5,7 @@ import { captureLink } from "@/lib/analytics";
 
 type Props = Omit<ComponentProps<"a">, "onClick" | "onAuxClick"> & {
   event: "download_clicked" | "github_clicked";
-  placement: "hero" | "header" | "footer";
+  placement: "hero" | "header" | "footer" | "closing";
 };
 
 export function AnalyticsLink({ event, placement, ...props }: Props) {

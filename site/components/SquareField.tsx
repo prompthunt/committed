@@ -263,7 +263,7 @@ function Field({ around }: { around: RefObject<HTMLDivElement | null> }) {
 export function SquareField({ children }: { children: ReactNode }) {
   const around = useRef<HTMLDivElement>(null);
   return (
-    <div ref={around} className="relative mb-[clamp(120px,16vw,280px)]">
+    <div ref={around} className="relative mb-[clamp(72px,8vw,128px)]">
       <Field around={around} />
       {children}
     </div>

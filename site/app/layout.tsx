@@ -2,16 +2,13 @@ import type { Metadata, Viewport } from "next";
 import { Inter, Inter_Tight } from "next/font/google";
 import Script from "next/script";
 import "./globals.css";
+import { DESCRIPTION as description, SITE_URL, TITLE as title } from "@/lib/site";
 
 const interTight = Inter_Tight({ subsets: ["latin"], variable: "--font-inter-tight", display: "swap" });
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "swap" });
 
-const title = "Committed — A little friendly competition";
-const description =
-  "A friendly GitHub leaderboard for your Mac’s menu bar. Compare contributions with friends and teammates, with optional alerts when ranks change.";
-
 export const metadata: Metadata = {
-  metadataBase: new URL("https://gitcommitted.app"),
+  metadataBase: new URL(SITE_URL),
   title,
   description,
   applicationName: "Committed",
