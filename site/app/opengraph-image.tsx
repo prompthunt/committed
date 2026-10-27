@@ -36,7 +36,7 @@ export default async function OpengraphImage() {
           <span style={{ color: "#C8FF2E" }}>competition.</span>
         </div>
         <div style={{ display: "flex", marginTop: 28, fontSize: 34, color: "#8E9288" }}>
-          A GitHub leaderboard in your Mac’s menu bar.
+          A tiny Mac menu bar app for your GitHub leaderboard.
         </div>
       </div>
     ),

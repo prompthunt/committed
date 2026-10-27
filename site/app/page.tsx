@@ -82,7 +82,7 @@ export default function Home() {
           <h1 className="max-w-[14ch] animate-rise text-[clamp(46px,7vw,96px)] leading-[0.94] font-[750] tracking-[-0.055em] text-balance">
             Who shipped more <span className="text-lime">today?</span>
           </h1>
-          <p className="max-w-[30rem] animate-rise text-xl leading-relaxed text-soft [animation-delay:90ms]">A GitHub leaderboard for your Mac’s menu bar.</p>
+          <p className="max-w-[30rem] animate-rise text-xl leading-relaxed text-soft [animation-delay:90ms]">A tiny Mac menu bar app for your GitHub leaderboard.</p>
           <div className="mt-2 flex animate-rise flex-col items-center gap-3.5 [animation-delay:180ms]">
             <DownloadButton placement="hero" />
             <span className="text-sm text-muted">macOS 26+ · Apple silicon &amp; Intel</span>

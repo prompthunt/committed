@@ -3,15 +3,14 @@
 import { useState, type ReactNode } from "react";
 import {
   ConnectScreen,
-  MenuBarStrip,
+  GitHubMark,
   NotificationStack,
-  OverflowChecks,
   PeopleWindow,
-  PrivateTip,
   RankPill,
   WindowPicker,
   YouSummary,
 } from "./MacUI";
+import { Glyph } from "./Glyph";
 import { useFrame } from "./useLoop";
 import { board, fmt, SOURCE_URL, WINDOW_COUNTS } from "@/lib/board";
 import styles from "./FeatureGrid.module.css";
@@ -32,6 +31,26 @@ function Meta({ n, label }: { n: string; label: string }) {
       <span>{n}</span>
       <span>{label}</span>
     </div>
+  );
+}
+
+/** The compact cards each show a single mark instead of a crop. */
+function LockMark() {
+  return (
+    <svg aria-hidden viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className={styles.mark}>
+      <rect x="4.5" y="10.5" width="15" height="10.5" rx="2.5" />
+      <path d="M8 10.5V7.5a4 4 0 0 1 8 0v3" />
+      <path d="M12 14.5v2.5" />
+    </svg>
+  );
+}
+
+/** A smiling vintage compact Mac in chunky pixels, drawn as an homage rather than Apple's artwork. */
+function HappyMac() {
+  return (
+    <svg aria-hidden viewBox="0 0 14 19" fill="currentColor" shapeRendering="crispEdges" className={`${styles.mark} ${styles.macMark}`}>
+      <path d="M1 0h12v1h-12zM0 1h1v1h-1zM13 1h1v1h-1zM0 2h1v1h-1zM2 2h10v1h-10zM13 2h1v1h-1zM0 3h1v1h-1zM2 3h1v1h-1zM11 3h1v1h-1zM13 3h1v1h-1zM0 4h1v1h-1zM2 4h1v1h-1zM5 4h1v1h-1zM8 4h1v1h-1zM11 4h1v1h-1zM13 4h1v1h-1zM0 5h1v1h-1zM2 5h1v1h-1zM5 5h1v1h-1zM8 5h1v1h-1zM11 5h1v1h-1zM13 5h1v1h-1zM0 6h1v1h-1zM2 6h1v1h-1zM7 6h1v1h-1zM11 6h1v1h-1zM13 6h1v1h-1zM0 7h1v1h-1zM2 7h1v1h-1zM6 7h2v1h-2zM11 7h1v1h-1zM13 7h1v1h-1zM0 8h1v1h-1zM2 8h1v1h-1zM11 8h1v1h-1zM13 8h1v1h-1zM0 9h1v1h-1zM2 9h1v1h-1zM4 9h1v1h-1zM9 9h1v1h-1zM11 9h1v1h-1zM13 9h1v1h-1zM0 10h1v1h-1zM2 10h1v1h-1zM5 10h4v1h-4zM11 10h1v1h-1zM13 10h1v1h-1zM0 11h1v1h-1zM2 11h1v1h-1zM11 11h1v1h-1zM13 11h1v1h-1zM0 12h1v1h-1zM2 12h10v1h-10zM13 12h1v1h-1zM0 13h1v1h-1zM13 13h1v1h-1zM0 14h1v1h-1zM8 14h4v1h-4zM13 14h1v1h-1zM0 15h1v1h-1zM13 15h1v1h-1zM0 16h14v1h-14zM2 17h1v1h-1zM11 17h1v1h-1zM2 18h10v1h-10z" />
+    </svg>
   );
 }
 
@@ -79,14 +98,14 @@ export function FeatureGrid() {
 
         <article className={`${styles.card} ${styles.paper} ${styles.small} ${styles.privacy}`}>
           <Meta n="03" label="Privacy" />
-          <div aria-hidden className={styles.tipCrop}><PrivateTip /></div>
+          <LockMark />
           <h2>Code stays<br />private.</h2>
           <span className="sr-only">Committed reads contribution counts, never your code. Private contributions count when you enable their visibility on GitHub.</span>
         </article>
 
         <article className={`${styles.card} ${styles.ink} ${styles.small} ${styles.menu}`}>
           <Meta n="04" label="Menu bar" />
-          <div aria-hidden className={styles.menuCrop}><MenuBarStrip rank={youRank} /></div>
+          <div aria-hidden className={styles.rankMark}><Glyph className={styles.mark} /><span>#{youRank}</span></div>
           <h2>Menu-bar<br />rank.</h2>
           <span className="sr-only">Your rank, currently #{youRank} in the demo, stays in the menu bar.</span>
         </article>
@@ -94,7 +113,7 @@ export function FeatureGrid() {
         <article className={`${styles.card} ${styles.ink} ${styles.small} ${styles.source}`}>
           <a href={SOURCE_URL} aria-label="View Committed source on GitHub" className={styles.sourceLink}>
             <Meta n="05" label="Source" />
-            <span aria-hidden className={styles.repo}>prompthunt/<br />committed<span className={styles.arrow}>↗</span></span>
+            <span aria-hidden className={styles.sourceMark}><GitHubMark className={styles.mark} /><span className={styles.arrow}>↗</span></span>
             <h2>Open<br />source.</h2>
           </a>
         </article>
@@ -126,7 +145,7 @@ export function FeatureGrid() {
 
         <article className={`${styles.card} ${styles.lime} ${styles.small} ${styles.mac}`}>
           <Meta n="08" label="macOS 26+" />
-          <div aria-hidden className={styles.checksCrop}><OverflowChecks /></div>
+          <HappyMac />
           <h2>Built for<br />macOS.</h2>
         </article>
       </div>
