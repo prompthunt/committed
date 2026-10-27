@@ -17,11 +17,13 @@ verification commands are in [README.md](README.md).
 - The cards use the editorial treatment chosen on 2026-10-24 (PR #9). Each card is
   indexed and left-aligned: a monospace folio line (`01 Setup`), one visual, and a
   bottom-anchored headline. The cards come in three inks: lime (connect, macOS), paper
-  `#EFEEE7` (privacy, time frame), and ink `#0C0D0A` (the rest). Each visual is a crop of
-  a real app screen (`components/MacUI.tsx`), using the app's copy: the setup screen
-  (`SignInView`), the People window (`FullRankingsView`), the private-contributions tip,
-  the menu-bar item, the popover's segmented control and summary card, the
-  notifications, and the `⋯` menu's checkboxes. Open source shows the repo name.
+  `#EFEEE7` (privacy, time frame), and ink `#0C0D0A` (the rest). The four large and
+  medium cards crop real app screens (`components/MacUI.tsx`), using the app's copy: the
+  setup screen (`SignInView`), the People window (`FullRankingsView`), the popover's
+  segmented control and summary card, and the notifications. The four compact cards show
+  one mark each (owner's call, 2026-10-27): a lock (privacy), the trophy glyph with the
+  live rank (menu bar), the GitHub mark (open source), and a pixel-art smiling compact Mac
+  (macOS), drawn as an homage rather than Apple's artwork.
 - Each card is a CSS size container, and its type uses `cqi` clamps. This keeps the
   type proportional from 320px phones through iPhone Duo's outer (466pt) and inner
   (951pt) displays to the 1,240px desktop container. The desktop grid starts at 1100px.

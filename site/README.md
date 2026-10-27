@@ -16,7 +16,7 @@ npm run typecheck
 | Path | What it is |
 |---|---|
 | `app/page.tsx` | The page: hero, feature grid, FAQ, closing download, and the JSON-LD (`SoftwareApplication`, `FAQPage`) |
-| `components/FeatureGrid.tsx`, `FeatureGrid.module.css` | Eight editorial feature cards, each cropping a real app screen: setup, People window, privacy tip, menu-bar item, time-frame control, notifications, and the `⋯` menu |
+| `components/FeatureGrid.tsx`, `FeatureGrid.module.css` | Eight editorial feature cards: the four larger ones crop real app screens (setup, People window, time-frame control, notifications); the four compact ones show a single mark (lock, trophy rank, GitHub, smiling Mac) |
 | `components/HeroDesktop.tsx` | The hero's Mac desktop: menu bar, wallpaper, and the popover playing the app in use |
 | `components/SquareField.tsx` | WebGL field of contribution squares behind the hero desktop; pauses off screen, with the shared pause control, and for reduced motion |
 | `components/Faq.tsx` | The FAQ as native disclosure rows |
