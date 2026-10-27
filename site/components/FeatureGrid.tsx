@@ -53,7 +53,13 @@ function TimeFrame() {
 export function FeatureGrid() {
   const { youRank } = board(useFrame());
   return (
-    <section aria-label="Features" className={styles.section}>
+    <section aria-labelledby="features-title" className={styles.section}>
+      <header className="mb-[clamp(28px,3.5vw,48px)]">
+        <p className="font-mono text-[11px] font-medium tracking-[.06em] text-muted uppercase">How it works</p>
+        <h2 id="features-title" className="mt-4 max-w-[18ch] text-[clamp(32px,4.4vw,56px)] leading-[0.95] font-[750] tracking-[-0.05em] text-balance">
+          A leaderboard of the people you already follow.
+        </h2>
+      </header>
       <div className={styles.grid}>
         <article className={`${styles.card} ${styles.lime} ${styles.connect}`}>
           <Meta n="01" label="Setup" />

@@ -27,7 +27,7 @@ export function initAnalytics() {
   enabled = true;
 }
 
-export function captureLink(event: "download_clicked" | "github_clicked", placement: "hero" | "header" | "footer") {
+export function captureLink(event: "download_clicked" | "github_clicked", placement: "hero" | "header" | "footer" | "closing") {
   if (!enabled) return;
   // Analytics must never delay or prevent the normal link / download behavior.
   try {

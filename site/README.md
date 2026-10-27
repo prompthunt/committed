@@ -15,14 +15,16 @@ npm run typecheck
 
 | Path | What it is |
 |---|---|
-| `app/page.tsx` | The page: hero, feature grid |
+| `app/page.tsx` | The page: hero, feature grid, FAQ, closing download, and the JSON-LD (`SoftwareApplication`, `FAQPage`) |
 | `components/FeatureGrid.tsx`, `FeatureGrid.module.css` | Eight editorial feature cards, each cropping a real app screen: setup, People window, privacy tip, menu-bar item, time-frame control, notifications, and the `⋯` menu |
 | `components/HeroDesktop.tsx` | The hero's Mac desktop: menu bar, wallpaper, and the popover playing the app in use |
 | `components/SquareField.tsx` | WebGL field of contribution squares behind the hero desktop; pauses off screen, with the shared pause control, and for reduced motion |
+| `components/Faq.tsx` | The FAQ as native disclosure rows |
 | `components/MacUI.tsx` | Shared native popover, menu-bar rank pill, and glass notification banners |
 | `components/useLoop.tsx` | One shared clock so every demo tells the same story; reduced-motion users get the final frame |
 | `lib/board.ts` | Demo data: people, per-frame counts, the app's real notification copy, download links |
 | `lib/contributions.ts` | Seeded, decorative contribution data for the hero's square burst |
+| `lib/site.ts` | Page title, description and FAQ copy, shared by the metadata, the page and the JSON-LD |
 | `lib/glyph.ts` | The GitHub-cat trophy mark (from `MenuBarIcon.pdf`) as an SVG path |
 | `public/avatars/` | GitHub avatars for the demo board (public use approved by the owner) |
 | `app/icon.svg`, `app/opengraph-image.tsx` | Favicon and social card, generated at build |

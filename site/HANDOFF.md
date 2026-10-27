@@ -5,8 +5,12 @@ verification commands are in [README.md](README.md).
 
 ## Design decisions
 
-- One hero and an eight-card feature grid. Keep the page short;
-  do not add sections, pricing, testimonials, or extra copy without agreement.
+- One hero, an eight-card feature grid under a short intro, an eight-question FAQ, and a
+  closing download. Agreed with the owner on 2026-10-26. Keep the page short; do not add
+  sections, pricing, testimonials, or extra copy without agreement.
+- The FAQ copy lives in `lib/site.ts` and also feeds the `FAQPage` JSON-LD, so the page and
+  the structured data always match. Committed is free (MIT); the `SoftwareApplication`
+  JSON-LD says so with a $0 offer.
 - The approved wide-anchor grid has two large cards (GitHub connection and rank
   notifications), two medium cards (friends/teammates and time frames), and four
   compact cards (privacy, menu-bar rank, open source, and native macOS).

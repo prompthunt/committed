@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { GLYPH_PATH } from "@/lib/glyph";
 
 export const dynamic = "force-static";
-export const alt = "Committed — A little friendly competition";
+export const alt = "Committed — A GitHub leaderboard for your Mac’s menu bar";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
