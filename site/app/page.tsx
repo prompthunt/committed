@@ -5,35 +5,9 @@ import { HeroDesktop } from "@/components/HeroDesktop";
 import { FeatureGrid } from "@/components/FeatureGrid";
 import { SquareField } from "@/components/SquareField";
 import { Faq } from "@/components/Faq";
+import { DownloadOptions } from "@/components/DownloadOptions";
 import { DOWNLOAD_URL, WINDOWS_DOWNLOAD_URL, RELEASES_URL, SOURCE_URL } from "@/lib/board";
 import { DESCRIPTION, FAQ, SITE_URL, WINDOWS_DOWNLOAD_AVAILABLE } from "@/lib/site";
-
-function DownloadIcon() {
-  return (
-    <svg aria-hidden width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M12 4v11" />
-      <path d="m7 10 5 5 5-5" />
-      <path d="M5 20h14" />
-    </svg>
-  );
-}
-
-function DownloadButton({ placement, platform = "Mac" }: { placement: "hero" | "closing"; platform?: "Mac" | "Windows" }) {
-  if (platform === "Windows" && !WINDOWS_DOWNLOAD_AVAILABLE) {
-    return <span className="inline-flex min-h-14 items-center rounded-xl border border-white/15 px-6.5 text-[17px] text-muted">Windows download coming soon</span>;
-  }
-  return (
-    <AnalyticsLink
-      href={platform === "Windows" ? WINDOWS_DOWNLOAD_URL : DOWNLOAD_URL}
-      event="download_clicked"
-      placement={placement}
-      className="inline-flex min-h-14 items-center gap-2.5 rounded-xl bg-lime px-6.5 text-[17px] font-semibold text-ink transition-[filter,box-shadow] duration-200 hover:shadow-[0_0_0_4px_rgba(200,255,46,.2),0_12px_36px_-10px_rgba(200,255,46,.55)] hover:brightness-105"
-    >
-      <DownloadIcon />
-      Download for {platform}
-    </AnalyticsLink>
-  );
-}
 
 // What search engines and AI answer engines read: the app itself, and the FAQ shown on the page.
 const STRUCTURED_DATA = [
@@ -87,7 +61,7 @@ export default function Home() {
           </h1>
           <p className="max-w-[30rem] animate-rise text-xl leading-relaxed text-soft [animation-delay:90ms]">Your GitHub leaderboard, in the Mac menu bar or Windows tray.</p>
           <div className="mt-2 flex animate-rise flex-col items-center gap-3.5 [animation-delay:180ms]">
-            <div className="flex flex-wrap justify-center gap-3"><DownloadButton placement="hero" /><DownloadButton placement="hero" platform="Windows" /></div>
+            <DownloadOptions placement="hero" />
             <span className="text-sm text-muted">macOS 26+ · Windows 11 (x64)</span>
             <p className="max-w-md text-sm leading-relaxed text-muted">The Windows installer is unsigned. If SmartScreen appears, choose <strong>More info → Run anyway</strong>.</p>
           </div>
@@ -107,7 +81,7 @@ export default function Home() {
             Start your <span className="text-lime">leaderboard.</span>
           </h2>
           <div className="mt-2 flex flex-col items-center gap-3.5">
-            <div className="flex flex-wrap justify-center gap-3"><DownloadButton placement="closing" /><DownloadButton placement="closing" platform="Windows" /></div>
+            <DownloadOptions placement="closing" />
             <span className="text-sm text-muted">Free · macOS 26+ · Windows 11 (x64)</span>
           </div>
         </section>
@@ -119,7 +93,8 @@ export default function Home() {
           </span>
           <nav aria-label="Footer" className="flex flex-wrap gap-5">
             <a href={RELEASES_URL} className="py-2.5 hover:text-white">Release notes</a>
-            <AnalyticsLink href={DOWNLOAD_URL} event="download_clicked" placement="footer" className="py-2.5 hover:text-white">Download</AnalyticsLink>
+            <AnalyticsLink href={DOWNLOAD_URL} event="download_clicked" placement="footer" className="py-2.5 hover:text-white">Download for Mac</AnalyticsLink>
+            {WINDOWS_DOWNLOAD_AVAILABLE ? <AnalyticsLink href={WINDOWS_DOWNLOAD_URL} event="download_clicked" placement="footer" className="py-2.5 hover:text-white">Download for Windows</AnalyticsLink> : null}
           </nav>
         </footer>
       </div>

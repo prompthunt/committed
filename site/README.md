@@ -43,6 +43,13 @@ excluded from download structured data while the flag is off. Enable the flag
 and redeploy only after the Mac publishing script verifies the first combined
 release's Windows assets. Preview builds can enable it for visual review.
 
+The hero and closing downloads prioritize the visitor's desktop OS: Mac or
+Windows gets the main button, with the other installer as a secondary link.
+Phones, tablets (including iPad desktop mode), and unknown platforms show both
+choices equally. Detection happens locally in the browser after hydration;
+static HTML and JavaScript-disabled visits retain both choices. The Windows
+release gate still applies to every link. Run `npm test` for detection cases.
+
 ## Deploying
 
 Production runs on **Vercel**, connected to `prompthunt/committed`. The project

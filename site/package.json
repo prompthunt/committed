@@ -1,12 +1,14 @@
 {
   "name": "committed-site",
   "private": true,
+  "type": "module",
   "version": "0.1.0",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "npx serve out",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "node --experimental-strip-types --test lib/download-platform.test.mjs"
   },
   "dependencies": {
     "next": "16.4.2",
