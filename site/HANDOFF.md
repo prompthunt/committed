@@ -5,7 +5,7 @@ verification commands are in [README.md](README.md).
 
 ## Design decisions
 
-- One hero, an eight-card feature grid under a short intro, an eight-question FAQ, and a
+- One hero, an eight-card feature grid under a short intro, a ten-question FAQ, and a
   closing download. Agreed with the owner on 2026-10-26. Keep the page short; do not add
   sections, pricing, testimonials, or extra copy without agreement.
 - The FAQ copy lives in `lib/site.ts` and also feeds the `FAQPage` JSON-LD, so the page and
