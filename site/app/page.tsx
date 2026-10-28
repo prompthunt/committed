@@ -5,7 +5,7 @@ import { HeroDesktop } from "@/components/HeroDesktop";
 import { FeatureGrid } from "@/components/FeatureGrid";
 import { SquareField } from "@/components/SquareField";
 import { Faq } from "@/components/Faq";
-import { DOWNLOAD_URL, RELEASES_URL, SOURCE_URL } from "@/lib/board";
+import { DOWNLOAD_URL, WINDOWS_DOWNLOAD_URL, RELEASES_URL, SOURCE_URL } from "@/lib/board";
 import { DESCRIPTION, FAQ, SITE_URL } from "@/lib/site";
 
 function DownloadIcon() {
@@ -18,16 +18,16 @@ function DownloadIcon() {
   );
 }
 
-function DownloadButton({ placement }: { placement: "hero" | "closing" }) {
+function DownloadButton({ placement, platform = "Mac" }: { placement: "hero" | "closing"; platform?: "Mac" | "Windows" }) {
   return (
     <AnalyticsLink
-      href={DOWNLOAD_URL}
+      href={platform === "Windows" ? WINDOWS_DOWNLOAD_URL : DOWNLOAD_URL}
       event="download_clicked"
       placement={placement}
       className="inline-flex min-h-14 items-center gap-2.5 rounded-xl bg-lime px-6.5 text-[17px] font-semibold text-ink transition-[filter,box-shadow] duration-200 hover:shadow-[0_0_0_4px_rgba(200,255,46,.2),0_12px_36px_-10px_rgba(200,255,46,.55)] hover:brightness-105"
     >
       <DownloadIcon />
-      Download for Mac
+      Download for {platform}
     </AnalyticsLink>
   );
 }
@@ -41,8 +41,8 @@ const STRUCTURED_DATA = [
     description: DESCRIPTION,
     url: SITE_URL,
     applicationCategory: "DeveloperApplication",
-    operatingSystem: "macOS 26 or later",
-    downloadUrl: DOWNLOAD_URL,
+    operatingSystem: ["macOS 26 or later", "Windows 11"],
+    downloadUrl: [DOWNLOAD_URL, WINDOWS_DOWNLOAD_URL],
     license: "https://opensource.org/licenses/MIT",
     isAccessibleForFree: true,
     offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
@@ -82,10 +82,11 @@ export default function Home() {
           <h1 className="max-w-[14ch] animate-rise text-[clamp(46px,7vw,96px)] leading-[0.94] font-[750] tracking-[-0.055em] text-balance">
             Who shipped more <span className="text-lime">today?</span>
           </h1>
-          <p className="max-w-[30rem] animate-rise text-xl leading-relaxed text-soft [animation-delay:90ms]">A tiny Mac menu bar app for your GitHub leaderboard.</p>
+          <p className="max-w-[30rem] animate-rise text-xl leading-relaxed text-soft [animation-delay:90ms]">Your GitHub leaderboard, in the Mac menu bar or Windows tray.</p>
           <div className="mt-2 flex animate-rise flex-col items-center gap-3.5 [animation-delay:180ms]">
-            <DownloadButton placement="hero" />
-            <span className="text-sm text-muted">macOS 26+ · Apple silicon &amp; Intel</span>
+            <div className="flex flex-wrap justify-center gap-3"><DownloadButton placement="hero" /><DownloadButton placement="hero" platform="Windows" /></div>
+            <span className="text-sm text-muted">macOS 26+ · Windows 11 (x64)</span>
+            <p className="max-w-md text-sm leading-relaxed text-muted">The Windows installer is unsigned. If SmartScreen appears, choose <strong>More info → Run anyway</strong>.</p>
           </div>
         </main>
 
@@ -103,15 +104,15 @@ export default function Home() {
             Start your <span className="text-lime">leaderboard.</span>
           </h2>
           <div className="mt-2 flex flex-col items-center gap-3.5">
-            <DownloadButton placement="closing" />
-            <span className="text-sm text-muted">Free · macOS 26+ · Apple silicon &amp; Intel</span>
+            <div className="flex flex-wrap justify-center gap-3"><DownloadButton placement="closing" /><DownloadButton placement="closing" platform="Windows" /></div>
+            <span className="text-sm text-muted">Free · macOS 26+ · Windows 11 (x64)</span>
           </div>
         </section>
 
         <footer className="mx-auto flex w-full max-w-[1240px] flex-wrap items-center justify-between gap-4 border-t border-white/[.08] pt-7 pb-10 text-sm text-muted">
           <span className="flex items-center gap-2.5">
             <Glyph className="size-4 text-lime" />
-            Committed for macOS
+            Committed for Mac and Windows
           </span>
           <nav aria-label="Footer" className="flex flex-wrap gap-5">
             <a href={RELEASES_URL} className="py-2.5 hover:text-white">Release notes</a>

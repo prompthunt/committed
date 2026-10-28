@@ -4,6 +4,8 @@
 
 export const DOWNLOAD_URL =
   "https://github.com/prompthunt/commit-standings-releases/releases/latest/download/Committed.dmg";
+export const WINDOWS_DOWNLOAD_URL =
+  "https://github.com/prompthunt/commit-standings-releases/releases/latest/download/Committed-Setup.exe";
 export const RELEASES_URL =
   "https://github.com/prompthunt/commit-standings-releases/releases/latest";
 export const SOURCE_URL = "https://github.com/prompthunt/committed";

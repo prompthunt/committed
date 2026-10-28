@@ -30,6 +30,24 @@ Local development uses a separate bundle ID from the distributed app. Preserve
 that separation and the existing official bundle ID, Keychain service, and Sparkle
 public key. See [AGENTS.md](AGENTS.md) for update compatibility requirements.
 
+## Build the Windows app
+
+Use Windows 11, Node 24, stable Rust (MSVC), Visual Studio C++ Build Tools and
+WebView2. See [windows/README.md](windows/README.md) for setup and architecture.
+
+```powershell
+cd windows
+npm ci
+npm run test:core
+npm test
+npm run tauri -- build
+```
+
+The installer is unsigned and installs per-user. CI builds it on every PR.
+For a version bump, run `node windows/scripts/sync-version.mjs` from the root
+and update the desktop Cargo lockfile. Official releases are prepared in Windows
+CI and published together with Mac assets from a Mac.
+
 ## Build the marketing site
 
 ```sh

@@ -20,8 +20,29 @@ DIST_DIR="${ROOT_DIR}/dist"
 VERSION="$(/usr/libexec/PlistBuddy -c 'Print CFBundleShortVersionString' "${INFO_PLIST}")"
 TAG="v${VERSION}"
 NOTES="${1:-Committed ${VERSION}. ⋯ → Check for Updates.}"
+SOURCE_REPO="prompthunt/committed"
+SOURCE_SHA="$(git -C "${ROOT_DIR}" rev-parse HEAD)"
+WINDOWS_DIST_DIR="${WINDOWS_DIST_DIR:-${DIST_DIR}/windows-${SOURCE_SHA}}"
 
 echo "==> Releasing ${TAG} to ${RELEASES_REPO}"
+
+# Refuse before Mac packaging unless Windows CI produced assets for this exact
+# source commit. CI prepares artifacts; only this Mac script publishes releases.
+if [ ! -d "${WINDOWS_DIST_DIR}" ]; then
+  WINDOWS_RUN="$(gh run list --repo "${SOURCE_REPO}" --workflow windows-release.yml \
+    --commit "${SOURCE_SHA}" --status success --limit 1 --json databaseId --jq '.[0].databaseId // empty')"
+  if [ -z "${WINDOWS_RUN}" ]; then
+    echo "ERROR: no Windows release build for ${SOURCE_SHA}. Run gh workflow run windows-release.yml --repo ${SOURCE_REPO} --ref main, wait for success, then retry." >&2
+    exit 1
+  fi
+  mkdir -p "${WINDOWS_DIST_DIR}"
+  gh run download "${WINDOWS_RUN}" --repo "${SOURCE_REPO}" \
+    --name "windows-release-${SOURCE_SHA}" --dir "${WINDOWS_DIST_DIR}"
+fi
+WINDOWS_INSTALLER_NAME="$(node "${ROOT_DIR}/windows/scripts/verify-release.mjs" "${WINDOWS_DIST_DIR}" "${VERSION}" "${SOURCE_SHA}")"
+WINDOWS_INSTALLER="${WINDOWS_DIST_DIR}/${WINDOWS_INSTALLER_NAME}"
+STABLE_WINDOWS_INSTALLER="${WINDOWS_DIST_DIR}/Committed-Setup.exe"
+WINDOWS_MANIFEST="${WINDOWS_DIST_DIR}/latest-windows.json"
 
 # 1. Build, sign, notarize, and generate the appcast (+ the stable Committed.dmg copy).
 "${ROOT_DIR}/scripts/package-release.sh"
@@ -32,7 +53,7 @@ ZIP="$(ls -t "${DIST_DIR}/CommitStandings-${VERSION}-"*.app.zip 2>/dev/null | he
 STABLE_DMG="${DIST_DIR}/Committed.dmg"
 APPCAST="${DIST_DIR}/appcast.xml"
 
-for f in "${DMG}" "${ZIP}" "${STABLE_DMG}" "${APPCAST}"; do
+for f in "${DMG}" "${ZIP}" "${STABLE_DMG}" "${APPCAST}" "${WINDOWS_INSTALLER}" "${STABLE_WINDOWS_INSTALLER}" "${WINDOWS_MANIFEST}"; do
   if [ -z "${f}" ] || [ ! -f "${f}" ]; then
     echo "ERROR: missing release asset: '${f}'. package-release.sh did not produce the full set." >&2
     exit 1
@@ -46,7 +67,8 @@ gh release create "${TAG}" \
   --title "Committed ${VERSION}" \
   --notes "${NOTES}" \
   --latest \
-  "${APPCAST}" "${ZIP}" "${DMG}" "${STABLE_DMG}"
+  "${APPCAST}" "${ZIP}" "${DMG}" "${STABLE_DMG}" \
+  "${WINDOWS_INSTALLER}" "${STABLE_WINDOWS_INSTALLER}" "${WINDOWS_MANIFEST}"
 
 # 4. Verify the public links the app + humans rely on.
 check() {
@@ -60,6 +82,9 @@ echo "==> Verifying public links"
 ok=1
 check "https://github.com/${RELEASES_REPO}/releases/latest/download/Committed.dmg" || ok=0
 check "https://github.com/${RELEASES_REPO}/releases/latest/download/appcast.xml" || ok=0
+check "https://github.com/${RELEASES_REPO}/releases/latest/download/Committed-Setup.exe" || ok=0
+check "https://github.com/${RELEASES_REPO}/releases/latest/download/latest-windows.json" || ok=0
+check "https://github.com/${RELEASES_REPO}/releases/download/${TAG}/${WINDOWS_INSTALLER_NAME}" || ok=0
 # The appcast enclosure must be the permanent per-tag form, not latest/download/.
 ENCLOSURE="$(grep -o 'url="[^"]*'"${TAG}"'/[^"]*\.app\.zip"' "${APPCAST}" | head -1 | sed 's/^url="//;s/"$//')"
 if [ -n "${ENCLOSURE}" ]; then

@@ -86,10 +86,46 @@ the change on `main`, then publish from `main` with the release script:
 ./scripts/publish-release.sh
 ```
 
-The script uploads all four assets, marks the release latest, and verifies the
+The script uploads all seven assets (four Mac and three Windows), marks the release latest, and verifies the
 public links. Do not hand-assemble a release: missing `Committed.dmg` breaks the
 permanent download link. Appcast payload URLs must use the permanent per-tag
 `releases/download/v<version>/` path.
+
+Before publishing, run **Prepare Windows release** on `main` in the source repo:
+
+```sh
+gh workflow run windows-release.yml --repo prompthunt/committed --ref main
+```
+
+Wait for that workflow to succeed. It builds an unsigned x64 per-user NSIS
+installer, signs the updater payload using `TAURI_SIGNING_PRIVATE_KEY` and
+`TAURI_SIGNING_PRIVATE_KEY_PASSWORD`, and uploads `windows-release-<full-sha>`.
+It never publishes a release. The Mac publishing script downloads this artifact
+and refuses to continue if its version, source commit, filenames or SHA-256
+digests differ from the current checkout. Node 24 and authenticated `gh` are
+required on the publishing Mac. An already downloaded artifact can be supplied
+with `WINDOWS_DIST_DIR=/path/to/artifact`.
+
+Windows adds three public assets to the same release:
+
+- `Committed-<version>-<sha8>-x64-setup.exe`: permanent updater payload.
+- `Committed-Setup.exe`: identical stable download copy.
+- `latest-windows.json`: version, payload URL and Tauri signature.
+
+The manifest's installer URL is per-tag, never `latest/download/`. The update
+endpoint itself uses `releases/latest/download/latest-windows.json`. Automatic
+Updates downloads and verifies in the background, then installs on Quit or
+**Restart to update**. Check for Updates works even with Automatic Updates off.
+
+The dedicated updater key is separate from Sparkle and Authenticode. Back up
+the private key and password outside the source tree; losing them prevents
+updates to installed Windows copies. Never rotate the public key casually.
+Windows builds remain unsigned, with no paid signing service or Store dependency.
+Ship x64 first; Windows 11 ARM devices use x64 emulation.
+
+Run the combined publishing script on a Mac before deploying the Windows download
+announcement. A PC must never run either Mac packaging/publishing script. See
+[Windows verification](windows-verification.md) for installer and update checks.
 
 The public source lives in `prompthunt/committed`; official downloads and updates
 remain in the separate release repository. The installed app must be able to fetch

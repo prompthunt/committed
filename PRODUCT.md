@@ -1,18 +1,18 @@
 # Committed
 
-Committed puts a friendly GitHub leaderboard in your Mac’s menu bar.
+Committed puts a friendly GitHub leaderboard in your Mac’s menu bar or Windows tray.
 
 For contributors, designers, and agents. Last reviewed: 2026-10-23. Positioning and voice guidance live in [Product Marketing Context](.agents/product-marketing.md).
 
 ## What it is
 
-Committed is a macOS **menu-bar app** for comparing GitHub contributions with friends. Connect GitHub to load the people you follow and members of your GitHub organizations, then hide anyone you don't want on your board.
+Committed is a Mac **menu-bar app** and Windows **tray app** for comparing GitHub contributions with friends. Connect GitHub to load the people you follow and members of your GitHub organizations, then hide anyone you don't want on your board.
 
 Open the menu bar to see where you stand today or over the last 7 or 30 days. Your rank follows the contribution count on your GitHub profile.
 
 ## Who it's for
 
-- **Primarily:** developers on Macs who enjoy friendly competition and want to see how their GitHub contributions compare with friends and people they follow.
+- **Primarily:** developers on Macs or Windows PCs who enjoy friendly competition and want to see how their GitHub contributions compare with friends and people they follow.
 - **Also:** teammates who want that same friendly competition with people in their GitHub organizations.
 
 Each user gets a personal board based on their GitHub connections. Friends do not need to install Committed to appear on it; their counts come from their public GitHub contribution graphs.
@@ -81,6 +81,20 @@ Committed is a **Developer ID-signed, notarized** app available through a public
 
 **[Download Committed for Mac](https://github.com/prompthunt/commit-standings-releases/releases/latest/download/Committed.dmg)**
 
+The Windows app requires **Windows 11**. Download the per-user, unsigned
+**[Windows installer](https://github.com/prompthunt/commit-standings-releases/releases/latest/download/Committed-Setup.exe)**.
+If SmartScreen appears, choose **More info → Run anyway**. The x64 build runs on
+ARM PCs through emulation. Click its notification-area icon to toggle the board;
+clicking elsewhere hides it. Connect GitHub and People use standalone windows.
+The board follows the system theme, stays opaque, and respects high contrast.
+GitHub tokens are stored in **Windows Credential Manager**; visibility choices
+stay local to each PC and GitHub account. Use Installed apps to uninstall.
+
+Both platforms share one version and one GitHub Release. Windows uses Tauri's
+signed updater with a dedicated key. Automatic Updates downloads in the
+background and offers a restart, or installs on Quit. Check for Updates works
+with Automatic Updates off. The Mac continues to use Sparkle.
+
 The permanent link points to the latest installer. To install:
 
 1. Open **Committed.dmg**.
@@ -97,14 +111,14 @@ The app is intentionally **not sandboxed** to support its Sparkle update path. B
 
 - **No shared/team board or settings sync.** Each person has their own leaderboard. Connecting the same GitHub account on another Mac derives the same accessible people from GitHub, but visibility preferences remain local. A shared backend is an exploration, not a current feature.
 - **Public contribution graph only.** Private activity is included only if the person enables **Contribution settings → Private contributions** on their GitHub profile. A dismissible board tip explains this; the guidance remains available in **About Committed**. Connecting requests `read:org read:user` to load profile and organization membership information. It does not request `repo` access or read repository contents.
-- **macOS only.** The leaderboard lives in the menu bar. Standalone windows cover connecting GitHub, People, and the contributions explanation. There is no iOS, web, or Windows app.
+- **Desktop only.** The leaderboard lives in the Mac menu bar or Windows notification area. Standalone windows cover connecting GitHub, People, and the contributions explanation. There is no iOS or web app.
 
 ## Glossary
 
 | Term | Meaning |
 |---|---|
 | Competitor | You, someone you follow on GitHub, or a member of your GitHub organizations. Hidden competitors stay in People but leave the leaderboard. |
-| Connect GitHub | Authorizing Committed's read-only GitHub access (`read:user read:org`) through GitHub's device flow. It does not create a Committed account; the token stays in the Mac's Keychain and is sent only to GitHub. Say "Connect GitHub" and "Disconnect GitHub", not "sign in", "sign up", "log out", or "create an account". |
+| Connect GitHub | Authorizing Committed's read-only GitHub access (`read:user read:org`) through GitHub's device flow. It does not create a Committed account; the token stays in the Mac's Keychain or Windows Credential Manager and is sent only to GitHub. Say "Connect GitHub" and "Disconnect GitHub", not "sign in", "sign up", "log out", or "create an account". |
 | Window | The trailing time range the board is computed over: Today, 7 days, or 30 days. |
 | Contributions | The count behind GitHub's contribution graph ("green squares") for the window. The single ranking metric. |
 | Refresh | Reloading contribution counts on a ~5-minute timer, stale menu-open, or stale window switch. Manual **Refresh** also reloads the people list. |

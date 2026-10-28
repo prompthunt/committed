@@ -1,0 +1,33 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Committed",
+  "version": "0.1.50",
+  "identifier": "com.digg.commitstandings.windows",
+  "build": {
+    "beforeDevCommand": "npm run dev",
+    "beforeBuildCommand": "npm run build",
+    "devUrl": "http://127.0.0.1:1420",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [
+      { "label": "board", "create": false, "title": "Committed", "width": 380, "height": 620, "minWidth": 340, "visible": false, "decorations": false, "resizable": false, "skipTaskbar": true, "alwaysOnTop": true },
+      { "label": "setup", "create": false, "title": "Connect GitHub — Committed", "url": "index.html?view=setup", "width": 440, "height": 600, "visible": false, "resizable": false },
+      { "label": "people", "create": false, "title": "People — Committed", "url": "index.html?view=people", "width": 520, "height": 640, "visible": false, "minWidth": 360, "minHeight": 400 },
+      { "label": "about", "create": false, "title": "About Committed", "url": "index.html?view=about", "width": 440, "height": 520, "visible": false, "resizable": false }
+    ],
+    "security": { "csp": "default-src 'self'; connect-src ipc: http://ipc.localhost; img-src 'self' data: https://avatars.githubusercontent.com; style-src 'self' 'unsafe-inline'; script-src 'self'" }
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDhBNUE3OThFMDUwNkYxRDQKUldUVThRWUZqbmxhaXUzcVBoUndLYWZabDhTTDJ4YjRqeFNRRlhBYWtCdUdaMkJxVVdjK3FGQ2UK",
+      "endpoints": ["https://github.com/prompthunt/commit-standings-releases/releases/latest/download/latest-windows.json"],
+      "windows": { "installMode": "passive" }
+    }
+  },
+  "bundle": {
+    "active": true, "targets": ["nsis"], "createUpdaterArtifacts": false,
+    "icon": ["icons/icon.ico"],
+    "windows": { "nsis": { "installMode": "currentUser", "displayLanguageSelector": false } }
+  }
+}
