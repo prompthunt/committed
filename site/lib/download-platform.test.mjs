@@ -22,11 +22,19 @@ test("browsers without client hints recognize desktop Windows and Mac user agent
   assert.equal(detectDownloadPlatform(browser), "unknown");
 });
 
-test("phones and tablets retain both choices, including iPad desktop mode", () => {
-  for (const userAgent of ["Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X)", "Mozilla/5.0 (iPad; CPU OS 18_0 like Mac OS X)", "Mozilla/5.0 (Linux; Android 15; Pixel)", "Mozilla/5.0 (Windows Phone 10.0; Windows NT 10.0; Android)"]) {
+test("iPhones and iPads show only the Mac download, including iPad desktop mode", () => {
+  for (const userAgent of ["Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) Mobile/15E148", "Mozilla/5.0 (iPad; CPU OS 18_0 like Mac OS X)"]) {
+    const platform = detectDownloadPlatform({ ...browser, userAgent });
+    assert.equal(platform, "mac");
+    assert.deepEqual(downloadTargets(platform), ["Mac"]);
+  }
+  assert.equal(detectDownloadPlatform({ ...browser, platform: "MacIntel", maxTouchPoints: 5, userAgent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15) AppleWebKit/605.1.15" }), "mac");
+});
+
+test("other phones and tablets retain both choices", () => {
+  for (const userAgent of ["Mozilla/5.0 (Linux; Android 15; Pixel)", "Mozilla/5.0 (Windows Phone 10.0; Windows NT 10.0; Android)"]) {
     assert.equal(detectDownloadPlatform({ ...browser, userAgent }), "unknown");
   }
-  assert.equal(detectDownloadPlatform({ ...browser, platform: "MacIntel", maxTouchPoints: 5, userAgent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15) AppleWebKit/605.1.15" }), "unknown");
   assert.equal(detectDownloadPlatform({ ...browser, userAgentData: { platform: "macOS", mobile: true } }), "unknown");
 });
 
