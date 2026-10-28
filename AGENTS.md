@@ -80,3 +80,17 @@ scripts/package-release.sh --skip-notarization --skip-git-check
 
 `git push` to the GitHub remote needs the repo-local `http.version HTTP/1.1` + large
 `http.postBuffer` (already configured) or it fails with HTTP 400.
+
+## Agent skills
+
+### Issue tracker
+
+Issues and specs live in GitHub Issues on `prompthunt/committed`. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Default labels: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context. The glossary currently lives in `PRODUCT.md` → Glossary. See `docs/agents/domain.md`.
