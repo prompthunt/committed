@@ -7,11 +7,14 @@ type BrowserPlatform = {
   userAgentData?: { platform: string; mobile: boolean };
 };
 
-/** Match desktop installers; phones, tablets and unknown browsers use the fallback. */
+/** Match desktop installers; Apple mobile devices offer the Mac download. */
 export function detectDownloadPlatform(browser: BrowserPlatform): DownloadPlatform {
   const { userAgent, platform, maxTouchPoints, userAgentData } = browser;
-  // iPad's desktop mode reports MacIntel; it still isn't a Mac installer target.
-  if (userAgentData?.mobile || /Android|iPhone|iPad|iPod|Mobile|Windows Phone/i.test(userAgent) || (/Mac/i.test(platform) && maxTouchPoints > 1)) {
+  // Apple mobile visitors get one Mac download, including iPad's desktop mode.
+  if (/iPhone|iPad|iPod/i.test(userAgent) || (/Mac/i.test(platform) && maxTouchPoints > 1)) {
+    return "mac";
+  }
+  if (userAgentData?.mobile || /Android|Mobile|Windows Phone/i.test(userAgent)) {
     return "unknown";
   }
 
