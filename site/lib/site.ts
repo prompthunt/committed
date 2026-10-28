@@ -1,6 +1,7 @@
 // Page-wide copy shared by the metadata, the FAQ and the JSON-LD, so they can't drift apart.
 
 export const SITE_URL = "https://gitcommitted.app";
+export const WINDOWS_DOWNLOAD_AVAILABLE = process.env.NEXT_PUBLIC_WINDOWS_DOWNLOAD_AVAILABLE === "true";
 
 export const TITLE = "Committed — A GitHub leaderboard for Mac and Windows";
 export const DESCRIPTION =
@@ -38,7 +39,7 @@ export const FAQ = [
   },
   {
     q: "Which computers does it run on?",
-    a: "Macs running macOS 26 or later, with Apple silicon or Intel, and Windows 11 PCs. The Windows installer is x64; ARM PCs use x64 emulation. There's no iPhone or web app.",
+    a: `Macs running macOS 26 or later, with Apple silicon or Intel, and Windows 11 PCs. The Windows installer is x64; ARM PCs use x64 emulation. There's no iPhone or web app.${WINDOWS_DOWNLOAD_AVAILABLE ? "" : " The Windows download is coming with the next release."}`,
   },
   {
     q: "Why does Windows show a SmartScreen prompt?",

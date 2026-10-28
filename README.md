@@ -8,7 +8,7 @@ and watch your spot on the board move through the day.
 
 ## Download
 
-**[⬇︎ Download Committed (latest)](https://github.com/prompthunt/commit-standings-releases/releases/latest/download/Committed.dmg)**
+**[⬇︎ Download for Mac (latest)](https://github.com/prompthunt/commit-standings-releases/releases/latest/download/Committed.dmg)**
 
 **[Download for Windows 11](https://github.com/prompthunt/commit-standings-releases/releases/latest/download/Committed-Setup.exe)**
 
@@ -17,7 +17,7 @@ The installer is unsigned: if SmartScreen appears, choose **More info → Run an
 The x64 build runs on ARM PCs through emulation. Updates are verified using a
 dedicated updater signature. Uninstall through **Settings → Apps → Installed apps**.
 
-That link always points at the newest release. Then:
+For Mac, the download link always points at the newest release. Then:
 
 1. Open the downloaded **Committed.dmg**.
 2. Drag **Committed** into your **Applications** folder.

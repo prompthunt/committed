@@ -1,6 +1,6 @@
 # Distributing Committed
 
-Committed is a menu bar app. The friend-install build should be distributed as a signed, notarized DMG with the app and an Applications shortcut inside.
+Committed ships a Mac menu-bar app and a Windows tray app. The Mac build is distributed as a signed, notarized DMG with the app and an Applications shortcut inside. Windows uses an unsigned per-user NSIS installer prepared in CI.
 
 The local Debug workflow is intentionally separate. The release script passes signing, bundle ID, and deployment overrides at package time instead of changing how Debug launches from Xcode.
 
@@ -126,6 +126,11 @@ Ship x64 first; Windows 11 ARM devices use x64 emulation.
 Run the combined publishing script on a Mac before deploying the Windows download
 announcement. A PC must never run either Mac packaging/publishing script. See
 [Windows verification](windows-verification.md) for installer and update checks.
+
+The site's Windows download starts behind
+`NEXT_PUBLIC_WINDOWS_DOWNLOAD_AVAILABLE=false`, so merging source cannot expose a
+missing installer link. After the script verifies the combined release's public
+URLs, set that public build flag to `true` for the site and redeploy.
 
 The public source lives in `prompthunt/committed`; official downloads and updates
 remain in the separate release repository. The installed app must be able to fetch

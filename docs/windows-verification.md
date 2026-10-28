@@ -34,8 +34,9 @@ and notification behavior. UI tests mock Tauri IPC. Tests do not use a live toke
 - [x] Opening People hides the board; the overflow menu is keyboard reachable; Quit exits the process.
 - [x] The signed-updater x64 installer builds; Authenticode reports unsigned as intended.
 - [x] The per-user installer exits successfully without elevation and registers Committed in the current user's Installed apps registry.
+- [x] The installed app restores the GitHub connection after relaunch and loads the owner's profile image without another approval.
 - [ ] Tray click toggles the board next to the notification area, including alternate taskbar positions and display scaling; outside click and Escape hide it.
-- [ ] Credential Manager contains `com.digg.commitstandings.windows`; relaunch restores access; Disconnect deletes it without deleting hidden choices.
+- [ ] Inspect Credential Manager for `com.digg.commitstandings.windows`; Disconnect deletes the credential without deleting hidden choices.
 - [ ] Check People source filters and complete all flows using only the keyboard.
 - [ ] Menu Refresh, About, private-tip dismissal and Disconnect work on the desktop.
 - [ ] Enable Launch at Login, restart Windows, verify start; disable and verify no start.

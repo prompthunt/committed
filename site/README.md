@@ -36,6 +36,13 @@ npm run typecheck
 The download button points at the permanent `…/releases/latest/download/Committed.dmg` link,
 so it never needs updating per release (see the release rules in `../AGENTS.md`).
 
+The Windows download uses the permanent `…/releases/latest/download/Committed-Setup.exe`
+link. It stays as **Windows download coming soon** until the public build flag
+`NEXT_PUBLIC_WINDOWS_DOWNLOAD_AVAILABLE=true` is set. The Windows URL is also
+excluded from download structured data while the flag is off. Enable the flag
+and redeploy only after the Mac publishing script verifies the first combined
+release's Windows assets. Preview builds can enable it for visual review.
+
 ## Deploying
 
 Production runs on **Vercel**, connected to `prompthunt/committed`. The project

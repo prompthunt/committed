@@ -6,7 +6,7 @@ import { FeatureGrid } from "@/components/FeatureGrid";
 import { SquareField } from "@/components/SquareField";
 import { Faq } from "@/components/Faq";
 import { DOWNLOAD_URL, WINDOWS_DOWNLOAD_URL, RELEASES_URL, SOURCE_URL } from "@/lib/board";
-import { DESCRIPTION, FAQ, SITE_URL } from "@/lib/site";
+import { DESCRIPTION, FAQ, SITE_URL, WINDOWS_DOWNLOAD_AVAILABLE } from "@/lib/site";
 
 function DownloadIcon() {
   return (
@@ -19,6 +19,9 @@ function DownloadIcon() {
 }
 
 function DownloadButton({ placement, platform = "Mac" }: { placement: "hero" | "closing"; platform?: "Mac" | "Windows" }) {
+  if (platform === "Windows" && !WINDOWS_DOWNLOAD_AVAILABLE) {
+    return <span className="inline-flex min-h-14 items-center rounded-xl border border-white/15 px-6.5 text-[17px] text-muted">Windows download coming soon</span>;
+  }
   return (
     <AnalyticsLink
       href={platform === "Windows" ? WINDOWS_DOWNLOAD_URL : DOWNLOAD_URL}
@@ -42,7 +45,7 @@ const STRUCTURED_DATA = [
     url: SITE_URL,
     applicationCategory: "DeveloperApplication",
     operatingSystem: ["macOS 26 or later", "Windows 11"],
-    downloadUrl: [DOWNLOAD_URL, WINDOWS_DOWNLOAD_URL],
+    downloadUrl: WINDOWS_DOWNLOAD_AVAILABLE ? [DOWNLOAD_URL, WINDOWS_DOWNLOAD_URL] : DOWNLOAD_URL,
     license: "https://opensource.org/licenses/MIT",
     isAccessibleForFree: true,
     offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },

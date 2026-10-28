@@ -144,7 +144,7 @@ export function FeatureGrid() {
         </article>
 
         <article className={`${styles.card} ${styles.lime} ${styles.small} ${styles.mac}`}>
-          <Meta n="08" label="macOS 26+ · Windows 11" />
+          <Meta n="08" label="Mac + Windows" />
           <HappyMac />
           <h2>In your menu bar.<br />Or your tray.</h2>
         </article>
