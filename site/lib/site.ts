@@ -31,7 +31,11 @@ export const FAQ = [
   },
   {
     q: "Do private contributions count?",
-    a: "Only when that person turns them on. On your GitHub profile, above the green squares, choose Contribution settings → Private contributions. Otherwise private work stays off the public graph, so Committed can't count it.",
+    a: "Yes, once that person turns them on in GitHub. Until then, private work stays off their public graph, so Committed can't count it.",
+  },
+  {
+    q: "How do I turn on private contributions?",
+    a: "On GitHub, click your profile picture, then Your profile. Above the green squares, open Contribution settings and check Private contributions. Everyone turns this on for their own account, so a friend with a low count has to do it themselves. Others see only the counts, not which private repos they came from.",
   },
   {
     q: "Who shows up on my board?",
