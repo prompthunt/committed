@@ -22,12 +22,16 @@ export const FAQ = [
     a: "The contributions on each person's GitHub contribution graph, the green squares, for today, the last 7 days, or the last 30 days. It compares activity, not code quality or work performance.",
   },
   {
+    q: "Does it count every repo, or only ones I pick?",
+    a: "Every repo. There's nothing to pick: Committed counts everything on your GitHub contribution graph, including commits, pull requests, issues, and reviews. A commit counts once it's on a repo's default branch, not in a fork, and made with an email address added to your GitHub account.",
+  },
+  {
     q: "What GitHub access does Committed need?",
     a: "Read-only access to your profile, who you follow, and your organizations. It never asks for repository access or reads your code. Your token stays in the Mac's Keychain or Windows Credential Manager.",
   },
   {
     q: "Do private contributions count?",
-    a: "Only when that person turns on private contributions in their GitHub profile settings. Otherwise private work stays off their public graph, so Committed can't count it.",
+    a: "Only when that person turns them on. On your GitHub profile, above the green squares, choose Contribution settings → Private contributions. Otherwise private work stays off the public graph, so Committed can't count it.",
   },
   {
     q: "Who shows up on my board?",
