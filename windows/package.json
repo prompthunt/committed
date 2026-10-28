@@ -7,7 +7,7 @@
     "dev": "vite --host 127.0.0.1 --port 1420 --strictPort",
     "build": "tsc --noEmit && vite build",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run",
+    "test": "vitest run src && node --test scripts/*.test.mjs",
     "test:core": "cargo test --manifest-path core/Cargo.toml --locked",
     "tauri": "node scripts/tauri.mjs",
     "version:check": "node scripts/sync-version.mjs --check"
@@ -18,6 +18,7 @@
   "devDependencies": {
     "@tauri-apps/cli": "^2",
     "jsdom": "^26.1.0",
+    "prettier": "^3.9.10",
     "typescript": "^5.9",
     "vite": "^8.3.5",
     "vitest": "^5.0.5"

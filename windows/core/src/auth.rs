@@ -35,6 +35,7 @@ impl BoardCore {
         let generation = {
             let mut state = self.state.lock().unwrap();
             state.generation += 1;
+            state.refreshing = false;
             state.device = None;
             state.polling = false;
             state.generation
@@ -109,6 +110,22 @@ impl BoardCore {
         let payload: Result<serde_json::Value, String> = response.and_then(|text| {
             serde_json::from_str(&text).map_err(|_| "Invalid connection response".into())
         });
+        if payload.as_ref().is_ok_and(|value| {
+            value["access_token"].is_string()
+                && value["scope"]
+                    .as_str()
+                    .unwrap_or("")
+                    .split(|c: char| c == ',' || c.is_ascii_whitespace())
+                    .filter(|scope| !scope.is_empty())
+                    .any(|scope| !matches!(scope, "read:org" | "read:user"))
+        }) {
+            let mut state = self.state.lock().unwrap();
+            if state.generation == generation {
+                state.polling = false;
+                state.device = None;
+            }
+            return Err("GitHub returned broader access from an earlier authorization. Review Committed's access in GitHub Applications settings, then try again.".into());
+        }
         // Resolve the owner before accepting the token; no credential reaches the UI.
         let owner = if let Ok(value) = &payload {
             if let Some(token) = value["access_token"].as_str() {
@@ -121,8 +138,9 @@ impl BoardCore {
                         })
                         .await
                         .and_then(|text| {
-                            serde_json::from_str::<Person>(&text)
+                            serde_json::from_str::<GitHubPerson>(&text)
                                 .map_err(|_| "Could not read GitHub profile".into())
+                                .and_then(Person::try_from)
                         }),
                 )
             } else {
@@ -162,6 +180,12 @@ impl BoardCore {
             if state.saved.owner.as_ref() != Some(&owner.login) {
                 state.saved.counts.clear();
                 state.saved.people.clear();
+                state.saved.people_updated = None;
+                state.people_attempt = None;
+                state.people_error = None;
+                state.failed.clear();
+                state.baseline = None;
+                state.previous.clear();
             }
             state.saved.owner = Some(owner.login.clone());
             if !state.saved.people.iter().any(|p| p.login == owner.login) {

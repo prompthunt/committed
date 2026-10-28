@@ -79,6 +79,30 @@ impl Person {
         }
     }
 }
+// GitHub's `following` is a numeric profile statistic. Source membership is
+// local board state, so API payloads must not deserialize into Person directly.
+#[derive(Deserialize)]
+struct GitHubPerson {
+    login: String,
+    name: Option<String>,
+    avatar_url: Option<String>,
+}
+impl TryFrom<GitHubPerson> for Person {
+    type Error = String;
+    fn try_from(profile: GitHubPerson) -> Result<Self, String> {
+        let login = profile.login.to_ascii_lowercase();
+        if !valid_login(&login) {
+            return Err("Invalid GitHub username".into());
+        }
+        Ok(Self {
+            login,
+            name: profile.name,
+            avatar_url: profile.avatar_url,
+            following: false,
+            organizations: vec![],
+        })
+    }
+}
 #[derive(Clone, Debug, Serialize)]
 pub struct Row {
     #[serde(flatten)]
@@ -104,6 +128,8 @@ pub struct Board {
 struct Snapshot {
     days: BTreeMap<NaiveDate, u32>,
     updated: i64,
+    #[serde(default)]
+    as_of: Option<NaiveDate>,
 }
 #[derive(Default, Serialize, Deserialize)]
 struct Saved {
@@ -193,7 +219,7 @@ impl BoardCore {
     pub fn board(&self, window: Window) -> Board {
         let state = self.state.lock().unwrap();
         let today = self.clock.today();
-        let rows = ranked_rows(&state, window, today);
+        let rows = ranked_rows(&state, window, today, self.clock.now());
         Board {
             window,
             rows,
@@ -213,6 +239,9 @@ impl BoardCore {
     }
     pub fn select_window(&self, window: Window) {
         self.state.lock().unwrap().selected = window;
+    }
+    pub fn selected_window(&self) -> Window {
+        self.state.lock().unwrap().selected
     }
     pub async fn preview(&self, login: &str) -> Result<(), String> {
         if !valid_login(login) {
@@ -234,6 +263,7 @@ impl BoardCore {
             Snapshot {
                 days,
                 updated: self.clock.now(),
+                as_of: Some(self.clock.today()),
             },
         );
         Ok(())
@@ -300,7 +330,7 @@ impl BoardCore {
         self.persist(&state)
     }
 }
-fn ranked_rows(state: &State, window: Window, today: NaiveDate) -> Vec<Row> {
+fn ranked_rows(state: &State, window: Window, today: NaiveDate, now: i64) -> Vec<Row> {
     let mut rows: Vec<_> = state
         .saved
         .people
@@ -318,6 +348,9 @@ fn ranked_rows(state: &State, window: Window, today: NaiveDate) -> Vec<Row> {
                     "failed"
                 } else if state.refreshing {
                     "loading"
+                } else if snapshot.is_some_and(|s| now - s.updated > 120 || s.as_of != Some(today))
+                {
+                    "cached"
                 } else if snapshot.is_some() {
                     "loaded"
                 } else {

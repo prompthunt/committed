@@ -23,11 +23,7 @@ fn report(app: &tauri::AppHandle, message: String, ready: bool) {
     let status = UpdateStatus { message, ready };
     app.state::<Updates>().inner.lock().unwrap().status = status.clone();
     let _ = app.emit("update-status", &status);
-    if let Some(tray) = app.tray_by_id("committed") {
-        if ready {
-            let _ = tray.set_tooltip(Some("Committed · Update ready"));
-        }
-    }
+    crate::update_tray_tooltip(app);
 }
 #[tauri::command]
 pub fn get_update_status(state: tauri::State<Updates>) -> UpdateStatus {
@@ -128,11 +124,8 @@ pub async fn quit(app: tauri::AppHandle) {
         .unwrap()
         .pending
         .is_some();
-    if ready
-        && app.state::<Desktop>().core.settings().automatic_updates
-        && install_update(app.clone()).await.is_err()
-    {
-        return;
+    if ready && app.state::<Desktop>().core.settings().automatic_updates {
+        let _ = install_update(app.clone()).await;
     }
     app.exit(0);
 }

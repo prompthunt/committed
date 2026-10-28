@@ -538,6 +538,7 @@ name = "committed-desktop"
 version = "0.1.50"
 dependencies = [
  "async-trait",
+ "base64 0.22.1",
  "chrono",
  "committed-core",
  "keyring",

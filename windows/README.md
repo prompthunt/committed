@@ -41,7 +41,8 @@ Board data and settings live in Tauri's per-user app-data directory. The token
 lives in Windows Credential Manager under `com.digg.commitstandings.windows`.
 Disconnect deletes the credential and cached board; hidden choices remain per
 GitHub account. Tokens are sent only to `api.github.com`; contribution pages
-are always fetched anonymously. Profile images load from GitHub's avatar host.
+are always fetched anonymously. Profile images also load through Rust from
+GitHub's avatar host; the webview's CSP blocks remote network access.
 
 The core tests use injected HTTP, clock, storage, credentials and notifier fakes.
 They assert through public commands and returned boards. The thin UI smoke tests

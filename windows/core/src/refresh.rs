@@ -69,15 +69,11 @@ impl BoardCore {
             let text = self
                 .api(&format!("{path}?per_page=100&page={page}"), token)
                 .await?;
-            let batch: Vec<Person> =
+            let batch: Vec<GitHubPerson> =
                 serde_json::from_str(&text).map_err(|_| "Could not read GitHub's people list")?;
             let done = batch.len() < 100;
-            for mut person in batch {
-                person.login = person.login.to_ascii_lowercase();
-                if !valid_login(&person.login) {
-                    return Err("Invalid GitHub username in people list".into());
-                }
-                people.push(person);
+            for person in batch {
+                people.push(Person::try_from(person)?);
             }
             if done {
                 return Ok(people);
@@ -86,12 +82,9 @@ impl BoardCore {
         Err("Too many pages in GitHub's people list".into())
     }
     async fn roster(&self, token: &str) -> Result<Vec<Person>, String> {
-        let mut owner: Person = serde_json::from_str(&self.api("user", token).await?)
+        let owner: GitHubPerson = serde_json::from_str(&self.api("user", token).await?)
             .map_err(|_| "Could not read your GitHub profile")?;
-        owner.login = owner.login.to_ascii_lowercase();
-        if !valid_login(&owner.login) {
-            return Err("Invalid GitHub profile".into());
-        }
+        let owner = Person::try_from(owner)?;
         let following = self.pages("user/following", token).await?;
         let orgs = self.pages("user/orgs", token).await?;
         let mut people = vec![owner];
@@ -127,11 +120,10 @@ impl BoardCore {
                     .iter()
                     .filter(|p| !state.saved.hidden(&p.login))
                     .all(|p| {
-                        state
-                            .saved
-                            .counts
-                            .get(&p.login)
-                            .is_some_and(|s| self.clock.now() - s.updated <= 120)
+                        state.saved.counts.get(&p.login).is_some_and(|s| {
+                            self.clock.now() - s.updated <= 120
+                                && s.as_of == Some(self.clock.today())
+                        })
                     })
             {
                 return Ok(());
@@ -154,7 +146,18 @@ impl BoardCore {
                 return Ok(());
             }
             match result {
-                Ok(people) if people.first().map(|p| &p.login) == state.saved.owner.as_ref() => {
+                Ok(people) => {
+                    let owner = people[0].login.clone();
+                    if state.saved.owner.as_ref() != Some(&owner) {
+                        state.saved.owner = Some(owner);
+                        state.saved.counts.clear();
+                    }
+                    let before: Vec<_> = state.saved.people.iter().map(|p| &p.login).collect();
+                    let after: Vec<_> = people.iter().map(|p| &p.login).collect();
+                    if before != after {
+                        state.baseline = None;
+                        state.previous.clear();
+                    }
                     state.saved.people = people;
                     state.saved.people_updated = Some(self.clock.now());
                     state.people_error = None;
@@ -208,6 +211,7 @@ impl BoardCore {
                         Snapshot {
                             days,
                             updated: self.clock.now(),
+                            as_of: Some(self.clock.today()),
                         },
                     );
                 }
@@ -222,7 +226,8 @@ impl BoardCore {
         if !state.failed.is_empty() {
             state.error = Some("Some Contributions couldn't refresh. Saved numbers are still shown. Refresh to retry.".into());
         }
-        let notifications = movement::finish_refresh(&mut state, self.clock.today());
+        let notifications =
+            movement::finish_refresh(&mut state, self.clock.today(), self.clock.now());
         let result = self.persist(&state);
         drop(state);
         for notification in notifications {

@@ -1,4 +1,5 @@
 mod adapters;
+mod avatars;
 mod updates;
 use committed_core::*;
 use std::sync::Arc;
@@ -56,6 +57,7 @@ fn set_hidden(
     hidden: bool,
 ) -> Result<(), String> {
     state.core.set_hidden(&login, hidden)?;
+    update_tray_tooltip(&app);
     let _ = app.emit("board-changed", ());
     if !hidden {
         launch_refresh(&app, RefreshReason::WindowChanged);
@@ -78,8 +80,12 @@ fn open_profile(app: tauri::AppHandle, login: String) -> Result<(), String> {
 }
 #[tauri::command]
 fn get_board(state: tauri::State<Desktop>, window: Window) -> Board {
-    state.core.select_window(window);
     state.core.board(window)
+}
+#[tauri::command]
+fn select_window(app: tauri::AppHandle, state: tauri::State<Desktop>, window: Window) {
+    state.core.select_window(window);
+    update_tray_tooltip(&app);
 }
 #[tauri::command]
 fn list_people(
@@ -135,22 +141,29 @@ fn launch_refresh(app: &tauri::AppHandle, reason: RefreshReason) {
                 if let Err(error) = refresh.await { let _ = app.emit("app-error", error); }
             }
         }
-        let board = core.board(Window::Today);
-        if let Some(tray) = app.tray_by_id("committed") {
-            let tooltip = if board.rows.len() > 1 {
-                board
-                    .rows
-                    .iter()
-                    .find(|r| r.is_you)
-                    .map(|r| format!("Committed · #{} of {}", r.rank, board.rows.len()))
-                    .unwrap_or_else(|| "Committed".into())
-            } else {
-                "Committed".into()
-            };
-            let _ = tray.set_tooltip(Some(tooltip));
-        }
+        update_tray_tooltip(&app);
         let _ = app.emit("board-changed", ());
     });
+}
+fn update_tray_tooltip(app: &tauri::AppHandle) {
+    let core = &app.state::<Desktop>().core;
+    let board = core.board(core.selected_window());
+    let mut tooltip = if board.rows.len() > 1 {
+        board
+            .rows
+            .iter()
+            .find(|row| row.is_you)
+            .map(|row| format!("Committed · #{} of {}", row.rank, board.rows.len()))
+            .unwrap_or_else(|| "Committed".into())
+    } else {
+        "Committed".into()
+    };
+    if updates::get_update_status(app.state()).ready {
+        tooltip.push_str(" · Update ready");
+    }
+    if let Some(tray) = app.tray_by_id("committed") {
+        let _ = tray.set_tooltip(Some(tooltip));
+    }
 }
 fn show_window(app: &tauri::AppHandle, label: &str) -> Result<(), String> {
     let window = app
@@ -193,7 +206,14 @@ fn hide_board(app: tauri::AppHandle) {
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_single_instance::init(|app, _, _| {
-            let _ = show_window(app, "board");
+            if let Some(state) = app.try_state::<Desktop>() {
+                let label = if state.core.connected().unwrap_or(false) {
+                    "board"
+                } else {
+                    "setup"
+                };
+                let _ = show_window(app, label);
+            }
         }))
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_notification::init())
@@ -216,6 +236,7 @@ pub fn run() {
             let connected = core.connected()?;
             app.manage(Desktop { core });
             app.manage(updates::Updates::default());
+            app.manage(avatars::Avatars::new()?);
             // Webviews must not invoke commands until all managed state exists.
             for config in &app.config().app.windows {
                 tauri::WebviewWindowBuilder::from_config(app, config)?.build()?;
@@ -247,9 +268,10 @@ pub fn run() {
                             }
                             if label == "board" {
                                 let scale = window.scale_factor().unwrap_or(1.0);
-                                let size = window
-                                    .outer_size()
-                                    .unwrap_or(tauri::PhysicalSize::new(380, 620));
+                                let mut size = tauri::PhysicalSize::new(
+                                    (380.0 * scale) as u32,
+                                    (620.0 * scale) as u32,
+                                );
                                 let position = rect.position.to_physical::<f64>(scale);
                                 let icon_size = rect.size.to_physical::<f64>(scale);
                                 if let Ok(monitors) = app.available_monitors() {
@@ -262,6 +284,11 @@ pub fn run() {
                                             && position.y < p.y as f64 + s.height as f64
                                     }) {
                                         let area = monitor.work_area();
+                                        size.width =
+                                            size.width.min(area.size.width.saturating_sub(16));
+                                        size.height =
+                                            size.height.min(area.size.height.saturating_sub(16));
+                                        let _ = window.set_size(size);
                                         let left = area.position.x as f64;
                                         let top = area.position.y as f64;
                                         let right = left + area.size.width as f64;
@@ -324,6 +351,8 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             get_board,
+            select_window,
+            avatars::get_avatar,
             list_people,
             start_connect,
             poll_connect,

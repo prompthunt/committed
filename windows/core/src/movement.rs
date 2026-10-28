@@ -1,18 +1,25 @@
 use super::*;
 
-pub(crate) fn finish_refresh(state: &mut State, today: NaiveDate) -> Vec<Notification> {
-    let daily = ranked_rows(state, Window::Today, today);
-    if state.baseline.as_ref().is_none_or(|(day, _)| *day != today) && state.failed.is_empty() {
+pub(crate) fn finish_refresh(state: &mut State, today: NaiveDate, now: i64) -> Vec<Notification> {
+    let daily = ranked_rows(state, Window::Today, today, now);
+    if state.baseline.as_ref().is_none_or(|(day, _)| *day != today)
+        && daily
+            .iter()
+            .any(|r| r.contributions.is_some() && !state.failed.contains_key(&r.person.login))
+    {
         state.baseline = Some((
             today,
             daily
                 .iter()
+                .filter(|r| {
+                    r.contributions.is_some() && !state.failed.contains_key(&r.person.login)
+                })
                 .map(|r| (r.person.login.clone(), r.rank))
                 .collect(),
         ));
     }
     let window = state.selected;
-    let current: BTreeMap<_, _> = ranked_rows(state, window, today)
+    let current: BTreeMap<_, _> = ranked_rows(state, window, today, now)
         .iter()
         .filter(|r| !state.failed.contains_key(&r.person.login))
         .filter_map(|r| Some((r.person.login.clone(), r.contributions?)))
@@ -21,10 +28,9 @@ pub(crate) fn finish_refresh(state: &mut State, today: NaiveDate) -> Vec<Notific
     if !state.saved.settings.notifications {
         return vec![];
     }
-    let Some((day, previous)) = previous.filter(|(day, _)| *day == today) else {
+    let Some((_, previous)) = previous.filter(|(day, _)| *day == today) else {
         return vec![];
     };
-    let _ = day;
     let Some(owner) = &state.saved.owner else {
         return vec![];
     };
