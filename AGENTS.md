@@ -34,10 +34,15 @@ Do it in this order:
    must increment — Sparkle ignores a release whose build number didn't change).
 2. Land the change on `main` (branch → PR → merge). Build the release **from `main`**.
 3. Run `scripts/publish-release.sh`. It calls `package-release.sh` (notarize + sign +
-   `appcast.xml`), then publishes the release with **all four assets** and verifies the
+   `appcast.xml`), then publishes the release with **all seven assets** and verifies the
    public links return 200.
 
-**Every release MUST upload these four assets** (the script enforces it):
+First prepare the Windows artifact on `main` with the **Prepare Windows release**
+workflow. The publishing script downloads and validates its exact commit and version.
+Publish only from a Mac. Windows builds are unsigned; Tauri updater signatures use a
+separate key stored in the source repo's Actions secrets. See `docs/distribution.md`.
+
+**Every release MUST upload these seven assets** (the script enforces it):
 
 | Asset | Why it must be present every time |
 |---|---|
@@ -45,10 +50,15 @@ Do it in this order:
 | `CommitStandings-<ver>-<build>-<sha>.app.zip` | Sparkle update payload. |
 | `CommitStandings-<ver>-<build>-<sha>.dmg` | Versioned human download. |
 | `Committed.dmg` | **Stable-named copy.** The permanent share link `…/releases/latest/download/Committed.dmg` only resolves if an identically-named asset exists on the *current* latest release. Drop it from one release and the link 404s. |
+| `Committed-<ver>-<sha>-x64-setup.exe` | Versioned, per-user Windows installer; also the signed Tauri updater payload. |
+| `Committed-Setup.exe` | Stable Windows download name, required on every latest release. |
+| `latest-windows.json` | Windows updater manifest containing the payload signature and permanent per-tag URL. |
 
 After publishing, confirm (the script does this automatically):
 - `…/releases/latest/download/Committed.dmg` → 200
 - `…/releases/latest/download/appcast.xml` → 200
+- `…/releases/latest/download/Committed-Setup.exe` → 200
+- `…/releases/latest/download/latest-windows.json` and its per-tag installer URL → 200
 - the appcast's `<enclosure url>` is the **per-tag** form `…/releases/download/v<ver>/…` and → 200
 
 ## Hard invariants (regressions here have broken updates before)

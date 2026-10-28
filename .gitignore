@@ -43,3 +43,13 @@ Sparkle-private-key*
 .agent-context/
 .vercel/
 .wrangler/
+
+# Windows development and packaging
+windows/node_modules/
+windows/core/target/
+windows/src-tauri/target/
+windows/src-tauri/gen/
+windows/release/
+windows/src-tauri/icons/*
+!windows/src-tauri/icons/32x32.png
+!windows/src-tauri/icons/icon.ico

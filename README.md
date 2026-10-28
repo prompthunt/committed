@@ -2,21 +2,28 @@
 
 [![Build and test](https://github.com/prompthunt/committed/actions/workflows/ci.yml/badge.svg)](https://github.com/prompthunt/committed/actions/workflows/ci.yml)
 
-A tiny macOS menu-bar app that turns your GitHub contributions into a friendly leaderboard
+A tiny Mac menu-bar and Windows tray app that turns your GitHub contributions into a friendly leaderboard
 among friends. See who's shipping, get a nudge when someone passes you (or you pass them),
 and watch your spot on the board move through the day.
 
 ## Download
 
-**[⬇︎ Download Committed (latest)](https://github.com/prompthunt/commit-standings-releases/releases/latest/download/Committed.dmg)**
+**[⬇︎ Download for Mac (latest)](https://github.com/prompthunt/commit-standings-releases/releases/latest/download/Committed.dmg)**
 
-That link always points at the newest release. Then:
+**[Download for Windows 11](https://github.com/prompthunt/commit-standings-releases/releases/latest/download/Committed-Setup.exe)**
+
+On Windows, run the per-user installer, then connect GitHub from the tray.
+The installer is unsigned: if SmartScreen appears, choose **More info → Run anyway**.
+The x64 build runs on ARM PCs through emulation. Updates are verified using a
+dedicated updater signature. Uninstall through **Settings → Apps → Installed apps**.
+
+For Mac, the download link always points at the newest release. Then:
 
 1. Open the downloaded **Committed.dmg**.
 2. Drag **Committed** into your **Applications** folder.
 3. Launch it — Committed lives in your menu bar (look for it up top, not in the Dock).
 
-The app is signed with a Developer ID and notarized by Apple, so it opens without security
+The Mac app is signed with a Developer ID and notarized by Apple, so it opens without security
 warnings. It keeps itself up to date automatically — no need to re-download.
 
 Prefer to see all versions and release notes? Browse the
@@ -35,6 +42,10 @@ Prefer to see all versions and release notes? Browse the
 The marketing site for [gitcommitted.app](https://gitcommitted.app) lives in [`site/`](site/README.md) — a static Next.js app (`cd site && npm install && npm run dev`). It's independent of the Xcode project and release scripts.
 
 ## Building it yourself
+
+For Windows, see [windows/README.md](windows/README.md). Both platforms share the
+version in the Mac Info.plist and ship together in one GitHub Release. Windows
+CI prepares the installer; publishing is done from a Mac.
 
 Source: [prompthunt/committed](https://github.com/prompthunt/committed).
 This repository starts from a clean source snapshot. Earlier development history
