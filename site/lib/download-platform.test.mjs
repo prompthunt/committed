@@ -1,8 +1,14 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { detectDownloadPlatform } from "./download-platform.ts";
+import { detectDownloadPlatform, downloadTargets } from "./download-platform.ts";
 
 const browser = { userAgent: "", platform: "", maxTouchPoints: 0 };
+
+test("desktop visitors see only their matching download; unknown visitors retain both choices", () => {
+  assert.deepEqual(downloadTargets("windows"), ["Windows"]);
+  assert.deepEqual(downloadTargets("mac"), ["Mac"]);
+  assert.deepEqual(downloadTargets("unknown"), ["Mac", "Windows"]);
+});
 
 test("desktop client hints choose the corresponding installer", () => {
   for (const [platform, expected] of [["Windows", "windows"], ["macOS", "mac"], ["Linux", "unknown"], ["", "unknown"]]) {

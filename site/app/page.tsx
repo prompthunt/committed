@@ -93,8 +93,7 @@ export default function Home() {
           </span>
           <nav aria-label="Footer" className="flex flex-wrap gap-5">
             <a href={RELEASES_URL} className="py-2.5 hover:text-white">Release notes</a>
-            <AnalyticsLink href={DOWNLOAD_URL} event="download_clicked" placement="footer" className="py-2.5 hover:text-white">Download for Mac</AnalyticsLink>
-            {WINDOWS_DOWNLOAD_AVAILABLE ? <AnalyticsLink href={WINDOWS_DOWNLOAD_URL} event="download_clicked" placement="footer" className="py-2.5 hover:text-white">Download for Windows</AnalyticsLink> : null}
+            <DownloadOptions placement="footer" />
           </nav>
         </footer>
       </div>
