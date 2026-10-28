@@ -94,3 +94,7 @@ Default labels: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-huma
 ### Domain docs
 
 Single-context. The glossary currently lives in `PRODUCT.md` → Glossary. See `docs/agents/domain.md`.
+
+### Windows app
+
+Building Committed for Windows on a PC (spec #21)? Start with `docs/agents/windows-setup.md`.
