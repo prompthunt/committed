@@ -30,9 +30,13 @@ for (const path of [
   }
   if (path === "package-lock.json") {
     const lock = JSON.parse(text);
-    lock.version = version;
-    lock.packages[""].version = version;
-    next = JSON.stringify(lock, null, 2) + "\n";
+    next = text;
+    if (lock.version !== version || lock.packages[""].version !== version) {
+      lock.version = version;
+      lock.packages[""].version = version;
+      next = JSON.stringify(lock, null, 2) + "\n";
+      if (text.includes("\r\n")) next = next.replace(/\n/g, "\r\n");
+    }
   }
   if (text !== next) {
     if (process.argv.includes("--check"))

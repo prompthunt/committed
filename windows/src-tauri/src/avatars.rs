@@ -34,7 +34,7 @@ pub async fn get_avatar(
     else {
         return Ok(None);
     };
-    let parsed = reqwest::Url::parse(&url).map_err(|_| "Invalid avatar URL")?;
+    let mut parsed = reqwest::Url::parse(&url).map_err(|_| "Invalid avatar URL")?;
     if parsed.scheme() != "https"
         || parsed.host_str() != Some("avatars.githubusercontent.com")
         || parsed.port().is_some()
@@ -43,6 +43,7 @@ pub async fn get_avatar(
     {
         return Ok(None);
     }
+    parsed.query_pairs_mut().append_pair("s", "96");
     let _permit = state
         .permits
         .acquire()
