@@ -1,5 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
+import { GLYPH_PATH } from "../../site/lib/glyph";
 import type {
   Board,
   DesktopSettings,
@@ -9,6 +10,12 @@ import type {
   Window,
 } from "./types";
 
+// Reuse the site's trophy and the approved app tile instead of drawing substitutes.
+const brandMark = `<svg class="brand-mark" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="${GLYPH_PATH}" /></svg>`;
+const appIcon = new URL(
+  "../../docs/design/committed-app-icon.svg",
+  import.meta.url,
+).href;
 const windows: [Window, string][] = [
   ["today", "Today"],
   ["week", "7 days"],
@@ -36,6 +43,7 @@ export async function start(
   root: HTMLElement,
   view: string,
 ): Promise<() => void> {
+  root.className = `view-${view}`;
   let selected: Window = "today";
   let filter = "all";
   let search = "";
@@ -147,7 +155,7 @@ export async function start(
     }
     if (view === "about") {
       replace(
-        `<article class="about"><span class="brand-mark" aria-hidden="true">▦</span><h1>Committed</h1><p>A friendly GitHub leaderboard, one click from your tray.</p><p class="muted">Version ${escape(desktop.version)}</p><h2>What counts?</h2><p>Contributions are the green squares on each person’s public GitHub contribution graph. Today, 7 days, and 30 days include today in your local time zone.</p><h2>Private contributions</h2><p>Private activity counts only when that person enables <strong>Contribution settings → Private contributions</strong> on their GitHub profile.</p><p>Connecting requests read-only profile and organization access. Committed never requests repository access. Your token stays in Windows Credential Manager.</p><button data-action="contributions">Open GitHub profile settings</button>${alert()}</article>`,
+        `<article class="about"><img class="app-icon" src="${appIcon}" alt="" /><h1>Committed</h1><p>A friendly GitHub leaderboard, one click from your tray.</p><p class="muted">Version ${escape(desktop.version)}</p><h2>What counts?</h2><p>Contributions are the green squares on each person’s public GitHub contribution graph. Today, 7 days, and 30 days include today in your local time zone.</p><h2>Private contributions</h2><p>Private activity counts only when that person enables <strong>Contribution settings → Private contributions</strong> on their GitHub profile.</p><p>Connecting requests read-only profile and organization access. Committed never requests repository access. Your token stays in Windows Credential Manager.</p><button data-action="contributions">Open GitHub profile settings</button>${alert()}</article>`,
       );
     } else if (view === "people") {
       const people = await invoke<PersonVisibility[]>("list_people", {
@@ -164,27 +172,37 @@ export async function start(
     } else if (view === "setup") {
       if (!root.querySelector("#connect"))
         replace(
-          `<article class="setup"><span class="brand-mark" aria-hidden="true">▦</span><h1>Your people.<br>Your leaderboard.</h1><p>Connect GitHub to compare Contributions with the people you follow and members of your organizations.</p><p class="muted">Read-only profile and organization access. No repository access. Your token stays in Windows Credential Manager.</p><div id="device" role="status" aria-live="polite"></div><button class="primary" id="connect" data-action="connect">Connect GitHub</button><button data-action="open-device" id="open-device" hidden>Open GitHub again</button>${alert()}</article>`,
+          `<article class="setup"><img class="app-icon" src="${appIcon}" alt="" /><h1>Committed</h1><p>See your standings alongside your organization members and people you follow. Your list updates automatically.</p><div id="device" role="status" aria-live="polite"></div><button class="primary" id="connect" data-action="connect">Connect GitHub</button><p class="muted privacy">Read-only access to your profile, who you follow, and your organizations. Committed never sees your code. Your token stays in Windows Credential Manager.</p><button data-action="open-device" id="open-device" hidden>Open GitHub again</button>${alert()}</article>`,
         );
     } else {
       const me = board.rows.find((row) => row.is_you);
       const refreshing = board.refreshing;
       const first = !board.rows.some((r) => r.contributions !== null);
-      replace(`<header><h1><span class="brand-mark small" aria-hidden="true">▦</span> Committed</h1>${menu(board)}</header>
+      const maxContributions = Math.max(
+        1,
+        ...board.rows.map((row) => row.contributions ?? 0),
+      );
+      replace(`<header><h1>${brandMark} Committed</h1>${menu(board)}</header><div class="board-content">
         ${me ? `<section class="summary">${avatar(me)}<div><strong>${escape(name(me))}</strong><small>@${escape(me.login)} · you</small></div><div class="summary-count">${count(me.contributions)}<small>Contributions</small></div></section>` : "<p>Connect GitHub to load your board.</p>"}
         <div class="windows" role="radiogroup" aria-label="Time range">${windows.map(([value, label]) => `<button role="radio" aria-checked="${selected === value}" tabindex="${selected === value ? 0 : -1}" data-window="${value}" data-focus="window-${value}">${label}</button>`).join("")}</div>
         <p class="status">${windows.find((w) => w[0] === selected)![1]} · ${refreshing ? (first ? "Fetching the first set of standings" : "Updating Contributions…") : board.error ? "Refresh finished with errors." : age(board.last_updated)}</p>
+        <div class="tracking"><small>Tracking ${board.rows.length} people</small><button data-action="people">People…</button></div>
         <ol class="standings ${refreshing && !first ? "refreshing" : ""}" aria-label="Leaderboard" aria-busy="${refreshing}">${board.rows
           .map((row) => {
             const spoken = `Rank ${row.rank}, ${name(row)}, ${row.contributions === null ? "Contributions unavailable" : `${row.contributions} Contributions`}${row.is_you ? ", you" : ""}`;
-            return `<li class="${row.is_you ? "you" : ""}"><button class="standing" data-profile="${escape(row.login)}" data-focus="row-${escape(row.login)}" aria-label="${escape(spoken)}"><span class="rank">${row.rank}</span>${avatar(row)}<span class="identity"><strong>${escape(name(row))}${row.is_you ? ' <span class="badge">you</span>' : ""}</strong><small>@${escape(row.login)}${row.status === "failed" ? " · Refresh failed" : ""}</small></span>${selected === "today" && row.movement ? `<span class="movement ${row.movement > 0 ? "up" : "down"}" aria-label="Moved ${row.movement > 0 ? "up" : "down"} ${Math.abs(row.movement)}">${row.movement > 0 ? "↑" : "↓"}${Math.abs(row.movement)}</span>` : ""}<strong class="contributions">${count(row.contributions)}</strong></button></li>`;
+            const shade = Math.min(
+              1,
+              (row.contributions ?? 0) / maxContributions,
+            );
+            const squareColor = `rgb(${Math.round(156 - 110 * shade)}, ${Math.round(232 - 71 * shade)}, ${Math.round(168 - 102 * shade)})`;
+            return `<li class="${row.is_you ? "you" : ""}"><button class="standing" data-profile="${escape(row.login)}" data-focus="row-${escape(row.login)}" aria-label="${escape(spoken)}"><span class="rank">#${row.rank}</span>${avatar(row)}<span class="identity"><strong title="${escape(name(row))}">${escape(row.login)}${row.is_you ? ' <span class="badge">you</span>' : ""}</strong>${row.status === "failed" ? "<small>Refresh failed</small>" : ""}</span>${selected === "today" && row.movement ? `<span class="movement ${row.movement > 0 ? "up" : "down"}" aria-label="Moved ${row.movement > 0 ? "up" : "down"} ${Math.abs(row.movement)}">${row.movement > 0 ? "↑" : "↓"}${Math.abs(row.movement)}</span>` : ""}<strong class="contributions">${count(row.contributions)}</strong><svg class="contribution-squares" viewBox="0 0 12 12" fill="${squareColor}" aria-hidden="true" ${row.contributions === null ? 'style="visibility:hidden"' : ""}><path d="M0 0h5v5H0zM7 0h5v5H7zM0 7h5v5H0zM7 7h5v5H7z" /></svg></button></li>`;
           })
           .join("")}</ol>
         ${first && !refreshing ? '<p class="muted">Fetching the first set of standings. Use Refresh to retry if GitHub is unavailable.</p>' : ""}
         ${board.error ? `<p class="error">${escape(board.error)}</p>` : ""}
         <footer><small>${board.people_error ? escape(board.people_error) : `People · ${age(board.people_updated)}`}</small>${board.people_error ? '<button data-action="refresh">Retry</button>' : ""}</footer>
         ${settings.private_tip_dismissed ? "" : '<aside class="tip"><p>Private contributions count when each person enables them on their GitHub profile.</p><button data-action="dismiss-tip" aria-label="Dismiss private contributions tip">×</button></aside>'}
-        <p id="update-status" role="status">${escape(status)}</p><button id="install-update" data-action="install-update" ${updateReady ? "" : "hidden"}>Restart to update</button>${alert()}`);
+        <p id="update-status" role="status">${escape(status)}</p><button id="install-update" data-action="install-update" ${updateReady ? "" : "hidden"}>Restart to update</button>${alert()}</div>`);
     }
     if (view === "board") {
       const message = root.querySelector(".status")?.textContent ?? "";

@@ -35,6 +35,7 @@ and notification behavior. UI tests mock Tauri IPC. Tests do not use a live toke
 - [x] The signed-updater x64 installer builds; Authenticode reports unsigned as intended.
 - [x] The per-user installer exits successfully without elevation and registers Committed in the current user's Installed apps registry.
 - [x] The installed app restores the GitHub connection after relaunch and loads the owner's profile image without another approval.
+- [x] The installed board uses the site's trophy and lime palette; About renders the approved app tile. Compact standings scroll beneath the fixed header, and time-range switching still works.
 - [ ] Tray click toggles the board next to the notification area, including alternate taskbar positions and display scaling; outside click and Escape hide it.
 - [ ] Inspect Credential Manager for `com.digg.commitstandings.windows`; Disconnect deletes the credential without deleting hidden choices.
 - [ ] Check People source filters and complete all flows using only the keyboard.

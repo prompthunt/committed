@@ -52,6 +52,11 @@ The board always uses an opaque background, follows the system theme, respects
 forced colors and reduced motion, and supports keyboard time-range navigation.
 See [manual verification](../docs/windows-verification.md) for desktop checks.
 
+Brand assets come from the existing product: the trophy path in
+`site/lib/glyph.ts` and the approved tile in `docs/design/committed-app-icon.svg`.
+The dark palette uses the site's lime (`#C8FF2E`) and near-black surfaces;
+light mode retains readable contrast and Windows system typography.
+
 ## Distribution
 
 Windows CI builds installers without Authenticode signing. Updater signatures
