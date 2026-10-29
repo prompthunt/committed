@@ -322,6 +322,143 @@ async fn connection_does_not_save_broader_access_from_an_old_oauth_grant() {
 }
 
 #[tokio::test]
+async fn first_sync_keeps_followed_competitors_when_an_organization_is_unavailable() {
+    let f = Fixture::new();
+    f.connect().await;
+    f.response(
+        "https://api.github.com/user/following?per_page=100&page=1",
+        r#"[{"login":"friend"}]"#,
+    );
+    f.response(
+        "https://api.github.com/user/orgs?per_page=100&page=1",
+        r#"[{"login":"restricted"},{"login":"team"}]"#,
+    );
+    f.http.0.lock().unwrap().insert(
+        "https://api.github.com/orgs/restricted/members?per_page=100&page=1".into(),
+        Err("GitHub denied organization access".into()),
+    );
+    f.response(
+        "https://api.github.com/orgs/team/members?per_page=100&page=1",
+        r#"[{"login":"teammate"}]"#,
+    );
+    f.count("octocat", 7);
+    f.count("friend", 12);
+    f.count("teammate", 9);
+    f.core.refresh(RefreshReason::Manual).await.unwrap();
+    let board = f.core.board(Window::Today);
+    assert_eq!(
+        board.rows.len(),
+        3,
+        "A failed source must not leave only you on the board"
+    );
+    assert_eq!(board.rows[0].person.login, "friend");
+    assert_eq!(board.rows[0].contributions, Some(12));
+    assert_eq!(f.core.people("", PeopleFilter::Following).len(), 1);
+    assert_eq!(f.core.people("", PeopleFilter::Organizations).len(), 1);
+    assert!(board.people_error.is_some());
+    assert_eq!(
+        board.people_updated, None,
+        "A partial sync is not a complete sync"
+    );
+}
+
+#[tokio::test]
+async fn failed_following_page_still_loads_organization_competitors_without_partial_follows() {
+    let f = Fixture::new();
+    f.connect().await;
+    let first_page = serde_json::to_string(
+        &(0..100)
+            .map(|n| serde_json::json!({"login":format!("user{n}")}))
+            .collect::<Vec<_>>(),
+    )
+    .unwrap();
+    f.response(
+        "https://api.github.com/user/following?per_page=100&page=1",
+        &first_page,
+    );
+    // The second page fails; none of this source's first 100 people may be applied.
+    f.response(
+        "https://api.github.com/user/orgs?per_page=100&page=1",
+        r#"[{"login":"team"}]"#,
+    );
+    f.response(
+        "https://api.github.com/orgs/team/members?per_page=100&page=1",
+        r#"[{"login":"teammate"}]"#,
+    );
+    f.count("octocat", 7);
+    f.count("teammate", 12);
+    f.core.refresh(RefreshReason::Manual).await.unwrap();
+    let board = f.core.board(Window::Today);
+    assert_eq!(board.rows.len(), 2);
+    assert_eq!(board.rows[0].person.login, "teammate");
+    assert_eq!(board.rows[0].contributions, Some(12));
+    assert!(f.core.people("", PeopleFilter::Following).is_empty());
+    assert!(board.people_error.is_some());
+    assert_eq!(board.people_updated, None);
+}
+
+#[tokio::test]
+async fn partial_sync_adds_people_and_retains_saved_people_until_a_complete_sync() {
+    let f = Fixture::new();
+    f.connect().await;
+    let follows = "https://api.github.com/user/following?per_page=100&page=1";
+    let orgs = "https://api.github.com/user/orgs?per_page=100&page=1";
+    f.response(
+        follows,
+        r#"[{"login":"saved-friend"},{"login":"hidden-friend"}]"#,
+    );
+    f.count("octocat", 7);
+    f.count("saved-friend", 12);
+    f.core.refresh(RefreshReason::Manual).await.unwrap();
+    f.core.set_hidden("hidden-friend", true).unwrap();
+    let last_complete_sync = f.core.board(Window::Today).people_updated;
+
+    *f.clock.0.lock().unwrap() += 901;
+    f.response(follows, r#"[{"login":"new-friend"}]"#);
+    f.count("new-friend", 15);
+    f.http.0.lock().unwrap().remove(orgs);
+    f.core.refresh(RefreshReason::Manual).await.unwrap();
+    let board = f.core.board(Window::Today);
+    assert_eq!(board.rows.len(), 3);
+    assert_eq!(board.rows[0].person.login, "new-friend");
+    assert_eq!(board.rows[0].contributions, Some(15));
+    assert_eq!(board.people_updated, last_complete_sync);
+    assert!(board.people_error.is_some());
+    assert!(f
+        .core
+        .people("", PeopleFilter::All)
+        .iter()
+        .any(|p| p.person.login == "hidden-friend" && p.hidden));
+    assert!(f
+        .core
+        .people("", PeopleFilter::Following)
+        .iter()
+        .any(|p| p.person.login == "saved-friend"));
+
+    let restored = BoardCore::new(
+        f.http.clone(),
+        f.clock.clone(),
+        f.storage.clone(),
+        f.credentials.clone(),
+        f.notifications.clone(),
+    )
+    .unwrap();
+    assert_eq!(restored.board(Window::Today).rows.len(), 3);
+    assert_eq!(
+        restored.board(Window::Today).people_updated,
+        last_complete_sync
+    );
+
+    f.response(orgs, "[]");
+    restored.refresh(RefreshReason::Manual).await.unwrap();
+    let board = restored.board(Window::Today);
+    assert_eq!(board.rows.len(), 2);
+    assert_eq!(restored.people("", PeopleFilter::All).len(), 2);
+    assert!(board.people_error.is_none());
+    assert_ne!(board.people_updated, last_complete_sync);
+}
+
+#[tokio::test]
 async fn people_sync_deduplicates_sources_ranks_stably_and_preserves_roster_on_failure() {
     let f = Fixture::new();
     f.connect().await;

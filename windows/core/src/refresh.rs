@@ -23,6 +23,11 @@ pub struct PersonVisibility {
     pub is_you: bool,
 }
 
+struct Roster {
+    people: Vec<Person>,
+    complete: bool,
+}
+
 impl BoardCore {
     pub fn people(&self, search: &str, filter: PeopleFilter) -> Vec<PersonVisibility> {
         let state = self.state.lock().unwrap();
@@ -81,12 +86,22 @@ impl BoardCore {
         }
         Err("Too many pages in GitHub's people list".into())
     }
-    async fn roster(&self, token: &str) -> Result<Vec<Person>, String> {
+    async fn roster(&self, token: &str) -> Result<Roster, String> {
         let owner: GitHubPerson = serde_json::from_str(&self.api("user", token).await?)
             .map_err(|_| "Could not read your GitHub profile")?;
         let owner = Person::try_from(owner)?;
-        let following = self.pages("user/following", token).await?;
-        let orgs = self.pages("user/orgs", token).await?;
+        let mut complete = true;
+        let following = self
+            .pages("user/following", token)
+            .await
+            .unwrap_or_else(|_| {
+                complete = false;
+                vec![]
+            });
+        let orgs = self.pages("user/orgs", token).await.unwrap_or_else(|_| {
+            complete = false;
+            vec![]
+        });
         let mut people = vec![owner];
         for mut person in following {
             person.following = true;
@@ -95,13 +110,17 @@ impl BoardCore {
         for org in orgs {
             for mut person in self
                 .pages(&format!("orgs/{}/members", org.login), token)
-                .await?
+                .await
+                .unwrap_or_else(|_| {
+                    complete = false;
+                    vec![]
+                })
             {
                 person.organizations.push(org.login.clone());
                 merge_person(&mut people, person);
             }
         }
-        Ok(people)
+        Ok(Roster { people, complete })
     }
     pub async fn refresh(&self, reason: RefreshReason) -> Result<(), String> {
         let Some(token) = self.credentials.get()? else {
@@ -146,11 +165,23 @@ impl BoardCore {
                 return Ok(());
             }
             match result {
-                Ok(people) => {
+                Ok(Roster {
+                    mut people,
+                    complete,
+                }) => {
                     let owner = people[0].login.clone();
                     if state.saved.owner.as_ref() != Some(&owner) {
                         state.saved.owner = Some(owner);
                         state.saved.counts.clear();
+                        state.saved.people_updated = None;
+                    } else if !complete {
+                        // Successful sources can add competitors, but only a complete
+                        // roster can remove saved people or source memberships.
+                        let fetched = people;
+                        people = state.saved.people.clone();
+                        for person in fetched {
+                            merge_person(&mut people, person);
+                        }
                     }
                     let before: Vec<_> = state.saved.people.iter().map(|p| &p.login).collect();
                     let after: Vec<_> = people.iter().map(|p| &p.login).collect();
@@ -159,8 +190,15 @@ impl BoardCore {
                         state.previous.clear();
                     }
                     state.saved.people = people;
-                    state.saved.people_updated = Some(self.clock.now());
-                    state.people_error = None;
+                    if complete {
+                        state.saved.people_updated = Some(self.clock.now());
+                        state.people_error = None;
+                    } else {
+                        state.people_error = Some(
+                            "Some people couldn't sync. Saved people are kept. Refresh to retry."
+                                .into(),
+                        );
+                    }
                 }
                 _ => {
                     state.people_error = Some(
