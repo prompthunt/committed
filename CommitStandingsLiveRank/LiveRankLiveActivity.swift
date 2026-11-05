@@ -67,8 +67,10 @@ struct LiveRankRankLabel: View {
             HStack(spacing: 3) { trophy; rankText; extras }
             VStack(spacing: 1) { trophy; rankText; extras }
         }
+        // Expanded keeps the original title3 metrics: the island's leading region is narrow, and
+        // anything bigger stacks the trophy, rank, and movement and pushes the ladder out.
         .font(style == .expanded
-              ? CommittedType.display(24, relativeTo: .title2)
+              ? CommittedType.display(20, relativeTo: .title3)
               : CommittedType.display(16, relativeTo: .body))
         .foregroundStyle(.white)
         .lineLimit(1)
@@ -85,7 +87,7 @@ struct LiveRankRankLabel: View {
     }
 
     @ScaledMetric(relativeTo: .body) private var compactTrophy: CGFloat = 16
-    @ScaledMetric(relativeTo: .title2) private var expandedTrophy: CGFloat = 24
+    @ScaledMetric(relativeTo: .title3) private var expandedTrophy: CGFloat = 19
     private var trophySize: CGFloat { style == .expanded ? expandedTrophy : compactTrophy }
 
     @ViewBuilder private var rankText: some View {
@@ -100,7 +102,7 @@ struct LiveRankRankLabel: View {
     @ViewBuilder private var extras: some View {
         if style == .expanded, state.rank != nil {
             Text("of \(state.competitorCount)")
-                .font(CommittedType.numeral(17, relativeTo: .body))
+                .font(CommittedType.numeral(15, relativeTo: .subheadline))
                 .foregroundStyle(Color.muted)
             if state.movementToday != 0 {
                 // Today's movement since the morning, like the board's chevrons.
@@ -119,7 +121,7 @@ struct LiveRankRankLabel: View {
 struct LiveRankCountLabel: View {
     let state: LiveRankState
     let showsUnit: Bool
-    @ScaledMetric(relativeTo: .title2) private var squareSize: CGFloat = 13
+    @ScaledMetric(relativeTo: .title3) private var squareSize: CGFloat = 12
 
     var body: some View {
         HStack(alignment: .center, spacing: 5) {
@@ -131,7 +133,7 @@ struct LiveRankCountLabel: View {
             }
         }
         .font(showsUnit
-              ? CommittedType.display(24, relativeTo: .title2)
+              ? CommittedType.display(20, relativeTo: .title3)
               : CommittedType.display(16, relativeTo: .body))
         .lineLimit(1)
         .minimumScaleFactor(0.7)
