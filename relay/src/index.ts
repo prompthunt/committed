@@ -19,6 +19,7 @@ function relayFor(env: Env) {
     privateKey: env.APNS_PRIVATE_KEY,
     bundleId: env.APNS_BUNDLE_ID,
     now: nowSeconds,
+    origin: env.APNS_ORIGIN || undefined,
   });
   return createRelay({
     db: env.DB,

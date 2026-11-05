@@ -30,6 +30,10 @@ struct RootView: View {
         .fullScreenCover(isPresented: .constant(model.needsConnect)) {
             ConnectGitHubView()
         }
+        // What the Committed relay receives, before Live rank first turns on (only with a relay).
+        .sheet(isPresented: $model.isShowingLiveRankDisclosure) {
+            LiveRankDisclosureView()
+        }
         .onOpenURL { model.open($0) }
         .onChange(of: model.store.visibilityRevision) {
             Task { await model.visibilityDidChange() }

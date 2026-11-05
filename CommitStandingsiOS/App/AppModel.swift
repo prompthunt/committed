@@ -23,6 +23,8 @@ protocol BackgroundTimeProviding {
 @MainActor
 final class AppModel {
     var selectedTab: AppTab = .board
+    /// The switch in Settings asked for the relay disclosure.
+    private var liveRankDisclosureRequested = false
 
     let services: CommittedServices
     /// Live rank in the Dynamic Island and on the Lock Screen.
@@ -78,6 +80,7 @@ final class AppModel {
         refresh.resumeTimer()
         // Ends strays from an earlier launch, and restarts Live rank if iOS ended it.
         await liveRank.enteredForeground()
+        await liveRank.retryRelay()
         guard auth.isSignedIn else { return }
         if !didRefreshIdentity {
             didRefreshIdentity = true
@@ -98,11 +101,44 @@ final class AppModel {
     /// Background app refresh: people and Contributions, then Live rank (update only; iOS doesn't
     /// let the app start one from the background).
     func backgroundRefresh() async {
+        await liveRank.retryRelay()
         guard auth.isSignedIn else { return }
         await refresh.refreshAll(reason: .background)
     }
 
     // MARK: - Live rank
+
+    /// The Committed relay disclosure sheet: offered once after Connect GitHub, and whenever the
+    /// switch is turned on before it's been accepted.
+    var isShowingLiveRankDisclosure: Bool {
+        get {
+            guard auth.isSignedIn, !needsConnect else { return false }
+            return liveRank.requiresRelayDisclosure && (liveRankDisclosureRequested || liveRank.offersRelayDisclosure)
+        }
+        set {
+            if !newValue { liveRankDisclosureRequested = false }
+        }
+    }
+
+    /// The Live rank switch in Settings. Turning it on asks first when the relay needs the disclosure.
+    func liveRankSwitchChanged(_ enabled: Bool) async {
+        if enabled && liveRank.requiresRelayDisclosure {
+            liveRankDisclosureRequested = true
+            return
+        }
+        await setLiveRankEnabled(enabled)
+    }
+
+    func acceptLiveRankDisclosure() async {
+        liveRankDisclosureRequested = false
+        await liveRank.acceptRelayDisclosure()
+        await refreshLiveRankIfStale()
+    }
+
+    func declineLiveRankDisclosure() async {
+        liveRankDisclosureRequested = false
+        await liveRank.declineRelayDisclosure()
+    }
 
     func setLiveRankEnabled(_ enabled: Bool) async {
         await liveRank.setEnabled(enabled)

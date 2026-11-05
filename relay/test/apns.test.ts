@@ -126,4 +126,25 @@ describe("HTTP APNs sender", () => {
       reason: "Unregistered",
     });
   });
+
+  it("sends to a local fake APNs when an origin override is set (local development only)", async () => {
+    const { pem } = await p8();
+    const urls: string[] = [];
+    const sender = createHttpApnsSender({
+      keyId: "KEY1234567",
+      teamId: "TEAM123456",
+      privateKey: pem,
+      bundleId: "com.example.app",
+      now: () => 1_793_800_000,
+      origin: "http://127.0.0.1:8788/",
+      fetch: async (input) => {
+        urls.push(String(input));
+        return new Response(null, { status: 200 });
+      },
+    });
+
+    await sender.send({ token: "cd".repeat(32), environment: "production", priority: 5, payload: updatePayload(state, 1) });
+
+    expect(urls).toEqual([`http://127.0.0.1:8788/3/device/${"cd".repeat(32)}`]);
+  });
 });

@@ -2,10 +2,27 @@ import Foundation
 
 /// Live rank's settings on this iPhone.
 struct LiveRankPreferences: Codable, Equatable, Sendable {
-    /// nil until the person has chosen, which phase 1 treats as on. The relay's disclosure (#45)
-    /// asks before the first enable, so "never chosen" stays distinguishable from "on".
+    /// nil until the person has chosen, which phase 1 treats as on. With a relay, Live rank stays
+    /// off until the disclosure is accepted.
     var isEnabled: Bool?
     var window: ContributionWindow = .daily
+    /// The person accepted the Committed relay disclosure (what the relay receives). Asked once,
+    /// before Live rank first turns on with a relay.
+    var relayDisclosureAccepted = false
+
+    init(isEnabled: Bool? = nil, window: ContributionWindow = .daily, relayDisclosureAccepted: Bool = false) {
+        self.isEnabled = isEnabled
+        self.window = window
+        self.relayDisclosureAccepted = relayDisclosureAccepted
+    }
+
+    // Settings saved before the relay existed have no `relayDisclosureAccepted`.
+    init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        isEnabled = try container.decodeIfPresent(Bool.self, forKey: .isEnabled)
+        window = try container.decodeIfPresent(ContributionWindow.self, forKey: .window) ?? .daily
+        relayDisclosureAccepted = try container.decodeIfPresent(Bool.self, forKey: .relayDisclosureAccepted) ?? false
+    }
 }
 
 protocol LiveRankPreferenceStoring: AnyObject {

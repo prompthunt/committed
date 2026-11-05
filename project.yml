@@ -101,7 +101,14 @@ targets:
         INFOPLIST_KEY_NSSupportsLiveActivities: YES
         INFOPLIST_KEY_NSSupportsLiveActivitiesFrequentUpdates: YES
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
-        CODE_SIGN_ENTITLEMENTS: CommitStandingsiOS/CommitStandingsiOS.entitlements # App Group group.com.addisonk.CommitStandings
+        CODE_SIGN_ENTITLEMENTS: CommitStandingsiOS/CommitStandingsiOS.entitlements # App Group group.com.addisonk.CommitStandings, aps-environment
+        # Committed relay (Live rank phase 2), read through Info.plist. Empty URL = phase 1 only.
+        COMMITTED_RELAY_URL: ""
+      configs:
+        Debug:
+          COMMITTED_APNS_ENVIRONMENT: sandbox
+        Release:
+          COMMITTED_APNS_ENVIRONMENT: production
 
   # Live rank: WidgetKit extension holding only the Live Activity, embedded in the iOS app.
   CommitStandingsLiveRank:

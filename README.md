@@ -63,7 +63,8 @@ xcodebuild -scheme CommitStandings -configuration Debug \
 ```
 
 The iPhone app is the `CommitStandingsiOS` scheme in the same project. It needs Xcode 27.1 and
-an iOS 27.1 simulator (for example iPhone Duo).
+an iOS 27.1 simulator (for example iPhone Duo). Live rank uses the Committed relay
+(`relay/`) only when the build sets `COMMITTED_RELAY_URL`; see [relay/README.md](relay/README.md).
 
 Read [CONTRIBUTING.md](CONTRIBUTING.md) for setup and pull requests,
 [AGENTS.md](AGENTS.md) for release invariants, and [SECURITY.md](SECURITY.md) to

@@ -13,7 +13,7 @@ struct LiveRankSection: View {
         Section {
             Toggle("Live rank", isOn: Binding(
                 get: { liveRank.isEnabled },
-                set: { enabled in Task { await model.setLiveRankEnabled(enabled) } }
+                set: { enabled in Task { await model.liveRankSwitchChanged(enabled) } }
             ))
             if liveRank.isEnabled {
                 Picker("Window", selection: Binding(
@@ -44,7 +44,9 @@ struct LiveRankSection: View {
         case .waiting:
             return "Your rank appears in the Dynamic Island once your board loads with Committed open."
         case .live:
-            return "Your rank is in the Dynamic Island and on the Lock Screen. It updates when Committed refreshes."
+            return liveRank.isRelayConfigured
+                ? "Your rank is in the Dynamic Island and on the Lock Screen. The Committed relay keeps it current, even with Committed closed."
+                : "Your rank is in the Dynamic Island and on the Lock Screen. It updates when Committed refreshes."
         case .disabledInSystem:
             return "Live Activities are off for Committed in iOS Settings."
         case .failed(let message):
