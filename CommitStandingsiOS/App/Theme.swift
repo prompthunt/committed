@@ -207,23 +207,17 @@ enum SystemChrome {
         // In content (People's filter), the selected segment is a lime slab with ink text.
         let segmented = UISegmentedControl.appearance()
         segmented.selectedSegmentTintColor = UIColor(Color.lime)
-        segmented.setTitleTextAttributes([.foregroundColor: UIColor(Color.ink),
-                                          .font: UIFont.preferredFont(forTextStyle: .subheadline).bold()], for: .selected)
+        // Colors only: a font set here is fixed at launch and stops matching the control's text size.
+        segmented.setTitleTextAttributes([.foregroundColor: UIColor(Color.ink)], for: .selected)
         segmented.setTitleTextAttributes([.foregroundColor: UIColor.white], for: .normal)
         // In a bar (the Board's Window switch) the system draws a glass segment and ignores the
         // tint, so the selection reads as lime text instead of ink text on nothing.
         let inBar = UISegmentedControl.appearance(whenContainedInInstancesOf: [UINavigationBar.self])
-        inBar.setTitleTextAttributes([.foregroundColor: UIColor(Color.lime),
-                                      .font: UIFont.preferredFont(forTextStyle: .subheadline).bold()], for: .selected)
+        inBar.setTitleTextAttributes([.foregroundColor: UIColor(Color.lime)], for: .selected)
         inBar.setTitleTextAttributes([.foregroundColor: UIColor.white], for: .normal)
     }
 }
 
-private extension UIFont {
-    func bold() -> UIFont {
-        UIFont(descriptor: fontDescriptor.withSymbolicTraits(.traitBold) ?? fontDescriptor, size: 0)
-    }
-}
 
 // MARK: - The app's mark
 
