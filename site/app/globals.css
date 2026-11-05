@@ -177,6 +177,27 @@
     filter: blur(2px);
   }
 }
+.desk-rank-out {
+  animation: desk-rank-out 0.4s cubic-bezier(0.4, 0, 1, 1) both;
+}
+@keyframes desk-rank-out {
+  to {
+    opacity: 0;
+    translate: 0 -70%;
+    filter: blur(2px);
+  }
+}
+
+/* The loop's scene cut: the screen dips to black while the counts reset. */
+.desk-cut {
+  background: var(--color-ink);
+  opacity: 0;
+  transition: opacity 0.6s ease-in-out;
+}
+.desk-cut[data-show] {
+  opacity: 1;
+  transition-duration: 0.45s;
+}
 
 /* First place: a flash of light and a burst of contribution squares from the item. */
 .desk-burst {

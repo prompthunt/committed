@@ -185,7 +185,7 @@ export function NotificationStack() {
           className={`notification-glass absolute inset-x-0 top-0 flex gap-3 rounded-[18px] border border-white/15 px-3.5 py-3 text-white shadow-[0_18px_40px_-16px_rgba(0,0,0,.7)] transition-[opacity,transform] duration-700 ease-[cubic-bezier(.16,1,.3,1)] ${pose[n.state]}`}
         >
           <span className="flex size-[34px] shrink-0 items-center justify-center rounded-[9px] bg-gradient-to-b from-[#1c1e1c] to-[#070807] shadow-[inset_0_0_0_1px_rgba(255,255,255,.1)]">
-            <Glyph className="size-[21px] text-lime" />
+            <Glyph className="size-[22px] text-lime" />
           </span>
           <span className="flex min-w-0 flex-1 flex-col gap-px">
             <span className="flex justify-between gap-2 text-[13px] font-bold">
