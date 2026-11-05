@@ -64,6 +64,33 @@ struct ThemeTests {
         #expect(Palette.contrast(Palette.squares[3], Palette.ink) >= 3)
     }
 
+    /// The rows' 2×2 squares glyph (the Mac's `square.grid.2x2.fill`) is a UI mark: every shade has
+    /// to read at 3:1 wherever a row sits: the board (ink, a tile card, your lime-tinted row),
+    /// the black Dynamic Island, and the Lock Screen's ink.
+    @Test(arguments: [
+        ("ink", Palette.ink),
+        ("tile", Palette.tile),
+        ("raised", Palette.raised),
+        ("the Dynamic Island", Palette.RGB(0x000000)),
+        ("your row", Palette.tile.blended(with: Palette.lime, 0.07)),
+    ])
+    func rowGlyphShadesReadAsMarks(name: String, background: Palette.RGB) {
+        #expect(Palette.rowGlyphs.count == SquareRamp.levels)
+        for (level, shade) in Palette.rowGlyphs.enumerated() {
+            #expect(Palette.contrast(shade, background) >= 3, "level \(level) on \(name)")
+        }
+    }
+
+    /// Busier is brighter, as on the site's graph, from the first contribution up to the leader's
+    /// quartile. Level 0 (no contributions) is gray, GitHub's empty square.
+    @Test func rowGlyphShadesBrightenWithTheCount() {
+        let greens = Palette.rowGlyphs.dropFirst().map(\.luminance)
+        #expect(zip(greens, greens.dropFirst()).allSatisfy { $0 < $1 })
+        #expect(Palette.rowGlyphs.first?.luminance == Palette.muted.luminance)
+        // Full lime stays the hero's and the burst's.
+        #expect(Palette.rowGlyphs.last?.luminance == Palette.limeDeep.luminance)
+    }
+
     // MARK: Contribution squares
 
     @Test func emptyAndMissingCountsUseTheEmptySquare() {

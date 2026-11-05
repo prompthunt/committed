@@ -5,8 +5,8 @@ import UIKit
 // `CommittedTheme.swift` (also used by Live rank); this file holds what only the app needs.
 
 extension StandingRowStyle {
-    /// The board's row on iPhone: Inter Tight numerals, the site's square ramp, and your row in
-    /// lime. Same row as the Mac, restyled.
+    /// The board's row on iPhone: Inter Tight numerals, the squares glyph on the site's ramp, and
+    /// your row in lime. Same row as the Mac, restyled.
     static let committed = StandingRowStyle(
         rankFont: CommittedType.numeral(15, relativeTo: .subheadline),
         rankColor: .muted,
@@ -32,13 +32,9 @@ extension StandingRowStyle {
         // Losing a place is news: brighter than secondary text, never alarm-orange.
         movementDownColor: .soft,
         movementFont: .caption2.weight(.heavy),
-        squares: .ramp(Color.rowSquares, size: 14)
+        // The Mac's 2×2 squares glyph, tinted on the site's ramp; Live rank's rows match.
+        squares: .shadedSymbol(Color.rowGlyphs)
     )
-}
-
-extension AvatarFallbackStyle {
-    /// A tile with a hairline and soft initials, instead of a saturated colored circle.
-    static let committed = AvatarFallbackStyle(fill: .raised, stroke: .hairline, text: .soft)
 }
 
 // MARK: - Surfaces

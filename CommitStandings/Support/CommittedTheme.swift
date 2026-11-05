@@ -55,6 +55,12 @@ enum Palette {
     /// The contribution graph, empty to busiest: the site's `--color-sq-0…3`, then lime.
     static let squares = [RGB(0x14170f), RGB(0x1d2e0e), RGB(0x355c12), RGB(0x6aa81a), lime]
 
+    /// The rows' 2×2 squares glyph, by `SquareRamp` level: gray for no contributions (GitHub's empty
+    /// square), then greens brightening to the deeper lime. Unlike `squares`, every shade is a mark
+    /// in its own right (3:1 on ink, tile, and the island's black), since the glyph is drawn alone.
+    /// Full lime stays the hero's and the burst's.
+    static let rowGlyphs = [muted, RGB(0x4f8a14), RGB(0x6aa81a), RGB(0x7ab61a), limeDeep]
+
     static func contrast(_ a: RGB, _ b: RGB) -> Double {
         let (hi, lo) = a.luminance > b.luminance ? (a.luminance, b.luminance) : (b.luminance, a.luminance)
         return (hi + 0.05) / (lo + 0.05)
@@ -74,9 +80,15 @@ extension Color {
     /// Hairlines between rows and around cards, as on the site (`white / .08`).
     static let hairline = Color.white.opacity(0.08)
     static let contributionSquares = Palette.squares.map(\.color)
-    /// The board rows' ramp: the same levels, topped with the deeper lime, so a busy rival's
-    /// square never outshines your own row. Full lime squares are the hero's and the bursts'.
-    static let rowSquares = Palette.squares.dropLast().map(\.color) + [Color.limeDeep]
+    /// The rows' squares glyph, empty to busiest (`Palette.rowGlyphs`). The board and Live rank
+    /// draw the same rows, so they share it.
+    static let rowGlyphs = Palette.rowGlyphs.map(\.color)
+}
+
+extension AvatarFallbackStyle {
+    /// A tile with a hairline and soft initials, instead of a saturated colored circle. The board
+    /// and Live rank both use it.
+    static let committed = AvatarFallbackStyle(fill: .raised, stroke: .hairline, text: .soft)
 }
 
 // MARK: - Type

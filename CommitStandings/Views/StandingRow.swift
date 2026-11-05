@@ -109,20 +109,17 @@ struct StandingRow: View {
             } else {
                 Color.clear.frame(width: 16)
             }
-        case .ramp(let colors, let size):
-            // One square of the contribution graph, shaded by quartile of the leader's count.
+        case .shadedSymbol(let colors):
+            // The same glyph, shaded by quartile of the leader's count.
             if hasData, let standing, !colors.isEmpty {
                 let level = min(SquareRamp.level(value: standing.contributions, max: maxContributions), colors.count - 1)
-                RoundedRectangle(cornerRadius: size * 0.22, style: .continuous)
-                    .fill(colors[level])
-                    .overlay {
-                        RoundedRectangle(cornerRadius: size * 0.22, style: .continuous)
-                            .strokeBorder(.white.opacity(level == 0 ? 0.1 : 0), lineWidth: 1)
-                    }
-                    .frame(width: size, height: size)
+                Image(systemName: "square.grid.2x2.fill")
+                    .imageScale(.small)
+                    .foregroundStyle(colors[level])
+                    .frame(width: 16)
                     .accessibilityHidden(true)
             } else {
-                Color.clear.frame(width: size, height: size)
+                Color.clear.frame(width: 16)
             }
         }
     }

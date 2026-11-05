@@ -4,6 +4,14 @@ import Testing
 
 /// ActivityKit as Live rank sees it, in memory.
 @MainActor
+/// Records the logins each refresh asks avatars for.
+final class RecordingAvatars: AvatarPrefetching, @unchecked Sendable {
+    private let lock = NSLock()
+    private var recorded: [[String]] = []
+    var batches: [[String]] { lock.withLock { recorded } }
+    func prefetch(_ logins: [String]) async { lock.withLock { recorded.append(logins) } }
+}
+
 final class FakeLiveRankActivities: LiveRankActivities {
     var areActivitiesEnabled = true
     /// Activities on screen, oldest first.
@@ -95,6 +103,7 @@ struct LiveRankLifecycleTests {
     let activities = FakeLiveRankActivities()
     let relay = FakeLiveRankRelay()
     let preferences = InMemoryLiveRankPreferences()
+    let avatars = RecordingAvatars()
 
     private func makeModel(signedIn: Bool = true, counts: [String: Int] = ["me": 3, "ada": 5, "bo": 1])
         -> (AppModel, FakeContributions) {
@@ -121,9 +130,24 @@ struct LiveRankLifecycleTests {
         )
         let model = AppModel(
             services: services, backgroundTime: FakeBackgroundTime(),
-            liveRankActivities: activities, liveRankPreferences: preferences, liveRankRelay: relay
+            liveRankActivities: activities, liveRankPreferences: preferences, liveRankRelay: relay,
+            avatars: avatars
         )
         return (model, contributions)
+    }
+
+    // MARK: Avatars
+
+    /// Live rank can't load images itself, so each refresh saves avatars for the board first.
+    @Test func eachRefreshSavesAvatarsForEveryoneVisible() async {
+        let (model, _) = makeModel()
+        await model.sceneDidBecomeActive()
+        #expect(avatars.batches.last.map(Set.init) == ["me", "ada", "bo"])
+
+        model.store.setHidden(true, username: "bo")
+        await model.refresh.refreshAll(reason: .manual)
+
+        #expect(avatars.batches.last.map(Set.init) == ["me", "ada"])
     }
 
     // MARK: Starting

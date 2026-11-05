@@ -45,6 +45,7 @@ final class AppModel {
         liveRankActivities: any LiveRankActivities = NoLiveRankActivities(),
         liveRankPreferences: any LiveRankPreferenceStoring = InMemoryLiveRankPreferences(),
         liveRankRelay: any LiveRankRegistrar = NoLiveRankRelay(),
+        avatars: any AvatarPrefetching = NoAvatarPrefetching(),
         now: @escaping @Sendable () -> Date = { Date() }
     ) {
         self.services = services
@@ -62,8 +63,14 @@ final class AppModel {
         )
         self.liveRank = liveRank
         // Every refresh also brings Live rank's Window up to date and then updates the activity.
+        // Avatars for the board are saved first: Live rank can't load images, so it reads them
+        // from the App Group (`AvatarCache`) when it renders.
+        let store = services.store
         refresh.additionalWindows = { liveRank.windowsToRefresh }
-        refresh.didRefresh = { _ in await liveRank.sync() }
+        refresh.didRefresh = { _ in
+            await avatars.prefetch(store.visibleCompetitors.map(\.username))
+            await liveRank.sync()
+        }
         services.onDisconnect = { liveRank.disconnected() }
     }
 

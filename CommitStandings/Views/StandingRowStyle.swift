@@ -43,9 +43,9 @@ struct StandingRowStyle {
     enum Squares {
         /// The Mac's `square.grid.2x2.fill`, mint to green relative to the leader.
         case symbol
-        /// A single rounded square shaded with these colors: index 0 is an empty day, the last is
-        /// the leader's quartile (GitHub-style levels).
-        case ramp([Color], size: CGFloat)
+        /// The same glyph, tinted by `SquareRamp` level with these colors: index 0 is no
+        /// contributions, the last is the leader's quartile (GitHub-style levels).
+        case shadedSymbol([Color])
     }
 
     /// The Mac popover's row.

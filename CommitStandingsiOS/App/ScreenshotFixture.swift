@@ -1,5 +1,6 @@
 #if DEBUG
 import Foundation
+import UIKit
 
 /// Debug builds only: launch with `-ScreenshotFixture` to run the real app on a fixed, offline
 /// board (no GitHub account, no network) for screenshots and visual checks:
@@ -83,11 +84,54 @@ enum ScreenshotFixture {
         func end(id: String) async { await base.end(id: id) }
     }
 
+    /// Avatars for the fixture's made-up people: generated identicons (GitHub's default-avatar
+    /// pattern, seeded by login) saved to the App Group cache like real ones, so the board and
+    /// Live rank show the avatar shape without any real account's photo.
+    static func avatars(cache: AvatarCache = .shared) -> any AvatarPrefetching {
+        GeneratedAvatars(cache: cache)
+    }
+
+    struct GeneratedAvatars: AvatarPrefetching {
+        let cache: AvatarCache
+
+        func prefetch(_ logins: [String]) async {
+            for login in logins {
+                cache.store(Self.identicon(for: login), for: login)
+            }
+        }
+
+        /// A 5×5 left-right symmetric pattern in one hue on a light ground, from a hash of the login.
+        static func identicon(for login: String) -> Data {
+            var hash: UInt64 = 0xcbf2_9ce4_8422_2325 // FNV-1a
+            for byte in login.utf8 { hash = (hash ^ UInt64(byte)) &* 0x100_0000_01b3 }
+            let hue = CGFloat(hash % 360) / 360
+            let ink = UIColor(hue: hue, saturation: 0.55, brightness: 0.78, alpha: 1)
+            let side = CGFloat(AvatarCache.pixelSize)
+            let cell = side / 6
+            let format = UIGraphicsImageRendererFormat()
+            format.scale = 1
+            return UIGraphicsImageRenderer(size: CGSize(width: side, height: side), format: format).pngData { context in
+                UIColor(white: 0.94, alpha: 1).setFill()
+                context.fill(CGRect(x: 0, y: 0, width: side, height: side))
+                ink.setFill()
+                for row in 0..<5 {
+                    for column in 0..<3 where (hash >> UInt64(8 + row * 3 + column)) & 1 == 1 {
+                        for x in Set([column, 4 - column]) {
+                            context.fill(CGRect(x: cell / 2 + CGFloat(x) * cell, y: cell / 2 + CGFloat(row) * cell,
+                                                width: cell, height: cell))
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     /// `extraPeople` adds that many followed people (`guest-01`, …) below everyone else, for a
     /// board long enough to scroll on the open iPhone Duo display (used by the #46 render tests).
     static func services(extraPeople: Int = 0) -> CommittedServices {
-        // Keep GitHub requests offline. Avatars are off too (`loadsGitHubAvatars`), so no real
-        // account's avatar appears for these made-up usernames.
+        // Keep GitHub requests offline. Network avatars are off too (`loadsGitHubAvatars`), so no
+        // real account's avatar appears for these made-up usernames; `avatars()` saves generated
+        // ones instead.
         let config = URLSessionConfiguration.ephemeral
         config.protocolClasses = [OfflineProtocol.self]
         let session = URLSession(configuration: config)

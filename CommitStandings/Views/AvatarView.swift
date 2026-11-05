@@ -2,6 +2,9 @@ import SwiftUI
 
 /// Avatar showing the user's real GitHub avatar (`github.com/{username}.png`),
 /// falling back to a colored initials circle while loading or on failure.
+///
+/// On iPhone (the app and Live rank) a copy saved in `AvatarCache` comes first: Live rank can't
+/// load network images, and it's the same face the board shows. The Mac has no cache.
 struct AvatarView: View {
     let username: String
     var size: CGFloat = 32
@@ -12,6 +15,23 @@ struct AvatarView: View {
     }
 
     var body: some View {
+        #if os(iOS)
+        if let saved = AvatarCache.shared.image(for: username) {
+            Image(uiImage: saved)
+                .resizable()
+                .scaledToFill()
+                .frame(width: size, height: size)
+                .clipShape(Circle())
+                .accessibilityHidden(true)
+        } else {
+            remote
+        }
+        #else
+        remote
+        #endif
+    }
+
+    private var remote: some View {
         AsyncImage(url: loadsGitHubAvatars ? avatarURL : nil) { phase in
             switch phase {
             case .success(let image):

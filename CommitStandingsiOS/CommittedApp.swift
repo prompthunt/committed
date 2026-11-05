@@ -27,7 +27,8 @@ struct CommittedApp: App {
                 services: ScreenshotFixture.services(), backgroundTime: UIApplicationBackgroundTime(),
                 liveRankActivities: ScreenshotFixture.liveRankActivities(ActivityKitLiveRankActivities()),
                 liveRankPreferences: ScreenshotFixture.liveRankPreferences(),
-                liveRankRelay: makeLiveRankRelay()
+                liveRankRelay: makeLiveRankRelay(),
+                avatars: ScreenshotFixture.avatars()
             )
             if let tab = ScreenshotFixture.requestedTab { model.selectedTab = tab }
             return model
@@ -43,7 +44,8 @@ struct CommittedApp: App {
             backgroundTime: UIApplicationBackgroundTime(),
             liveRankActivities: ActivityKitLiveRankActivities(),
             liveRankPreferences: UserDefaultsLiveRankPreferences(),
-            liveRankRelay: makeLiveRankRelay()
+            liveRankRelay: makeLiveRankRelay(),
+            avatars: GitHubAvatarPrefetcher.live()
         )
     }
 

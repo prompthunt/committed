@@ -37,6 +37,7 @@ targets:
         excludes: # iPhone app + Live rank extension only
           - Store/LiveRankAttributes.swift # ActivityKit
           - Support/CommittedTheme.swift # iPhone theme; the Mac keeps its own look
+          - Support/AvatarCache.swift # App Group avatars for Live rank; the Mac has no App Group
     dependencies:
       - package: Sparkle
         product: Sparkle
@@ -122,12 +123,19 @@ targets:
     sources:
       - path: CommitStandingsLiveRank
         excludes: [Info.plist]
-      # Shared with the app: the Live rank contract and the Board deep link.
+      # Shared with the app: the Live rank contract, the Board deep link, and the board's row
+      # (StandingRow is never forked) with the avatars it reads from the App Group.
       - path: CommitStandings/Store/LiveRankState.swift
       - path: CommitStandings/Store/LiveRankAttributes.swift
       - path: CommitStandings/Support/DeepLink.swift
       - path: CommitStandings/Support/CommittedTheme.swift
+      - path: CommitStandings/Support/AvatarCache.swift
+      - path: CommitStandings/Support/AvatarColor.swift
       - path: CommitStandings/Models/Standing.swift
+      - path: CommitStandings/Models/Competitor.swift
+      - path: CommitStandings/Views/StandingRow.swift
+      - path: CommitStandings/Views/StandingRowStyle.swift
+      - path: CommitStandings/Views/AvatarView.swift
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.addisonk.CommitStandings.iOS.LiveRank
