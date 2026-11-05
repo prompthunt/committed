@@ -119,6 +119,7 @@ struct ConnectGitHubView: View {
         } label: {
             Label(copiedCode == userCode ? "Copied" : "Copy Code",
                   systemImage: copiedCode == userCode ? "checkmark" : "doc.on.doc")
+                .lineLimit(1)
                 .frame(maxWidth: .infinity)
         }
         .buttonStyle(.bordered)
@@ -128,6 +129,7 @@ struct ConnectGitHubView: View {
             if let url = URL(string: verificationURL) { openURL(url) }
         } label: {
             Label("Open GitHub", systemImage: "safari")
+                .lineLimit(1)
                 .frame(maxWidth: .infinity)
         }
         .buttonStyle(.borderedProminent)
