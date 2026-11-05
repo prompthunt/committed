@@ -1,0 +1,6 @@
+{
+  "$schema": "../node_modules/wrangler/config-schema.json",
+  "name": "committed-relay-apns-probe",
+  "main": "apns-probe.ts",
+  "compatibility_date": "2026-11-01"
+}

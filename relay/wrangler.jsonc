@@ -1,0 +1,25 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "committed-relay",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-11-01",
+  // Keep the relay's own redacted logs (src/log.ts), but not invocation logs: those record request
+  // headers, which carry the bearer install secret.
+  "observability": { "enabled": true, "logs": { "invocation_logs": false } },
+  // Every 5 minutes: recompute each installation's LiveRankState and push changes.
+  "triggers": { "crons": ["*/5 * * * *"] },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "committed-relay",
+      // Replace with the id printed by `wrangler d1 create committed-relay` (see README).
+      "database_id": "00000000-0000-0000-0000-000000000000",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "vars": {
+    // The iOS app's bundle ID; APNs topic is "<bundle>.push-type.liveactivity".
+    "APNS_BUNDLE_ID": "com.addisonk.CommitStandings.iOS"
+  }
+  // Secrets (wrangler secret put): APNS_TEAM_ID, APNS_KEY_ID, APNS_PRIVATE_KEY.
+}

@@ -85,6 +85,34 @@ struct LeaderboardRankingTests {
         #expect(before.first?.id == after.last?.id)
     }
 
+    /// The shared conformance fixture (`shared/fixtures/ranking-conformance.json`) is binding for
+    /// both this app and the Committed relay's TypeScript port, so the two orderings can't drift.
+    /// A login with no entry in `standings` has no data.
+    @Test func rankingOrder_matchesSharedConformanceFixture() throws {
+        let fixture = try RankingConformanceFixture.load()
+        #expect(!fixture.cases.isEmpty)
+        for testCase in fixture.cases {
+            let competitors = testCase.input.competitors.map {
+                Competitor(username: $0.login, isSelf: $0.isSelf)
+            }
+            var standings: [String: Standing] = [:]
+            for (login, entry) in testCase.input.standings {
+                let window = try #require(ContributionWindow(rawValue: entry.window), "\(testCase.name)")
+                standings[login] = Standing(
+                    username: login,
+                    contributions: entry.contributions,
+                    window: window,
+                    lastUpdated: Date(timeIntervalSince1970: entry.lastUpdated),
+                    state: .loaded
+                )
+            }
+            let window = try #require(ContributionWindow(rawValue: testCase.input.window), "\(testCase.name)")
+            let ranked = Ranking.order(competitors: competitors, standings: standings, window: window)
+            let actual = ranked.map { RankingConformanceFixture.Ranked(login: $0.competitor.username, rank: $0.rank) }
+            #expect(actual == testCase.expected.order, "\(testCase.name)")
+        }
+    }
+
     @Test func rowAccessibilityIncludesRankMovementAndStaleData() {
         let competitor = Competitor(username: "me", isSelf: true)
         let cached = Standing(username: "me", contributions: 12, window: .daily,
@@ -98,5 +126,51 @@ struct LeaderboardRankingTests {
         let unchanged = StandingRow(rank: 2, competitor: competitor, standing: cached,
                                     window: .daily, rankDelta: 0)
         #expect(!unchanged.accessibilityDescription.contains("places today"))
+    }
+}
+
+/// Decodes `shared/fixtures/ranking-conformance.json`, found relative to this source file so the
+/// test needs no bundle resource (and no project change). The LiveRankState expectations in the
+/// same file are checked by the LiveRankState tests.
+struct RankingConformanceFixture: Decodable {
+    struct Ranked: Decodable, Equatable {
+        let login: String
+        let rank: Int
+    }
+    struct Person: Decodable {
+        let login: String
+        let isSelf: Bool
+    }
+    struct Entry: Decodable {
+        let contributions: Int
+        let window: String
+        let lastUpdated: Double
+    }
+    struct Input: Decodable {
+        let competitors: [Person]
+        let standings: [String: Entry]
+        let window: String
+        let rankDeltas: [String: Int]
+        let now: Double
+    }
+    struct Expected: Decodable {
+        let order: [Ranked]
+    }
+    struct Case: Decodable {
+        let name: String
+        let input: Input
+        let expected: Expected
+    }
+    let cases: [Case]
+
+    static func url(filePath: String = #filePath) -> URL {
+        URL(fileURLWithPath: filePath)
+            .deletingLastPathComponent()      // CommitStandingsTests/
+            .deletingLastPathComponent()      // repo root
+            .appendingPathComponent("shared/fixtures/ranking-conformance.json")
+    }
+
+    static func load() throws -> RankingConformanceFixture {
+        try JSONDecoder().decode(RankingConformanceFixture.self, from: Data(contentsOf: url()))
     }
 }
