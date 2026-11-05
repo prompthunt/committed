@@ -5,9 +5,9 @@ import UIKit
 @testable import CommitStandingsiOS
 
 /// Renders the Board (the `-demoBoard` data) at iPhone Duo sizes the simulator can't be put
-/// into from the command line: the open inner display in landscape and portrait, and a Split
-/// View half. Not a behavior test: it writes PNGs for the design review and only runs when
-/// `DUO_RENDER_DIR` is set, e.g.
+/// into from the command line: the open inner display in landscape and portrait, a Split View
+/// half, and the closed display turned sideways. Not a behavior test: it writes PNGs for the
+/// design review and only runs when `DUO_RENDER_DIR` is set, e.g.
 /// `TEST_RUNNER_DUO_RENDER_DIR=/tmp/renders xcodebuild test -scheme CommitStandingsiOS
 ///  -only-testing:CommitStandingsiOSTests/DuoLayoutRenders …`.
 /// These show the Board's arrangement only. A free-standing window gets regular width from a
@@ -30,6 +30,9 @@ struct DuoLayoutRenders {
         Pose(name: "open-landscape", size: CGSize(width: 951, height: 669), sizeClass: .regular),
         Pose(name: "open-portrait", size: CGSize(width: 669, height: 951), sizeClass: .regular),
         Pose(name: "splitview-half", size: CGSize(width: 475, height: 669), sizeClass: .compact),
+        // The closed outer display (466 × 678 pt) turned sideways: wide, but still compact. A
+        // couple of points short, because UIKit snaps a window the screen's exact size back to it.
+        Pose(name: "closed-landscape", size: CGSize(width: 676, height: 464), sizeClass: .compact),
     ]
 
     @Test(arguments: poses)
