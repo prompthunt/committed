@@ -16,6 +16,13 @@ protocol LiveRankRegistrar: AnyObject {
     /// `.token` once a relay is configured, so new activities get a push token.
     var pushUpdates: LiveRankPushUpdates { get }
     func liveRankDidChange(_ configuration: LiveRankConfiguration?) async
+    /// Try again whatever an earlier call couldn't send (offline, relay down). The app calls it on
+    /// becoming active and in background refresh.
+    func retryPendingWork() async
+}
+
+extension LiveRankRegistrar {
+    func retryPendingWork() async {}
 }
 
 /// Phase 1: no relay. Live rank updates only when the app refreshes.

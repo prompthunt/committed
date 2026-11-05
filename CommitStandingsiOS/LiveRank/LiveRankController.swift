@@ -61,9 +61,48 @@ final class LiveRankController {
         self.now = now
         let saved = preferences.load()
         self.preferences = saved
-        isEnabled = saved.isEnabled ?? true
+        let enabled = Self.isEnabled(saved, relayConfigured: relay.pushUpdates == .token)
+        isEnabled = enabled
         window = saved.window
-        status = (saved.isEnabled ?? true) ? .waiting : .off
+        status = enabled ? .waiting : .off
+    }
+
+    /// Phase 1 treats "never chosen" as on. With the relay, Live rank stays off until the person
+    /// has accepted the disclosure of what the relay receives.
+    private static func isEnabled(_ preferences: LiveRankPreferences, relayConfigured: Bool) -> Bool {
+        guard preferences.isEnabled ?? true else { return false }
+        return !relayConfigured || preferences.relayDisclosureAccepted
+    }
+
+    /// The Committed relay keeps Live rank current with the app closed (phase 2).
+    var isRelayConfigured: Bool { relay.pushUpdates == .token }
+
+    /// Turning Live rank on needs the relay disclosure first.
+    var requiresRelayDisclosure: Bool {
+        isRelayConfigured && !preferences.relayDisclosureAccepted
+    }
+
+    /// Offer the disclosure without being asked: the person hasn't chosen yet (first connect), or
+    /// turned Live rank on in a build without the relay. Never after they declined.
+    var offersRelayDisclosure: Bool {
+        requiresRelayDisclosure && preferences.isEnabled != false
+    }
+
+    /// The person read what the relay receives and turned Live rank on.
+    func acceptRelayDisclosure() async {
+        preferences.relayDisclosureAccepted = true
+        await setEnabled(true)
+    }
+
+    /// "Not Now": Live rank stays off, and the disclosure isn't offered again until the switch is
+    /// turned on.
+    func declineRelayDisclosure() async {
+        await setEnabled(false)
+    }
+
+    /// Try again whatever the relay couldn't send earlier.
+    func retryRelay() async {
+        await relay.retryPendingWork()
     }
 
     /// The Window to keep fresh for Live rank: none when it's off, disconnected, or when iOS won't
@@ -75,8 +114,10 @@ final class LiveRankController {
     // MARK: - Settings
 
     func setEnabled(_ enabled: Bool) async {
+        // With the relay, only the disclosure's "Turn On" can turn it on the first time.
+        if enabled && requiresRelayDisclosure { return }
         preferences.isEnabled = enabled
-        isEnabled = enabled
+        isEnabled = Self.isEnabled(preferences, relayConfigured: isRelayConfigured)
         preferenceStore.save(preferences)
         await sync()
     }
@@ -166,9 +207,19 @@ final class LiveRankController {
             status = .waiting
             return
         }
+        let attributes = LiveRankAttributes(selfLogin: me)
         do {
-            _ = try activities.start(LiveRankAttributes(selfLogin: me), state: state, pushUpdates: relay.pushUpdates)
+            _ = try activities.start(attributes, state: state, pushUpdates: relay.pushUpdates)
             status = .live
+        } catch where relay.pushUpdates == .token {
+            // iOS refused a push-token activity (for example, no Push Notifications entitlement):
+            // fall back to phase 1, updated by the app's own refreshes.
+            do {
+                _ = try activities.start(attributes, state: state, pushUpdates: .none)
+                status = .live
+            } catch {
+                status = .failed(error.localizedDescription)
+            }
         } catch {
             status = .failed(error.localizedDescription)
         }

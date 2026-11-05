@@ -11,6 +11,8 @@ final class FakeLiveRankActivities: LiveRankActivities {
     private(set) var log: [String] = []
     private(set) var startedPushUpdates: [LiveRankPushUpdates] = []
     var startError: (any Error)?
+    /// Fails only push-token requests, like a build without the Push Notifications entitlement.
+    var tokenStartError: (any Error)?
     private var next = 0
 
     func current() -> [LiveRankActivity] { running }
@@ -28,6 +30,7 @@ final class FakeLiveRankActivities: LiveRankActivities {
     func start(_ attributes: LiveRankAttributes, state: LiveRankState, pushUpdates: LiveRankPushUpdates) throws
         -> LiveRankActivity {
         if let startError { throw startError }
+        if pushUpdates == .token, let tokenStartError { throw tokenStartError }
         next += 1
         let activity = LiveRankActivity(id: "a\(next)", selfLogin: attributes.selfLogin, state: state)
         running.append(activity)
@@ -55,8 +58,12 @@ final class FakeLiveRankActivities: LiveRankActivities {
 final class FakeLiveRankRelay: LiveRankRegistrar {
     var pushUpdates: LiveRankPushUpdates = .none
     private(set) var configurations: [LiveRankConfiguration?] = []
+    private(set) var retries = 0
     func liveRankDidChange(_ configuration: LiveRankConfiguration?) async {
         configurations.append(configuration)
+    }
+    func retryPendingWork() async {
+        retries += 1
     }
 }
 
@@ -338,6 +345,7 @@ struct LiveRankLifecycleTests {
 
     @Test func relayDecidesWhetherActivitiesTakePushUpdates() async {
         relay.pushUpdates = .token
+        preferences.save(LiveRankPreferences(isEnabled: true, relayDisclosureAccepted: true))
         let (model, _) = makeModel()
         await model.sceneDidBecomeActive()
         #expect(activities.startedPushUpdates == [.token])
