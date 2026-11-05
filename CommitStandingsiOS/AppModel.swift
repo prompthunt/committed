@@ -179,9 +179,15 @@ final class AppModel {
         for observer in observers { NotificationCenter.default.removeObserver(observer) }
     }
 
-    /// Sign back in from the saved token after a launch while the phone was locked.
+    /// After a launch while the phone was locked, once it's unlocked (both callers run then):
+    /// sign back in from the saved token, or, with no token, know that GitHub is disconnected
+    /// (so an unregister still owed to the relay goes out).
     private func restoreSavedSession() {
-        if auth.restoreSavedSession() { liveRank.connected() }
+        if auth.restoreSavedSession() {
+            liveRank.connected()
+        } else if !auth.isSignedIn {
+            liveRank.signedOutAtLaunch()
+        }
     }
 
     // MARK: - Refresh policy

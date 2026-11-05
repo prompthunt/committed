@@ -265,6 +265,34 @@ struct LiveRankRelayTests {
         #expect(activities.only?.id == pushed.id)
     }
 
+    @Test func anUnregisterOwedFromALockedLaunchIsSentOnceThePhoneIsUnlocked() async throws {
+        // Signed out earlier while the relay couldn't be reached, then launched in the background
+        // while locked: whether GitHub is connected is unknown until the phone is unlocked.
+        let relayStore = InMemoryLiveRankRelayStore()
+        let h = await live(relayStore: relayStore)
+        h.relay.failNext(.unreachable("offline"))
+        h.app.disconnect()
+        await h.app.liveRank.idle()
+        #expect(h.relay.unregisterCount == 0)
+
+        let relay = FakeRelayClient()
+        let unlocked = UnlockState()
+        var dependencies = AppDependencies.testing(contributions: StubContributions(), credentials: InMemoryGitHubCredentialStore())
+        dependencies.liveRankPersistence = h.persistence
+        dependencies.relay = LiveRankRelayDependencies(client: relay, store: relayStore, environment: "sandbox")
+        dependencies.isProtectedDataAvailable = { unlocked.value }
+        let app = AppModel(dependencies)
+        app.liveRank.scheduleSync()
+        await app.liveRank.idle()
+        #expect(relay.unregisterCount == 0, "locked: not known to be signed out yet")
+
+        unlocked.value = true
+        await app.sceneDidBecomeActive()
+        await app.liveRank.idle()
+
+        #expect(relay.unregisterCount == 1)
+    }
+
     final class UnlockState: @unchecked Sendable {
         var value = false
     }

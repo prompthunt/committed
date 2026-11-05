@@ -160,9 +160,10 @@ final class LiveRankController {
         scheduleSync()
     }
 
-    /// Launched without a readable token while the phone could read it: really signed out.
+    /// No token while the phone can read the Keychain: really signed out. Only settles an
+    /// unknown connection; an explicit connect or disconnect stands.
     func signedOutAtLaunch() {
-        connection = .disconnected
+        if connection == .unknown { connection = .disconnected }
     }
 
     /// Sync soon, from synchronous code (hide/show, sign-out); `idle()` waits for it.
