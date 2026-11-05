@@ -52,6 +52,8 @@ final class RefreshCoordinator {
     private let store: StandingsStore
     private let client: ContributionsFetching
     private let interval: TimeInterval
+    /// The timer's wait between refreshes; throws when the timer is paused (cancelled).
+    private let sleep: @Sendable (TimeInterval) async throws -> Void
     private let now: @Sendable () -> Date
     private var generation = UUID()
     private var baselineVisibilityRevision = 0
@@ -77,6 +79,7 @@ final class RefreshCoordinator {
         store: StandingsStore,
         client: ContributionsFetching,
         interval: TimeInterval = 300,
+        sleep: @Sendable @escaping (TimeInterval) async throws -> Void = { try await Task.sleep(for: .seconds($0)) },
         now: @Sendable @escaping () -> Date = { Date() },
         notifier: RankChangeNotifying? = nil,
         additionalWindows: @escaping @MainActor () -> [ContributionWindow] = { [] },
@@ -89,6 +92,7 @@ final class RefreshCoordinator {
         self.store = store
         self.client = client
         self.interval = interval
+        self.sleep = sleep
         self.now = now
         self.notifier = notifier
         startTimer()
@@ -351,9 +355,10 @@ final class RefreshCoordinator {
     private func startTimer() {
         timerTask?.cancel()
         let interval = self.interval
+        let sleep = self.sleep
         timerTask = Task { [weak self] in
             while !Task.isCancelled {
-                try? await Task.sleep(nanoseconds: UInt64(interval * 1_000_000_000))
+                try? await sleep(interval)
                 if Task.isCancelled { return }
                 // Run the refresh in its own task so pausing the timer never cancels a refresh
                 // midway (which would leave rows flagged as loading).

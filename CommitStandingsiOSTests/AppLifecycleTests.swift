@@ -13,7 +13,7 @@ struct AppLifecycleTests {
     private func connectedApp(
         clock: TestClock,
         contributions: StubContributions,
-        refreshInterval: TimeInterval = 99_999
+        timer: ManualTimer = ManualTimer()
     ) async -> AppModel {
         FakeGitHub.reset(.init(login: "me", following: ["alice"]))
         var dependencies = AppDependencies.testing(
@@ -21,7 +21,7 @@ struct AppLifecycleTests {
             credentials: InMemoryGitHubCredentialStore(token: "gho_test"),
             clock: clock
         )
-        dependencies.refreshInterval = refreshInterval
+        dependencies.timerSleep = timer.sleep
         let app = AppModel(dependencies)
         await app.refresh.refreshAll(reason: .manual)
         return app
@@ -56,17 +56,20 @@ struct AppLifecycleTests {
     @Test func theTimerRefreshesWhileActiveAndPausesInTheBackground() async throws {
         let clock = TestClock()
         let contributions = StubContributions(["me": 1, "alice": 2])
-        let app = await connectedApp(clock: clock, contributions: contributions, refreshInterval: 0.03)
+        let timer = ManualTimer()
+        let app = await connectedApp(clock: clock, contributions: contributions, timer: timer)
+        let loaded = await contributions.callCount()
+
+        await timer.tick()
+        #expect(await contributions.callCount() == loaded + 2, "a timer tick refreshes everyone")
 
         app.sceneDidEnterBackground()
-        let atBackground = await contributions.callCount()
-        try await Task.sleep(for: .milliseconds(200))
-        #expect(await contributions.callCount() == atBackground, "no timer refreshes in the background")
+        #expect(!timer.isWaiting, "no timer refreshes in the background")
 
         await app.sceneDidBecomeActive()
-        try await Task.sleep(for: .milliseconds(300))
+        await timer.tick()
+        #expect(await contributions.callCount() == loaded + 4, "the timer runs again once active")
         app.sceneDidEnterBackground()
-        #expect(await contributions.callCount() > atBackground, "the timer runs again once active")
     }
 
     @Test func switchingToACachedWindowShowsItsNumbersWithoutFetching() async {

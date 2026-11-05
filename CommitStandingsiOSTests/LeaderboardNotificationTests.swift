@@ -19,13 +19,6 @@ struct LeaderboardNotificationTests {
         return AppModel(dependencies)
     }
 
-    /// `post` delivers on its own task; give it a moment.
-    private func waitForDelivery(_ center: FakeNotificationCenter) async {
-        for _ in 0..<100 where center.delivered.isEmpty {
-            try? await Task.sleep(for: .milliseconds(10))
-        }
-    }
-
     @Test func someonePassingYouBetweenRefreshesPostsTheExistingCopy() async {
         let center = FakeNotificationCenter()
         let contributions = StubContributions(["me": 5, "alice": 3])
@@ -35,7 +28,7 @@ struct LeaderboardNotificationTests {
 
         await contributions.set("alice", 8)
         await app.refresh.refreshAll(reason: .timer)
-        await waitForDelivery(center)
+        await app.notifications.idle()
 
         #expect(center.delivered.map(\.title) == ["😤 alice passed you"])
         #expect(center.delivered.first?.body == "They're ahead 8–5. Time to catch up!")
@@ -50,12 +43,12 @@ struct LeaderboardNotificationTests {
 
         await contributions.set("me", 6)
         await app.refresh.refreshAll(reason: .becameActive)
-        await waitForDelivery(center)
+        await app.notifications.idle()
 
         #expect(center.delivered.map(\.title) == ["🎉 You passed alice!"])
     }
 
-    @Test func nothingIsPostedWhileNotificationsAreOff() async throws {
+    @Test func nothingIsPostedWhileNotificationsAreOff() async {
         let center = FakeNotificationCenter()
         let contributions = StubContributions(["me": 5, "alice": 3])
         let app = app(center: center, contributions: contributions)
@@ -63,7 +56,7 @@ struct LeaderboardNotificationTests {
 
         await contributions.set("alice", 8)
         await app.refresh.refreshAll(reason: .timer)
-        try await Task.sleep(for: .milliseconds(100))
+        await app.notifications.idle()
 
         #expect(center.delivered.isEmpty)
     }

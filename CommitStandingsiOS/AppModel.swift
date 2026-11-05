@@ -19,6 +19,8 @@ struct AppDependencies {
     }
     /// Seconds between refreshes while the app is active.
     var refreshInterval: TimeInterval = 300
+    /// The refresh timer's wait (real sleeping in production; tests fire it by hand).
+    var timerSleep: @Sendable (TimeInterval) async throws -> Void = { try await Task.sleep(for: .seconds($0)) }
     /// The wait between device-flow polls (real sleeping in production).
     var authSleep: @Sendable (UInt64) async -> Void = { try? await Task.sleep(nanoseconds: $0) }
     var now: @Sendable () -> Date = { Date() }
@@ -117,6 +119,7 @@ final class AppModel {
             store: store,
             client: dependencies.contributions,
             interval: dependencies.refreshInterval,
+            sleep: dependencies.timerSleep,
             now: dependencies.now,
             notifier: notifications,
             // Live rank can follow another Window than the board; keep it current too.

@@ -87,7 +87,22 @@ final class NotificationService: RankChangeNotifying {
 
     func post(_ events: [RankChangeEvent]) {
         guard isEnabled, !events.isEmpty else { return }
-        Task { await deliver(events) }
+        let previous = delivery
+        delivery = Task {
+            await previous?.value
+            await deliver(events)
+        }
+    }
+
+    /// The latest delivery `post` started; deliveries run in order.
+    @ObservationIgnored private var delivery: Task<Void, Never>?
+
+    /// Wait until everything `post` handed over has been delivered (or dropped).
+    func idle() async {
+        while let task = delivery {
+            await task.value
+            if delivery == task { break }
+        }
     }
 
     private func deliver(_ events: [RankChangeEvent]) async {

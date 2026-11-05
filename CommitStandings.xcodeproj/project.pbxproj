@@ -42,6 +42,7 @@
 		2D3E309201DDEE2E885B8909 /* AppModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8327ABD84E4F7A490F69074B /* AppModel.swift */; };
 		2E546C7A373A781E27E8F77A /* LiveRankDerivation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 73D121CE91BC8C5ECEFF4876 /* LiveRankDerivation.swift */; };
 		2F92ED15E1FAFE2838B90FBF /* Standing.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D7951BB34A16E4847FB3A75 /* Standing.swift */; };
+		2FC94C3BAA7AEEB7A5FDD4B2 /* ManualTimer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 79ED95DB0E7216005BEDA9A4 /* ManualTimer.swift */; };
 		302E4A106546C25CCEF5ACE6 /* BackgroundRefresh.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD0BE2F0F178EA33F25FDB93 /* BackgroundRefresh.swift */; };
 		3032A47147EC780F188B1784 /* Competitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0E062D81143D59018AE88D4 /* Competitor.swift */; };
 		330179461F21A71F08C6F9A5 /* ContributionsParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE0A524931662EF58DB043E6 /* ContributionsParser.swift */; };
@@ -49,6 +50,7 @@
 		3ACF15DFF031284C87D1F065 /* NotificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1B215A09A572661D0932EFE0 /* NotificationService.swift */; };
 		3E1E66E727D5D637EE37F7DD /* Persistence.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4E8F7283802C87D59603B81 /* Persistence.swift */; };
 		4038F9FE0C507515D6D04B6C /* BoardSummaryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F048B419E9F53A5220F5252B /* BoardSummaryView.swift */; };
+		414B16256F3A2A20559A5D0E /* ManualTimer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 79ED95DB0E7216005BEDA9A4 /* ManualTimer.swift */; };
 		419CA9810F877F7C6A046D85 /* CommitStandingsLiveRank.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 43CB1BB28F3FEB00ECE8C936 /* CommitStandingsLiveRank.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		453DEF9F280A0A8B800C726F /* LeaderboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DB2F25FDB1394FDC092A7F8B /* LeaderboardView.swift */; };
 		478FF5ECB54854622EC62D42 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33193518482FA13B84E63C38 /* RootView.swift */; };
@@ -227,6 +229,7 @@
 		7192384D63DE5967A162AC30 /* LoginItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginItem.swift; sourceTree = "<group>"; };
 		73D121CE91BC8C5ECEFF4876 /* LiveRankDerivation.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = LiveRankDerivation.swift; sourceTree = "<group>"; };
 		76866934215DEC3819692529 /* ConnectFlowTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ConnectFlowTests.swift; sourceTree = "<group>"; };
+		79ED95DB0E7216005BEDA9A4 /* ManualTimer.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ManualTimer.swift; sourceTree = "<group>"; };
 		7BDB03341126129F2FC2BF7B /* DeepLinkTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DeepLinkTests.swift; sourceTree = "<group>"; };
 		7E4315F5FF040DDB73A716C8 /* BoardView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BoardView.swift; sourceTree = "<group>"; };
 		82671A489FAD81C0EF26A6D9 /* DuoLayoutRenders.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DuoLayoutRenders.swift; sourceTree = "<group>"; };
@@ -430,6 +433,7 @@
 				9943B5DF24FA90CDCCC59C63 /* RankChangeDetectorTests.swift */,
 				349DC217EFDB69766A74A420 /* NotificationCopyTests.swift */,
 				3D715179344FADAA43419A42 /* PeopleDirectoryTests.swift */,
+				79ED95DB0E7216005BEDA9A4 /* ManualTimer.swift */,
 			);
 			path = CommitStandingsTests;
 			sourceTree = "<group>";
@@ -728,6 +732,7 @@
 				D64F66D7DB942FA662B9FD52 /* RankChangeDetectorTests.swift in Sources */,
 				21DDE44540E0592AD399E643 /* NotificationCopyTests.swift in Sources */,
 				B43F718DB9CC8F03D6BFB01F /* PeopleDirectoryTests.swift in Sources */,
+				2FC94C3BAA7AEEB7A5FDD4B2 /* ManualTimer.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -803,6 +808,7 @@
 				13BD57189115F963F5AB3DB7 /* DuoLayoutRenders.swift in Sources */,
 				AD3449C736917E9DDA5A24E5 /* LiveRankRelayTests.swift in Sources */,
 				2B33FAE270C48BB07511EB7D /* RelayClientTests.swift in Sources */,
+				414B16256F3A2A20559A5D0E /* ManualTimer.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

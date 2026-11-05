@@ -367,22 +367,19 @@ struct RefreshCoordinatorTests {
         store.replaceRoster(owner: "me", members: [])
         let fetcher = StubFetcher()
         await fetcher.setSuccess(contributions: 1, for: "me")
-        let coord = RefreshCoordinator(store: store, client: fetcher, interval: 0.02)
+        let timer = ManualTimer()
+        let coord = RefreshCoordinator(store: store, client: fetcher, sleep: timer.sleep)
         coord.pauseTimer()
-        try await Task.sleep(for: .milliseconds(150))
-        #expect(await fetcher.calls(for: "me") == 0, "a paused timer never refreshes")
+        #expect(!timer.isWaiting, "a paused timer never refreshes")
+        #expect(await fetcher.calls(for: "me") == 0)
 
         coord.resumeTimer()
-        try await Task.sleep(for: .milliseconds(250))
-        coord.pauseTimer()
-        // Let a tick that was already running finish before taking the count.
-        try await Task.sleep(for: .milliseconds(50))
-        let afterResume = await fetcher.calls(for: "me")
-        #expect(afterResume >= 1, "a resumed timer refreshes again")
+        await timer.tick()
+        #expect(await fetcher.calls(for: "me") == 1, "a resumed timer refreshes again")
         #expect(coord.lastReason == .timer)
 
-        try await Task.sleep(for: .milliseconds(150))
-        #expect(await fetcher.calls(for: "me") == afterResume, "pausing again stops it")
+        coord.pauseTimer()
+        #expect(!timer.isWaiting, "pausing again stops it")
     }
 
     /// iPhone Live rank updates after every refresh, so the hook lives in the coordinator: its own
@@ -393,7 +390,8 @@ struct RefreshCoordinatorTests {
         let fetcher = StubFetcher()
         await fetcher.setSuccess(contributions: 4, for: "me")
         var seen: [(RefreshReason, Int?)] = []
-        let coord = RefreshCoordinator(store: store, client: fetcher, interval: 0.02, afterRefresh: { reason in
+        let timer = ManualTimer()
+        let coord = RefreshCoordinator(store: store, client: fetcher, sleep: timer.sleep, afterRefresh: { reason in
             seen.append((reason, store.lastUpdated == nil ? nil : store.standing(for: "me", window: .daily)?.contributions))
         })
         coord.pauseTimer()
@@ -402,10 +400,9 @@ struct RefreshCoordinatorTests {
         #expect(seen.first?.1 == 4, "runs after the counts land and the refresh is marked complete")
 
         coord.resumeTimer()
-        try await Task.sleep(for: .milliseconds(200))
+        await timer.tick()
         coord.pauseTimer()
-        try await Task.sleep(for: .milliseconds(50))
-        #expect(seen.contains { $0.0 == .timer })
+        #expect(seen.map(\.0) == [.manual, .timer])
     }
 
     @Test func afterRefreshIsSkippedWhenTheAccountChangesMidRefresh() async {
