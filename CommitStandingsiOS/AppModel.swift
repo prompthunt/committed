@@ -21,6 +21,9 @@ struct AppDependencies {
     /// The wait between device-flow polls (real sleeping in production).
     var authSleep: @Sendable (UInt64) async -> Void = { try? await Task.sleep(nanoseconds: $0) }
     var now: @Sendable () -> Date = { Date() }
+    /// Where the Leaderboard Notifications toggle is saved, and the center that shows them.
+    var notificationDefaults: UserDefaults = .standard
+    var notificationCenter: any NotificationCentering = SystemNotificationCenter()
 
     static func live() -> AppDependencies {
         AppDependencies(
@@ -65,7 +68,10 @@ final class AppModel {
             now: dependencies.now,
             fetch: { [rosterFetch = dependencies.rosterFetch] in try await rosterFetch(session, $0) }
         )
-        let notifications = NotificationService()
+        let notifications = NotificationService(
+            defaults: dependencies.notificationDefaults,
+            center: dependencies.notificationCenter
+        )
         let refresh = RefreshCoordinator(
             store: store,
             client: dependencies.contributions,
@@ -115,6 +121,21 @@ final class AppModel {
     func windowDidChange() async {
         guard auth.isSignedIn, refresh.needsRefresh(for: store.selectedWindow) else { return }
         await refresh.refreshAll(reason: .windowChanged)
+    }
+
+    // MARK: - People and account
+
+    /// Hide or show someone from the People tab. Every visibility change on iPhone comes through
+    /// here, so anything that mirrors the visible board (Live rank, the relay) hooks in below.
+    func setHidden(_ hidden: Bool, username: String) async {
+        await PeopleDirectory.setHidden(hidden, username: username, store: store, refresh: refresh)
+    }
+
+    /// Settings → Disconnect GitHub: delete the token and this account's cached people and counts,
+    /// keeping visibility choices for a later reconnect. Anything else to revoke on disconnect
+    /// (Live rank, the relay registration) goes here.
+    func disconnect() {
+        auth.signOut()
     }
 
     // MARK: - Deep links

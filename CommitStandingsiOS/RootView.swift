@@ -50,10 +50,10 @@ struct AppTabs: View {
                 BoardView()
             }
             Tab("People", systemImage: "person.2", value: AppModel.Tab.people) {
-                PeoplePlaceholderView()
+                PeopleView()
             }
             Tab("Settings", systemImage: "gearshape", value: AppModel.Tab.settings) {
-                SettingsPlaceholderView()
+                SettingsView()
             }
         }
     }

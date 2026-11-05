@@ -160,7 +160,10 @@ extension AppDependencies {
             rosterPersistence: nil,
             refreshInterval: 99_999,
             authSleep: authSleep ?? { _ in },
-            now: { clock.date }
+            now: { clock.date },
+            // A throwaway store, so tests never flip the real app's notification toggle.
+            notificationDefaults: UserDefaults(suiteName: "CommitStandingsiOSTests.\(UUID().uuidString)")!,
+            notificationCenter: FakeNotificationCenter()
         )
     }
 }

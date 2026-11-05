@@ -84,6 +84,7 @@ targets:
       - path: CommitStandings/Views/AvatarView.swift
       - path: CommitStandings/Views/RosterStatusView.swift
       - path: CommitStandings/Views/PrivateContributionsTip.swift
+      - path: CommitStandings/Views/ContributionsExplainer.swift
     dependencies:
       - target: CommitStandingsLiveRank
         embed: true
