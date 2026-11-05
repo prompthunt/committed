@@ -104,10 +104,72 @@ struct ContributionsParserTests {
         #expect(ContributionsParser.sum(days: days, window: .weekly, asOf: asOf) == 0)
     }
 
+    // MARK: - Shared fixture (also run by the relay's TypeScript port)
+
+    @Test func parse_matchesSharedFixture() throws {
+        let fixture = try SharedParserFixture.load()
+        #expect(!fixture.parse.isEmpty)
+        for testCase in fixture.parse {
+            if let error = testCase.error {
+                #expect(throws: ContributionsError.parseFailed(error), "\(testCase.name)") {
+                    _ = try ContributionsParser.parseDays(html: testCase.html)
+                }
+                continue
+            }
+            let days = try ContributionsParser.parseDays(html: testCase.html)
+            let expected = try Dictionary(uniqueKeysWithValues: (testCase.days ?? [:]).map { (try date($0.key), $0.value) })
+            #expect(days == expected, "\(testCase.name)")
+        }
+    }
+
+    @Test func sum_matchesSharedFixture() throws {
+        let fixture = try SharedParserFixture.load()
+        #expect(!fixture.sum.isEmpty)
+        for testCase in fixture.sum {
+            let days = try Dictionary(uniqueKeysWithValues: testCase.days.map { (try date($0.key), $0.value) })
+            let window = try #require(ContributionWindow(rawValue: testCase.window), "\(testCase.name)")
+            let total = ContributionsParser.sum(days: days, window: window, asOf: try date(testCase.today))
+            #expect(total == testCase.expected, "\(testCase.name)")
+        }
+    }
+
+    private func date(_ ymd: String) throws -> Date {
+        let parts = ymd.split(separator: "-").compactMap { Int($0) }
+        try #require(parts.count == 3, "bad fixture date \(ymd)")
+        return self.ymd(parts[0], parts[1], parts[2])
+    }
+
     // MARK: - Helpers
 
     func ymd(_ y: Int, _ m: Int, _ d: Int) -> Date {
         let cal = ContributionsParser.isoCalendar()
         return cal.date(from: DateComponents(year: y, month: m, day: d))!
+    }
+}
+
+/// `shared/fixtures/contributions-parser.json`, located relative to this source file.
+private struct SharedParserFixture: Decodable {
+    struct ParseCase: Decodable {
+        let name: String
+        let html: String
+        let days: [String: Int]?
+        let error: String?
+    }
+    struct SumCase: Decodable {
+        let name: String
+        let days: [String: Int]
+        let window: String
+        let today: String
+        let expected: Int
+    }
+    let parse: [ParseCase]
+    let sum: [SumCase]
+
+    static func load(filePath: String = #filePath) throws -> SharedParserFixture {
+        let url = URL(fileURLWithPath: filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .appendingPathComponent("shared/fixtures/contributions-parser.json")
+        return try JSONDecoder().decode(SharedParserFixture.self, from: Data(contentsOf: url))
     }
 }

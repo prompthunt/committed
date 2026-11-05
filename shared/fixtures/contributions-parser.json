@@ -1,0 +1,92 @@
+{
+  "description": "Contributions parser conformance cases. Shared by the Mac tests (ContributionsParserTests.swift) and the relay tests (relay/test/parser.test.ts). The HTML cases are lifted from ContributionsParserTests.swift plus the Windows fixture windows/core/tests/fixtures/modern.html. Days are calendar dates (YYYY-MM-DD) exactly as written in the page; windows are summed against a local calendar day.",
+  "parse": [
+    {
+      "name": "modern format: tooltip-linked cells",
+      "html": "<table>\n  <td data-date=\"2026-05-22\" id=\"cd-0\"></td>\n  <td data-date=\"2026-05-23\" id=\"cd-1\"></td>\n  <td data-date=\"2026-05-28\" id=\"cd-2\"></td>\n</table>\n<tool-tip for=\"cd-0\" popover=\"manual\">3 contributions on Friday May 22, 2026</tool-tip>\n<tool-tip for=\"cd-1\">No contributions on Saturday May 23, 2026</tool-tip>\n<tool-tip for=\"cd-2\">12 contributions on Thursday May 28, 2026</tool-tip>",
+      "days": { "2026-05-22": 3, "2026-05-23": 0, "2026-05-28": 12 }
+    },
+    {
+      "name": "legacy aria-label on the cell",
+      "html": "<td data-date=\"2026-05-28\" aria-label=\"7 contributions on Thursday, May 28, 2026\"></td>\n<td data-date=\"2026-05-27\" aria-label=\"No contributions on Wednesday, May 27, 2026\"></td>",
+      "days": { "2026-05-28": 7, "2026-05-27": 0 }
+    },
+    {
+      "name": "legacy aria-label on a child span",
+      "html": "<td data-date=\"2026-05-28\"><span aria-label=\"4 contributions on Thursday, May 28, 2026\"></span></td>",
+      "days": { "2026-05-28": 4 }
+    },
+    {
+      "name": "legacy data-count",
+      "html": "<td data-date=\"2026-05-28\" data-count=\"9\"></td>",
+      "days": { "2026-05-28": 9 }
+    },
+    {
+      "name": "comma-separated count",
+      "html": "<td data-date=\"2026-05-28\" id=\"cd-x\"></td>\n<tool-tip for=\"cd-x\">1,234 contributions on Thursday May 28, 2026</tool-tip>",
+      "days": { "2026-05-28": 1234 }
+    },
+    {
+      "name": "cell with no count source is zero",
+      "html": "<td data-date=\"2026-05-28\" id=\"cd-orphan\"></td>",
+      "days": { "2026-05-28": 0 }
+    },
+    {
+      "name": "mixed modern and legacy cells (Windows fixture modern.html)",
+      "html": "<table><tr>\n<td data-date=\"2026-05-21\" data-count=\"100\"></td>\n<td data-date=\"2026-05-22\" id=\"cd-0\"></td>\n<td data-date=\"2026-05-23\" id=\"cd-1\"></td>\n<td data-date=\"2026-05-28\" id=\"cd-2\"></td>\n<td data-date=\"2026-05-29\" data-count=\"100\"></td>\n</tr></table>\n<tool-tip for=\"cd-0\" popover=\"manual\">3 contributions on Friday May 22, 2026</tool-tip>\n<tool-tip for=\"cd-1\">No contributions on Saturday May 23, 2026</tool-tip>\n<tool-tip for=\"cd-2\">12 contributions on Thursday May 28, 2026</tool-tip>\n",
+      "days": { "2026-05-21": 100, "2026-05-22": 3, "2026-05-23": 0, "2026-05-28": 12, "2026-05-29": 100 }
+    },
+    {
+      "name": "empty page is a parse failure",
+      "html": "<html></html>",
+      "error": "No day cells found"
+    }
+  ],
+  "sum": [
+    {
+      "name": "daily includes only today",
+      "days": { "2026-05-27": 100, "2026-05-28": 7 },
+      "window": "daily",
+      "today": "2026-05-28",
+      "expected": 7
+    },
+    {
+      "name": "weekly includes today and the prior six days",
+      "days": {
+        "2026-05-21": 100,
+        "2026-05-22": 1,
+        "2026-05-23": 2,
+        "2026-05-24": 3,
+        "2026-05-25": 4,
+        "2026-05-26": 5,
+        "2026-05-27": 6,
+        "2026-05-28": 7,
+        "2026-05-29": 100
+      },
+      "window": "weekly",
+      "today": "2026-05-28",
+      "expected": 28
+    },
+    {
+      "name": "monthly includes today and the prior twenty-nine days",
+      "days": { "2026-04-30": 100, "2026-05-01": 1, "2026-05-15": 2, "2026-05-30": 3, "2026-05-31": 100 },
+      "window": "monthly",
+      "today": "2026-05-30",
+      "expected": 6
+    },
+    {
+      "name": "weekly window crossing a month and a DST change",
+      "days": { "2026-03-02": 50, "2026-03-03": 1, "2026-03-08": 2, "2026-03-09": 4 },
+      "window": "weekly",
+      "today": "2026-03-09",
+      "expected": 7
+    },
+    {
+      "name": "zero activity sums to zero",
+      "days": { "2026-05-28": 0 },
+      "window": "weekly",
+      "today": "2026-05-28",
+      "expected": 0
+    }
+  ]
+}
