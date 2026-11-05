@@ -16,7 +16,7 @@ struct AvatarView: View {
 
     var body: some View {
         #if os(iOS)
-        if let saved = AvatarCache.shared.image(for: username) {
+        if usesSavedCopy, let saved = AvatarCache.shared.image(for: username) {
             Image(uiImage: saved)
                 .resizable()
                 .scaledToFill()
@@ -30,6 +30,16 @@ struct AvatarView: View {
         remote
         #endif
     }
+
+    #if os(iOS)
+    @Environment(\.displayScale) private var displayScale
+
+    /// The small saved copy is sharp up to Live rank's size. Bigger avatars load from the network
+    /// when they can, and use the saved copy only where there's no network (Live rank, fixtures).
+    private var usesSavedCopy: Bool {
+        !loadsGitHubAvatars || size * displayScale <= CGFloat(AvatarCache.pixelSize)
+    }
+    #endif
 
     private var remote: some View {
         AsyncImage(url: loadsGitHubAvatars ? avatarURL : nil) { phase in

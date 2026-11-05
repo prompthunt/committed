@@ -88,7 +88,13 @@ enum ScreenshotFixture {
     /// pattern, seeded by login) saved to the App Group cache like real ones, so the board and
     /// Live rank show the avatar shape without any real account's photo.
     static func avatars(cache: AvatarCache = .shared) -> any AvatarPrefetching {
-        GeneratedAvatars(cache: cache)
+        let avatars = GeneratedAvatars(cache: cache)
+        // Saved before the first frame, so the board shows them from the start, not only after
+        // a refresh re-renders its rows.
+        for login in ["sam-rivera", "maya-chen", "priya-s", "devon-k", "lee-park", "jordan-a"] {
+            cache.store(GeneratedAvatars.identicon(for: login), for: login)
+        }
+        return avatars
     }
 
     struct GeneratedAvatars: AvatarPrefetching {
