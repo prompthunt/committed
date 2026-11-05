@@ -40,7 +40,7 @@ struct PeopleVisibilityTests {
         let app = await loadedApp(Device())
         #expect(boardNames(app) == ["alice", "me", "bob"])
 
-        await app.setHidden(true, username: "alice")
+        await app.setHidden(true, username: "alice")?.value
 
         #expect(boardNames(app) == ["me", "bob"])
         #expect(Board(store: app.store, refresh: app.refresh).summary?.rank == 1)
@@ -52,20 +52,30 @@ struct PeopleVisibilityTests {
     @Test func showingSomeoneAgainRestoresThemWithFreshNumbers() async {
         let device = Device()
         let app = await loadedApp(device)
-        await app.setHidden(true, username: "alice")
+        await app.setHidden(true, username: "alice")?.value
         await device.contributions.set("alice", 11)
 
-        await app.setHidden(false, username: "alice")
+        await app.setHidden(false, username: "alice")?.value
 
         #expect(boardNames(app) == ["alice", "me", "bob"])
         #expect(app.store.standing(for: "alice", window: .daily)?.contributions == 11)
         #expect(await device.contributions.calls.last?.username == "alice")
     }
 
+    @Test func twoQuickTapsHideThenShowAgain() async {
+        let app = await loadedApp(Device())
+
+        app.setHidden(true, username: "alice")
+        #expect(!boardNames(app).contains("alice"), "hidden before the call returns")
+        await app.setHidden(false, username: "alice")?.value
+
+        #expect(boardNames(app) == ["alice", "me", "bob"])
+    }
+
     @Test func youCannotHideYourself() async {
         let app = await loadedApp(Device())
 
-        await app.setHidden(true, username: "me")
+        await app.setHidden(true, username: "me")?.value
 
         #expect(!app.store.isHidden("me"))
         #expect(boardNames(app) == ["alice", "me", "bob"])
@@ -74,7 +84,7 @@ struct PeopleVisibilityTests {
     @Test func hiddenPeopleStayHiddenAfterRelaunch() async {
         let device = Device()
         let app = await loadedApp(device)
-        await app.setHidden(true, username: "alice")
+        await app.setHidden(true, username: "alice")?.value
 
         let relaunched = device.launch()
 
@@ -97,7 +107,7 @@ struct PeopleVisibilityTests {
     @Test func hiddenPeopleStayHiddenAfterDisconnectAndReconnect() async {
         let device = Device()
         let app = await loadedApp(device)
-        await app.setHidden(true, username: "alice")
+        await app.setHidden(true, username: "alice")?.value
 
         app.disconnect()
         FakeGitHub.reset(.init(polls: [.token("gho_again")], login: "me", following: ["alice"],

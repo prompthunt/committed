@@ -2,28 +2,6 @@ import Testing
 import Foundation
 @testable import CommitStandingsiOS
 
-/// A notification center that records what it was asked to show.
-final class FakeNotificationCenter: NotificationCentering, @unchecked Sendable {
-    private let lock = NSLock()
-    private var _delivered: [(id: String, title: String, body: String)] = []
-    private var _authorizationRequests = 0
-    let grantsPermission: Bool
-
-    init(grantsPermission: Bool = true) { self.grantsPermission = grantsPermission }
-
-    var delivered: [(id: String, title: String, body: String)] { lock.withLock { _delivered } }
-    var authorizationRequests: Int { lock.withLock { _authorizationRequests } }
-
-    func requestAuthorization() async -> Bool {
-        lock.withLock { _authorizationRequests += 1 }
-        return grantsPermission
-    }
-    func isAuthorized() async -> Bool { grantsPermission }
-    func add(id: String, title: String, body: String) async {
-        lock.withLock { _delivered.append((id, title, body)) }
-    }
-}
-
 /// Leaderboard Notifications on iPhone: crossings found by foreground refreshes are posted with
 /// the Mac's copy, only after you turn them on and allow them.
 extension FakeGitHubSuites {

@@ -104,8 +104,7 @@ private struct PersonRow: View {
     }
 
     private func toggle() {
-        let shouldHide = !hidden
-        Task { await app.setHidden(shouldHide, username: person.username) }
+        app.setHidden(!hidden, username: person.username)
     }
 }
 

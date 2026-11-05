@@ -20,14 +20,16 @@ enum PeopleDirectory {
         .sorted { $0.username < $1.username }
     }
 
-    /// Hide or show someone on this device's board. Hiding takes effect at once; showing
-    /// someone again re-fetches just their numbers. You can't hide yourself (the store ignores it).
-    @MainActor
-    static func setHidden(_ hidden: Bool, username: String, store: StandingsStore, refresh: RefreshCoordinator) async {
-        guard store.isHidden(username) != hidden else { return }
+    /// Hide or show someone on this device's board. The change applies before this returns, so
+    /// quick repeated taps toggle reliably. Showing someone again also re-fetches just their
+    /// numbers; that refresh is the returned task. You can't hide yourself (the store ignores it).
+    @MainActor @discardableResult
+    static func setHidden(
+        _ hidden: Bool, username: String, store: StandingsStore, refresh: RefreshCoordinator
+    ) -> Task<Void, Never>? {
+        guard store.isHidden(username) != hidden else { return nil }
         store.setHidden(hidden, username: username)
-        if !hidden {
-            await refresh.refreshOne(username: username, reason: .visibilityChanged)
-        }
+        guard !hidden, !store.isHidden(username) else { return nil }
+        return Task { await refresh.refreshOne(username: username, reason: .visibilityChanged) }
     }
 }

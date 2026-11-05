@@ -125,10 +125,13 @@ final class AppModel {
 
     // MARK: - People and account
 
-    /// Hide or show someone from the People tab. Every visibility change on iPhone comes through
-    /// here, so anything that mirrors the visible board (Live rank, the relay) hooks in below.
-    func setHidden(_ hidden: Bool, username: String) async {
-        await PeopleDirectory.setHidden(hidden, username: username, store: store, refresh: refresh)
+    /// Hide or show someone from the People tab. The board changes before this returns; the
+    /// returned task is the one-person refresh after showing someone again. Every visibility
+    /// change on iPhone comes through here, so anything that mirrors the visible board (Live
+    /// rank, the relay) hooks in below.
+    @discardableResult
+    func setHidden(_ hidden: Bool, username: String) -> Task<Void, Never>? {
+        PeopleDirectory.setHidden(hidden, username: username, store: store, refresh: refresh)
     }
 
     /// Settings → Disconnect GitHub: delete the token and this account's cached people and counts,

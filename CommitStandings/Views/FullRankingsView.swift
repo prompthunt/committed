@@ -124,6 +124,6 @@ private struct PersonVisibilityRow: View {
     private func toggleVisibility() {
         guard !person.isSelf else { return }
         let shouldHide = !hidden
-        Task { await PeopleDirectory.setHidden(shouldHide, username: person.username, store: store, refresh: refresh) }
+        PeopleDirectory.setHidden(shouldHide, username: person.username, store: store, refresh: refresh)
     }
 }
