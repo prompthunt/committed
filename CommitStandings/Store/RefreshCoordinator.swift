@@ -301,6 +301,19 @@ final class RefreshCoordinator {
         }
     }
 
+    /// Stop the periodic refresh (iPhone: the app moved to the background). An in-flight
+    /// refresh finishes normally; only future ticks stop.
+    func pauseTimer() {
+        timerTask?.cancel()
+        timerTask = nil
+    }
+
+    /// Restart the periodic refresh with a full interval from now. The Mac never pauses, so
+    /// its timer runs from `init` as before.
+    func resumeTimer() {
+        startTimer()
+    }
+
     private func startTimer() {
         timerTask?.cancel()
         let interval = self.interval
@@ -308,7 +321,9 @@ final class RefreshCoordinator {
             while !Task.isCancelled {
                 try? await Task.sleep(nanoseconds: UInt64(interval * 1_000_000_000))
                 if Task.isCancelled { return }
-                await self?.refreshAll(reason: .timer)
+                // Run the refresh in its own task so pausing the timer never cancels a refresh
+                // midway (which would leave rows flagged as loading).
+                await Task { [weak self] in await self?.refreshAll(reason: .timer) }.value
             }
         }
     }

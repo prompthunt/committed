@@ -360,6 +360,29 @@ struct RefreshCoordinatorTests {
         await task.value
         #expect(store.standing(for: "octocat", window: .daily) == nil, "removed competitor's standing should not be written")
     }
+
+    /// iPhone pauses the 5-minute timer in the background and resumes it on becoming active.
+    @Test func pausedTimerStopsFiringUntilResumed() async throws {
+        let store = StandingsStore(persistence: InMemoryCompetitorPersistence())
+        store.replaceRoster(owner: "me", members: [])
+        let fetcher = StubFetcher()
+        await fetcher.setSuccess(contributions: 1, for: "me")
+        let coord = RefreshCoordinator(store: store, client: fetcher, interval: 0.02)
+        coord.pauseTimer()
+        try await Task.sleep(for: .milliseconds(150))
+        #expect(await fetcher.calls(for: "me") == 0, "a paused timer never refreshes")
+
+        coord.resumeTimer()
+        try await Task.sleep(for: .milliseconds(250))
+        coord.pauseTimer()
+        let afterResume = await fetcher.calls(for: "me")
+        #expect(afterResume >= 1, "a resumed timer refreshes again")
+        #expect(coord.lastReason == .timer)
+
+        try await Task.sleep(for: .milliseconds(150))
+        #expect(await fetcher.calls(for: "me") == afterResume, "pausing again stops it")
+    }
+
 }
 
 private actor ConcurrencyCountingFetcher: ContributionsFetching {
