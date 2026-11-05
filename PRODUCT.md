@@ -67,7 +67,7 @@ All three windows are available once the contribution data loads; there is no hi
 
 ### On iPhone
 
-Committed for iPhone runs the same board, ranking, people sync, and visibility rules as the Mac app. It's a native app with three tabs: **Board**, **People**, and **Settings**. On iPhone Duo the tabs and toolbar sit in the vertical side bar.
+Committed for iPhone runs the same board, ranking, people sync, and visibility rules as the Mac app. It's a native app with three tabs: **Board**, **People**, and **Settings**. On iPhone Duo the tabs and toolbar sit in the vertical side bar. It's dark only and wears the website's look: an ink background, lime for you and your rank, Inter Tight numbers, and a lit field of contribution squares behind your rank.
 
 - **Board** — your summary, the **Today / 7 days / 30 days** switch, and everyone ranked with the same rows as the Mac popover, including the "you" badge, placeholders, today's movement, and the private-contributions tip. Pull to refresh reloads people and contributions. Opening the app refreshes only when the data is older than about 2 minutes; while open, the board refreshes about every 5 minutes.
 - **iPhone Duo** — open in landscape, the Board shows two panes divided evenly at the fold: the leaderboard on the leading side and your summary beside it. Wherever there's room for only one (closed, open in portrait, Split View), the leaderboard shows with your summary at the top. Opening and closing keeps the tab and the Window. Centered controls (Connect GitHub, the People filter) move to one side of the fold when it's partially folded like a book.
