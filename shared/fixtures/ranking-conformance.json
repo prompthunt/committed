@@ -5,7 +5,8 @@
     "standings": "login -> { contributions, window, lastUpdated }. lastUpdated is Unix seconds. A login with no entry has no data (never loaded, or its fetch failed with nothing cached). Standings for logins that are not in competitors must be ignored.",
     "rankDeltas": "login -> places moved since the day's baseline (+ up, - down). An input, not computed here.",
     "now": "Unix seconds, possibly fractional.",
-    "liveRankState": "Optional fields use null here. Encoders may omit nil keys; decoders must treat a missing key and null the same."
+    "liveRankState": "Optional fields use null here. Encoders may omit nil keys; decoders must treat a missing key and null the same.",
+    "updatedAt": "The oldest lastUpdated among the counts the state shows (you, above, below), rounded down to whole seconds; now, rounded down, when it shows none."
   },
   "cases": [
     {
@@ -42,7 +43,48 @@
           "above": { "login": "carol", "contributions": 7 },
           "below": { "login": "bob", "contributions": 3 },
           "movementToday": 1,
-          "updatedAt": 1800000120
+          "updatedAt": 1800000000
+        }
+      }
+    },
+    {
+      "name": "updatedAt is the oldest count shown: you and your neighbors",
+      "input": {
+        "competitors": [
+          { "login": "me", "isSelf": true },
+          { "login": "alice", "isSelf": false },
+          { "login": "bob", "isSelf": false },
+          { "login": "carol", "isSelf": false },
+          { "login": "dave", "isSelf": false }
+        ],
+        "standings": {
+          "me": { "contributions": 5, "window": "daily", "lastUpdated": 1800000250 },
+          "alice": { "contributions": 9, "window": "daily", "lastUpdated": 1800000000 },
+          "bob": { "contributions": 3, "window": "daily", "lastUpdated": 1800000150 },
+          "carol": { "contributions": 7, "window": "daily", "lastUpdated": 1800000200 },
+          "dave": { "contributions": 1, "window": "daily", "lastUpdated": 1800000300 }
+        },
+        "window": "daily",
+        "rankDeltas": {},
+        "now": 1800000400
+      },
+      "expected": {
+        "order": [
+          { "login": "alice", "rank": 1 },
+          { "login": "carol", "rank": 2 },
+          { "login": "me", "rank": 3 },
+          { "login": "bob", "rank": 4 },
+          { "login": "dave", "rank": 5 }
+        ],
+        "liveRankState": {
+          "window": "daily",
+          "rank": 3,
+          "competitorCount": 5,
+          "contributions": 5,
+          "above": { "login": "carol", "contributions": 7 },
+          "below": { "login": "bob", "contributions": 3 },
+          "movementToday": 0,
+          "updatedAt": 1800000150
         }
       }
     },
@@ -378,7 +420,7 @@
           "above": null,
           "below": null,
           "movementToday": 0,
-          "updatedAt": 1800000090
+          "updatedAt": 1800000300
         }
       }
     },
@@ -410,7 +452,7 @@
           "above": null,
           "below": null,
           "movementToday": 0,
-          "updatedAt": 1800000000
+          "updatedAt": 1800000300
         }
       }
     },

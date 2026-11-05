@@ -28,16 +28,20 @@ extension LiveRankState {
             return data[login].map { Neighbor(login: login, contributions: $0.contributions) }
         }
 
-        let newest = data.values.map(\.lastUpdated).max() ?? now
+        let above = selfIndex.flatMap { neighbor(at: $0 - 1) }
+        let below = selfIndex.flatMap { neighbor(at: $0 + 1) }
+        // The state is as old as the oldest count it shows, so a stale count of yours never looks fresh.
+        let shown = [contributions == nil ? nil : me?.competitor.username, above?.login, below?.login]
+        let oldest = shown.compactMap { $0.flatMap { data[$0]?.lastUpdated } }.min() ?? now
         return LiveRankState(
             window: window.rawValue,
             rank: ranks ? me?.rank : nil,
             competitorCount: competitors.count,
             contributions: contributions,
-            above: selfIndex.flatMap { neighbor(at: $0 - 1) },
-            below: selfIndex.flatMap { neighbor(at: $0 + 1) },
+            above: above,
+            below: below,
             movementToday: ranks && window == .daily ? (me.flatMap { rankDeltas[$0.competitor.username] } ?? 0) : 0,
-            updatedAt: Int(newest.timeIntervalSince1970.rounded(.down))
+            updatedAt: Int(oldest.timeIntervalSince1970.rounded(.down))
         )
     }
 }

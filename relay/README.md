@@ -115,8 +115,9 @@ and `now`.
 - With `rank == nil`, `above` and `below` are `nil` too.
 - **`movementToday`**: your delta from the input, only when the Window is `daily` and you have a
   rank; otherwise `0`.
-- **`updatedAt`**: the newest `lastUpdated` among visible standings for this Window, rounded
-  down to whole seconds; `now` (rounded down) when there are none.
+- **`updatedAt`**: the oldest `lastUpdated` among the counts the state shows (yours, `above`,
+  and `below`), rounded down to whole seconds; `now` (rounded down) when it shows none. A stale
+  count of yours, or of a neighbor, never looks fresh because someone else's refreshed.
 - **Encoding.** Dates are integer Unix seconds. Payloads omit `nil` keys, as Swift's synthesized
   `Encodable` does; the fixture writes them as `null`. Decoders treat a missing key and `null`
   alike.

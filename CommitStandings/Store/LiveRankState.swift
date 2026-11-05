@@ -26,7 +26,8 @@ struct LiveRankState: Codable, Hashable, Sendable {
     var below: Neighbor?
     /// Places moved since the day's baseline (+ up, − down). Today only; otherwise 0.
     var movementToday: Int
-    /// Unix seconds of the newest data shown, not of the update that carried it.
+    /// Unix seconds of the oldest count shown (yours, above, below), not of the update that
+    /// carried it, so a stale count never looks fresh.
     var updatedAt: Int
 }
 

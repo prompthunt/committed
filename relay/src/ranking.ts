@@ -79,20 +79,21 @@ export function deriveLiveRankState(input: LiveRankInput): LiveRankState {
     return count === null ? null : { login: entry.competitor.login, contributions: count };
   };
 
-  const dataTimes = competitors
-    .map((competitor) => standings[competitor.login])
-    .filter((standing): standing is Standing => standing !== undefined && standing.window === window)
-    .map((standing) => standing.lastUpdated);
+  const above = ranks ? neighbor(ranked[selfIndex - 1]) : null;
+  const below = ranks ? neighbor(ranked[selfIndex + 1]) : null;
+  // The state is as old as the oldest count it shows, so a stale count of yours never looks fresh.
+  const shown = [contributions === null ? null : self!.competitor.login, above?.login, below?.login];
+  const shownTimes = shown.flatMap((login) => (login ? [standings[login]!.lastUpdated] : []));
 
   return {
     window,
     rank: ranks ? self.rank : null,
     competitorCount: competitors.length,
     contributions,
-    above: ranks ? neighbor(ranked[selfIndex - 1]) : null,
-    below: ranks ? neighbor(ranked[selfIndex + 1]) : null,
+    above,
+    below,
     movementToday: ranks && window === "daily" ? (rankDeltas[self.competitor.login] ?? 0) : 0,
-    updatedAt: Math.floor(dataTimes.length > 0 ? Math.max(...dataTimes) : now),
+    updatedAt: Math.floor(shownTimes.length > 0 ? Math.min(...shownTimes) : now),
   };
 }
 
