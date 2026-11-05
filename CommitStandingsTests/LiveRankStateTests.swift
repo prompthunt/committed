@@ -91,6 +91,54 @@ struct LiveRankStateTests {
         #expect(week.movementToday == 0)
     }
 
+    /// The island's rows show each neighbor's chevron, like the board's rows.
+    @Test func neighborsCarryTheirOwnMovementOnToday() {
+        let state = derive(["me", "alice", "bob"], counts(["me": 5, "alice": 9, "bob": 2]),
+                           deltas: ["me": 1, "alice": -2])
+
+        #expect(state.above?.movementToday == -2)
+        #expect(state.below?.movementToday == 0)
+    }
+
+    @Test func neighborsHaveNoMovementOutsideToday() {
+        let state = derive(["me", "alice"], counts(["me": 5, "alice": 9], window: .weekly), window: .weekly,
+                           deltas: ["alice": 3])
+
+        #expect(state.above?.movementToday == 0)
+    }
+
+    @Test func neighborEncodesItsMovement() throws {
+        let state = derive(["me", "alice"], counts(["me": 5, "alice": 9]), deltas: ["alice": 1])
+        let json = try JSONSerialization.jsonObject(with: JSONEncoder().encode(state)) as? [String: Any]
+
+        #expect((json?["above"] as? [String: Any])?["movementToday"] as? Int == 1)
+    }
+
+    /// Pushes from a relay without the field, and states persisted by an older build, still decode.
+    @Test func neighborDecodesWithoutMovementAsZero() throws {
+        let json = #"""
+        {"window":"daily","rank":2,"competitorCount":3,"contributions":5,
+         "above":{"login":"alice","contributions":9},"below":{"login":"bob","contributions":1},
+         "movementToday":1,"updatedAt":1793800000}
+        """#
+        let state = try JSONDecoder().decode(LiveRankState.self, from: Data(json.utf8))
+
+        #expect(state.above == LiveRankState.Neighbor(login: "alice", contributions: 9, movementToday: 0))
+        #expect(state.below?.movementToday == 0)
+        #expect(state.movementToday == 1)
+    }
+
+    @Test func neighborDecodesItsMovement() throws {
+        let json = #"""
+        {"window":"daily","rank":2,"competitorCount":3,"contributions":5,
+         "above":{"login":"alice","contributions":9,"movementToday":-1},"below":null,
+         "movementToday":1,"updatedAt":1793800000}
+        """#
+        let state = try JSONDecoder().decode(LiveRankState.self, from: Data(json.utf8))
+
+        #expect(state.above == LiveRankState.Neighbor(login: "alice", contributions: 9, movementToday: -1))
+    }
+
     @Test func updatedAtIsWholeUnixSecondsOfTheData() {
         let state = derive(["me"], counts(["me": 1]), now: Date(timeIntervalSince1970: 1_793_800_123.9))
 
@@ -209,6 +257,17 @@ struct LiveRankBoardTests {
         let state = LiveRankState.board(store, window: .daily, rankDelta: { $0 == "me" ? -1 : 3 }, now: data)
 
         #expect(state.movementToday == -1)
+    }
+
+    @Test func todaysMovementOfTheNeighborsToo() {
+        let store = store(["me": 5, "alice": 9, "bob": 2])
+
+        let deltas = ["me": -1, "alice": 1, "bob": 2]
+
+        let state = LiveRankState.board(store, window: .daily, rankDelta: { deltas[$0] }, now: data)
+
+        #expect(state.above?.movementToday == 1)
+        #expect(state.below?.movementToday == 2)
     }
 
     @Test func updatedAtIsTheNewestDataNotTheClock() {

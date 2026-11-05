@@ -24,6 +24,8 @@ export interface LiveRankState {
 export interface Neighbor {
   login: string;
   contributions: number;
+  /** Their places moved since the day's baseline, like yours. Today only, else 0. */
+  movementToday: number;
 }
 
 export interface LiveRankInput {
@@ -32,7 +34,7 @@ export interface LiveRankInput {
   competitors: readonly string[];
   standings: Readonly<Record<string, Standing | undefined>>;
   window: Window;
-  /** Today's rank change per login (baseline − current); only used for the daily window. */
+  /** Today's rank change per login (baseline − current), yours and your neighbors'; daily window only. */
   rankDeltas: Readonly<Record<string, number | undefined>>;
   /** Unix seconds of the data. */
   now: number;
@@ -46,10 +48,11 @@ export function deriveLiveRankState(input: LiveRankInput): LiveRankState {
     const standing = standings[login];
     return standing && standing.window === window ? standing.contributions : null;
   };
+  const movement = (login: string): number => (window === "daily" ? (input.rankDeltas[login] ?? 0) : 0);
   const neighbor = (login: string | undefined): Neighbor | null => {
     if (login === undefined) return null;
     const contributions = countFor(login);
-    return contributions === null ? null : { login, contributions };
+    return contributions === null ? null : { login, contributions, movementToday: movement(login) };
   };
 
   const contributions = countFor(self);
@@ -63,7 +66,7 @@ export function deriveLiveRankState(input: LiveRankInput): LiveRankState {
     contributions,
     above: ranks ? neighbor(ranked[position - 1]?.login) : null,
     below: ranks ? neighbor(ranked[position + 1]?.login) : null,
-    movementToday: window === "daily" ? (input.rankDeltas[self] ?? 0) : 0,
+    movementToday: movement(self),
     updatedAt: Math.floor(input.now),
   };
 }

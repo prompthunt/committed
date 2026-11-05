@@ -9,7 +9,7 @@ const state: LiveRankState = {
   competitorCount: 2,
   contributions: 3,
   above: null,
-  below: { login: "alice", contributions: 1 },
+  below: { login: "alice", contributions: 1, movementToday: 0 },
   movementToday: 0,
   updatedAt: 1_793_800_000,
 };

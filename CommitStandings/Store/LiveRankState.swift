@@ -6,10 +6,13 @@ import Foundation
 /// `relay/src/liveRank.ts`. Dates are integer Unix seconds so the relay can encode them without
 /// `JSONDecoder`'s reference-date default.
 struct LiveRankState: Codable, Hashable, Sendable {
-    /// The person ranked next to you, with their count for the Window.
+    /// The person ranked next to you, with their count for the Window and how they've moved today.
     struct Neighbor: Codable, Hashable, Sendable {
         var login: String
         var contributions: Int
+        /// Their places moved since the day's baseline (+ up, − down), like yours. Today only;
+        /// otherwise 0. Absent from older pushes and saved states, which decode it as 0.
+        var movementToday: Int = 0
     }
 
     /// `ContributionWindow` raw value: "daily", "weekly", or "monthly".
@@ -28,6 +31,21 @@ struct LiveRankState: Codable, Hashable, Sendable {
     var movementToday: Int
     /// Unix seconds of the data, not of the update that carried it.
     var updatedAt: Int
+}
+
+extension LiveRankState.Neighbor {
+    private enum CodingKeys: String, CodingKey { case login, contributions, movementToday }
+
+    /// Tolerates a missing `movementToday` (added for #53), so a push from an older relay or a
+    /// state an older build saved still decodes. Encoding stays synthesized and always writes it.
+    init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.init(
+            login: try container.decode(String.self, forKey: .login),
+            contributions: try container.decode(Int.self, forKey: .contributions),
+            movementToday: try container.decodeIfPresent(Int.self, forKey: .movementToday) ?? 0
+        )
+    }
 }
 
 extension LiveRankState {

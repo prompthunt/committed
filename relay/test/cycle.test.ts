@@ -84,8 +84,8 @@ describe("updates", () => {
       rank: 2,
       competitorCount: 3,
       contributions: 5,
-      above: { login: "alice", contributions: 9 },
-      below: { login: "bob", contributions: 1 },
+      above: { login: "alice", contributions: 9, movementToday: 0 },
+      below: { login: "bob", contributions: 1, movementToday: 0 },
       movementToday: 0,
       updatedAt: T0,
     });
@@ -162,7 +162,7 @@ describe("updates", () => {
     expect(apns.sent.length).toBeGreaterThan(0); // heartbeats continue
     const last = apns.sent.at(-1)!.payload.aps;
     expect(last["stale-date"]).toBeGreaterThan(clock.seconds);
-    expect(last["content-state"].below).toEqual({ login: "bob", contributions: 1 });
+    expect(last["content-state"].below).toEqual({ login: "bob", contributions: 1, movementToday: 0 });
   });
 
   it("shows placeholders, not zero, when your counts can't be fetched", async () => {
@@ -205,6 +205,38 @@ describe("today's movement", () => {
     await relay.runCycle();
     expect(lastState().rank).toBe(1);
     expect(lastState().movementToday).toBe(1);
+  });
+
+  it("carries each neighbor's movement, so the island shows their chevrons too", async () => {
+    github.set("me", { "2026-11-05": 5 });
+    github.set("alice", { "2026-11-05": 9 });
+    github.set("bob", { "2026-11-05": 1 });
+    await register(ID);
+    await reportActivity(ID);
+    await relay.runCycle();
+
+    // Bob passes you: you drop to #3 with Bob directly above, up one since the morning.
+    github.set("bob", { "2026-11-05": 7 });
+    clock.advance(5 * MINUTE);
+    await relay.runCycle();
+    expect(lastState().rank).toBe(3);
+    expect(lastState().movementToday).toBe(-1);
+    expect(lastState().above).toEqual({ login: "bob", contributions: 7, movementToday: 1 });
+    expect(lastState().below).toBeNull();
+  });
+
+  it("reports no neighbor movement outside Today", async () => {
+    github.set("me", { "2026-11-05": 5 });
+    github.set("alice", { "2026-11-05": 9 });
+    github.set("bob", { "2026-11-05": 1 });
+    await register(ID, { window: "weekly" });
+    await reportActivity(ID);
+    await relay.runCycle();
+
+    github.set("bob", { "2026-11-05": 7 });
+    clock.advance(5 * MINUTE);
+    await relay.runCycle();
+    expect(lastState().above).toEqual({ login: "bob", contributions: 7, movementToday: 0 });
   });
 });
 

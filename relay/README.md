@@ -160,14 +160,14 @@ ordering and this port can't drift.
       "competitors": ["me", "alice", "bob"],            // board order, self included
       "window": "daily",
       "standings": { "me": { "contributions": 50, "window": "daily" } },  // absent = no data
-      "rankDeltas": { "me": 1 },                         // today's baseline − current
+      "rankDeltas": { "me": 1, "alice": -1 },            // today's baseline − current
       "now": 1793800000                                  // Unix seconds of the data
     },
     "expected": {
       "order": [{ "login": "alice", "rank": 1 }],
       "liveRankState": { "window": "daily", "rank": 2, "competitorCount": 3, "contributions": 50,
-                         "above": { "login": "alice", "contributions": 90 },
-                         "below": { "login": "bob", "contributions": 20 },
+                         "above": { "login": "alice", "contributions": 90, "movementToday": -1 },
+                         "below": { "login": "bob", "contributions": 20, "movementToday": 0 },
                          "movementToday": 1, "updatedAt": 1793800000 }
     }
   }]
@@ -182,7 +182,8 @@ ordering and this port can't drift.
 - `LiveRankState` rules:
   - `rank` is null with no data for you, or with no visible rivals.
   - `above` and `below` are null when there's no rank, or when that neighbor has no data.
-  - `movementToday` is 0 outside `daily`.
+  - `movementToday`, yours and each neighbor's in `above`/`below`, is that login's
+    `rankDeltas` entry on `daily`, and 0 outside it. The app decodes a neighbor without it as 0.
 - Add a case for any ranking behavior change, and run both suites.
 
 ## Setup (provisioning ticket)

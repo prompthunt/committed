@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "about": "Shared ranking conformance cases. Consumed by CommitStandingsTests/RankingConformanceTests.swift (Ranking.order) and relay/test/ranking.test.ts (Ranking port + LiveRankState). Expected values are worked by hand from the rules in CommitStandings/Store/Ranking.swift: contributions descending, a missing standing (or one for a different window) sorts last below a real 0, ties keep competitor order, ranks start at 1. See relay/README.md#conformance-fixture.",
+  "about": "Shared ranking conformance cases. Consumed by CommitStandingsTests/RankingConformanceTests.swift (Ranking.order) and relay/test/ranking.test.ts (Ranking port + LiveRankState). Expected values are worked by hand from the rules in CommitStandings/Store/Ranking.swift: contributions descending, a missing standing (or one for a different window) sorts last below a real 0, ties keep competitor order, ranks start at 1. LiveRankState's movementToday, yours and each neighbor's, is that login's rankDeltas entry on daily, else 0. See relay/README.md#conformance-fixture.",
   "cases": [
     {
       "name": "descending by contributions, self in the middle",
@@ -27,8 +27,8 @@
           "rank": 2,
           "competitorCount": 3,
           "contributions": 50,
-          "above": { "login": "alice", "contributions": 90 },
-          "below": { "login": "bob", "contributions": 20 },
+          "above": { "login": "alice", "contributions": 90, "movementToday": -1 },
+          "below": { "login": "bob", "contributions": 20, "movementToday": 0 },
           "movementToday": 1,
           "updatedAt": 1793800000
         }
@@ -45,7 +45,7 @@
           "alice": { "contributions": 40, "window": "weekly" },
           "bob": { "contributions": 40, "window": "weekly" }
         },
-        "rankDeltas": { "me": 2 },
+        "rankDeltas": { "me": 2, "alice": 1 },
         "now": 1793800300
       },
       "expected": {
@@ -60,7 +60,7 @@
           "competitorCount": 3,
           "contributions": 40,
           "above": null,
-          "below": { "login": "alice", "contributions": 40 },
+          "below": { "login": "alice", "contributions": 40, "movementToday": 0 },
           "movementToday": 0,
           "updatedAt": 1793800300
         }
@@ -178,7 +178,7 @@
           "rank": 3,
           "competitorCount": 3,
           "contributions": 1,
-          "above": { "login": "bob", "contributions": 2 },
+          "above": { "login": "bob", "contributions": 2, "movementToday": 1 },
           "below": null,
           "movementToday": -2,
           "updatedAt": 1793801500
@@ -211,8 +211,8 @@
           "rank": 2,
           "competitorCount": 4,
           "contributions": 3,
-          "above": { "login": "alice", "contributions": 10 },
-          "below": { "login": "bob", "contributions": 3 },
+          "above": { "login": "alice", "contributions": 10, "movementToday": 0 },
+          "below": { "login": "bob", "contributions": 3, "movementToday": 0 },
           "movementToday": 0,
           "updatedAt": 1793801800
         }
@@ -243,8 +243,8 @@
           "rank": 2,
           "competitorCount": 3,
           "contributions": 5,
-          "above": { "login": "bob", "contributions": 6 },
-          "below": { "login": "alice", "contributions": 5 },
+          "above": { "login": "bob", "contributions": 6, "movementToday": 0 },
+          "below": { "login": "alice", "contributions": 5, "movementToday": 0 },
           "movementToday": 0,
           "updatedAt": 1793802100
         }

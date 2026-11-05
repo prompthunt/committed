@@ -22,9 +22,12 @@ extension LiveRankState {
             guard let standing = standings[login], standing.window == window else { return nil }
             return standing.contributions
         }
+        func movement(_ login: String) -> Int {
+            window == .daily ? rankDeltas[login] ?? 0 : 0
+        }
         func neighbor(_ entry: Ranking.Entry?) -> Neighbor? {
             guard let login = entry?.competitor.username, let contributions = count(login) else { return nil }
-            return Neighbor(login: login, contributions: contributions)
+            return Neighbor(login: login, contributions: contributions, movementToday: movement(login))
         }
 
         assert(!competitors.contains(where: \.isSelf) || competitors.first?.isSelf == true,
@@ -43,7 +46,7 @@ extension LiveRankState {
             contributions: contributions,
             above: ranks.flatMap { neighbor(ranked[safe: $0 - 1]) },
             below: ranks.flatMap { neighbor(ranked[safe: $0 + 1]) },
-            movementToday: window == .daily ? me.flatMap { rankDeltas[$0] } ?? 0 : 0,
+            movementToday: me.map(movement) ?? 0,
             updatedAt: Int(now.timeIntervalSince1970.rounded(.down))
         )
     }
@@ -73,8 +76,9 @@ extension LiveRankState {
         let standings = store.standings(for: window).filter { login, standing in
             visible.contains(login) && standing.lastUpdated != .distantPast
         }
+        // Everyone's, not just yours: the rows above and below you show their chevrons too.
         var deltas: [String: Int] = [:]
-        if let me = store.selfCompetitor?.username { deltas[me] = rankDelta(me) }
+        for login in visible { deltas[login] = rankDelta(login) }
         return derive(
             competitors: competitors,
             standings: standings,
