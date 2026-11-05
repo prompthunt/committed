@@ -5,6 +5,8 @@ enum RefreshReason: String {
     case menuOpened
     /// The iPhone app came to the foreground.
     case becameActive
+    /// An iPhone background app refresh (`BGAppRefreshTask`).
+    case backgroundRefresh
     case timer
     case manual
     case windowChanged

@@ -22,6 +22,7 @@ struct SettingsPlaceholderView: View {
     var body: some View {
         NavigationStack {
             List {
+                LiveRankSettingsSection()
                 Section {
                     Button("Disconnect GitHub", role: .destructive) {
                         confirmingDisconnect = true

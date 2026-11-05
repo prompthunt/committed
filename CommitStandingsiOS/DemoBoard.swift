@@ -16,6 +16,8 @@ extension AppDependencies {
             hiddenPeoplePersistence: InMemoryHiddenPeoplePersistence(),
             rosterPersistence: nil
         )
+        // The real Live Activity, so Live rank can be checked in the simulator.
+        dependencies.makeLiveRankActivities = { ActivityKitLiveRankActivities() }
         // A second refresh a few seconds after launch moves you up one place today.
         dependencies.refreshInterval = 4
         dependencies.rosterFetch = { _, _ in

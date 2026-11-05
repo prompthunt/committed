@@ -7,6 +7,9 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		02312123D4314AB07F92DB59 /* LiveRankPersistence.swift in Sources */ = {isa = PBXBuildFile; fileRef = A4BCB0CE839FB87D3D6C840D /* LiveRankPersistence.swift */; };
+		0576F9B8BEA093487844534B /* LiveRankAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33690B7A5C206845BD0BF498 /* LiveRankAttributes.swift */; };
+		0649F4540F00439753D79F4F /* Standing.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D7951BB34A16E4847FB3A75 /* Standing.swift */; };
 		07C88B09D0D50A44A722248A /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 3C64308148F4474677E3544E /* Assets.xcassets */; };
 		0B552DFCAA866228B548BEC3 /* RefreshCoordinatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 250E32FDF5E7C3FE33602A75 /* RefreshCoordinatorTests.swift */; };
 		0B7BE4A6904571532796E3CE /* StandingRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = C5C8B3352BD2436AFA729DA4 /* StandingRow.swift */; };
@@ -23,6 +26,7 @@
 		1DBD73B51A540C56EB82C6C0 /* ContributionsClientTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 677A5198E1F2064191B89865 /* ContributionsClientTests.swift */; };
 		1E0B23A50D4CE71D56746312 /* SoloView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1278902C8E1364C523CD07BA /* SoloView.swift */; };
 		1E211E524A73F7B854827D2C /* StandingRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = C5C8B3352BD2436AFA729DA4 /* StandingRow.swift */; };
+		1EA0B21EA6686ED0B46D6C41 /* BackgroundRefresh.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC471A596440964D68EA4868 /* BackgroundRefresh.swift */; };
 		1F57CD556F7F9BBB2F61D6C4 /* Standing.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D7951BB34A16E4847FB3A75 /* Standing.swift */; };
 		1F8619B16023CA29D0F220DB /* OnboardingFlowTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 30D5A9162DEF41FE01E23129 /* OnboardingFlowTests.swift */; };
 		21DDE44540E0592AD399E643 /* NotificationCopyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 349DC217EFDB69766A74A420 /* NotificationCopyTests.swift */; };
@@ -36,6 +40,7 @@
 		3032A47147EC780F188B1784 /* Competitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0E062D81143D59018AE88D4 /* Competitor.swift */; };
 		330179461F21A71F08C6F9A5 /* ContributionsParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE0A524931662EF58DB043E6 /* ContributionsParser.swift */; };
 		3ACF15DFF031284C87D1F065 /* NotificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1B215A09A572661D0932EFE0 /* NotificationService.swift */; };
+		3D687B7A730BA6369906614C /* LiveRankAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33690B7A5C206845BD0BF498 /* LiveRankAttributes.swift */; };
 		3E1E66E727D5D637EE37F7DD /* Persistence.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4E8F7283802C87D59603B81 /* Persistence.swift */; };
 		4038F9FE0C507515D6D04B6C /* BoardSummaryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F048B419E9F53A5220F5252B /* BoardSummaryView.swift */; };
 		419CA9810F877F7C6A046D85 /* CommitStandingsLiveRank.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 43CB1BB28F3FEB00ECE8C936 /* CommitStandingsLiveRank.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
@@ -62,9 +67,12 @@
 		6C738698753C7FF59139E992 /* Ranking.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BE6286655EE3892D7B537EF /* Ranking.swift */; };
 		70F53C68B63D781B545F0690 /* KeychainCredentialTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87344DEA1C3DF7F628A5C311 /* KeychainCredentialTests.swift */; };
 		75759F10125F149BEFC3F082 /* AuthModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE7E951F92E7474C9A74738C /* AuthModel.swift */; };
+		76ECFE3E898FFE8FECC458DD /* LiveRankLifecycleTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F3FADED98E2F75554570392 /* LiveRankLifecycleTests.swift */; };
 		7D68E5552EE3D805425E4977 /* CommitStandingsiOSApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 192BF03E077467B606CAAAD8 /* CommitStandingsiOSApp.swift */; };
 		845DC509E8ED7BAED937D1C3 /* ConnectFlowTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 76866934215DEC3819692529 /* ConnectFlowTests.swift */; };
 		8526DCDE44E0DB284545225A /* GitHubConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 97B1C9E37DF68B21D1A5888B /* GitHubConfig.swift */; };
+		8AB8DD4391B4725631A9D660 /* LiveRankController.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB942799F2B4EB2C0E123EBD /* LiveRankController.swift */; };
+		8BEE341F36D8DCC4C442B875 /* LiveRankActivities.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA489287EFACAEF5AA327208 /* LiveRankActivities.swift */; };
 		8E8E6760617A914F4A7498BF /* AvatarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2F2DA1200439DA9E594DE4E /* AvatarView.swift */; };
 		96E265FDCD3412E862BAD268 /* DemoBoard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1716DC9F3CDDF965B45FE969 /* DemoBoard.swift */; };
 		9EA88FEBA4BCD005941477F6 /* LiveRankLiveActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = DAFAF477B72039B297874ACF /* LiveRankLiveActivity.swift */; };
@@ -106,6 +114,7 @@
 		EA5A8949EECDAB985792F4C0 /* DisplayName.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE668B3C3B6EF707DF051853 /* DisplayName.swift */; };
 		EAF8812631A88108DA1D920A /* ConnectView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A33E22CF5888C4108007DCC6 /* ConnectView.swift */; };
 		EC257F2AA69966F8CB6C8B2C /* Persistence.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4E8F7283802C87D59603B81 /* Persistence.swift */; };
+		F31F59BBD572F0ACD01C51AA /* LiveRankSettingsSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B3BA87C303CBBB12E435B9A /* LiveRankSettingsSection.swift */; };
 		F4301337CE7212C0D089294A /* EmptyStateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47DC51560C3A580D21B51494 /* EmptyStateView.swift */; };
 		F4685CC2AD40B01F99AE916D /* Ranking.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BE6286655EE3892D7B537EF /* Ranking.swift */; };
 		F89214D9186238E6227BD504 /* GitHubConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 97B1C9E37DF68B21D1A5888B /* GitHubConfig.swift */; };
@@ -170,6 +179,7 @@
 		3058EE5B282BF655A566A283 /* LeaderboardTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LeaderboardTests.swift; sourceTree = "<group>"; };
 		30D5A9162DEF41FE01E23129 /* OnboardingFlowTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = OnboardingFlowTests.swift; sourceTree = "<group>"; };
 		33193518482FA13B84E63C38 /* RootView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
+		33690B7A5C206845BD0BF498 /* LiveRankAttributes.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = LiveRankAttributes.swift; sourceTree = "<group>"; };
 		349DC217EFDB69766A74A420 /* NotificationCopyTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotificationCopyTests.swift; sourceTree = "<group>"; };
 		359887BF93AA64D5EF9EC654 /* GitHubAuthTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GitHubAuthTests.swift; sourceTree = "<group>"; };
 		3C64308148F4474677E3544E /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -191,6 +201,7 @@
 		677A5198E1F2064191B89865 /* ContributionsClientTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContributionsClientTests.swift; sourceTree = "<group>"; };
 		6897E162A39A7B93BAE6EE8E /* MenuBarLabel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarLabel.swift; sourceTree = "<group>"; };
 		69C38EE664A128783937CCDE /* AppUpdaterTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AppUpdaterTests.swift; sourceTree = "<group>"; };
+		6F3FADED98E2F75554570392 /* LiveRankLifecycleTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = LiveRankLifecycleTests.swift; sourceTree = "<group>"; };
 		7192384D63DE5967A162AC30 /* LoginItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginItem.swift; sourceTree = "<group>"; };
 		76866934215DEC3819692529 /* ConnectFlowTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ConnectFlowTests.swift; sourceTree = "<group>"; };
 		7BDB03341126129F2FC2BF7B /* DeepLinkTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DeepLinkTests.swift; sourceTree = "<group>"; };
@@ -211,10 +222,12 @@
 		97B1C9E37DF68B21D1A5888B /* GitHubConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GitHubConfig.swift; sourceTree = "<group>"; };
 		9943B5DF24FA90CDCCC59C63 /* RankChangeDetectorTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RankChangeDetectorTests.swift; sourceTree = "<group>"; };
 		9B2B9D07A5A41395C59FC1D3 /* UpdatePromptState.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = UpdatePromptState.swift; sourceTree = "<group>"; };
+		9B3BA87C303CBBB12E435B9A /* LiveRankSettingsSection.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = LiveRankSettingsSection.swift; sourceTree = "<group>"; };
 		A0E062D81143D59018AE88D4 /* Competitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Competitor.swift; sourceTree = "<group>"; };
 		A0E64E6FBCF74B2DA76BFF35 /* GitHubRoster.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GitHubRoster.swift; sourceTree = "<group>"; };
 		A1D9FF722CEB71F2996EB033 /* AppUpdater.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppUpdater.swift; sourceTree = "<group>"; };
 		A33E22CF5888C4108007DCC6 /* ConnectView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ConnectView.swift; sourceTree = "<group>"; };
+		A4BCB0CE839FB87D3D6C840D /* LiveRankPersistence.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = LiveRankPersistence.swift; sourceTree = "<group>"; };
 		A7982AA512BB2EEFA345D206 /* AvatarColorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AvatarColorTests.swift; sourceTree = "<group>"; };
 		ABC6DA1FB2CD9C804A5518A0 /* RefreshCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RefreshCoordinator.swift; sourceTree = "<group>"; };
 		AF69B302F7FC7ED6780EE9F2 /* LiveRankWidgetBundle.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = LiveRankWidgetBundle.swift; sourceTree = "<group>"; };
@@ -222,6 +235,7 @@
 		B048C2548F17409E812EC447 /* OverflowMenu.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OverflowMenu.swift; sourceTree = "<group>"; };
 		B4E8F7283802C87D59603B81 /* Persistence.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Persistence.swift; sourceTree = "<group>"; };
 		B83A439970777CBB968D0BF0 /* CommitStandingsTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = CommitStandingsTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		BA489287EFACAEF5AA327208 /* LiveRankActivities.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = LiveRankActivities.swift; sourceTree = "<group>"; };
 		BCDF02E7632940AA9545EE06 /* RelativeTimeFormatter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RelativeTimeFormatter.swift; sourceTree = "<group>"; };
 		BD58C2584D572964D962D12E /* GitHubAccountAuthTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GitHubAccountAuthTests.swift; sourceTree = "<group>"; };
 		BE7E951F92E7474C9A74738C /* AuthModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthModel.swift; sourceTree = "<group>"; };
@@ -229,6 +243,8 @@
 		C5C8B3352BD2436AFA729DA4 /* StandingRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StandingRow.swift; sourceTree = "<group>"; };
 		C6A646F33DB978919F9F7BD9 /* CommitStandingsApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommitStandingsApp.swift; sourceTree = "<group>"; };
 		C6D0C217928ADC3716B5269A /* MenuContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuContentView.swift; sourceTree = "<group>"; };
+		CB942799F2B4EB2C0E123EBD /* LiveRankController.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = LiveRankController.swift; sourceTree = "<group>"; };
+		CC471A596440964D68EA4868 /* BackgroundRefresh.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BackgroundRefresh.swift; sourceTree = "<group>"; };
 		CEC5E43704FDA0D382CC3154 /* CommitStandingsLiveRank.entitlements */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.entitlements; path = CommitStandingsLiveRank.entitlements; sourceTree = "<group>"; };
 		D0A959028CC5DCE0C6391589 /* StandingsStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StandingsStoreTests.swift; sourceTree = "<group>"; };
 		D11835AEBA0843F9E9D675BE /* OnboardingFlow.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = OnboardingFlow.swift; sourceTree = "<group>"; };
@@ -313,6 +329,7 @@
 				7BDB03341126129F2FC2BF7B /* DeepLinkTests.swift */,
 				632FC14211AD4F3E06D8F0A0 /* BoardTests.swift */,
 				87344DEA1C3DF7F628A5C311 /* KeychainCredentialTests.swift */,
+				6F3FADED98E2F75554570392 /* LiveRankLifecycleTests.swift */,
 			);
 			name = CommitStandingsiOSTests;
 			path = CommitStandingsiOSTests;
@@ -341,6 +358,12 @@
 				F048B419E9F53A5220F5252B /* BoardSummaryView.swift */,
 				11B029217F57A22BA7114D7A /* PlaceholderTabs.swift */,
 				1716DC9F3CDDF965B45FE969 /* DemoBoard.swift */,
+				BA489287EFACAEF5AA327208 /* LiveRankActivities.swift */,
+				CB942799F2B4EB2C0E123EBD /* LiveRankController.swift */,
+				A4BCB0CE839FB87D3D6C840D /* LiveRankPersistence.swift */,
+				CC471A596440964D68EA4868 /* BackgroundRefresh.swift */,
+				33690B7A5C206845BD0BF498 /* LiveRankAttributes.swift */,
+				9B3BA87C303CBBB12E435B9A /* LiveRankSettingsSection.swift */,
 			);
 			name = CommitStandingsiOS;
 			path = CommitStandingsiOS;
@@ -702,6 +725,12 @@
 				96E265FDCD3412E862BAD268 /* DemoBoard.swift in Sources */,
 				CB1173A22FC947FBBB0A8407 /* LiveRankDerivation.swift in Sources */,
 				BCE35BA8FE9A08734CAB2F5C /* LiveRankState.swift in Sources */,
+				8BEE341F36D8DCC4C442B875 /* LiveRankActivities.swift in Sources */,
+				8AB8DD4391B4725631A9D660 /* LiveRankController.swift in Sources */,
+				02312123D4314AB07F92DB59 /* LiveRankPersistence.swift in Sources */,
+				1EA0B21EA6686ED0B46D6C41 /* BackgroundRefresh.swift in Sources */,
+				0576F9B8BEA093487844534B /* LiveRankAttributes.swift in Sources */,
+				F31F59BBD572F0ACD01C51AA /* LiveRankSettingsSection.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -715,6 +744,7 @@
 				E8C02CA56C4C5B0502B324F8 /* DeepLinkTests.swift in Sources */,
 				4D52E753787CC3957D381AC4 /* BoardTests.swift in Sources */,
 				70F53C68B63D781B545F0690 /* KeychainCredentialTests.swift in Sources */,
+				76ECFE3E898FFE8FECC458DD /* LiveRankLifecycleTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -774,6 +804,8 @@
 				D6790B3C4FF640131B11BEFF /* LiveRankWidgetBundle.swift in Sources */,
 				9EA88FEBA4BCD005941477F6 /* LiveRankLiveActivity.swift in Sources */,
 				56A7D0D9FEAC85F769D4A9A5 /* LiveRankState.swift in Sources */,
+				3D687B7A730BA6369906614C /* LiveRankAttributes.swift in Sources */,
+				0649F4540F00439753D79F4F /* Standing.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -972,6 +1004,7 @@
 				INFOPLIST_KEY_CFBundleDisplayName = Committed;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.developer-tools";
 				INFOPLIST_KEY_NSSupportsLiveActivities = YES;
+				INFOPLIST_KEY_NSSupportsLiveActivitiesFrequentUpdates = YES;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
@@ -1065,6 +1098,7 @@
 				INFOPLIST_KEY_CFBundleDisplayName = Committed;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.developer-tools";
 				INFOPLIST_KEY_NSSupportsLiveActivities = YES;
+				INFOPLIST_KEY_NSSupportsLiveActivitiesFrequentUpdates = YES;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";

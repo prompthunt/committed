@@ -25,6 +25,9 @@ struct RootView: View {
         .onChange(of: app.store.selectedWindow) {
             Task { await app.windowDidChange() }
         }
+        .onChange(of: app.store.visibilityRevision) {
+            Task { await app.visibilityDidChange() }
+        }
         .task {
             #if DEBUG
             // Simulator checks of the real device flow, where nobody can tap Connect.
