@@ -59,6 +59,7 @@ struct PeopleView: View {
 private struct PersonRow: View {
     @Environment(AppModel.self) private var app
     @ScaledMetric(relativeTo: .body) private var avatarSize: CGFloat = 32
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     let person: Competitor
 
     private var hidden: Bool { app.store.isHidden(person.username) }
@@ -68,12 +69,13 @@ private struct PersonRow: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            AvatarView(username: person.username, size: avatarSize)
+            // Capped so the handle keeps the room at accessibility text sizes.
+            AvatarView(username: person.username, size: min(avatarSize, 48))
                 .opacity(hidden ? 0.5 : 1)
             VStack(alignment: .leading, spacing: 2) {
                 Text("@\(person.username)")
                     .foregroundStyle(hidden ? .secondary : .primary)
-                    .lineLimit(1)
+                    .lineLimit(dynamicTypeSize.isAccessibilitySize ? 3 : 1)
                     .truncationMode(.middle)
                 if person.isSelf || hidden {
                     Text(person.isSelf ? "You" : "Hidden")
