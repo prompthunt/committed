@@ -185,6 +185,36 @@ struct RelayLiveRankRegistrarTests {
         ])
     }
 
+    @Test func aRelayStartedActivityIsReportedOnABackgroundLaunch() async {
+        // Push-to-start wakes the app in the background: no board sync runs, but the relay already
+        // holds this installation's registration from an earlier launch.
+        let installation = RelayInstallation(id: "install-1234", secret: String(repeating: "a", count: 64), isRegistered: true)
+        installationStore.save(installation)
+        let registrar = makeRegistrar()
+
+        await registrar.activityPushTokenDidChange(activityID: "R", token: Data([0x7F]))
+
+        #expect(api.calls == [.activity(RelayActivityReport(activityId: "R", pushToken: "7f"))])
+        #expect(api.installations == [installation.credentials])
+    }
+
+    @Test func aBackgroundReportToAMissingRegistrationStopsTrying() async {
+        installationStore.save(RelayInstallation(id: "install-1234", secret: String(repeating: "a", count: 64), isRegistered: true))
+        api.activityFailure = LiveRankRelayError.status(404)
+        let registrar = makeRegistrar()
+
+        await registrar.activityPushTokenDidChange(activityID: "R", token: Data([0x7F]))
+        api.activityFailure = nil
+        await registrar.retryPendingWork()
+
+        // Held until the board is known, then registered and reported.
+        #expect(api.calls.isEmpty)
+        #expect(installationStore.load()?.isRegistered == false)
+        await registrar.liveRankDidChange(board)
+        #expect(api.calls.count == 2)
+        #expect(api.calls.last == .activity(RelayActivityReport(activityId: "R", pushToken: "7f")))
+    }
+
     @Test func aLostRegistrationIsRestoredBeforeReportingTheActivity() async {
         let registrar = makeRegistrar()
         await registrar.liveRankDidChange(board)

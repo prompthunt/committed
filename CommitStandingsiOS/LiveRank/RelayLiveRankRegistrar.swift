@@ -221,35 +221,15 @@ final class RelayLiveRankRegistrar: LiveRankRegistrar, LiveRankTokenReceiving {
             await unregisterIfNeeded()
             return
         }
-        guard let configuration else { return }
-        var installation = installations.load() ?? {
-            let new = RelayInstallation.generate()
-            installations.save(new)
-            return new
-        }()
-
-        let registration = RelayRegistration(
-            pushToStartToken: pushToStartToken,
-            login: configuration.selfLogin,
-            competitors: configuration.competitors,
-            window: configuration.window.rawValue,
-            timeZone: timeZone().identifier,
-            apnsEnvironment: apnsEnvironment.rawValue
-        )
-        if registration != lastRegistered {
-            do {
-                try await api.register(registration, as: installation.credentials)
-            } catch {
-                LiveRankLog.relay.error("register failed: \(String(describing: error), privacy: .public)")
-                return
-            }
-            LiveRankLog.relay.info("registered \(registration.competitors.count) people, \(registration.window, privacy: .public), push-to-start \(registration.pushToStartToken == nil ? "none" : "yes", privacy: .public)")
-            lastRegistered = registration
-            if !installation.isRegistered {
-                installation.isRegistered = true
-                installations.save(installation)
-            }
+        if let configuration {
+            guard await register(configuration) else { return }
+        } else {
+            // No board yet: a background launch, for example when the relay started an activity by
+            // push-to-start. If the relay holds this installation from an earlier launch, report
+            // the activity now (the relay counts its age from the report); otherwise wait.
+            guard installations.load()?.isRegistered == true else { return }
         }
+        guard var installation = installations.load() else { return }
 
         while let next = pendingActivities.first {
             do {
@@ -258,8 +238,10 @@ final class RelayLiveRankRegistrar: LiveRankRegistrar, LiveRankTokenReceiving {
                 )
             } catch LiveRankRelayError.status(404) {
                 // The relay lost the registration (deleted elsewhere, or a fresh database):
-                // register again on the next pass, then report.
+                // register again once the board is known, then report.
                 lastRegistered = nil
+                installation.isRegistered = false
+                installations.save(installation)
                 return
             } catch {
                 LiveRankLog.relay.error("activity report failed: \(String(describing: error), privacy: .public)")
@@ -269,6 +251,37 @@ final class RelayLiveRankRegistrar: LiveRankRegistrar, LiveRankTokenReceiving {
             pendingActivities.removeFirst()
             reportedActivities[next.id] = next.token
         }
+    }
+
+    /// PUT the registration when its body changed. False when the relay couldn't be reached.
+    private func register(_ configuration: LiveRankConfiguration) async -> Bool {
+        var installation = installations.load() ?? {
+            let new = RelayInstallation.generate()
+            installations.save(new)
+            return new
+        }()
+        let registration = RelayRegistration(
+            pushToStartToken: pushToStartToken,
+            login: configuration.selfLogin,
+            competitors: configuration.competitors,
+            window: configuration.window.rawValue,
+            timeZone: timeZone().identifier,
+            apnsEnvironment: apnsEnvironment.rawValue
+        )
+        guard registration != lastRegistered || !installation.isRegistered else { return true }
+        do {
+            try await api.register(registration, as: installation.credentials)
+        } catch {
+            LiveRankLog.relay.error("register failed: \(String(describing: error), privacy: .public)")
+            return false
+        }
+        LiveRankLog.relay.info("registered \(registration.competitors.count) people, \(registration.window, privacy: .public), push-to-start \(registration.pushToStartToken == nil ? "none" : "yes", privacy: .public)")
+        lastRegistered = registration
+        if !installation.isRegistered {
+            installation.isRegistered = true
+            installations.save(installation)
+        }
+        return true
     }
 
     private func unregisterIfNeeded() async {
