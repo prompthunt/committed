@@ -43,7 +43,7 @@ struct LiveRankLiveActivity: Widget {
                     .liveRankStale(stale)
             }
             .widgetURL(state.boardURL)
-            .keylineTint(.yellow)
+            .keylineTint(.lime)
         }
     }
 }
@@ -67,26 +67,30 @@ struct LiveRankRankLabel: View {
             HStack(spacing: 3) { trophy; rankText; extras }
             VStack(spacing: 1) { trophy; rankText; extras }
         }
-        .font(style == .expanded ? .title3 : .body)
+        .font(style == .expanded
+              ? CommittedType.display(24, relativeTo: .title2)
+              : CommittedType.display(16, relativeTo: .body))
+        .foregroundStyle(.white)
         .lineLimit(1)
         .minimumScaleFactor(0.7)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(LiveRankText.rankAccessibility(state))
     }
 
+    /// The Committed trophy in lime, sized with the rank beside it.
     @ViewBuilder private var trophy: some View {
         if style != .minimal || state.rank == nil {
-            Image(systemName: "trophy.fill")
-                .foregroundStyle(.yellow)
-                .accessibilityHidden(true)
+            TrophyMark(size: trophySize)
         }
     }
+
+    @ScaledMetric(relativeTo: .body) private var compactTrophy: CGFloat = 16
+    @ScaledMetric(relativeTo: .title2) private var expandedTrophy: CGFloat = 24
+    private var trophySize: CGFloat { style == .expanded ? expandedTrophy : compactTrophy }
 
     @ViewBuilder private var rankText: some View {
         if let rank = state.rank {
             Text("#\(rank)")
-                .fontWeight(.semibold)
-                .monospacedDigit()
         } else if state.competitorCount > 1 {
             // Rivals but no count of yours yet.
             Text(placeholder)
@@ -96,15 +100,15 @@ struct LiveRankRankLabel: View {
     @ViewBuilder private var extras: some View {
         if style == .expanded, state.rank != nil {
             Text("of \(state.competitorCount)")
-                .foregroundStyle(.secondary)
-                .monospacedDigit()
+                .font(CommittedType.numeral(17, relativeTo: .body))
+                .foregroundStyle(Color.muted)
             if state.movementToday != 0 {
                 // Today's movement since the morning, like the board's chevrons.
                 Label("\(abs(state.movementToday))",
                       systemImage: state.movementToday > 0 ? "chevron.up" : "chevron.down")
                     .labelStyle(.titleAndIcon)
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(state.movementToday > 0 ? .green : .red)
+                    .font(.caption.weight(.heavy))
+                    .foregroundStyle(state.movementToday > 0 ? Color.lime : Color.muted)
                     .monospacedDigit()
             }
         }
@@ -115,20 +119,20 @@ struct LiveRankRankLabel: View {
 struct LiveRankCountLabel: View {
     let state: LiveRankState
     let showsUnit: Bool
+    @ScaledMetric(relativeTo: .title2) private var squareSize: CGFloat = 13
 
     var body: some View {
-        HStack(alignment: .firstTextBaseline, spacing: 3) {
+        HStack(alignment: .center, spacing: 5) {
             Text(state.contributions.map { "\($0)" } ?? placeholder)
-                .fontWeight(.semibold)
-                .monospacedDigit()
+                .foregroundStyle(Color.lime)
             if showsUnit {
-                Image(systemName: "square.grid.3x3.fill")
-                    .font(.caption)
-                    .foregroundStyle(.green)
-                    .accessibilityHidden(true)
+                // One lit square of the contribution graph.
+                ContributionSquare(level: state.contributions.map { $0 > 0 ? 4 : 0 } ?? 0, size: squareSize)
             }
         }
-        .font(showsUnit ? .title3 : .body)
+        .font(showsUnit
+              ? CommittedType.display(24, relativeTo: .title2)
+              : CommittedType.display(16, relativeTo: .body))
         .lineLimit(1)
         .minimumScaleFactor(0.7)
         .accessibilityElement(children: .ignore)
@@ -153,10 +157,11 @@ struct LiveRankLadder: View {
             }
             if let line = LiveRankText.passLine(state) {
                 Text(line)
-                    .font(.footnote.weight(.medium))
-                    .foregroundStyle(.yellow)
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(Color.lime)
                     .monospacedDigit()
                     .lineLimit(2)
+                    .padding(.top, 2)
             }
         }
     }
@@ -178,23 +183,24 @@ struct LiveRankLadderRow: View {
                 count
             }
         }
-        .font(.subheadline)
-        .fontWeight(isYou ? .semibold : .regular)
-        .foregroundStyle(isYou ? .primary : .secondary)
+        .font(isYou ? CommittedType.display(15, relativeTo: .subheadline) : CommittedType.numeral(15, relativeTo: .subheadline))
+        .foregroundStyle(isYou ? Color.white : Color.muted)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(LiveRankText.rowAccessibility(rank: rank, login: login, contributions: contributions))
     }
 
     private var rankText: some View {
-        Text(rank.map { "#\($0)" } ?? placeholder).monospacedDigit()
+        Text(rank.map { "#\($0)" } ?? placeholder)
     }
 
     private var name: some View {
-        Text(login).lineLimit(1).truncationMode(.middle)
+        // Logins in San Francisco, like the board's rows; numbers in Inter Tight.
+        Text(login).font(.subheadline.weight(isYou ? .semibold : .regular)).lineLimit(1).truncationMode(.middle)
     }
 
     private var count: some View {
-        Text(contributions.map { "\($0)" } ?? placeholder).monospacedDigit()
+        Text(contributions.map { "\($0)" } ?? placeholder)
+            .foregroundStyle(isYou ? Color.lime : Color.muted)
     }
 }
 
@@ -211,7 +217,7 @@ struct LiveRankFooter: View {
             VStack(alignment: .leading, spacing: 2) { content }
         }
         .font(.caption)
-        .foregroundStyle(isStale ? .orange : .secondary)
+        .foregroundStyle(isStale ? Color.warning : Color.muted)
         .lineLimit(1)
     }
 
@@ -239,7 +245,7 @@ struct LiveRankLockScreen: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            HStack(alignment: .firstTextBaseline) {
+            HStack(alignment: .center) {
                 LiveRankRankLabel(state: state, style: .expanded)
                 Spacer(minLength: 8)
                 LiveRankCountLabel(state: state, showsUnit: true)
@@ -252,8 +258,14 @@ struct LiveRankLockScreen: View {
             LiveRankFooter(state: state, isStale: isStale, showsWindow: true)
         }
         .padding()
-        .activityBackgroundTint(Color.black.opacity(0.6))
-        .activitySystemActionForegroundColor(.yellow)
+        .background(alignment: .topTrailing) {
+            // The site's lit square field, still, behind the count.
+            SquareFieldCanvas(light: UnitPoint(x: 0.95, y: 0), reach: 0.5, cell: 12, gap: 3, brightness: 0.55, maxLevel: 3)
+                .mask(LinearGradient(colors: [.clear, .black], startPoint: .leading, endPoint: .trailing))
+        }
+        .environment(\.colorScheme, .dark)
+        .activityBackgroundTint(.ink)
+        .activitySystemActionForegroundColor(.lime)
     }
 }
 

@@ -10,6 +10,7 @@ struct CommittedApp: App {
     init() {
         // A unit-test host must not touch the notification center at launch.
         if !CommittedServices.isRunningTests { ForegroundNotificationPresenter.install() }
+        SystemChrome.apply()
     }
 
     private static var loadsGitHubAvatars: Bool {
@@ -53,6 +54,11 @@ struct CommittedApp: App {
                 .environment(model.roster)
                 .environment(model.services.notifications)
                 .environment(\.loadsGitHubAvatars, CommittedApp.loadsGitHubAvatars)
+                // The marketing site's world: ink, lime, Inter Tight. Dark only (also
+                // UIUserInterfaceStyle in Info.plist, so launch and system sheets match).
+                .environment(\.standingRowStyle, .committed)
+                .tint(.lime)
+                .preferredColorScheme(.dark)
         }
         .backgroundTask(.appRefresh(BackgroundRefresh.identifier)) { [model] in
             await model.backgroundRefresh()

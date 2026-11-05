@@ -47,27 +47,41 @@ private struct PeopleList: View {
                 // Full width, the segments would cross a book-style fold on the inner display.
                 .avoidingFold()
                 .listRowSeparator(.hidden)
-                RosterStatusView()
-                    .listRowSeparator(.hidden)
-            } footer: {
-                Text("Choose who appears on your board. Hidden people stay here so you can show them again.")
+                .listRowBackground(Color.clear)
+                VStack(alignment: .leading, spacing: 8) {
+                    RosterStatusView()
+                    Text("Choose who appears on your board. Hidden people stay here so you can show them again.")
+                        .font(.footnote)
+                        .foregroundStyle(Color.muted)
+                }
+                .listRowSeparator(.hidden)
+                .listRowBackground(Color.clear)
             }
 
             if !people.isEmpty {
                 Section {
                     ForEach(people) { person in
                         PersonVisibilityRow(person: person)
+                            .listRowBackground(Color.clear)
+                            .listRowSeparatorTint(.hairline)
                     }
                 } header: {
-                    Text("\(store.visibleCompetitors.count) on your board · \(hiddenCount) hidden")
+                    FolioHeader("\(store.visibleCompetitors.count) on your board · \(hiddenCount) hidden")
                 } footer: {
                     if let owner = roster.snapshot?.owner,
                        let url = URL(string: "https://github.com/\(owner)?tab=following") {
-                        Link("Who you follow on GitHub", destination: url)
+                        Link(destination: url) {
+                            Label("Who you follow on GitHub", systemImage: "arrow.up.right")
+                                .labelStyle(TrailingIconLabelStyle())
+                        }
+                        .font(.footnote.weight(.semibold))
+                        .padding(.top, 8)
                     }
                 }
             }
         }
+        .listStyle(.plain)
+        .inkScreen()
         .accessibilityLabel("People, alphabetical")
         .overlay {
             if store.competitors.isEmpty {
@@ -99,18 +113,26 @@ private struct PersonVisibilityRow: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            AvatarView(username: person.username, size: 32)
-                .opacity(hidden ? 0.5 : 1)
+            AvatarView(username: person.username, size: 36)
+                .overlay { Circle().strokeBorder(Color.lime.opacity(person.isSelf ? 0.6 : 0), lineWidth: 1.5) }
+                .saturation(hidden ? 0 : 1)
+                .opacity(hidden ? 0.45 : 1)
                 .accessibilityHidden(true)
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: 3) {
                 Text("@\(person.username)")
-                    .foregroundStyle(hidden ? .secondary : .primary)
+                    .font(.body.weight(person.isSelf ? .semibold : .regular))
+                    .foregroundStyle(hidden ? Color.muted : .white)
                     .lineLimit(dynamicTypeSize.isAccessibilitySize ? 3 : 1)
                     .truncationMode(.middle)
                 if person.isSelf {
-                    Text("you").font(.caption).foregroundStyle(.tint)
+                    Text("you")
+                        .font(.caption.weight(.bold))
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 1)
+                        .background(Color.lime, in: .capsule)
+                        .foregroundStyle(Color.onLime)
                 } else if hidden {
-                    Text("Hidden from your board").font(.caption).foregroundStyle(.secondary)
+                    Text("Hidden from your board").font(.caption).foregroundStyle(Color.muted)
                 }
             }
             .accessibilityElement(children: .combine)
@@ -119,11 +141,13 @@ private struct PersonVisibilityRow: View {
                 Button(action: toggleVisibility) {
                     Image(systemName: hidden ? "eye.slash" : "eye")
                         .imageScale(.large)
+                        .fontWeight(.semibold)
+                        .contentTransition(.symbolEffect(.replace))
                         .frame(minWidth: 44, minHeight: 44)
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.borderless)
-                .foregroundStyle(hidden ? .secondary : Color.accentColor)
+                .foregroundStyle(hidden ? Color.muted : Color.lime)
                 .accessibilityLabel(actionLabel)
                 .accessibilityValue(hidden ? "Hidden" : "Visible")
             }
@@ -138,5 +162,15 @@ private struct PersonVisibilityRow: View {
 
     private func toggleVisibility() {
         PeopleDirectory.toggleVisibility(of: person, store: store, refresh: refresh)
+    }
+}
+
+/// Title, then the icon: "Who you follow on GitHub ↗".
+private struct TrailingIconLabelStyle: LabelStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        HStack(spacing: 4) {
+            configuration.title
+            configuration.icon.imageScale(.small)
+        }
     }
 }

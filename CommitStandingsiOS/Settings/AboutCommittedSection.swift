@@ -29,6 +29,7 @@ private struct AboutCommittedPage: View {
             ContributionsExplainerContent()
                 .padding(20)
         }
+        .background(Color.ink)
         .navigationTitle("About Committed")
         .navigationBarTitleDisplayMode(.inline)
     }

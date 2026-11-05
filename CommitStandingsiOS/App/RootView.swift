@@ -20,6 +20,8 @@ struct RootView: View {
                 SettingsView()
             }
         }
+        .tint(.lime)
+        .background(Color.ink)
         .fullScreenCover(isPresented: .constant(model.needsConnect)) {
             ConnectGitHubView()
         }

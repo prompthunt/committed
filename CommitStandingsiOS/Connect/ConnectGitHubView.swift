@@ -8,7 +8,6 @@ struct ConnectGitHubView: View {
     @Environment(AppModel.self) private var model
     @Environment(AuthModel.self) private var auth
     @Environment(\.openURL) private var openURL
-    @Environment(\.colorScheme) private var colorScheme
     @State private var copiedCode: String?
     /// A readable column that grows with Dynamic Type instead of a fixed width.
     @ScaledMetric(relativeTo: .body) private var readableWidth: CGFloat = 520
@@ -16,7 +15,7 @@ struct ConnectGitHubView: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(spacing: 24) {
+                VStack(spacing: 28) {
                     switch auth.phase {
                     case .connecting(let userCode, let verificationURL):
                         connecting(userCode: userCode, verificationURL: verificationURL)
@@ -26,17 +25,29 @@ struct ConnectGitHubView: View {
                     if let error = auth.errorMessage {
                         Label(error, systemImage: "exclamationmark.triangle.fill")
                             .font(.callout)
-                            .foregroundStyle(.orange)
+                            .foregroundStyle(Color.warning)
                             .multilineTextAlignment(.center)
                     }
                 }
-                .padding(24)
+                .padding(.horizontal, 24)
+                .padding(.top, 36)
+                .padding(.bottom, 24)
                 .frame(maxWidth: readableWidth)
                 // Partially folded like a book, the centered column would put Connect GitHub in
                 // the fold; it moves to one side instead.
                 .avoidingFold()
             }
             .scrollBounceBehavior(.basedOnSize)
+            .background {
+                // The site's hero: a lit field of contribution squares, kept dim behind the text.
+                ZStack(alignment: .top) {
+                    Color.ink
+                    AnimatedSquareField(light: UnitPoint(x: 0.5, y: 0.05), reach: 0.75, cell: 22, brightness: 0.7, maxLevel: 3)
+                        .frame(height: 460)
+                        .mask(LinearGradient(colors: [.black, .black.opacity(0.6), .clear], startPoint: .top, endPoint: .bottom))
+                }
+                .ignoresSafeArea()
+            }
             .navigationTitle("Connect GitHub")
             .navigationBarTitleDisplayMode(.inline)
         }
@@ -49,66 +60,77 @@ struct ConnectGitHubView: View {
     }
 
     private var signedOut: some View {
-        VStack(spacing: 16) {
-            Image("github-mark")
-                .renderingMode(.template)
-                .resizable()
-                .scaledToFit()
-                .frame(width: 56, height: 56)
-                .accessibilityHidden(true)
-            Text("See where you stand")
-                .font(.title2.weight(.bold))
+        VStack(spacing: 18) {
+            AppMark(size: 76)
+                .padding(.bottom, 6)
+            // The site's headline, with its lime emphasis.
+            Text("Who shipped more \(Text("today?").foregroundStyle(Color.lime))")
+                .font(CommittedType.display(46, relativeTo: .largeTitle))
+                .displayTracking(46)
                 .multilineTextAlignment(.center)
+                .accessibilityAddTraits(.isHeader)
             Text("Committed ranks you against your organization members and the people you follow, by GitHub Contributions. Your list updates automatically.")
                 .font(.body)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Color.soft)
                 .multilineTextAlignment(.center)
             Button {
                 Task { await model.connectGitHub() }
             } label: {
-                Text("Connect GitHub")
-                    .font(.headline)
-                    .foregroundStyle(colorScheme == .dark ? Color.black : Color.white)
-                    .frame(maxWidth: .infinity)
+                Label {
+                    Text("Connect GitHub")
+                } icon: {
+                    Image("github-mark")
+                        .renderingMode(.template)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 20, height: 20)
+                }
             }
-            .buttonStyle(.borderedProminent)
-            .controlSize(.large)
-            // GitHub's own button: near-black in light mode, white in dark mode.
-            .tint(colorScheme == .dark ? Color.white : Color(white: 0.13))
+            .buttonStyle(LimeButtonStyle())
+            .padding(.top, 8)
             Text("Read-only access to your profile, who you follow, and your organizations. Committed never sees your code.")
                 .font(.footnote)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Color.muted)
                 .multilineTextAlignment(.center)
         }
     }
 
     private func connecting(userCode: String, verificationURL: String) -> some View {
-        VStack(spacing: 20) {
+        VStack(spacing: 22) {
             Text("Enter this code on GitHub")
-                .font(.title3.weight(.semibold))
+                .font(CommittedType.display(30, relativeTo: .title))
+                .displayTracking(30)
                 .multilineTextAlignment(.center)
+                .accessibilityAddTraits(.isHeader)
             Text(userCode)
                 .font(.system(.largeTitle, design: .monospaced).weight(.bold))
+                .foregroundStyle(Color.lime)
+                .tracking(2)
                 .lineLimit(1)
                 .minimumScaleFactor(0.5)
                 .textSelection(.enabled)
-                .padding(.vertical, 14)
+                .padding(.vertical, 22)
                 .padding(.horizontal, 20)
                 .frame(maxWidth: .infinity)
-                .background(.fill.tertiary, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                .background(Color.tile, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 20, style: .continuous)
+                        .strokeBorder(Color.lime.opacity(0.35), lineWidth: 1)
+                }
+                .shadow(color: Color.lime.opacity(0.18), radius: 24, y: 10)
                 .accessibilityLabel("Code")
                 .accessibilityValue(Text(userCode).speechSpellsOutCharacters())
             VStack(spacing: 12) { buttons(userCode: userCode, verificationURL: verificationURL) }
             HStack(spacing: 8) {
-                ProgressView()
+                ProgressView().tint(.lime)
                 Text("Waiting for you to approve on GitHub…")
                     .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.soft)
             }
             .accessibilityElement(children: .combine)
             Text("Open GitHub copies the code for you. Come back here when you’ve approved; Committed finishes on its own.")
                 .font(.footnote)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Color.muted)
                 .multilineTextAlignment(.center)
         }
     }
@@ -121,20 +143,17 @@ struct ConnectGitHubView: View {
         } label: {
             Label("Open GitHub", systemImage: "safari")
                 .lineLimit(1)
-                .frame(maxWidth: .infinity)
         }
-        .buttonStyle(.borderedProminent)
-        .controlSize(.large)
+        .buttonStyle(LimeButtonStyle())
         Button {
             copy(userCode)
         } label: {
             Label(copiedCode == userCode ? "Copied" : "Copy Code",
                   systemImage: copiedCode == userCode ? "checkmark" : "doc.on.doc")
                 .lineLimit(1)
-                .frame(maxWidth: .infinity)
+                .contentTransition(.symbolEffect(.replace))
         }
-        .buttonStyle(.bordered)
-        .controlSize(.large)
+        .buttonStyle(TileButtonStyle())
     }
 
     private func copy(_ code: String) {

@@ -108,7 +108,9 @@
 		DABF1ABEA579328D04A724AF /* AvatarColor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B3C587C1FCCF5F4B4F05B1C /* AvatarColor.swift */; };
 		DF56B56E41938A50A65F78DE /* RankChangeDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B5E85671D4798A73E1A4CB5 /* RankChangeDetector.swift */; };
 		DF7D4B0180BBBA880E857585 /* Persistence.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4E8F7283802C87D59603B81 /* Persistence.swift */; };
+		E03F2BA3740817E2FF7B66CC /* CommittedTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDEB58E67067041FBF4B42A7 /* CommittedTheme.swift */; };
 		E0C3EA24712045BFB0A2435E /* OverflowMenu.swift in Sources */ = {isa = PBXBuildFile; fileRef = B048C2548F17409E812EC447 /* OverflowMenu.swift */; };
+		E4072382362F41353C468E9F /* CommittedTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDEB58E67067041FBF4B42A7 /* CommittedTheme.swift */; };
 		E42046FD426FD60A9FEABADC /* FullRankingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3FAB1FCBCB92E3AC535A48D3 /* FullRankingsView.swift */; };
 		E5CFBE50D2F8874297DD1FEE /* ContributionsParserTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5D3A8827A6F59B1732B402CB /* ContributionsParserTests.swift */; };
 		E6E6A9885326D9EC62D8CA89 /* GitHubConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 97B1C9E37DF68B21D1A5888B /* GitHubConfig.swift */; };
@@ -238,6 +240,7 @@
 		D8BBD806D18E8F38CE25EB6D /* ConnectGitHubTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ConnectGitHubTests.swift; sourceTree = "<group>"; };
 		DB2F25FDB1394FDC092A7F8B /* LeaderboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LeaderboardView.swift; sourceTree = "<group>"; };
 		DBA0E191AE871F929CA04E4C /* CommitStandingsiOSTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = CommitStandingsiOSTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		DDEB58E67067041FBF4B42A7 /* CommittedTheme.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CommittedTheme.swift; sourceTree = "<group>"; };
 		DE0A524931662EF58DB043E6 /* ContributionsParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContributionsParser.swift; sourceTree = "<group>"; };
 		ECD804E1435439B0A50B4F2D /* DeepLinkTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DeepLinkTests.swift; sourceTree = "<group>"; };
 		EDACB5377CA771FD5242B764 /* GitHubCredentialStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GitHubCredentialStore.swift; sourceTree = "<group>"; };
@@ -493,6 +496,7 @@
 				B4E8F7283802C87D59603B81 /* Persistence.swift */,
 				EE668B3C3B6EF707DF051853 /* DisplayName.swift */,
 				D0D91579108402981623D843 /* DeepLink.swift */,
+				DDEB58E67067041FBF4B42A7 /* CommittedTheme.swift */,
 			);
 			path = Support;
 			sourceTree = "<group>";
@@ -722,6 +726,7 @@
 				4A9606532575CA7A90A59EBB /* PeopleDirectory.swift in Sources */,
 				0892B9E6D6FBC92B94016A90 /* ContributionsExplainerView.swift in Sources */,
 				93A9E9D049CF633E57233B5A /* StandingRowStyle.swift in Sources */,
+				E4072382362F41353C468E9F /* CommittedTheme.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -817,6 +822,7 @@
 				164C5629DB7AB1BDFB3D503F /* DeepLink.swift in Sources */,
 				8A757784E5352821C5229F8E /* Standing.swift in Sources */,
 				A207D059369BFA376E3A9536 /* LiveRankAttributes.swift in Sources */,
+				E03F2BA3740817E2FF7B66CC /* CommittedTheme.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

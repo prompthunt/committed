@@ -24,5 +24,13 @@
 	<array>
 		<string>com.addisonk.CommitStandings.iOS.refresh</string>
 	</array>
+	<!-- #51: Committed is dark only on iPhone, and uses the site's Inter Tight (OFL, Fonts/OFL.txt). -->
+	<key>UIUserInterfaceStyle</key>
+	<string>Dark</string>
+	<key>UIAppFonts</key>
+	<array>
+		<string>InterTight-Regular.ttf</string>
+		<string>InterTight-ExtraBold.ttf</string>
+	</array>
 </dict>
 </plist>

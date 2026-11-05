@@ -73,6 +73,7 @@ struct BoardLeaderboard: View {
                 Section {
                     BoardSummaryView()
                         .listRowSeparator(.hidden)
+                        .listRowBackground(Color.clear)
                         .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 4, trailing: 16))
                 }
             }
@@ -85,12 +86,14 @@ struct BoardLeaderboard: View {
                         Text("You, your organization members, and the people you follow will appear here.")
                     }
                     .listRowSeparator(.hidden)
+                    .listRowBackground(Color.clear)
                 }
             } else {
                 Section {
                     if isInitialLoad(entries: entries) {
                         InitialLoadRow()
                             .listRowSeparator(.hidden)
+                            .listRowBackground(Color.clear)
                     }
                     ForEach(entries) { entry in
                         StandingRow(
@@ -102,24 +105,29 @@ struct BoardLeaderboard: View {
                             rankDelta: window == .daily ? refresh.rankDelta(for: entry.competitor.username) : nil
                         )
                         .listRowSeparator(.hidden)
+                        .listRowBackground(Color.clear)
                         .listRowInsets(EdgeInsets(top: 1, leading: 8, bottom: 1, trailing: 8))
                     }
                     if store.rivals.isEmpty {
                         SoloBoardRow()
                             .listRowSeparator(.hidden)
+                            .listRowBackground(Color.clear)
                     }
                 } header: {
-                    Text("\(entries.count) \(entries.count == 1 ? "person" : "people")")
+                    FolioHeader("\(entries.count) \(entries.count == 1 ? "person" : "people") · \(window.shortTitle)")
+                        .padding(.top, 6)
                 }
 
                 Section {
                     PrivateContributionsTip()
                         .listRowSeparator(.hidden)
+                        .listRowBackground(Color.clear)
                         .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
                 }
             }
         }
         .listStyle(.plain)
+        .inkScreen()
         .accessibilityLabel("Leaderboard")
     }
 
@@ -143,6 +151,7 @@ private struct BoardSummaryPane: View {
             BoardSummaryView()
                 .padding(16)
         }
+        .background(Color.ink)
         .accessibilityLabel("Your standing")
     }
 }
@@ -152,10 +161,10 @@ private struct InitialLoadRow: View {
         Label {
             VStack(alignment: .leading, spacing: 2) {
                 Text("Fetching the first set of standings").font(.subheadline.weight(.medium))
-                Text("This only happens once.").font(.footnote).foregroundStyle(.secondary)
+                Text("This only happens once.").font(.footnote).foregroundStyle(Color.muted)
             }
         } icon: {
-            ProgressView()
+            ProgressView().tint(.lime)
         }
         .accessibilityElement(children: .combine)
     }
@@ -169,18 +178,26 @@ private struct SoloBoardRow: View {
     var body: some View {
         let everyoneHidden = store.competitors.count > 1
         VStack(spacing: 8) {
+            TrophyMark(size: 40)
+                .padding(.bottom, 4)
             Text(everyoneHidden ? "Your circle is hidden" : "Your circle starts here")
-                .font(.headline)
+                .font(CommittedType.display(24, relativeTo: .title2))
+                .displayTracking(24)
+                .multilineTextAlignment(.center)
             Text(everyoneHidden
                  ? "Show people again in People whenever you like."
                  : "Follow people on GitHub or join an organization to see them on your board automatically.")
                 .font(.subheadline)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Color.muted)
                 .multilineTextAlignment(.center)
             Button("Open People") { model.selectedTab = .people }
-                .buttonStyle(.bordered)
+                .buttonStyle(LimeButtonStyle())
+                .fixedSize()
+                .padding(.top, 6)
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 12)
+        .padding(.vertical, 24)
+        .padding(.horizontal, 16)
+        .tileCard()
     }
 }
