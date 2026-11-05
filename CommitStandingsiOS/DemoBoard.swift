@@ -20,6 +20,8 @@ extension AppDependencies {
         )
         // One hidden person, so People shows how hiding looks.
         dependencies.hiddenPeoplePersistence.save(["octocat": ["mojombo"]])
+        // The real Live Activity, so Live rank can be checked in the simulator.
+        dependencies.makeLiveRankActivities = { ActivityKitLiveRankActivities() }
         // A second refresh a few seconds after launch moves you up one place today.
         dependencies.refreshInterval = 4
         dependencies.rosterFetch = { _, _ in

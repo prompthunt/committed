@@ -385,6 +385,112 @@ struct RefreshCoordinatorTests {
         #expect(await fetcher.calls(for: "me") == afterResume, "pausing again stops it")
     }
 
+    /// iPhone Live rank updates after every refresh, so the hook lives in the coordinator: its own
+    /// timer calls `refreshAll` directly.
+    @Test func afterRefreshRunsOnceTheBoardIsCompleteIncludingTimerTicks() async throws {
+        let store = StandingsStore(persistence: InMemoryCompetitorPersistence())
+        store.replaceRoster(owner: "me", members: [])
+        let fetcher = StubFetcher()
+        await fetcher.setSuccess(contributions: 4, for: "me")
+        var seen: [(RefreshReason, Int?)] = []
+        let coord = RefreshCoordinator(store: store, client: fetcher, interval: 0.02, afterRefresh: { reason in
+            seen.append((reason, store.lastUpdated == nil ? nil : store.standing(for: "me", window: .daily)?.contributions))
+        })
+        coord.pauseTimer()
+        await coord.refreshAll(reason: .manual)
+        #expect(seen.map(\.0) == [.manual])
+        #expect(seen.first?.1 == 4, "runs after the counts land and the refresh is marked complete")
+
+        coord.resumeTimer()
+        try await Task.sleep(for: .milliseconds(200))
+        coord.pauseTimer()
+        try await Task.sleep(for: .milliseconds(50))
+        #expect(seen.contains { $0.0 == .timer })
+    }
+
+    @Test func afterRefreshIsSkippedWhenTheAccountChangesMidRefresh() async {
+        let store = StandingsStore(persistence: InMemoryCompetitorPersistence())
+        store.replaceRoster(owner: "me", members: [])
+        let fetcher = StubFetcher(delayNanos: 60_000_000)
+        await fetcher.setSuccess(contributions: 1, for: "me")
+        var calls = 0
+        let coord = RefreshCoordinator(store: store, client: fetcher, interval: 99999, afterRefresh: { _ in calls += 1 })
+        let task = Task { await coord.refreshAll(reason: .manual) }
+        while await fetcher.calls(for: "me") == 0 { await Task.yield() }
+        coord.invalidate()
+        await task.value
+        #expect(calls == 0)
+    }
+
+    /// Live rank can follow a different Window than the board shows; each refresh also brings
+    /// that Window up to date (when stale) so Live rank never falls behind.
+    @Test func additionalWindowsAreRefreshedAlongsideTheBoardWhenStale() async {
+        let store = StandingsStore(persistence: InMemoryCompetitorPersistence())
+        store.replaceRoster(owner: "me", members: ["alice"])
+        store.selectedWindow = .daily
+        let fetcher = WindowFetcher(["me": 3, "alice": 5])
+        let clock = MutableClock(Date(timeIntervalSince1970: 1_800_000_000))
+        var extra: [ContributionWindow] = [.weekly]
+        let coord = RefreshCoordinator(store: store, client: fetcher, interval: 99999, now: { clock.date },
+                                       additionalWindows: { extra })
+
+        await coord.refreshAll(reason: .manual)
+        #expect(await fetcher.calls(.daily) == 2)
+        #expect(await fetcher.calls(.weekly) == 2)
+        #expect(store.standing(for: "alice", window: .weekly)?.contributions == 5 * 7)
+
+        await coord.refreshAll(reason: .manual)
+        #expect(await fetcher.calls(.daily) == 4, "the board's Window always refreshes")
+        #expect(await fetcher.calls(.weekly) == 2, "a fresh extra Window is left alone")
+
+        clock.date = clock.date.addingTimeInterval(300)
+        await coord.refreshAll(reason: .timer)
+        #expect(await fetcher.calls(.weekly) == 4)
+
+        extra = [.daily]
+        clock.date = clock.date.addingTimeInterval(300)
+        await coord.refreshAll(reason: .timer)
+        #expect(await fetcher.calls(.daily) == 8, "an extra Window equal to the board's isn't fetched twice")
+    }
+
+    /// Live rank on Today while the board shows 7 days: Today's movement still tracks, and the
+    /// extra Window never posts crossing notifications (those follow the board).
+    @Test func anAdditionalTodayWindowKeepsTodaysMovementWithoutNotifying() async {
+        let store = StandingsStore(persistence: InMemoryCompetitorPersistence())
+        store.replaceRoster(owner: "me", members: ["alice"])
+        store.selectedWindow = .weekly
+        let fetcher = WindowFetcher(["me": 1, "alice": 5])
+        let clock = MutableClock(Date(timeIntervalSince1970: 1_800_000_000))
+        let spy = SpyNotifier()
+        let coord = RefreshCoordinator(store: store, client: fetcher, interval: 99999, now: { clock.date },
+                                       notifier: spy, additionalWindows: { [.daily] })
+
+        await coord.refreshAll(reason: .manual)
+        await fetcher.set("me", 9, only: .daily)
+        clock.date = clock.date.addingTimeInterval(300)
+        await coord.refreshAll(reason: .timer)
+
+        #expect(coord.rankDelta(for: "me") == 1)
+        #expect(spy.allEvents.isEmpty, "the 7-day board didn't change order")
+    }
+
+}
+
+/// Counts per window: daily × the window's day count, so each Window's numbers differ.
+private actor WindowFetcher: ContributionsFetching {
+    private var daily: [String: Int]
+    private var overrides: [ContributionWindow: [String: Int]] = [:]
+    private var log: [ContributionWindow] = []
+    init(_ daily: [String: Int]) { self.daily = daily }
+    /// Change one person's count in one Window only.
+    func set(_ username: String, _ count: Int, only window: ContributionWindow) { overrides[window, default: [:]][username] = count }
+    func calls(_ window: ContributionWindow) -> Int { log.filter { $0 == window }.count }
+    func standingCounts(for username: String, window: ContributionWindow, asOf reference: Date) async -> Result<StandingCounts, ContributionsError> {
+        log.append(window)
+        if let count = overrides[window]?[username] { return .success(StandingCounts(contributions: count)) }
+        guard let count = daily[username] else { return .failure(.network("no stub")) }
+        return .success(StandingCounts(contributions: count * window.dayCount))
+    }
 }
 
 private actor ConcurrencyCountingFetcher: ContributionsFetching {

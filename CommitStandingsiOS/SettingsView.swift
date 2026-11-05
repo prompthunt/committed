@@ -1,7 +1,7 @@
 import SwiftUI
 import UIKit
 
-/// The Settings tab, top to bottom: Leaderboard Notifications, Live rank (#43), About
+/// The Settings tab, top to bottom: Leaderboard Notifications, Live rank, About
 /// Committed, and your account with Disconnect GitHub. Mac-only items (Launch at Login,
 /// updates, Quit) don't exist on iPhone.
 struct SettingsView: View {
@@ -10,8 +10,7 @@ struct SettingsView: View {
             List {
                 LeaderboardNotificationsSection()
 
-                // MARK: Live rank (#43)
-                // LiveRankSettingsSection() goes here, between Leaderboard Notifications and About.
+                LiveRankSettingsSection()
 
                 Section {
                     NavigationLink {

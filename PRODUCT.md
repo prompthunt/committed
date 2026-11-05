@@ -75,6 +75,21 @@ Committed for iPhone has three tabs: **Board**, **People**, and **Settings**. It
 
 On **iPhone Duo**, the tabs sit in the side bar when the device is closed, and the Window and People filter switches stay in the navigation bar. Opened, the Board shows the ranked board and your summary side by side, split evenly at the fold, or top and bottom when the screen is taller than wide. Closed, on other iPhones, and in Split View, your summary is the first thing in the board's list instead. Opening or closing keeps your tab, Window, and place in the board.
 
+### Live rank (iPhone)
+
+Live rank keeps your current rank in the Dynamic Island and on the Lock Screen as a Live Activity.
+
+- **Compact Dynamic Island:** your rank (for example `#2`) with the trophy glyph, and your Contributions.
+- **Minimal Dynamic Island:** your rank.
+- **Expanded Dynamic Island:** you between the people ranked directly above and below you, with what it takes to move up ("3 to pass alice").
+- **Lock Screen:** the same, plus the Window and how long ago the numbers updated.
+- With no visible rivals, Live rank shows your Contributions without a rank. Before your numbers load, it shows placeholders, never zero.
+- Twenty minutes after its data, Live rank looks stale: the numbers dim and the refresh age shows, so an old rank never reads as current.
+- Tapping Live rank opens the board on Live rank's Window.
+- **Settings ▸ Live rank** has an on/off switch (on unless you turn it off) and the Window it follows (**Today** by default; the board keeps its own Window). If Live Activities are off for Committed in iOS Settings, it says so and links there.
+- Live rank starts when the app is open after Connect GitHub. It updates after every refresh: in the foreground, on the 5-minute timer, and through iOS background app refresh. It updates only when what it shows changed. Hiding or showing someone updates it right away. Changing its Window ends the activity and starts a new one. Disconnect GitHub or turning Live rank off ends it. Only one Live rank activity exists; leftovers are ended on launch.
+- On-device limits: iOS ends a Live Activity after 8 hours and doesn't let an app start one from the background. Background app refresh runs only when iOS chooses. Live rank restarts the next time you open the app.
+
 ## How it works
 
 The single metric comes from one GitHub source, computed for the selected trailing window:
@@ -131,4 +146,5 @@ The app is intentionally **not sandboxed** to support its Sparkle update path. B
 | Connect GitHub | Authorizing Committed's read-only GitHub access (`read:user read:org`) through GitHub's device flow. It does not create a Committed account; the token stays in the Mac's Keychain or Windows Credential Manager and is sent only to GitHub. Say "Connect GitHub" and "Disconnect GitHub", not "sign in", "sign up", "log out", or "create an account". |
 | Window | The trailing time range the board is computed over: Today, 7 days, or 30 days. |
 | Contributions | The count behind GitHub's contribution graph ("green squares") for the window. The single ranking metric. |
+| Live rank | The iPhone Live Activity that keeps your rank for one Window in the Dynamic Island and on the Lock Screen. It follows the same visible people and ranking as the board. |
 | Refresh | Reloading contribution counts on a ~5-minute timer, stale menu-open, or stale window switch. Manual **Refresh** also reloads the people list. |

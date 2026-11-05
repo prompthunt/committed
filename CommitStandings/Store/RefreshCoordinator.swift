@@ -5,6 +5,8 @@ enum RefreshReason: String {
     case menuOpened
     /// The iPhone app came to the foreground.
     case becameActive
+    /// An iPhone background app refresh (`BGAppRefreshTask`).
+    case backgroundRefresh
     case timer
     case manual
     case windowChanged
@@ -41,6 +43,12 @@ final class RefreshCoordinator {
     }
 
     private let beforeRefresh: @MainActor (RefreshReason) async -> Void
+    /// Runs after each completed `refreshAll` (manual, timer, or any other reason). The iPhone
+    /// updates Live rank here; the Mac passes nothing.
+    private let afterRefresh: @MainActor (RefreshReason) async -> Void
+    /// Windows to bring up to date alongside the board's (when stale), e.g. Live rank's Window
+    /// while the board shows another one. Counts only: crossing notifications follow the board.
+    private let additionalWindows: @MainActor () -> [ContributionWindow]
     private let store: StandingsStore
     private let client: ContributionsFetching
     private let interval: TimeInterval
@@ -71,9 +79,13 @@ final class RefreshCoordinator {
         interval: TimeInterval = 300,
         now: @Sendable @escaping () -> Date = { Date() },
         notifier: RankChangeNotifying? = nil,
-        beforeRefresh: @escaping @MainActor (RefreshReason) async -> Void = { _ in }
+        additionalWindows: @escaping @MainActor () -> [ContributionWindow] = { [] },
+        beforeRefresh: @escaping @MainActor (RefreshReason) async -> Void = { _ in },
+        afterRefresh: @escaping @MainActor (RefreshReason) async -> Void = { _ in }
     ) {
         self.beforeRefresh = beforeRefresh
+        self.afterRefresh = afterRefresh
+        self.additionalWindows = additionalWindows
         self.store = store
         self.client = client
         self.interval = interval
@@ -104,6 +116,38 @@ final class RefreshCoordinator {
         guard !usernames.isEmpty else { return }
         let window = store.selectedWindow
         lastReason = reason
+        let reference = now()
+        await fetch(usernames, window: window, reference: reference)
+        guard !Task.isCancelled, generation == requestGeneration else { return }
+
+        if baselineVisibilityRevision != store.visibilityRevision {
+            previousRanking = [:]
+            dailyBaselineRanks = [:]
+            dailyBaselineDate = nil
+            dailyRankDeltas = [:]
+            baselineVisibilityRevision = store.visibilityRevision
+        }
+        notifyPositionChanges(window: window, reference: reference)
+        updateDailyRankDeltas(window: window, reference: reference)
+
+        var extras: [ContributionWindow] = []
+        for extra in additionalWindows() where extra != window && !extras.contains(extra) && needsRefresh(for: extra) {
+            extras.append(extra)
+        }
+        for extra in extras {
+            await fetch(usernames, window: extra, reference: reference)
+            guard !Task.isCancelled, generation == requestGeneration else { return }
+            updateDailyRankDeltas(window: extra, reference: reference)
+        }
+
+        store.markRefreshComplete(at: reference)
+        await afterRefresh(reason)
+    }
+
+    /// Fetch `window`'s counts for `usernames` (at most six at a time) and apply them, keeping
+    /// prior good numbers on failure. Results from a superseded account are dropped.
+    private func fetch(_ usernames: [String], window: ContributionWindow, reference: Date) async {
+        let requestGeneration = generation
         // Snapshot prior good standings *before* markLoading flips state to
         // .loading. Without this, a competitor whose last successful counts were
         // legitimate zeroes (state == .loaded) would be
@@ -116,7 +160,6 @@ final class RefreshCoordinator {
         for username in usernames {
             store.markLoading(username: username, window: window)
         }
-        let reference = now()
         let client = self.client
 
         let results = await withTaskGroup(of: (String, Result<StandingCounts, ContributionsError>).self) { group in
@@ -150,17 +193,6 @@ final class RefreshCoordinator {
                 prior: priorStandings[username]
             )
         }
-
-        if baselineVisibilityRevision != store.visibilityRevision {
-            previousRanking = [:]
-            dailyBaselineRanks = [:]
-            dailyBaselineDate = nil
-            dailyRankDeltas = [:]
-            baselineVisibilityRevision = store.visibilityRevision
-        }
-        notifyPositionChanges(window: window, reference: reference)
-        updateDailyRankDeltas(window: window, reference: reference)
-        store.markRefreshComplete(at: reference)
     }
 
     /// The signed-in user (or anyone's) placement change since the start of today, or nil when the

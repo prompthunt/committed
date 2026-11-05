@@ -22,6 +22,10 @@ struct CommitStandingsiOSApp: App {
                 .environment(app.roster)
                 .environment(app.notifications)
         }
+        // Background app refresh keeps Live rank current while the app is closed.
+        .backgroundTask(.appRefresh(BackgroundRefresh.identifier)) { [app] in
+            await app.backgroundRefresh()
+        }
     }
 }
 

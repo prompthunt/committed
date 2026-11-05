@@ -95,9 +95,10 @@ targets:
         MARKETING_VERSION: "0.1.51"
         CURRENT_PROJECT_VERSION: "1"
         GENERATE_INFOPLIST_FILE: YES
-        INFOPLIST_FILE: CommitStandingsiOS/Info.plist  # only CFBundleURLTypes (committed://)
+        INFOPLIST_FILE: CommitStandingsiOS/Info.plist  # CFBundleURLTypes (committed://), BGTaskSchedulerPermittedIdentifiers, UIBackgroundModes fetch
         INFOPLIST_KEY_CFBundleDisplayName: Committed
         INFOPLIST_KEY_NSSupportsLiveActivities: YES
+        INFOPLIST_KEY_NSSupportsLiveActivitiesFrequentUpdates: YES
         INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
         INFOPLIST_KEY_UILaunchScreen_Generation: YES
         CODE_SIGN_ENTITLEMENTS: CommitStandingsiOS/CommitStandingsiOS.entitlements  # App Group group.com.addisonk.CommitStandings
@@ -109,6 +110,10 @@ targets:
     deploymentTarget: "27.1"
     sources:
       - path: CommitStandingsLiveRank
+      # The Live rank contract, shared with the app (LiveRankState is also in the Mac target).
+      - path: CommitStandingsiOS/LiveRankAttributes.swift
+      - path: CommitStandings/Store/LiveRankState.swift
+      - path: CommitStandings/Models/Standing.swift
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.addisonk.CommitStandings.iOS.LiveRank
