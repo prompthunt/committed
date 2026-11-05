@@ -3,7 +3,7 @@
 A small push service that keeps **Live rank** current while the iPhone app is closed. Every 5
 minutes it recomputes each registered iPhone's `LiveRankState` from public GitHub contribution
 graphs and sends ActivityKit pushes through APNs. Spec: issue #39 ("Live rank: the Committed relay").
-This folder is the service; wiring the iPhone app to it is a separate ticket.
+This folder is the service; the iPhone app's client is `CommitStandingsiOS/LiveRankRelay.swift` (registration rules in `LiveRankController`, build settings in `docs/distribution.md` → iPhone).
 
 It is a TypeScript Cloudflare Worker with a Cron Trigger (`*/5 * * * *`) and a D1 database.
 

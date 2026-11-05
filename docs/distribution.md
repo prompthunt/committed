@@ -1,6 +1,6 @@
 # Distributing Committed
 
-Committed ships a Mac menu-bar app and a Windows tray app. The Mac build is distributed as a signed, notarized DMG with the app and an Applications shortcut inside. Windows uses an unsigned per-user NSIS installer prepared in CI.
+Committed ships a Mac menu-bar app, a Windows tray app, and an iPhone app. The iPhone app ships through TestFlight and the App Store, not the GitHub Release; see [iPhone](#iphone). The Mac build is distributed as a signed, notarized DMG with the app and an Applications shortcut inside. Windows uses an unsigned per-user NSIS installer prepared in CI.
 
 The local Debug workflow is intentionally separate. The release script passes signing, bundle ID, and deployment overrides at package time instead of changing how Debug launches from Xcode.
 
@@ -177,3 +177,45 @@ To override the Digg defaults for a one-off package:
 ```sh
 TEAM_ID=ABCDE12345 PRODUCT_BUNDLE_IDENTIFIER=com.example.commitstandings ./scripts/package-release.sh
 ```
+
+## iPhone
+
+The iPhone app (`CommitStandingsiOS`, bundle ID `com.addisonk.CommitStandings.iOS`, with the Live rank extension `com.addisonk.CommitStandings.iOS.LiveRank`) ships through **TestFlight**, then the **App Store**. Nothing here touches the Mac and Windows release above: `scripts/publish-release.sh` and its seven assets don't change, and the GitHub Release carries no iOS build. The iOS marketing version follows the shared version number.
+
+### Signing and capabilities
+
+- Apple Developer team, App IDs for the app and the extension.
+- App ID capabilities: **App Groups** (`group.com.addisonk.CommitStandings`, both targets) and **Push Notifications** (the app). The app's entitlements carry `aps-environment = development`; App Store and TestFlight signing switches it to `production`.
+- Set a development team on the `CommitStandingsiOS` and `CommitStandingsLiveRank` targets (they're ad-hoc signed for the simulator today).
+
+### The Committed relay
+
+Live rank uses the Committed relay (`relay/`, a Cloudflare Worker) to stay current while the app is closed. Two build settings on the `CommitStandingsiOS` target choose the relay. They reach the app through `CommitStandingsiOS/Info.plist` (`CommittedRelayURL`, `CommittedAPNsEnvironment`):
+
+| Build setting | Debug | Release |
+|---|---|---|
+| `COMMITTED_RELAY_URL` | `http://127.0.0.1:8787` (local `wrangler dev`; use the staging Worker URL for pushes) | empty until the relay is deployed; then the production Worker URL, e.g. `https://committed-relay.<account>.workers.dev` |
+| `COMMITTED_APNS_ENVIRONMENT` | `sandbox` | `production` |
+
+An empty `COMMITTED_RELAY_URL` means no relay: Live rank runs on the device only, the app shows no relay disclosure, and nothing is sent. `COMMITTED_APNS_ENVIRONMENT` must match the build's push tokens: `sandbox` for development-signed builds (Xcode runs), `production` for TestFlight and the App Store. Override either per build, e.g. `xcodebuild … COMMITTED_RELAY_URL=https://committed-relay-staging.<account>.workers.dev`.
+
+Deploying the relay (Cloudflare account, D1, the APNs `.p8` key as Worker secrets) is in `relay/README.md` ("Setup"). One APNs auth key serves both environments.
+
+### TestFlight
+
+1. Bump `MARKETING_VERSION` and `CURRENT_PROJECT_VERSION` on the iOS targets.
+2. Set `COMMITTED_RELAY_URL` for Release to the deployed relay.
+3. Archive the `CommitStandingsiOS` scheme for **Any iOS Device** and upload with Xcode Organizer (or `xcodebuild -exportArchive` with an App Store Connect export method).
+4. In App Store Connect, add testers. The privacy label lists the GitHub username and the usernames of people on your board, linked to device identifiers, for app functionality (the Committed relay).
+
+### Local relay checks
+
+```sh
+cd relay && npm ci && npm run db:migrate:local
+npx wrangler dev --test-scheduled --ip 127.0.0.1 --port 8787
+# Debug simulator build with the canned board, registered with the local relay:
+xcrun simctl launch <udid> com.addisonk.CommitStandings.iOS -demoBoard -demoRelay accepted
+curl "http://127.0.0.1:8787/cdn-cgi/handler/scheduled?cron=*/5+*+*+*+*"   # run the cron once
+```
+
+`-demoRelay ask` shows the disclosure instead. Local `wrangler dev` can't reach APNs, so the cron computes and logs but delivers no push; use a staging Worker on Cloudflare for real pushes.

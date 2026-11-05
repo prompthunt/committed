@@ -95,14 +95,22 @@ targets:
         MARKETING_VERSION: "0.1.51"
         CURRENT_PROJECT_VERSION: "1"
         GENERATE_INFOPLIST_FILE: YES
-        INFOPLIST_FILE: CommitStandingsiOS/Info.plist  # CFBundleURLTypes (committed://), BGTaskSchedulerPermittedIdentifiers, UIBackgroundModes fetch
+        INFOPLIST_FILE: CommitStandingsiOS/Info.plist  # CFBundleURLTypes (committed://), BGTaskSchedulerPermittedIdentifiers, UIBackgroundModes fetch, CommittedRelayURL/CommittedAPNsEnvironment
         INFOPLIST_KEY_CFBundleDisplayName: Committed
         INFOPLIST_KEY_NSSupportsLiveActivities: YES
         INFOPLIST_KEY_NSSupportsLiveActivitiesFrequentUpdates: YES
         INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
         INFOPLIST_KEY_UILaunchScreen_Generation: YES
-        CODE_SIGN_ENTITLEMENTS: CommitStandingsiOS/CommitStandingsiOS.entitlements  # App Group group.com.addisonk.CommitStandings
+        CODE_SIGN_ENTITLEMENTS: CommitStandingsiOS/CommitStandingsiOS.entitlements  # App Group group.com.addisonk.CommitStandings, aps-environment
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+      # The Committed relay (Live rank phase 2). Empty URL = no relay (on-device Live rank only).
+      configs:
+        Debug:
+          COMMITTED_RELAY_URL: "http://127.0.0.1:8787"  # local `wrangler dev`
+          COMMITTED_APNS_ENVIRONMENT: sandbox
+        Release:
+          COMMITTED_RELAY_URL: ""  # set to the deployed relay (#47)
+          COMMITTED_APNS_ENVIRONMENT: production
 
   CommitStandingsLiveRank:
     type: app-extension

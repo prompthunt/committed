@@ -84,9 +84,20 @@ Live rank keeps your current rank in the Dynamic Island and on the Lock Screen a
 - With no visible rivals, Live rank shows your Contributions without a rank. Before your numbers load, it shows placeholders, never zero.
 - Twenty minutes after its data, Live rank looks stale: the numbers dim and the refresh age shows, so an old rank never reads as current.
 - Tapping Live rank opens the board on Live rank's Window.
-- **Settings ▸ Live rank** has an on/off switch (on unless you turn it off) and the Window it follows (**Today** by default; the board keeps its own Window). If Live Activities are off for Committed in iOS Settings, it says so and links there.
+- **Settings ▸ Live rank** has an on/off switch and the Window it follows (**Today** by default; the board keeps its own Window). If Live Activities are off for Committed in iOS Settings, it says so and links there. With the Committed relay, Live rank is off until you accept the relay disclosure (below); without it, Live rank is on unless you turn it off.
 - Live rank starts when the app is open after Connect GitHub. It updates after every refresh: in the foreground, on the 5-minute timer, and through iOS background app refresh. It updates only when what it shows changed. Hiding or showing someone updates it right away. Changing its Window ends the activity and starts a new one. Disconnect GitHub or turning Live rank off ends it. Only one Live rank activity exists; leftovers are ended on launch.
-- On-device limits: iOS ends a Live Activity after 8 hours and doesn't let an app start one from the background. Background app refresh runs only when iOS chooses. Live rank restarts the next time you open the app.
+- On-device limits: iOS ends a Live Activity after 8 hours and doesn't let an app start one from the background. Background app refresh runs only when iOS chooses. Without the relay, Live rank restarts the next time you open the app.
+
+#### Always on with the Committed relay
+
+The **Committed relay** is a small push service that keeps Live rank current while the app is closed. Builds that have a relay configured use it; builds without one keep the on-device behavior above, send nothing anywhere, and never show the disclosure.
+
+- **Disclosure first.** Before Live rank first turns on, one sheet explains that the relay receives your GitHub username and the usernames on your board (public data), your Live rank Window and time zone, and a push token for Live rank on that iPhone, and that it never receives your GitHub token. It appears once your board has loaded after Connect GitHub, and again from the Settings switch until you accept it. **Turn On Live rank** accepts; **Not Now** leaves Live rank off, and the app doesn't ask again on its own.
+- **What the relay stores per iPhone:** a random install ID, a hash of a random install secret (the secret stays in the iPhone's Keychain), the APNs environment, push tokens for starting and updating Live rank, your login, the visible logins on your board in board order, the Window, and the time zone. Hidden people are not sent. The GitHub token never leaves the iPhone except to GitHub.
+- **Always on.** Every 5 minutes the relay reads the same public contribution pages as the apps, recomputes your rank with the same rules, and updates Live rank when it changed, so a pass shows within about 5 minutes with the app closed. Today is counted for your local day. Before iOS's 8-hour limit the relay ends the activity and starts a fresh one. If you dismiss Live rank, the relay waits until its next rotation (at most 7.5 hours) before starting it again.
+- **Kept in step.** The app updates its registration when you hide or show someone, change Live rank's Window, when a people sync changes your board, when your time zone changes, and when iOS issues new push tokens. Activities the relay started are reported back so it can update them.
+- **Removal.** Turning Live rank off or **Disconnect GitHub** deletes the iPhone's registration and ends Live rank. If the relay can't be reached, the app retries until it succeeds.
+- The relay doesn't send Leaderboard Notifications; those stay on the device.
 
 ## How it works
 
@@ -132,7 +143,7 @@ The app is intentionally **not sandboxed** to support its Sparkle update path. B
 
 ## What it doesn't do today
 
-- **No shared/team board or settings sync.** Each person has their own leaderboard. Connecting the same GitHub account on another Mac derives the same accessible people from GitHub, but visibility preferences remain local. A shared backend is an exploration, not a current feature.
+- **No shared/team board or settings sync.** Each person has their own leaderboard. Connecting the same GitHub account on another Mac derives the same accessible people from GitHub, but visibility preferences remain local. There is no Committed account or shared backend. The only server is the Committed relay, which keeps an iPhone's Live rank current and holds just the public logins it needs, never a GitHub token.
 - **Public contribution graph only.** Private activity is included only if the person enables **Contribution settings → Private contributions** on their GitHub profile. A dismissible board tip explains this; the guidance remains available in **About Committed**. Connecting requests `read:org read:user` to load profile and organization membership information. It does not request `repo` access or read repository contents.
 - **No web or Android app.** The leaderboard lives in the Mac menu bar, the Windows notification area, and the iPhone app. On desktop, standalone windows cover connecting GitHub, People, and the contributions explanation.
 
@@ -141,8 +152,9 @@ The app is intentionally **not sandboxed** to support its Sparkle update path. B
 | Term | Meaning |
 |---|---|
 | Competitor | You, someone you follow on GitHub, or a member of your GitHub organizations. Hidden competitors stay in People but leave the leaderboard. |
-| Connect GitHub | Authorizing Committed's read-only GitHub access (`read:user read:org`) through GitHub's device flow. It does not create a Committed account; the token stays in the Mac's Keychain or Windows Credential Manager and is sent only to GitHub. Say "Connect GitHub" and "Disconnect GitHub", not "sign in", "sign up", "log out", or "create an account". |
+| Connect GitHub | Authorizing Committed's read-only GitHub access (`read:user read:org`) through GitHub's device flow. It does not create a Committed account; the token stays in the Mac's Keychain, Windows Credential Manager, or the iPhone's Keychain and is sent only to GitHub (never to the Committed relay). Say "Connect GitHub" and "Disconnect GitHub", not "sign in", "sign up", "log out", or "create an account". |
 | Window | The trailing time range the board is computed over: Today, 7 days, or 30 days. |
 | Contributions | The count behind GitHub's contribution graph ("green squares") for the window. The single ranking metric. |
 | Live rank | The iPhone Live Activity that keeps your rank for one Window in the Dynamic Island and on the Lock Screen. It follows the same visible people and ranking as the board. |
+| Committed relay | The push service that keeps Live rank current while the iPhone app is closed. It receives your GitHub username, the visible usernames on your board, your Live rank Window and time zone, and push tokens, all after a one-time disclosure. It never receives a GitHub token. Say "the Committed relay" or "the relay", not "the server", "the backend", or "sync". |
 | Refresh | Reloading contribution counts on a ~5-minute timer, stale menu-open, or stale window switch. Manual **Refresh** also reloads the people list. |

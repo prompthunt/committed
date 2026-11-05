@@ -38,7 +38,25 @@ extension AppModel {
         }
         #if DEBUG
         if ProcessInfo.processInfo.arguments.contains("-demoBoard") {
-            let app = AppModel(.demo())
+            var dependencies = AppDependencies.demo()
+            // `-demoRelay ask|accepted` (opt-in) registers the demo board with this build's
+            // COMMITTED_RELAY_URL, e.g. a local `wrangler dev`: `ask` shows the disclosure,
+            // `accepted` starts as if it was accepted. Without it the demo never uses a relay.
+            if let mode = UserDefaults.standard.string(forKey: "demoRelay"),
+               let relay = RelayConfiguration(info: Bundle.main.infoDictionary) {
+                dependencies.relay = LiveRankRelayDependencies(
+                    client: HTTPLiveRankRelayClient(baseURL: relay.baseURL),
+                    store: InMemoryLiveRankRelayStore(),
+                    environment: relay.environment
+                )
+                dependencies.makeLiveRankActivities = { ActivityKitLiveRankActivities(pushType: .token) }
+                if mode == "accepted" {
+                    dependencies.liveRankPersistence = InMemoryLiveRankPersistence(
+                        LiveRankPreferences(isEnabled: true, relayDisclosureAccepted: true)
+                    )
+                }
+            }
+            let app = AppModel(dependencies)
             // `-demoTab people|settings` opens on that tab, for screenshots.
             switch UserDefaults.standard.string(forKey: "demoTab") {
             case "people": app.selectedTab = .people
