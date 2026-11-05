@@ -230,7 +230,7 @@ struct LiveRankFooter: View {
                 Text("Updated \(Text(.currentDate, format: .reference(to: state.updatedDate, allowedFields: [.day, .hour, .minute], maxFieldCount: 1, thresholdField: .minute)))")
             }
             .foregroundStyle(isStale ? .orange : .secondary)
-            .lineLimit(1)
+            .lineLimit(2)
         }
     }
 }
@@ -268,9 +268,11 @@ struct LiveRankLockScreenView: View {
                     .monospacedDigit()
                     .opacity(LiveRankStyle.numberOpacity(stale: isStale))
                     if state.movementToday != 0 { LiveRankMovement(movement: state.movementToday) }
+                    Spacer(minLength: 0)
                 }
-                Spacer(minLength: 0)
+                // With no rank, your Contributions lead the card instead of sitting alone on the right.
                 LiveRankCount(state: state, isStale: isStale, showsLabel: !dynamicTypeSize.isAccessibilitySize)
+                if state.rankText == nil { Spacer(minLength: 0) }
             }
             .lineLimit(1)
             .minimumScaleFactor(0.7)
