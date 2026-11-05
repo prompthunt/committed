@@ -37,9 +37,11 @@ struct BoardSummaryView: View {
             RosterStatusView()
                 .padding(.horizontal, 6)
         }
-        .onChange(of: summary?.rank) { old, new in
-            // Only a real climb on the same board: a Window switch can also lower the number.
-            if let old, let new, new < old, summary?.window == store.selectedWindow { bursts += 1 }
+        .onChange(of: BurstKey(rank: summary?.rank, window: store.selectedWindow)) { old, new in
+            // Only a real climb within one Window: switching Windows can also lower the number.
+            if old.window == new.window, let before = old.rank, let after = new.rank, after < before {
+                bursts += 1
+            }
         }
     }
 
@@ -168,6 +170,12 @@ struct BoardSummaryView: View {
             .font(.footnote)
             .foregroundStyle(Color.muted)
         }
+    }
+
+    /// Your rank on one Window, so a Window switch never reads as a climb.
+    private struct BurstKey: Equatable {
+        let rank: Int?
+        let window: ContributionWindow
     }
 
     private func refreshAgeText(_ lastUpdated: Date?, now: Date) -> String? {
