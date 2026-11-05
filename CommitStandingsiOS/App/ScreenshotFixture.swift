@@ -6,6 +6,9 @@ import Foundation
 ///
 ///     xcrun simctl launch <udid> com.addisonk.CommitStandings.iOS -ScreenshotFixture
 ///
+/// Optional, after `-ScreenshotFixture`: `-ScreenshotTab people|settings` opens on that tab, and
+/// `-ScreenshotHide <login>` hides that person before the first refresh (so Today still moves).
+///
 /// Everything above the data layer is real: `CommittedServices`, `RefreshCoordinator`, `Ranking`,
 /// and every view. Counts move between the first two refreshes so Today shows movement chevrons.
 /// One person always fails to load, to show the missing-data placeholder.
@@ -15,6 +18,23 @@ enum ScreenshotFixture {
 
     static var isRequested: Bool {
         ProcessInfo.processInfo.arguments.contains(launchArgument)
+    }
+
+    /// The tab to open on, from `-ScreenshotTab board|people|settings`.
+    static var requestedTab: AppTab? {
+        guard isRequested else { return nil }
+        switch value(after: "-ScreenshotTab") {
+        case "board": return .board
+        case "people": return .people
+        case "settings": return .settings
+        default: return nil
+        }
+    }
+
+    private static func value(after flag: String) -> String? {
+        let arguments = ProcessInfo.processInfo.arguments
+        guard let index = arguments.firstIndex(of: flag), arguments.indices.contains(index + 1) else { return nil }
+        return arguments[index + 1]
     }
 
     static func services() -> CommittedServices {
@@ -35,8 +55,13 @@ enum ScreenshotFixture {
                 ], updatedAt: Date().addingTimeInterval(-240))
             }
         )
+        let hide = value(after: "-ScreenshotHide")
         Task {
             await services.auth.refreshIdentity()
+            if let hide {
+                await services.roster.refresh(force: true)
+                services.store.setHidden(true, username: hide)
+            }
             // Two refreshes on the same day: the first sets today's baseline, the second moves.
             await services.refresh.refreshAll(reason: .manual)
             await services.refresh.refreshAll(reason: .timer)

@@ -1,29 +1,16 @@
 import SwiftUI
 
-/// The Settings tab. #42 adds Leaderboard Notifications and About Committed, and #43 adds the Live
-/// rank section above Account. Add each as its own `Section` in this `Form`.
+/// The Settings tab. Each section is its own view so sections can be added without touching the
+/// others. Order follows the spec: Live rank, Leaderboard Notifications, About Committed, GitHub.
+/// The Mac-only items (Launch at Login, updates, Quit) don't exist on iPhone.
 struct SettingsView: View {
-    @Environment(AuthModel.self) private var auth
-    @State private var confirmingDisconnect = false
-
     var body: some View {
         NavigationStack {
             Form {
-                Section("GitHub") {
-                    if let username = auth.username {
-                        LabeledContent("Connected as", value: "@\(username)")
-                    }
-                    Button("Disconnect GitHub", role: .destructive) {
-                        confirmingDisconnect = true
-                    }
-                    .confirmationDialog(
-                        "Disconnect GitHub?", isPresented: $confirmingDisconnect, titleVisibility: .visible
-                    ) {
-                        Button("Disconnect", role: .destructive) { auth.signOut() }
-                    } message: {
-                        Text("This deletes your GitHub token from this iPhone and clears your board.")
-                    }
-                }
+                // #43: LiveRankSection() goes here, first.
+                LeaderboardNotificationsSection()
+                AboutCommittedSection()
+                GitHubAccountSection()
             }
             .navigationTitle("Settings")
         }

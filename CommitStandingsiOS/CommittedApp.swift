@@ -5,10 +5,20 @@ import UIKit
 struct CommittedApp: App {
     // The same shared graph as the Mac app: saved standings and people show immediately on
     // launch, and the token lives in this iPhone's Keychain.
-    @State private var model = AppModel(
-        services: CommittedApp.makeServices(),
-        backgroundTime: UIApplicationBackgroundTime()
-    )
+    @State private var model = CommittedApp.makeModel()
+
+    init() {
+        // A unit-test host must not touch the notification center at launch.
+        if !CommittedServices.isRunningTests { ForegroundNotificationPresenter.install() }
+    }
+
+    private static func makeModel() -> AppModel {
+        let model = AppModel(services: makeServices(), backgroundTime: UIApplicationBackgroundTime())
+        #if DEBUG
+        if let tab = ScreenshotFixture.requestedTab { model.selectedTab = tab }
+        #endif
+        return model
+    }
 
     private static var loadsGitHubAvatars: Bool {
         #if DEBUG
