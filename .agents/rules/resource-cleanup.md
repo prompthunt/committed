@@ -116,7 +116,9 @@ process group, returns exit 125 and keeps diagnostics.
 
 `python3 scripts/ios_tools.py` checks capacity alone. The default minimum is 20 GiB;
 set `COMMITTED_MIN_FREE_GIB` (or `--minimum-gib`) deliberately for an operation's
-needs. A passing check is a snapshot, not a reservation.
+needs. The Mac gate (`ios_check.py mac`) starts from its own 8 GiB floor
+(`COMMITTED_MAC_MIN_FREE_GIB`); it runs no simulator. Don't lower either floor to get
+past a capacity blocker. A passing check is a snapshot, not a reservation.
 
 On failure, finish active work first, review the reported cache candidates and verify
 inactivity again before removing one by hand. Candidates are limited to this

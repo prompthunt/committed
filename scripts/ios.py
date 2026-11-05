@@ -17,8 +17,10 @@ TEST_ACTIONS = ['test', 'test-without-building', 'build-for-testing']
 
 
 @serialized_native
-def run_xcode(arguments, log=None, timeout=1800, startup_timeout=None):
-    report = preflight(ROOT, float(os.environ.get('COMMITTED_MIN_FREE_GIB', '20')))
+def run_xcode(arguments, log=None, timeout=1800, startup_timeout=None, minimum_gib=None):
+    if minimum_gib is None:
+        minimum_gib = float(os.environ.get('COMMITTED_MIN_FREE_GIB', '20'))
+    report = preflight(ROOT, minimum_gib)
     print(json.dumps(report), flush=True)
     if not report['ok']:
         return 1

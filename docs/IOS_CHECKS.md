@@ -51,8 +51,10 @@ devices and their data are untouched.
 
 Each build or test command is capped at 30 minutes (`--test-timeout`), test-runner
 startup at three minutes after compilation, and individual iPhone tests at three
-minutes. Builds need 20 GiB free to start (`COMMITTED_MIN_FREE_GIB`) and stop their
-own process group below 5 GiB. See the
+minutes. iPhone runs and `ios.py` builds need 20 GiB free to start
+(`COMMITTED_MIN_FREE_GIB`). The Mac gate (`ios_check.py mac`) needs 8 GiB
+(`COMMITTED_MAC_MIN_FREE_GIB`), because a Mac build and test uses well under 1 GiB.
+Every command stops its own process group below 5 GiB. See the
 [resource rule](../.agents/rules/resource-cleanup.md) for capacity, recovery and
 ownership limits.
 

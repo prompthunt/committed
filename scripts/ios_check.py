@@ -28,7 +28,14 @@ UNSIGNED = ['CODE_SIGN_STYLE=Manual', 'CODE_SIGN_IDENTITY=-', 'DEVELOPMENT_TEAM=
 
 
 def minimum_gib():
+    """Start floor for iPhone runs: a simulator, its runtime data and DerivedData."""
     return float(os.environ.get('COMMITTED_MIN_FREE_GIB', '20'))
+
+
+def mac_minimum_gib():
+    """Start floor for the Mac gate. A Mac build and test needs well under 1 GiB, so it
+    starts from 8 GiB; the 5 GiB runtime floor still stops it if disk runs out."""
+    return float(os.environ.get('COMMITTED_MAC_MIN_FREE_GIB', '8'))
 
 
 def ios_scheme_present(root=ROOT):
@@ -50,7 +57,7 @@ def run_mac(package=False, test_timeout=1800):
                         '-destination', 'platform=macOS',
                         '-derivedDataPath', str(ROOT / 'build' / 'DerivedData'),
                         '-resultBundlePath', str(result_path), *UNSIGNED, 'build', 'test'],
-                       run / 'mac.log', timeout=test_timeout)
+                       run / 'mac.log', timeout=test_timeout, minimum_gib=mac_minimum_gib())
     print(f'Mac gate exit {status}; diagnostics: {run}', flush=True)
     if status or not package:
         return status
