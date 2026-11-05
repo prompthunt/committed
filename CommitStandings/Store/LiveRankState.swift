@@ -68,11 +68,41 @@ extension LiveRankState {
     }
 
     /// Tapping Live rank opens the board on its Window.
-    var boardURL: URL {
+    var boardURL: URL { BoardLink(window: contributionWindow).url }
+}
+
+/// `committed://board?window=<daily|weekly|monthly>`: opens the Board, on a Window when one is
+/// given. Live rank's taps make it; the iPhone app's `AppModel.open` reads it.
+struct BoardLink: Equatable {
+    private static let scheme = "committed"
+    private static let host = "board"
+    private static let windowItem = "window"
+
+    /// nil: keep the board's current Window.
+    var window: ContributionWindow?
+
+    init(window: ContributionWindow?) {
+        self.window = window
+    }
+
+    /// nil for anything that isn't a board link, including one with an unknown Window.
+    init?(_ url: URL) {
+        guard url.scheme == Self.scheme, url.host() == Self.host else { return nil }
+        let value = URLComponents(url: url, resolvingAgainstBaseURL: false)?
+            .queryItems?.first { $0.name == Self.windowItem }?.value
+        guard let value else {
+            window = nil
+            return
+        }
+        guard let window = ContributionWindow(rawValue: value) else { return nil }
+        self.window = window
+    }
+
+    var url: URL {
         var components = URLComponents()
-        components.scheme = "committed"
-        components.host = "board"
-        components.queryItems = [URLQueryItem(name: "window", value: window)]
+        components.scheme = Self.scheme
+        components.host = Self.host
+        if let window { components.queryItems = [URLQueryItem(name: Self.windowItem, value: window.rawValue)] }
         return components.url!
     }
 }

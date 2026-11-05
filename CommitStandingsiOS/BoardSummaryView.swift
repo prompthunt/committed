@@ -70,9 +70,9 @@ struct BoardSummaryView: View {
     private var movement: some View {
         if let movement = summary.movementToday {
             HStack(spacing: 4) {
-                Image(systemName: movement > 0 ? "chevron.up" : "chevron.down")
+                Image(systemName: RankMovement.symbol(movement))
                     .font(.caption.weight(.semibold))
-                    .foregroundStyle(movement > 0 ? Color.green : Color.secondary)
+                    .foregroundStyle(RankMovement.color(movement))
                 Text("\(movement.magnitude) today")
                     .font(.caption)
                     .foregroundStyle(.secondary)
@@ -112,8 +112,7 @@ struct BoardSummaryView: View {
             parts.append("no contributions data yet")
         }
         if let movement = summary.movementToday {
-            let places = movement.magnitude == 1 ? "place" : "places"
-            parts.append("\(movement > 0 ? "up" : "down") \(movement.magnitude) \(places) today")
+            parts.append(RankMovement.label(movement))
         }
         if refresh.isRefreshing {
             parts.append("updating")

@@ -63,7 +63,7 @@ struct RelayClientTests {
         let client = client()
 
         try await client.register(RelayRegistration(
-            login: "me", competitors: ["me", "alice"], window: "daily", timeZone: "America/Los_Angeles",
+            board: RelayBoard(login: "me", competitors: ["me", "alice"], window: "daily", timeZone: "America/Los_Angeles"),
             environment: "sandbox", pushToStartToken: "0102"
         ), as: installation)
 
@@ -83,13 +83,25 @@ struct RelayClientTests {
         let client = client()
 
         try await client.register(RelayRegistration(
-            login: "me", competitors: ["me"], window: "weekly", timeZone: "UTC",
+            board: RelayBoard(login: "me", competitors: ["me"], window: "weekly", timeZone: "UTC"),
             environment: "production", pushToStartToken: nil
         ), as: installation)
 
         let request = try #require(RelayStub.captured.only)
         let json = try #require(try JSONSerialization.jsonObject(with: request.body) as? [String: Any])
         #expect(Set(json.keys) == ["login", "competitors", "window", "timeZone", "environment"])
+    }
+
+    /// What the relay last accepted is saved as this same flat JSON, and read back on launch.
+    @Test func aRegistrationReadsBackFromItsFlatJSON() throws {
+        let registration = RelayRegistration(
+            board: RelayBoard(login: "me", competitors: ["me", "alice"], window: "monthly", timeZone: "UTC"),
+            environment: "sandbox", pushToStartToken: "ab"
+        )
+        let data = try JSONEncoder().encode(registration)
+        let json = try #require(try JSONSerialization.jsonObject(with: data) as? [String: Any])
+        #expect(json["board"] == nil)
+        #expect(try JSONDecoder().decode(RelayRegistration.self, from: data) == registration)
     }
 
     @Test func reportingAnActivityPutsItsIDAndToken() async throws {

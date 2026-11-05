@@ -4,22 +4,40 @@ import Foundation
 // closed. The app registers public logins only (yours and the visible ones on your board),
 // never the GitHub token. Device API: `relay/src/api.ts` and `relay/README.md`.
 
-/// `PUT /v1/installations/{id}`. Encoded exactly as the relay expects: it rejects unknown keys,
-/// and an absent `pushToStartToken` means iOS hasn't issued one.
+/// `PUT /v1/installations/{id}`: the board plus this build's push details, encoded flat, exactly as
+/// the relay expects. It rejects unknown keys, and an absent `pushToStartToken` means iOS hasn't
+/// issued one.
 struct RelayRegistration: Codable, Equatable, Sendable {
-    var login: String
-    /// The visible board in board order, you included (order breaks ties). At most 1,000.
-    var competitors: [String]
-    /// `ContributionWindow` raw value.
-    var window: String
-    /// IANA time zone: Today is summed for this zone's calendar day.
-    var timeZone: String
+    var board: RelayBoard
     /// "sandbox" (development-signed builds) or "production" (TestFlight and the App Store).
     var environment: String
     /// Hex, or nil until iOS issues one.
     var pushToStartToken: String?
 
     static let maxCompetitors = 1000
+
+    init(board: RelayBoard, environment: String, pushToStartToken: String?) {
+        self.board = board
+        self.environment = environment
+        self.pushToStartToken = pushToStartToken
+    }
+
+    // The board's keys and these sit side by side in one JSON object.
+    private enum CodingKeys: String, CodingKey { case environment, pushToStartToken }
+
+    init(from decoder: any Decoder) throws {
+        board = try RelayBoard(from: decoder)
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        environment = try container.decode(String.self, forKey: .environment)
+        pushToStartToken = try container.decodeIfPresent(String.self, forKey: .pushToStartToken)
+    }
+
+    func encode(to encoder: any Encoder) throws {
+        try board.encode(to: encoder)
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(environment, forKey: .environment)
+        try container.encodeIfPresent(pushToStartToken, forKey: .pushToStartToken)
+    }
 }
 
 /// This iPhone's identity at the relay: a random install ID and the secret that authorizes
@@ -29,9 +47,8 @@ struct RelayInstallation: Codable, Equatable, Sendable {
     var secret: String
 
     static func random() -> RelayInstallation {
-        var bytes = [UInt8](repeating: 0, count: 32)
-        for index in bytes.indices { bytes[index] = UInt8.random(in: .min ... .max) }
-        return RelayInstallation(id: UUID().uuidString, secret: bytes.map { String(format: "%02x", $0) }.joined())
+        let bytes = (0..<32).map { _ in UInt8.random(in: .min ... .max) }
+        return RelayInstallation(id: UUID().uuidString, secret: Data(bytes).hexString)
     }
 }
 
@@ -78,11 +95,14 @@ struct LiveRankRelayDependencies {
     var environment: String
 }
 
-/// The part of a registration that comes from the board; the relay adds the token and environment.
-struct RelayBoard: Equatable, Sendable {
+/// The part of a registration that comes from the board; `RelayRegistration` adds the push details.
+struct RelayBoard: Codable, Equatable, Sendable {
     var login: String
+    /// The visible board in board order, you included (order breaks ties). At most 1,000.
     var competitors: [String]
+    /// `ContributionWindow` raw value.
     var window: String
+    /// IANA time zone: Today is summed for this zone's calendar day.
     var timeZone: String
 }
 
@@ -130,10 +150,7 @@ final class LiveRankRelay {
         }
         if let notBefore, now() < notBefore { return }
         let installation = installationOrNew()
-        let registration = RelayRegistration(
-            login: board.login, competitors: board.competitors, window: board.window,
-            timeZone: board.timeZone, environment: environment, pushToStartToken: pushToStartToken
-        )
+        let registration = RelayRegistration(board: board, environment: environment, pushToStartToken: pushToStartToken)
         if sent.registration != registration {
             do {
                 try await client.register(registration, as: installation)
@@ -224,42 +241,27 @@ extension Data {
 /// can report a token; never backed up to another device), and what was sent in the App Group.
 final class DeviceLiveRankRelayStore: LiveRankRelayStore, @unchecked Sendable {
     static let sentKey = "liveRank.relaySent"
-    private let service: String
-    private let account = "relay-installation"
+    private let item: KeychainItem
     private let defaults: UserDefaults
 
     init(
         service: String = "com.addisonk.CommitStandings.relay",
         defaults: UserDefaults = UserDefaults(suiteName: UserDefaultsLiveRankPersistence.appGroup) ?? .standard
     ) {
-        self.service = service
+        item = KeychainItem(service: service, account: "relay-installation")
         self.defaults = defaults
     }
 
-    private var baseQuery: [String: Any] {
-        [kSecClass as String: kSecClassGenericPassword,
-         kSecAttrService as String: service,
-         kSecAttrAccount as String: account]
-    }
-
     func loadInstallation() -> RelayInstallation? {
-        var query = baseQuery
-        query[kSecReturnData as String] = true
-        query[kSecMatchLimit as String] = kSecMatchLimitOne
-        var item: CFTypeRef?
-        guard SecItemCopyMatching(query as CFDictionary, &item) == errSecSuccess, let data = item as? Data else {
-            return nil
-        }
-        return try? JSONDecoder().decode(RelayInstallation.self, from: data)
+        item.read().flatMap { try? JSONDecoder().decode(RelayInstallation.self, from: $0) }
     }
 
     func saveInstallation(_ installation: RelayInstallation?) {
-        SecItemDelete(baseQuery as CFDictionary)
-        guard let installation, let data = try? JSONEncoder().encode(installation) else { return }
-        var attributes = baseQuery
-        attributes[kSecValueData as String] = data
-        attributes[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
-        SecItemAdd(attributes as CFDictionary, nil)
+        guard let installation, let data = try? JSONEncoder().encode(installation) else {
+            item.delete()
+            return
+        }
+        item.save(data, accessibility: kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly)
     }
 
     func loadSent() -> RelaySentState {

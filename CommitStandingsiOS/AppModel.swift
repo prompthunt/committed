@@ -290,16 +290,9 @@ final class AppModel {
     /// changing nothing, for links it doesn't understand.
     @discardableResult
     func open(_ url: URL) -> Bool {
-        guard url.scheme == "committed", url.host() == "board" else { return false }
-        let windowValue = URLComponents(url: url, resolvingAgainstBaseURL: false)?
-            .queryItems?.first { $0.name == "window" }?.value
-        var window: ContributionWindow?
-        if let windowValue {
-            guard let requested = ContributionWindow(rawValue: windowValue) else { return false }
-            window = requested
-        }
+        guard let link = BoardLink(url) else { return false }
         selectedTab = .board
-        if let window { store.selectedWindow = window }
+        if let window = link.window { store.selectedWindow = window }
         return true
     }
 }

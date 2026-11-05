@@ -23,7 +23,8 @@ struct Board {
         let competitorCount: Int
         /// Your Contributions for the Window; nil (a placeholder, never zero) until loaded.
         let contributions: Int?
-        /// Places moved since the start of today (+ up, − down); Today board only.
+        /// Places moved since the start of today (+ up, − down); nil when you held your place,
+        /// have no rank, or the board isn't Today.
         let movementToday: Int?
         /// Saved numbers are showing while fresh ones load.
         let isRefreshing: Bool
@@ -54,16 +55,24 @@ struct Board {
             )
         }
         self.rows = rows
+        // Your rank, count, and movement follow Live rank's rules (one derivation, one
+        // placeholder check), so the summary and Live rank never disagree.
         summary = rows.first(where: \.competitor.isSelf).map { me in
-            let loaded = me.standing.flatMap { $0.lastUpdated == .distantPast ? nil : $0 }
+            let state = LiveRankState.derive(
+                competitors: store.visibleCompetitors,
+                standings: standings,
+                window: window,
+                rankDeltas: me.rankDelta.map { [me.competitor.username: $0] } ?? [:],
+                now: .now
+            )
             return Summary(
                 username: me.competitor.username,
                 window: window,
-                rank: loaded != nil && rows.count > 1 ? me.rank : nil,
-                competitorCount: rows.count,
-                contributions: loaded?.contributions,
-                movementToday: me.rankDelta,
-                isRefreshing: loaded != nil && me.standing?.state == .loading
+                rank: state.rank,
+                competitorCount: state.competitorCount,
+                contributions: state.contributions,
+                movementToday: state.movementToday == 0 ? nil : state.movementToday,
+                isRefreshing: state.contributions != nil && me.standing?.state == .loading
             )
         }
     }

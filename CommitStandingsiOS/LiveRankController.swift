@@ -204,10 +204,11 @@ final class LiveRankController {
             scheduleSync()
             return
         }
-        guard case .activity(let id, _) = token, let relay, let registered = relay.registered,
-              let activity = activities.current().first(where: { $0.id == id && $0.selfLogin == registered.login
-                  && $0.state.window == registered.window })
-        else { return }
+        guard case .activity(let id, _) = token, let relay, let board = relay.registered?.board else { return }
+        let isLiveRanks = { (activity: LiveRankActivity) -> Bool in
+            activity.id == id && activity.selfLogin == board.login && activity.state.window == board.window
+        }
+        guard let activity = activities.current().first(where: isLiveRanks) else { return }
         let previous = pending
         pending = Task {
             await previous?.value

@@ -73,24 +73,15 @@ struct StandingRow: View {
     }
 
     /// A small, quiet chevron showing how this row moved since the start of the day: a single
-    /// chevron for a one-spot move, a double chevron for two or more. Up is green, down is muted so
-    /// it never feels like a scolding. Nothing renders when the position held.
+    /// chevron for a one-spot move, a double chevron for two or more (`RankMovement`). Nothing
+    /// renders when the position held.
     @ViewBuilder
     private var rankDeltaIndicator: some View {
         if let delta = rankDelta, delta != 0 {
-            Image(systemName: deltaSymbol(delta))
+            Image(systemName: RankMovement.symbol(delta, doubled: true))
                 .font(.system(size: 9, weight: .semibold))
-                .foregroundStyle(delta > 0 ? Color.green : Color.secondary)
-                .accessibilityLabel(delta > 0 ? "up \(delta)" : "down \(-delta)")
-        }
-    }
-
-    private func deltaSymbol(_ delta: Int) -> String {
-        switch delta {
-        case 2...: return "chevron.up.2"
-        case 1: return "chevron.up"
-        case -1: return "chevron.down"
-        default: return "chevron.down.2"
+                .foregroundStyle(RankMovement.color(delta))
+                .accessibilityLabel(RankMovement.label(delta))
         }
     }
 
@@ -110,9 +101,7 @@ struct StandingRow: View {
     }
 
     var accessibilityDescription: String {
-        let movement = rankDelta.map { delta in
-            delta == 0 ? "" : ", \(delta > 0 ? "up" : "down") \(delta.magnitude) \(delta.magnitude == 1 ? "place" : "places") today"
-        } ?? ""
+        let movement = rankDelta.map { $0 == 0 ? "" : ", \(RankMovement.label($0))" } ?? ""
         return standingDescription + movement
     }
 

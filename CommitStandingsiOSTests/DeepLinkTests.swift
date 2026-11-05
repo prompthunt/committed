@@ -32,6 +32,18 @@ struct DeepLinkTests {
         #expect(app.store.selectedWindow == .monthly)
     }
 
+    @Test func liveRanksOwnLinkOpensTheBoardOnItsWindow() {
+        let app = app()
+        app.selectedTab = .settings
+        let state = LiveRankState(window: "monthly", rank: 1, competitorCount: 2, contributions: 3,
+                                  above: nil, below: nil, movementToday: 0, updatedAt: 0)
+
+        #expect(app.open(state.boardURL))
+
+        #expect(app.selectedTab == .board)
+        #expect(app.store.selectedWindow == .monthly)
+    }
+
     @Test(arguments: [
         "committed://board?window=yearly",
         "committed://people",

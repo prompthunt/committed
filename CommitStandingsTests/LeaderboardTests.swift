@@ -113,6 +113,16 @@ struct LeaderboardRankingTests {
         }
     }
 
+    /// One helper draws today's movement on the board rows, the iPhone summary, and Live rank.
+    @Test func rankMovementIsDrawnAndSpokenOneWay() {
+        #expect(RankMovement.symbol(1) == "chevron.up")
+        #expect(RankMovement.symbol(-3) == "chevron.down")
+        #expect(RankMovement.symbol(2, doubled: true) == "chevron.up.2")
+        #expect(RankMovement.symbol(-1, doubled: true) == "chevron.down")
+        #expect(RankMovement.label(1) == "up 1 place today")
+        #expect(RankMovement.label(-3) == "down 3 places today")
+    }
+
     @Test func rowAccessibilityIncludesRankMovementAndStaleData() {
         let competitor = Competitor(username: "me", isSelf: true)
         let cached = Standing(username: "me", contributions: 12, window: .daily,

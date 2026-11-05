@@ -131,8 +131,9 @@ struct LiveRankRelayTests {
         #expect(h.activities.only?.state.rank == 2)
         let registration = try #require(h.relay.lastRegistration)
         #expect(registration == RelayRegistration(
-            login: "me", competitors: ["me", "alice", "bob"], window: "daily",
-            timeZone: "America/Los_Angeles", environment: "sandbox", pushToStartToken: nil
+            board: RelayBoard(login: "me", competitors: ["me", "alice", "bob"], window: "daily",
+                              timeZone: "America/Los_Angeles"),
+            environment: "sandbox", pushToStartToken: nil
         ))
         #expect(h.persistence.loadPreferences() == LiveRankPreferences(isEnabled: true, relayDisclosureAccepted: true))
     }
@@ -323,11 +324,11 @@ struct LiveRankRelayTests {
 
         h.app.setHidden(true, username: "alice")
         await h.app.liveRank.idle()
-        #expect(h.relay.lastRegistration?.competitors == ["me", "bob"])
+        #expect(h.relay.lastRegistration?.board.competitors == ["me", "bob"])
 
         await h.app.setHidden(false, username: "alice")?.value
         await h.app.liveRank.idle()
-        #expect(h.relay.lastRegistration?.competitors == ["me", "alice", "bob"])
+        #expect(h.relay.lastRegistration?.board.competitors == ["me", "alice", "bob"])
         #expect(h.relay.unregisterCount == 0)
     }
 
@@ -337,7 +338,7 @@ struct LiveRankRelayTests {
 
         await h.app.setLiveRankWindow(.weekly)
         await h.app.liveRank.idle()
-        #expect(h.relay.lastRegistration?.window == "weekly")
+        #expect(h.relay.lastRegistration?.board.window == "weekly")
 
         let weekly = try #require(h.activities.only?.id)
         h.activities.issue(.activity(id: weekly, token: Data([0x77])))
@@ -358,7 +359,7 @@ struct LiveRankRelayTests {
         await h.app.refresh.refreshAll(reason: .manual)
         await h.app.liveRank.idle()
 
-        #expect(h.relay.lastRegistration?.competitors == ["me", "alice", "bob", "carol"])
+        #expect(h.relay.lastRegistration?.board.competitors == ["me", "alice", "bob", "carol"])
     }
 
     @Test func aTimeZoneChangeReRegisters() async throws {
@@ -369,7 +370,7 @@ struct LiveRankRelayTests {
         NotificationCenter.default.post(name: .NSSystemTimeZoneDidChange, object: nil)
         await h.app.liveRank.idle()
 
-        #expect(h.relay.lastRegistration?.timeZone == "Europe/Berlin")
+        #expect(h.relay.lastRegistration?.board.timeZone == "Europe/Berlin")
     }
 
     // MARK: - Unregistration
@@ -453,7 +454,7 @@ struct LiveRankRelayTests {
 
         h.clock.advance(61)
         await h.app.refresh.refreshAll(reason: .timer)
-        #expect(h.relay.lastRegistration?.competitors == ["me"])
+        #expect(h.relay.lastRegistration?.board.competitors == ["me"])
     }
 
     @Test func tooManyRequestsNeverHoldsUpTurningLiveRankOff() async throws {

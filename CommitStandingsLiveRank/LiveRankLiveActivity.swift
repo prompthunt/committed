@@ -75,8 +75,7 @@ extension LiveRankState {
         if let rank { parts.append("Rank \(rank) of \(competitorCount) \(contributionWindow?.accessibilityDescription ?? "today")") }
         parts.append(contributions.map { "\($0) contributions" } ?? "Contributions not loaded")
         parts.append(standingLine)
-        if movementToday > 0 { parts.append("up \(movementToday) today") }
-        if movementToday < 0 { parts.append("down \(-movementToday) today") }
+        if movementToday != 0 { parts.append(RankMovement.label(movementToday)) }
         return parts.joined(separator: ", ")
     }
 }
@@ -148,12 +147,12 @@ struct LiveRankMovement: View {
 
     var body: some View {
         HStack(spacing: 1) {
-            Image(systemName: movement > 0 ? "chevron.up" : "chevron.down")
+            Image(systemName: RankMovement.symbol(movement))
             Text("\(abs(movement))").monospacedDigit()
         }
         .font(.caption.weight(.bold))
-        .foregroundStyle(movement > 0 ? .green : .red)
-        .accessibilityLabel(movement > 0 ? "Up \(movement) today" : "Down \(-movement) today")
+        .foregroundStyle(RankMovement.color(movement))
+        .accessibilityLabel(RankMovement.label(movement))
     }
 }
 
