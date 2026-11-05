@@ -18,6 +18,8 @@ export interface Installation {
   activityPushToken: string | null;
   activityStartedAt: number | null;
   rotationAnchorAt: number;
+  /** Send time of a push-to-start no reported activity has claimed yet: that activity's age. */
+  pendingStartAt: number | null;
   lastState: LiveRankState | null;
   lastStaleAt: number | null;
   baselineDay: string | null;
@@ -43,6 +45,7 @@ interface Row {
   activity_push_token: string | null;
   activity_started_at: number | null;
   rotation_anchor_at: number;
+  pending_start_at: number | null;
   last_state: string | null;
   last_stale_at: number | null;
   baseline_day: string | null;
@@ -68,6 +71,7 @@ function fromRow(row: Row): Installation {
     activityPushToken: row.activity_push_token,
     activityStartedAt: row.activity_started_at,
     rotationAnchorAt: row.rotation_anchor_at,
+    pendingStartAt: row.pending_start_at,
     lastState: row.last_state === null ? null : (JSON.parse(row.last_state) as LiveRankState),
     lastStaleAt: row.last_stale_at,
     baselineDay: row.baseline_day,
@@ -115,6 +119,7 @@ export async function saveInstallation(db: D1Database, installation: Installatio
     i.rateWindowStart,
     i.rateCount,
     i.updatedAt,
+    i.pendingStartAt,
   ];
   const statement = isNew
     ? db
@@ -122,8 +127,8 @@ export async function saveInstallation(db: D1Database, installation: Installatio
           `INSERT INTO installations (secret_hash, environment, push_to_start_token, login, competitors, window,
              time_zone, activity_id, activity_push_token, activity_started_at, rotation_anchor_at, last_state,
              last_stale_at, baseline_day, baseline_ranks, rate_window_start, rate_count, updated_at,
-             id, created_at, revision)
-           VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20, 1)
+             pending_start_at, id, created_at, revision)
+           VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20, ?21, 1)
            ON CONFLICT (id) DO NOTHING`,
         )
         .bind(...values, i.id, i.createdAt)
@@ -133,8 +138,8 @@ export async function saveInstallation(db: D1Database, installation: Installatio
              competitors = ?5, window = ?6, time_zone = ?7, activity_id = ?8, activity_push_token = ?9,
              activity_started_at = ?10, rotation_anchor_at = ?11, last_state = ?12, last_stale_at = ?13,
              baseline_day = ?14, baseline_ranks = ?15, rate_window_start = ?16, rate_count = ?17,
-             updated_at = ?18, revision = revision + 1
-           WHERE id = ?19 AND revision = ?20`,
+             updated_at = ?18, pending_start_at = ?19, revision = revision + 1
+           WHERE id = ?20 AND revision = ?21`,
         )
         .bind(...values, i.id, i.revision);
   const result = await statement.run();

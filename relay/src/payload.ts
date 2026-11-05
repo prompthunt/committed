@@ -8,6 +8,14 @@ import type { ContributionWindow } from "./types";
 /** A Live Activity is stale 20 minutes after the data it shows. */
 export const STALE_AFTER_SECONDS = 20 * 60;
 
+/** An `end` is never urgent: priority 5 stays inside Apple's budget (spec: 10 only for a rank change). */
+export const END_PRIORITY = 5;
+/**
+ * A push-to-start goes at 10: Apple delivers 10 immediately and 5 opportunistically, and a late
+ * start leaves no Live rank on screen. Starts are rare (one per 7.5 hours). See relay/README.md.
+ */
+export const START_PRIORITY = 10;
+
 export function staleDate(state: LiveRankState): number {
   return state.updatedAt + STALE_AFTER_SECONDS;
 }

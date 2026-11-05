@@ -7,7 +7,7 @@ import { ApnsNotConfiguredError } from "./auth";
 import { DEFAULT_FETCH_BUDGET, loadCounts, type CachedCounts } from "./contributions";
 import type { Env } from "./env";
 import { logEvent } from "./log";
-import { endPayload, staleDate, startPayload, updatePayload } from "./payload";
+import { END_PRIORITY, START_PRIORITY, endPayload, staleDate, startPayload, updatePayload } from "./payload";
 import { sumWindow } from "./parser";
 import { deriveLiveRankState, order, type Competitor, type LiveRankState, type Standing } from "./ranking";
 import { clearActivity, getInstallation, listInstallations, saveInstallation, type Installation } from "./store";
@@ -93,7 +93,7 @@ async function updateInstallation(
 
   if (activityToken && activityAge >= ROTATE_AFTER_SECONDS) {
     // Rotation: end the old activity at once, then push-to-start a fresh one.
-    await push(activityToken, 10, endPayload(installation.lastState ?? state, now), "end");
+    await push(activityToken, END_PRIORITY, endPayload(installation.lastState ?? state, now), "end");
     outcome.endedActivityToken = activityToken;
     if (pushToStart) await start(pushToStart);
   } else if (!activityToken && pushToStart && now - installation.rotationAnchorAt >= ROTATE_AFTER_SECONDS) {
@@ -115,7 +115,7 @@ async function updateInstallation(
   await persist(env, deps, installation, outcome, now);
 
   async function start(token: string): Promise<void> {
-    const result = await push(token, 10, startPayload(installation.login, state, now), "start");
+    const result = await push(token, START_PRIORITY, startPayload(installation.login, state, now), "start");
     if (result === "delivered") outcome.startedAt = now;
     if (result === "token-gone") outcome.removedPushToStartToken = token;
   }
@@ -166,7 +166,10 @@ function apply(installation: Installation, outcome: Outcome, sameRead: boolean):
   if (outcome.removedPushToStartToken && installation.pushToStartToken === outcome.removedPushToStartToken) {
     installation.pushToStartToken = null;
   }
-  if (outcome.startedAt !== undefined) installation.rotationAnchorAt = outcome.startedAt;
+  if (outcome.startedAt !== undefined) {
+    installation.rotationAnchorAt = outcome.startedAt;
+    installation.pendingStartAt = outcome.startedAt;
+  }
 }
 
 async function persist(env: Env, deps: RelayDeps, installation: Installation, outcome: Outcome, now: number): Promise<void> {

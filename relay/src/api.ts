@@ -9,7 +9,7 @@ import { sendPush, type ApnsEnvironment } from "./apns";
 import type { RelayDeps } from "./app";
 import type { Env } from "./env";
 import { logEvent } from "./log";
-import { endPayload, placeholderState } from "./payload";
+import { END_PRIORITY, endPayload, placeholderState } from "./payload";
 import { clearActivity, deleteInstallation, getInstallation, saveInstallation, type Installation } from "./store";
 import { WINDOWS, type ContributionWindow } from "./types";
 
@@ -89,6 +89,7 @@ async function register(
     // A new installation waits a full rotation before the relay starts an activity on its own:
     // the app starts the first one itself, and a missing activity means the user dismissed it.
     rotationAnchorAt: now,
+    pendingStartAt: null,
     lastState: null,
     lastStaleAt: null,
     baselineDay: null,
@@ -133,10 +134,14 @@ async function register(
 }
 
 async function reportActivity(env: Env, deps: RelayDeps, installation: Installation, body: unknown, now: number): Promise<Response> {
-  if (!isRecord(body) || !onlyKeys(body, ["activityId", "pushToken"])) return error(400, "unexpected fields");
-  const { activityId, pushToken } = body;
+  if (!isRecord(body) || !onlyKeys(body, ["activityId", "pushToken", "startedAt"])) return error(400, "unexpected fields");
+  const { activityId, pushToken, startedAt } = body;
   if (typeof activityId !== "string" || activityId.length < 1 || activityId.length > 128) return error(400, "bad activityId");
   if (typeof pushToken !== "string" || !HEX_TOKEN.test(pushToken)) return error(400, "bad pushToken");
+  // Optional (older apps omit it): Unix seconds the app started this activity.
+  if (startedAt !== undefined && !(Number.isSafeInteger(startedAt) && (startedAt as number) >= 0)) {
+    return error(400, "bad startedAt");
+  }
 
   if (installation.activityId === activityId) {
     // Same activity, rotated push token: keep its age so the 7.5-hour rotation stays on schedule.
@@ -144,8 +149,12 @@ async function reportActivity(env: Env, deps: RelayDeps, installation: Installat
   } else {
     installation.activityId = activityId;
     installation.activityPushToken = pushToken.toLowerCase();
-    installation.activityStartedAt = now;
-    installation.rotationAnchorAt = now;
+    // Its age counts from when it started: the app's own start time, or for one the relay
+    // started, the push-to-start's send time. Never later than now.
+    const started = typeof startedAt === "number" ? startedAt : (installation.pendingStartAt ?? now);
+    installation.activityStartedAt = Math.min(started, now);
+    installation.rotationAnchorAt = Math.min(started, now);
+    installation.pendingStartAt = null;
     installation.lastState = null;
     installation.lastStaleAt = null;
   }
@@ -164,7 +173,7 @@ async function unregister(env: Env, deps: RelayDeps, id: string, existing: Insta
       const result = await sendPush(deps, env, {
         environment: existing.environment,
         token: existing.activityPushToken,
-        priority: 10,
+        priority: END_PRIORITY,
         payload: endPayload(state, now),
       });
       logEvent(deps.log, "activity_end_sent", { install: id, status: result.status, reason: result.reason });

@@ -55,11 +55,13 @@ describe("device API: the iPhone app's requests", () => {
   const swiftRegistrationWithToken =
     `{"pushToStartToken":"${PTS_TOKEN}","login":"me","window":"weekly","environment":"production","timeZone":"Europe\\/Berlin","competitors":["me","alice"]}`;
   const swiftActivity = `{"activityId":"4E7C1D2A-ABCD-4E1F-9F00-123456789ABC","pushToken":"${ACTIVITY_TOKEN}"}`;
+  const swiftActivityWithStart = `{"startedAt":1793838000,"activityId":"5F8D2E3B-ABCD-4E1F-9F00-123456789ABC","pushToken":"${ACTIVITY_TOKEN}"}`;
 
   it("accepts registration, activity, and unregister bodies as the app encodes them", async () => {
     const relay = makeRelay();
     expect((await relay.request("PUT", path, { body: JSON.parse(swiftRegistration) })).status).toBe(204);
     expect((await relay.request("PUT", `${path}/activity`, { body: JSON.parse(swiftActivity) })).status).toBe(204);
+    expect((await relay.request("PUT", `${path}/activity`, { body: JSON.parse(swiftActivityWithStart) })).status).toBe(204);
     expect((await relay.request("PUT", path, { body: JSON.parse(swiftRegistrationWithToken) })).status).toBe(204);
     expect((await relay.request("DELETE", path)).status).toBe(204);
   });
@@ -100,6 +102,15 @@ describe("device API: validation", () => {
     expect((await relay.request("GET", "/")).status).toBe(404);
   });
 
+  it("rejects an activity start time that isn't whole Unix seconds", async () => {
+    const relay = makeRelay();
+    await relay.request("PUT", path, { body: registration() });
+    for (const startedAt of ["yesterday", 1.5, -1, null]) {
+      const body = { activityId: "a", pushToken: ACTIVITY_TOKEN, startedAt };
+      expect((await relay.request("PUT", `${path}/activity`, { body })).status).toBe(400);
+    }
+  });
+
   it("rejects an activity without a hex push token", async () => {
     const relay = makeRelay();
     await relay.request("PUT", path, { body: registration() });
@@ -138,6 +149,7 @@ describe("device API: unregister", () => {
     const [end] = relay.apns.payloads();
     expect(end?.token).toBe(ACTIVITY_TOKEN);
     expect(end?.aps.event).toBe("end");
+    expect(end?.priority).toBe("5");
     expect(end?.aps["dismissal-date"]).toBeLessThan(relay.clock.seconds);
     expect((await relay.request("PUT", `${path}/activity`, { body: { activityId: "a", pushToken: ACTIVITY_TOKEN } })).status).toBe(
       404,

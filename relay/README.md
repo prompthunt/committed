@@ -68,13 +68,18 @@ baseline. Changing `window` also makes the next run push to the current activity
 ### `PUT /v1/installations/{id}/activity`
 
 ```json
-{ "activityId": "…", "pushToken": "c41d…" }
+{ "activityId": "…", "pushToken": "c41d…", "startedAt": 1793838000 }
 ```
 
 Report the current Live Activity and its update push token, including activities the relay
-started with push-to-start. A new `activityId` starts the 7.5-hour rotation clock. The same
-`activityId` with a new token keeps the activity's age. Replies `204`; `404` for an unknown
-installation.
+started with push-to-start. `startedAt` is optional: the Unix seconds the app started the
+activity, sent only for activities the app started (older apps omit it). A start time later
+than now counts as now.
+
+A new `activityId` starts the 7.5-hour rotation clock at the activity's start, not at the
+report: `startedAt` when given; for an activity the relay started, the send time of its
+push-to-start; otherwise now. The same `activityId` with a new token keeps the activity's age.
+Replies `204`; `400` for a bad `startedAt`; `404` for an unknown installation.
 
 ### `DELETE /v1/installations/{id}`
 
@@ -153,8 +158,15 @@ Each cron run, for every installation:
    - `apns-priority: 10` only when `rank` changed from the last delivered state, otherwise `5`.
      The first push to a newly reported activity is `5`.
    - `stale-date` = `updatedAt` + 20 minutes, on every `update` and `start`.
-   - Lifecycle pushes (`start`, `end`) use priority `10`. There are at most a few per day, and a
-     start carries an alert.
+   - `end` (rotation and unregister) uses priority `5`: it is never urgent, and the spec keeps
+     `10` for rank changes.
+   - Push-to-start (`start`) uses priority `10`. Apple's "Starting and updating Live Activities
+     with ActivityKit push notifications" allows `5` or `10` for a start, and describes `10` as
+     delivered immediately and `5` as delivered opportunistically. A late start leaves no Live
+     rank on screen until it lands, and starts are rare (one per 7.5 hours), so `10` is worth
+     its share of the budget. Because the `end` goes at `5`, it can land after the new
+     activity starts, so two activities may show together for a moment. The app ends the
+     extra one the next time it syncs, and iOS ends the old one at 8 hours anyway.
 5. **Responses.** `410` (any reason) or `400` with `BadDeviceToken` or `DeviceTokenNotForTopic`
    drops that token: an activity token forgets the activity, a push-to-start token stops
    restarts. `403 ExpiredProviderToken`/`InvalidProviderToken` drops the cached provider token.

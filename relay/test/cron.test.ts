@@ -204,6 +204,8 @@ describe("cron: always-on rotation", () => {
     expect(relay.apns.requests).toHaveLength(2);
     expect(end?.token).toBe(ACTIVITY_TOKEN);
     expect(end?.aps.event).toBe("end");
+    expect(end?.priority).toBe("5");
+    expect(start?.priority).toBe("10");
     expect(end?.aps["dismissal-date"]).toBeLessThan(relay.clock.seconds);
     expect(end?.aps["content-state"]).toMatchObject({ rank: 2 });
     expect(start?.token).toBe(PTS_TOKEN);
@@ -241,6 +243,55 @@ describe("cron: always-on rotation", () => {
       [rotated, "end"],
       [PTS_TOKEN, "start"],
     ]);
+  });
+
+  it("rotates a relay-started activity 7.5 hours after its start push, not after the app reports it", async () => {
+    const relay = await registered({ activity: false });
+    const startedAt = T0 + ROTATION;
+    relay.clock.seconds = startedAt;
+    await relay.cron();
+    expect(relay.apns.payloads().map((push) => push.aps.event)).toEqual(["start"]);
+
+    // The app reports the relay-started activity an hour later (it was closed until then).
+    const next = "d4".repeat(40);
+    relay.clock.seconds = startedAt + 3600;
+    await relay.request("PUT", `${path}/activity`, { body: { activityId: "relay-started", pushToken: next } });
+    await relay.cron();
+    relay.apns.clear();
+
+    relay.clock.seconds = startedAt + ROTATION;
+    await relay.cron();
+    expect(relay.apns.payloads().map((push) => [push.token, push.aps.event])).toEqual([
+      [next, "end"],
+      [PTS_TOKEN, "start"],
+    ]);
+  });
+
+  it("rotates an app-started activity by the start time the app reports", async () => {
+    const relay = await registered({ activity: false });
+    const startedAt = T0 - 3600; // started an hour before the app could report it
+    const body = { activityId: "app-started", pushToken: ACTIVITY_TOKEN, startedAt };
+    expect((await relay.request("PUT", `${path}/activity`, { body })).status).toBe(204);
+    await relay.cron();
+    relay.clock.seconds = startedAt + ROTATION - 60;
+    await relay.cron();
+    relay.apns.clear();
+
+    relay.clock.seconds = startedAt + ROTATION;
+    await relay.cron();
+    expect(relay.apns.payloads().map((push) => [push.token, push.aps.event])).toEqual([
+      [ACTIVITY_TOKEN, "end"],
+      [PTS_TOKEN, "start"],
+    ]);
+  });
+
+  it("treats a reported start time in the future as now", async () => {
+    const relay = await registered({ activity: false });
+    const body = { activityId: "app-started", pushToken: ACTIVITY_TOKEN, startedAt: T0 + 86_400 };
+    expect((await relay.request("PUT", `${path}/activity`, { body })).status).toBe(204);
+    relay.clock.seconds = T0 + ROTATION;
+    await relay.cron();
+    expect(relay.apns.payloads().map((push) => push.aps.event)).toEqual(["end", "start"]);
   });
 
   it("restarts a missing activity at most every 7.5 hours", async () => {
