@@ -1,18 +1,18 @@
 # Committed
 
-Committed puts a friendly GitHub leaderboard in your Mac’s menu bar or Windows tray.
+Committed puts a friendly GitHub leaderboard in your Mac’s menu bar, your Windows tray, or an iPhone app.
 
 For contributors, designers, and agents. Last reviewed: 2026-10-23. Positioning and voice guidance live in [Product Marketing Context](.agents/product-marketing.md).
 
 ## What it is
 
-Committed is a Mac **menu-bar app** and Windows **tray app** for comparing GitHub contributions with friends. Connect GitHub to load the people you follow and members of your GitHub organizations, then hide anyone you don't want on your board.
+Committed is a Mac **menu-bar app**, a Windows **tray app**, and an **iPhone app** for comparing GitHub contributions with friends. Connect GitHub to load the people you follow and members of your GitHub organizations, then hide anyone you don't want on your board.
 
 Open the menu bar to see where you stand today or over the last 7 or 30 days. Your rank follows the contribution count on your GitHub profile.
 
 ## Who it's for
 
-- **Primarily:** developers on Macs or Windows PCs who enjoy friendly competition and want to see how their GitHub contributions compare with friends and people they follow.
+- **Primarily:** developers on Macs, Windows PCs, or iPhones who enjoy friendly competition and want to see how their GitHub contributions compare with friends and people they follow.
 - **Also:** teammates who want that same friendly competition with people in their GitHub organizations.
 
 Each user gets a personal board based on their GitHub connections. Friends do not need to install Committed to appear on it; their counts come from their public GitHub contribution graphs.
@@ -65,6 +65,14 @@ All three windows are available once the contribution data loads; there is no hi
 - When upgrading from the old manual list, the first successful sync saves a local backup (`competitors.manual-backup.v1`). People you still follow or share an organization with retain their cached counts and row identities. People outside those sources leave the active board. Disconnecting clears the active account cache but keeps its visibility preferences.
 - Other controls in `⋯`: **About Committed**, **Launch at Login**, **Automatic Updates**, **Check for Updates…**, **Disconnect GitHub**, and **Quit**. **About Committed** explains how contributions are counted.
 
+### On iPhone
+
+Committed for iPhone has three tabs: **Board**, **People**, and **Settings**. It shares the Mac app's core code, so ranking, Connect GitHub, People filtering, and visibility rules behave the same.
+
+- **Board** shows your summary, the **Today / 7 days / 30 days** switch, and the ranked board. Pull down to refresh people and Contributions.
+- **People** lists everyone alphabetically with search and **All / Following / Organizations** filters. Tap the eye to hide someone or the eye-slash to show them again; the board updates right away. Hidden people stay listed, and you cannot hide yourself. Visibility choices are saved on that iPhone per GitHub account.
+- **Settings** has **Leaderboard Notifications** (iOS asks for permission when you turn it on; crossings are checked whenever the app refreshes while open), **About Committed**, and **Disconnect GitHub**, which deletes the token from the iPhone's Keychain and returns to Connect GitHub. Launch at Login, updates, and Quit are Mac-only.
+
 ## How it works
 
 The single metric comes from one GitHub source, computed for the selected trailing window:
@@ -111,7 +119,7 @@ The app is intentionally **not sandboxed** to support its Sparkle update path. B
 
 - **No shared/team board or settings sync.** Each person has their own leaderboard. Connecting the same GitHub account on another Mac derives the same accessible people from GitHub, but visibility preferences remain local. A shared backend is an exploration, not a current feature.
 - **Public contribution graph only.** Private activity is included only if the person enables **Contribution settings → Private contributions** on their GitHub profile. A dismissible board tip explains this; the guidance remains available in **About Committed**. Connecting requests `read:org read:user` to load profile and organization membership information. It does not request `repo` access or read repository contents.
-- **Desktop only.** The leaderboard lives in the Mac menu bar or Windows notification area. Standalone windows cover connecting GitHub, People, and the contributions explanation. There is no iOS or web app.
+- **No web or Android app.** The leaderboard lives in the Mac menu bar, the Windows notification area, and the iPhone app. On desktop, standalone windows cover connecting GitHub, People, and the contributions explanation.
 
 ## Glossary
 
