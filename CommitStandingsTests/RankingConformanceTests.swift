@@ -60,6 +60,14 @@ struct RankingConformanceTests {
         #expect(!(try Self.loadFixture().cases.isEmpty))
     }
 
+    /// You're first on your own board on every surface (and the relay enforces it), so `gapToPass`
+    /// can treat a tie as yours. A case with you later would test a board that can't exist.
+    @Test func everyCaseListsYouFirst() throws {
+        for fixtureCase in try Self.loadFixture().cases {
+            #expect(fixtureCase.input.competitors.first == fixtureCase.input.selfLogin, "\(fixtureCase.name)")
+        }
+    }
+
     static func board(_ input: Input) -> (competitors: [Competitor], standings: [String: Standing]) {
         let competitors = input.competitors.map { Competitor(username: $0, isSelf: $0 == input.selfLogin) }
         var standings: [String: Standing] = [:]

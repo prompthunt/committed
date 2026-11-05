@@ -28,7 +28,7 @@ export interface Neighbor {
 
 export interface LiveRankInput {
   self: string;
-  /** Visible competitor logins in board order, including `self`. */
+  /** Visible competitor logins in board order, `self` first (`selfFirst`): you win your ties. */
   competitors: readonly string[];
   standings: Readonly<Record<string, Standing | undefined>>;
   window: Window;

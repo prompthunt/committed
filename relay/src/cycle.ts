@@ -10,7 +10,7 @@ import {
 import type { InstallationRow, Store } from "./db";
 import { deriveLiveRankState, type LiveRankState } from "./liveRank";
 import { localDate, parseDays, sum, type Days } from "./parser";
-import { order, type Standing } from "./ranking";
+import { order, selfFirst, type Standing } from "./ranking";
 import type { GitHubFetch, Log } from "./relay";
 
 export interface CycleDeps {
@@ -151,7 +151,7 @@ async function send(
   const token = which === "activity" ? row.activity_push_token : row.push_to_start_token;
   if (!token) return false;
   const result = await deps.apns.send({ token, environment: row.apns_environment, priority, payload });
-  const fields = { id: row.id, event: payload.aps.event, priority, status: result.status, reason: result.reason ?? null };
+  const fields = { id: row.id, apsEvent: payload.aps.event, priority, status: result.status, reason: result.reason ?? null };
   if (result.status === 200) {
     deps.log("push_sent", fields);
     return true;
@@ -171,9 +171,9 @@ async function send(
   return false;
 }
 
+/** Rows saved before registration enforced it may list you later: rank them you-first too. */
 function competitorsOf(row: InstallationRow): string[] {
-  const competitors = JSON.parse(row.competitors_json) as string[];
-  return competitors.includes(row.login) ? competitors : [row.login, ...competitors];
+  return selfFirst(row.login, JSON.parse(row.competitors_json) as string[]);
 }
 
 function standingsFor(

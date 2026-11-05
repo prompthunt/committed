@@ -26,6 +26,12 @@ describe("ranking conformance (fixtures/ranking-conformance.json)", () => {
     expect(cases.length).toBeGreaterThan(0);
   });
 
+  // You're first on your own board everywhere (registration and the cycle enforce it), so a case
+  // with you later would test a board that can't exist.
+  it("lists you first in every case", () => {
+    for (const c of cases) expect(c.input.competitors[0], c.name).toBe(c.input.self);
+  });
+
   for (const c of cases) {
     it(`orders: ${c.name}`, () => {
       const ranked = order(c.input.competitors, c.input.standings, c.input.window);

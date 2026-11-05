@@ -81,6 +81,13 @@ describe("PUT /v1/installations/{id}", () => {
     expect(JSON.parse((await row())!.competitors_json as string)).toEqual(["me", "alice", "bob"]);
   });
 
+  // You're first on your own board, so you win a tie with any rival, as the iPhone's rows do
+  // ("N to pass" relies on it). The rivals keep the order the device sent.
+  it("moves self to the front when the board list has it later", async () => {
+    await call("PUT", `/v1/installations/${ID}`, { ...registration, competitors: ["alice", "bob", "me"] });
+    expect(JSON.parse((await row())!.competitors_json as string)).toEqual(["me", "alice", "bob"]);
+  });
+
   it("accepts at most 1,000 competitors", async () => {
     const logins = (n: number) => Array.from({ length: n }, (_, i) => `user-${i}`);
     const ok = await call("PUT", `/v1/installations/${ID}`, { ...registration, competitors: ["me", ...logins(999)] });

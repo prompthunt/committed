@@ -5,7 +5,9 @@ extension LiveRankState {
     /// (`deriveLiveRankState`), and `fixtures/ranking-conformance.json` keeps the two in step.
     ///
     /// - Parameters:
-    ///   - competitors: the visible competitors in board order, you included (`isSelf`).
+    ///   - competitors: the visible competitors in board order, you (`isSelf`) first. Every board
+    ///     lists you first (`StandingsStore.addSelf`/`replaceRoster`, the relay's `selfFirst`), so
+    ///     `Ranking.order` gives you every tie, which `gapToPass` relies on.
     ///   - standings: counts by login. A missing entry, or one for another Window, is no data.
     ///   - rankDeltas: today's movement by login (baseline − current); read only on Today.
     ///   - now: when the data was fetched. Becomes `updatedAt`, rounded down to whole seconds.
@@ -25,6 +27,8 @@ extension LiveRankState {
             return Neighbor(login: login, contributions: contributions)
         }
 
+        assert(!competitors.contains(where: \.isSelf) || competitors.first?.isSelf == true,
+               "You come first on your own board: you win ties, and gapToPass relies on it")
         let ranked = Ranking.order(competitors: competitors, standings: standings, window: window)
         let me = competitors.first(where: \.isSelf)?.username
         let contributions = me.flatMap(count)

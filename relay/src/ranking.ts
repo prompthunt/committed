@@ -40,3 +40,12 @@ export function order(
   );
   return indexed.map((entry, position) => ({ login: entry.login, rank: position + 1 }));
 }
+
+/**
+ * The board as ranked: your own login first, then everyone else in the order given. You're first
+ * on your own board (as on the iPhone and the Mac), so `order` breaks a tie in your favor, and
+ * "N to pass" (`gapToPass` in Swift) never names someone you're level with.
+ */
+export function selfFirst(self: string, competitors: readonly string[]): string[] {
+  return [self, ...competitors.filter((login) => login !== self)];
+}

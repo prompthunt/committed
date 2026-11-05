@@ -344,6 +344,29 @@ describe("dead tokens", () => {
   });
 });
 
+describe("you first", () => {
+  // Rows saved before the relay put self first keep the device's order in D1. The cycle must
+  // still rank you ahead of anyone you tie, or "1 to pass" would name someone you're level with.
+  it("ranks you ahead of a rival you tie, even when the stored board lists you later", async () => {
+    github.set("me", { "2026-11-05": 5 });
+    github.set("alice", { "2026-11-05": 5 });
+    github.set("bob", { "2026-11-05": 6 });
+    await register(ID);
+    await env.DB.prepare("UPDATE installations SET competitors_json = ? WHERE id = ?")
+      .bind(JSON.stringify(["alice", "me", "bob"]), ID)
+      .run();
+    await reportActivity(ID);
+    await relay.runCycle();
+
+    expect(lastState()).toMatchObject({
+      rank: 2,
+      competitorCount: 3,
+      above: { login: "bob", contributions: 6 },
+      below: { login: "alice", contributions: 5 },
+    });
+  });
+});
+
 describe("logging", () => {
   afterEach(() => vi.restoreAllMocks());
 
@@ -377,5 +400,32 @@ describe("logging", () => {
     expect(lines.length).toBeGreaterThan(0);
     const all = lines.join("\n");
     for (const secret of [PTS, ACTIVITY, SECRET]) expect(all).not.toContain(secret);
+  });
+
+  it("names each push line push_sent or push_failed, with the APNs event beside it", async () => {
+    const lines: string[] = [];
+    vi.spyOn(console, "log").mockImplementation((...args: unknown[]) => {
+      lines.push(args.map(String).join(" "));
+    });
+    // Default logger: the line it prints is what log search sees.
+    relay = createRelay({ db: env.DB, apns, github: github.fetch, now: clock.now, bundleId: BUNDLE });
+    github.set("me", { "2026-11-05": 5 });
+    github.set("alice", { "2026-11-05": 9 });
+    await register(ID);
+    await reportActivity(ID);
+    await relay.runCycle();
+    apns.respond(ACTIVITY, { status: 400, reason: "BadDeviceToken" });
+    github.set("me", { "2026-11-05": 6 });
+    clock.advance(5 * MINUTE);
+    await relay.runCycle();
+
+    const pushes = lines
+      .map((line) => JSON.parse(line) as Record<string, unknown>)
+      .filter((entry) => entry.apsEvent !== undefined)
+      .map((entry) => [entry.event, entry.apsEvent]);
+    expect(pushes).toEqual([
+      ["push_sent", "update"],
+      ["push_failed", "update"],
+    ]);
   });
 });

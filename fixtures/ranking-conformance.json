@@ -219,10 +219,10 @@
       }
     },
     {
-      "name": "self not first in board order loses a tie to an earlier rival",
+      "name": "you win a tie with a rival: you're first on your own board",
       "input": {
         "self": "me",
-        "competitors": ["alice", "me", "bob"],
+        "competitors": ["me", "alice", "bob"],
         "window": "daily",
         "standings": {
           "me": { "contributions": 5, "window": "daily" },
@@ -235,16 +235,16 @@
       "expected": {
         "order": [
           { "login": "bob", "rank": 1 },
-          { "login": "alice", "rank": 2 },
-          { "login": "me", "rank": 3 }
+          { "login": "me", "rank": 2 },
+          { "login": "alice", "rank": 3 }
         ],
         "liveRankState": {
           "window": "daily",
-          "rank": 3,
+          "rank": 2,
           "competitorCount": 3,
           "contributions": 5,
-          "above": { "login": "alice", "contributions": 5 },
-          "below": null,
+          "above": { "login": "bob", "contributions": 6 },
+          "below": { "login": "alice", "contributions": 5 },
           "movementToday": 0,
           "updatedAt": 1793802100
         }

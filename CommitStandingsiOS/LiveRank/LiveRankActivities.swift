@@ -112,7 +112,7 @@ final class ActivityKitLiveRankTokens {
         let receiver = receiver
         tasks.append(Task {
             for await token in Activity<LiveRankAttributes>.pushToStartTokenUpdates {
-                LiveRankLog.relay.info("push-to-start token \(token.lowercaseHex.prefix(8), privacy: .public)…")
+                LiveRankLog.relay.info("push-to-start token received")
                 await receiver.pushToStartTokenDidChange(token)
             }
         })
@@ -131,7 +131,7 @@ final class ActivityKitLiveRankTokens {
         LiveRankLog.relay.info("observing activity \(id, privacy: .public)")
         tasks.append(Task {
             for await token in activity.pushTokenUpdates {
-                LiveRankLog.relay.info("activity \(id, privacy: .public) push token \(token.lowercaseHex.prefix(8), privacy: .public)…")
+                LiveRankLog.relay.info("activity \(id, privacy: .public) push token received")
                 await receiver.activityPushTokenDidChange(activityID: id, token: token)
             }
         })

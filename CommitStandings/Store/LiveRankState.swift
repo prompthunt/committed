@@ -45,6 +45,10 @@ extension LiveRankState {
     /// Contributions to pass the person ahead ("3 to pass alice"). You're first on your own
     /// board, so a tie puts you ahead: the gap itself is enough (at least 1). nil when nobody is
     /// ahead or your count hasn't loaded.
+    ///
+    /// Invariant: every producer lists you first. `derive` asserts it, and the relay enforces it
+    /// on registration and on every cycle (`selfFirst` in `relay/src/ranking.ts`), so `above`
+    /// always has strictly more than you and the `max(…, 1)` never hides a tie.
     var gapToPass: Int? {
         guard let above, let contributions else { return nil }
         return max(above.contributions - contributions, 1)

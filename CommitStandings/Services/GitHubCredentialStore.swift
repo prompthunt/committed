@@ -55,7 +55,6 @@ final class KeychainGitHubCredentialStore: GitHubCredentialStoring, @unchecked S
         // The Developer ID-signed release reads its own item without any UI, so this is a no-op
         // there.
         query[kSecUseAuthenticationUI as String] = kSecUseAuthenticationUISkip
-        #if os(iOS)
         query[kSecReturnAttributes as String] = true
         var item: CFTypeRef?
         guard SecItemCopyMatching(query as CFDictionary, &item) == errSecSuccess,
@@ -64,20 +63,20 @@ final class KeychainGitHubCredentialStore: GitHubCredentialStoring, @unchecked S
               let token = String(data: data, encoding: .utf8) else {
             return nil
         }
-        // Builds before the Committed relay (#45) saved it as "when unlocked": move it over.
-        if attributes[kSecAttrAccessible as String] as? String != accessibility as String {
+        // iPhone builds before the Committed relay (#45) saved it as "when unlocked": move it over.
+        if Self.needsMigration(stored: attributes[kSecAttrAccessible as String] as? String, to: accessibility) {
             SecItemUpdate(baseQuery as CFDictionary, [kSecAttrAccessible as String: accessibility] as CFDictionary)
         }
         return token
-        #else
-        var item: CFTypeRef?
-        guard SecItemCopyMatching(query as CFDictionary, &item) == errSecSuccess,
-              let data = item as? Data,
-              let token = String(data: data, encoding: .utf8) else {
-            return nil
-        }
-        return token
-        #endif
+    }
+
+    /// Whether a token saved with `stored` accessibility should move to `wanted`. Only the old
+    /// "when unlocked" token moves, and only to something else: the iPhone's pre-relay builds saved
+    /// it that way. The Mac wants "when unlocked" itself, so a Mac read never writes, whatever its
+    /// file keychain reports.
+    static func needsMigration(stored: String?, to wanted: CFString) -> Bool {
+        let whenUnlocked = kSecAttrAccessibleWhenUnlockedThisDeviceOnly as String
+        return stored == whenUnlocked && wanted as String != whenUnlocked
     }
 
     func save(_ token: String) {

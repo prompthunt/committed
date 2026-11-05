@@ -31,4 +31,21 @@ struct GitHubCredentialStoreTests {
         #expect(KeychainGitHubCredentialStore.defaultAccessibility == kSecAttrAccessibleWhenUnlockedThisDeviceOnly)
         #expect(KeychainGitHubCredentialStore().service == "com.addisonk.CommitStandings.github")
     }
+
+    /// One `read()` on both platforms: it moves a token the iPhone's pre-relay builds saved as
+    /// "when unlocked" to the store's accessibility, and leaves everything else alone. The Mac
+    /// wants "when unlocked" itself, so whatever its keychain reports, a Mac read never writes.
+    @Test func readMigratesOnlyTheOldWhenUnlockedToken() {
+        let whenUnlocked = kSecAttrAccessibleWhenUnlockedThisDeviceOnly
+        let afterFirstUnlock = kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
+        // iPhone: the pre-relay token moves; one already after-first-unlock, or unreported, stays.
+        #expect(KeychainGitHubCredentialStore.needsMigration(stored: whenUnlocked as String, to: afterFirstUnlock))
+        #expect(!KeychainGitHubCredentialStore.needsMigration(stored: afterFirstUnlock as String, to: afterFirstUnlock))
+        #expect(!KeychainGitHubCredentialStore.needsMigration(stored: nil, to: afterFirstUnlock))
+        // Mac: never, whatever the file keychain reports.
+        let mac = KeychainGitHubCredentialStore.defaultAccessibility
+        for stored in [nil, whenUnlocked as String, kSecAttrAccessibleWhenUnlocked as String, afterFirstUnlock as String] {
+            #expect(!KeychainGitHubCredentialStore.needsMigration(stored: stored, to: mac))
+        }
+    }
 }

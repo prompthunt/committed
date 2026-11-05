@@ -34,7 +34,9 @@ targets:
     deploymentTarget: "26.0"
     sources:
       - path: CommitStandings
-        excludes: [Store/LiveRankAttributes.swift] # ActivityKit: iPhone app + Live rank extension only
+        excludes: # iPhone app + Live rank extension only
+          - Store/LiveRankAttributes.swift # ActivityKit
+          - Support/CommittedTheme.swift # iPhone theme; the Mac keeps its own look
     dependencies:
       - package: Sparkle
         product: Sparkle
@@ -83,10 +85,12 @@ targets:
       - path: CommitStandings/Store
       - path: CommitStandings/Support
       - path: CommitStandings/Views/StandingRow.swift
+      - path: CommitStandings/Views/StandingRowStyle.swift
       - path: CommitStandings/Views/AvatarView.swift
       - path: CommitStandings/Views/RosterStatusView.swift
       - path: CommitStandings/Views/ContributionWindowPicker.swift
       - path: CommitStandings/Views/PrivateContributionsTip.swift
+      - path: CommitStandings/Views/ContributionsExplainerView.swift
     dependencies:
       - target: CommitStandingsLiveRank
     settings:
@@ -122,6 +126,7 @@ targets:
       - path: CommitStandings/Store/LiveRankState.swift
       - path: CommitStandings/Store/LiveRankAttributes.swift
       - path: CommitStandings/Support/DeepLink.swift
+      - path: CommitStandings/Support/CommittedTheme.swift
       - path: CommitStandings/Models/Standing.swift
     settings:
       base:

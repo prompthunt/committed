@@ -1,8 +1,8 @@
 import Foundation
 
 /// What the top of the board says about you: who you are, where you rank, your Contributions for
-/// the Window, today's movement, and how fresh the numbers are. Ranks come from `Ranking.order`,
-/// the same ordering as the rows below it.
+/// the Window, today's movement, and how fresh the numbers are. It's `LiveRankState.derive` (built
+/// on `Ranking.order`, the rows' ordering) plus who you are and when the numbers were fetched.
 struct BoardSummary: Equatable {
     let username: String
     /// Your first name from your GitHub profile, when it has one.
@@ -31,27 +31,21 @@ struct BoardSummary: Equatable {
         lastUpdated: Date?
     ) -> BoardSummary? {
         guard let me = competitors.first(where: \.isSelf) else { return nil }
-        let entries = Ranking.order(competitors: competitors, standings: standings, window: window)
-        let mine = standings[me.username].flatMap { standing in
-            standing.window == window && standing.lastUpdated != .distantPast ? standing.contributions : nil
-        }
-        let hasRivals = entries.count > 1
-        let rank = mine != nil && hasRivals
-            ? entries.first(where: { $0.competitor.username == me.username })?.rank : nil
-        let movement = window == .daily ? rankDelta(me.username).flatMap { $0 == 0 ? nil : $0 } : nil
         // Live rank's derivation, from counts that have loaded (as `LiveRankState.board` does), so
-        // the hero and Live rank never disagree about the gap.
+        // the hero and Live rank never disagree about your rank, your count, or the gap.
         let loaded = standings.filter { $0.value.lastUpdated != .distantPast }
+        var deltas: [String: Int] = [:]
+        if window == .daily { deltas[me.username] = rankDelta(me.username) }
         let live = LiveRankState.derive(competitors: competitors, standings: loaded, window: window,
-                                        rankDeltas: [:], now: lastUpdated ?? .distantPast)
+                                        rankDeltas: deltas, now: lastUpdated ?? .distantPast)
         return BoardSummary(
             username: me.username,
             firstName: DisplayName.firstName(from: displayName),
-            rank: rank,
-            competitorCount: entries.count,
-            contributions: mine,
-            movementToday: movement,
-            passLine: rank == nil ? nil : live.passLine,
+            rank: live.rank,
+            competitorCount: live.competitorCount,
+            contributions: live.contributions,
+            movementToday: live.movementToday == 0 ? nil : live.movementToday,
+            passLine: live.passLine,
             window: window,
             lastUpdated: lastUpdated
         )

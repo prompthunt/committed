@@ -21,12 +21,16 @@ final class RefreshCoordinator {
     private(set) var isRefreshing: Bool = false
     private(set) var lastReason: RefreshReason?
 
+    /// How old a count can be before a refresh fetches it again: opening the menu, switching
+    /// Window, or keeping another Window fresh all skip data newer than this.
+    static let staleAfter: TimeInterval = 120
+
     /// Opening the menu should only refresh if the data is actually stale. Otherwise
     /// every open flashed "updating…" with nothing changing. The background timer keeps
     /// things current while the menu is closed; this just catches up after a longer gap.
     var shouldRefreshOnOpen: Bool {
         guard let last = store.lastUpdated else { return true }
-        return now().timeIntervalSince(last) > 120
+        return now().timeIntervalSince(last) > Self.staleAfter
     }
 
     /// Whether switching to `window` needs a network refresh: only if a tracked
@@ -38,7 +42,7 @@ final class RefreshCoordinator {
         let now = now()
         return usernames.contains { username in
             guard let standing = store.standing(for: username, window: window) else { return true }
-            return standing.lastUpdated == .distantPast || now.timeIntervalSince(standing.lastUpdated) > 120
+            return standing.lastUpdated == .distantPast || now.timeIntervalSince(standing.lastUpdated) > Self.staleAfter
         }
     }
 
@@ -290,7 +294,7 @@ final class RefreshCoordinator {
         // Live rank's Window too, when this person has no recent count for it.
         let windows = [window] + staleAdditionalWindows(excluding: window).filter { extra in
             store.standing(for: username, window: extra).map {
-                $0.lastUpdated == .distantPast || now().timeIntervalSince($0.lastUpdated) > 120
+                $0.lastUpdated == .distantPast || now().timeIntervalSince($0.lastUpdated) > Self.staleAfter
             } ?? true
         }
         let reference = now()

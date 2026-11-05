@@ -62,12 +62,9 @@ struct BoardLeaderboard: View {
     let summaryPlacement: BoardArrangement.SummaryPlacement
 
     var body: some View {
-        let window = store.selectedWindow
-        let standings = store.standings(for: window)
-        let entries = Ranking.order(competitors: store.visibleCompetitors, standings: standings, window: window)
-        let maxContributions = entries.compactMap { standings[$0.competitor.username] }
-            .filter { $0.lastUpdated != .distantPast }
-            .map(\.contributions).max() ?? 0
+        let board = RankedBoard(store)
+        let window = board.window
+        let entries = board.entries
 
         List {
             if summaryPlacement == .leaderboardHeader {
@@ -97,14 +94,7 @@ struct BoardLeaderboard: View {
                             .listRowBackground(Color.clear)
                     }
                     ForEach(entries) { entry in
-                        StandingRow(
-                            rank: entry.rank,
-                            competitor: entry.competitor,
-                            standing: store.standing(for: entry.competitor.username, window: window),
-                            window: window,
-                            maxContributions: maxContributions,
-                            rankDelta: window == .daily ? refresh.rankDelta(for: entry.competitor.username) : nil
-                        )
+                        board.row(entry, store: store, refresh: refresh)
                         .listRowSeparator(.hidden)
                         .listRowBackground(Color.clear)
                         .listRowInsets(EdgeInsets(top: 1, leading: 8, bottom: 1, trailing: 8))
@@ -190,26 +180,15 @@ private struct AroundYou: View {
     @Environment(RefreshCoordinator.self) private var refresh
 
     var body: some View {
-        let window = store.selectedWindow
-        let standings = store.standings(for: window)
-        let entries = Ranking.order(competitors: store.visibleCompetitors, standings: standings, window: window)
-        let maxContributions = entries.compactMap { standings[$0.competitor.username] }
-            .filter { $0.lastUpdated != .distantPast }
-            .map(\.contributions).max() ?? 0
+        let board = RankedBoard(store)
+        let entries = board.entries
         if entries.count > 1, let mine = entries.firstIndex(where: { $0.competitor.isSelf }) {
             VStack(alignment: .leading, spacing: 8) {
                 FolioHeader("Around you")
                     .padding(.horizontal, 6)
                 VStack(spacing: 2) {
                     ForEach(entries[max(0, mine - 1)...min(entries.count - 1, mine + 1)]) { entry in
-                        StandingRow(
-                            rank: entry.rank,
-                            competitor: entry.competitor,
-                            standing: store.standing(for: entry.competitor.username, window: window),
-                            window: window,
-                            maxContributions: maxContributions,
-                            rankDelta: window == .daily ? refresh.rankDelta(for: entry.competitor.username) : nil
-                        )
+                        board.row(entry, store: store, refresh: refresh)
                     }
                 }
                 .padding(6)
@@ -306,5 +285,36 @@ private struct SoloBoardRow: View {
         .padding(.vertical, 24)
         .padding(.horizontal, 16)
         .tileCard()
+    }
+}
+
+/// The selected Window's board, ranked by `Ranking.order`: the list and "Around you" read the same
+/// one, so their rows can't disagree.
+@MainActor
+private struct RankedBoard {
+    let window: ContributionWindow
+    let entries: [Ranking.Entry]
+    /// The leader's loaded count, which shades every row's square.
+    let maxContributions: Int
+
+    init(_ store: StandingsStore) {
+        window = store.selectedWindow
+        let standings = store.standings(for: window)
+        entries = Ranking.order(competitors: store.visibleCompetitors, standings: standings, window: window)
+        maxContributions = entries.compactMap { standings[$0.competitor.username] }
+            .filter { $0.lastUpdated != .distantPast }
+            .map(\.contributions).max() ?? 0
+    }
+
+    /// The shared row for `entry`, with today's movement on Today.
+    func row(_ entry: Ranking.Entry, store: StandingsStore, refresh: RefreshCoordinator) -> StandingRow {
+        StandingRow(
+            rank: entry.rank,
+            competitor: entry.competitor,
+            standing: store.standing(for: entry.competitor.username, window: window),
+            window: window,
+            maxContributions: maxContributions,
+            rankDelta: window == .daily ? refresh.rankDelta(for: entry.competitor.username) : nil
+        )
     }
 }

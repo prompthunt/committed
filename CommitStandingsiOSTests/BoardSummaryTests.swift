@@ -48,9 +48,11 @@ struct BoardSummaryTests {
         #expect(result?.passLine == nil)
     }
 
-    /// Someone loading for the first time has no count yet, so there's no gap to them.
+    /// Someone loading for the first time has no count yet, so they never rank above you, even
+    /// against your real zero, and there's no gap to them.
     @Test func noGapToSomeoneWithoutACount() {
-        let result = summary([ada, me], [standing("ada", 0, loaded: false), standing("me", 0)])
+        let result = summary([me, ada], [standing("ada", 0, loaded: false), standing("me", 0)])
+        #expect(result?.rank == 1)
         #expect(result?.passLine == nil)
     }
 

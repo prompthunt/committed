@@ -3,7 +3,7 @@ import { Store, type InstallationRow, type Registration } from "./db";
 import { runCycle } from "./cycle";
 import type { LiveRankState } from "./liveRank";
 import { isValidTimeZone } from "./parser";
-import { WINDOWS, type Window } from "./ranking";
+import { selfFirst, WINDOWS, type Window } from "./ranking";
 
 /** Fetches the public `github.com/users/<login>/contributions` HTML. Never authenticated. */
 export type GitHubFetch = (login: string) => Promise<string>;
@@ -160,9 +160,8 @@ function parseRegistration(body: unknown): Registration | string {
   if (!Array.isArray(body.competitors)) return "invalid_competitors";
   const normalized = body.competitors.map(normalizeLogin);
   if (normalized.some((competitor) => competitor === null)) return "invalid_competitors";
-  // Keep the board order the device sent (it matters for ties); self goes first if missing.
-  const unique = [...new Set(normalized as string[])];
-  const competitors = unique.includes(login) ? unique : [login, ...unique];
+  // You first (you win ties on your own board), then the rivals in the order the device sent.
+  const competitors = selfFirst(login, [...new Set(normalized as string[])]);
   if (competitors.length > MAX_COMPETITORS) return "too_many_competitors";
 
   if (typeof body.window !== "string" || !WINDOWS.includes(body.window as Window)) return "invalid_window";
