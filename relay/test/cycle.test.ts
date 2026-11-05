@@ -148,6 +148,23 @@ describe("updates", () => {
     expect(heartbeat.payload.aps["content-state"].updatedAt).toBe(clock.seconds);
   });
 
+  it("keeps the stale date ahead when a rival's page keeps failing", async () => {
+    await register(ID);
+    await reportActivity(ID);
+    await relay.runCycle();
+    github.fail("bob"); // e.g. a renamed account: 404 from now on, last good days kept
+    apns.clear();
+
+    for (let i = 0; i < 12; i++) {
+      clock.advance(5 * MINUTE);
+      await relay.runCycle();
+    }
+    expect(apns.sent.length).toBeGreaterThan(0); // heartbeats continue
+    const last = apns.sent.at(-1)!.payload.aps;
+    expect(last["stale-date"]).toBeGreaterThan(clock.seconds);
+    expect(last["content-state"].below).toEqual({ login: "bob", contributions: 1 });
+  });
+
   it("shows placeholders, not zero, when your counts can't be fetched", async () => {
     github.fail("me");
     await register(ID);

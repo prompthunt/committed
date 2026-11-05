@@ -84,15 +84,15 @@ async function runInstallation(
   }
 
   const standings = row.window === "daily" ? daily : standingsFor(competitors, data, row.window, today);
-  const fetchedTimes = competitors.flatMap((login) => (standings[login] ? [data.get(login)!.fetchedAt] : []));
   const state = deriveLiveRankState({
     self: row.login,
     competitors,
     standings,
     window: row.window,
     rankDeltas,
-    // The data's age is that of its oldest count.
-    now: fetchedTimes.length > 0 ? Math.min(...fetchedTimes) : now,
+    // The data's age is that of your own count, the headline number. A rival whose page keeps
+    // failing (renamed account) must not pin every push's stale date in the past.
+    now: standings[row.login] ? data.get(row.login)!.fetchedAt : now,
   });
   const previous = row.last_state_json ? (JSON.parse(row.last_state_json) as LiveRankState) : null;
 

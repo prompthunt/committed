@@ -26,7 +26,7 @@ Run on 2026-11-04 (`spike/apns-h2-spike.js`):
 | `curl --http2` from a Mac (control) | `HTTP/2 403 {"reason":"InvalidProviderToken"}` |
 | `curl --http1.1` from a Mac (control) | no response: APNs refuses HTTP/1.1 |
 | `wrangler dev` (local workerd, wrangler 4.157.0 / workerd 1.20261103) | `fetch` throws `Network connection lost.`, with or without a token |
-| Deployed Worker on Cloudflare's edge | **Not run.** The available account (`Addison@basic.in's Account`) has no workers.dev subdomain. `wrangler deploy` and `wrangler dev --remote` both stop with error 10063 ("You need a workers.dev subdomain"). Cron-only deploys stop there too. Registering a subdomain changes the account, so the spike left it for the provisioning ticket. The throwaway script that was uploaded has been deleted. |
+| Deployed Worker on Cloudflare's edge | **Not run.** The Cloudflare account available during the spike had no workers.dev subdomain. `wrangler deploy` and `wrangler dev --remote` both stop with error 10063 ("You need a workers.dev subdomain"). Cron-only deploys stop there too. Registering a subdomain changes the account, so the spike left it for the provisioning ticket. The throwaway script that was uploaded has been deleted. |
 
 **What this means:**
 
@@ -121,8 +121,8 @@ registration. Returns `204`.
 2. **Windows.** Today, 7 days, and 30 days are summed against the installation's local
    calendar date in its IANA time zone, not UTC.
 3. **Ranking.** `src/ranking.ts` ports `Ranking.order`. `src/liveRank.ts` derives
-   `LiveRankState`, matching `LiveRankAttributes.ContentState`. `updatedAt` is the age of the
-   oldest count used.
+   `LiveRankState`, matching `LiveRankAttributes.ContentState`. `updatedAt` is when your own
+   count was fetched, or the run time when you have no data.
 4. **Today's movement.** This mirrors `RefreshCoordinator.updateDailyRankDeltas`. The first run
    of each local day captures the daily ranks of rows that have data. Later runs report
    `baseline − current` for you, on the Today window only.
