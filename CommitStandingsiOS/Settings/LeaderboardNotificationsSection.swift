@@ -30,14 +30,18 @@ struct LeaderboardNotificationsSection: View {
                 }
             ))
             .disabled(requestingAuthorization)
+        } header: {
+            FolioHeader("Notifications")
         } footer: {
             if deniedInSettings {
                 VStack(alignment: .leading, spacing: 6) {
                     Text("Notifications for Committed are off in iOS Settings.")
-                    Button("Open Settings") {
+                    Button {
                         if let url = URL(string: UIApplication.openNotificationSettingsURLString) {
                             openURL(url)
                         }
+                    } label: {
+                        OutboundLabel("Open Settings")
                     }
                     .font(.footnote.weight(.semibold))
                 }

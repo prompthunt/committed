@@ -116,6 +116,18 @@ struct LiveRankStateTests {
         #expect(state.gapToPass == 3)
     }
 
+    @Test func passLineNamesWhoIsAhead() {
+        #expect(derive(["me", "alice"], counts(["me": 5, "alice": 8])).passLine == "3 to pass alice")
+        #expect(derive(["me", "alice"], counts(["me": 9, "alice": 8])).passLine == nil)
+    }
+
+    /// Live rank never shows a row of placeholders without saying why.
+    @Test func emptyStatesSayWhatTheyreWaitingFor() {
+        #expect(derive(["me"], counts(["me": 4])).emptyStateLine == "Just you so far")
+        #expect(derive(["me", "alice"], counts(["alice": 8])).emptyStateLine == "Waiting for your first count")
+        #expect(derive(["me", "alice"], counts(["me": 5, "alice": 8])).emptyStateLine == nil)
+    }
+
     @Test func noGapWhenNobodyIsAhead() {
         #expect(derive(["me", "alice"], counts(["me": 9, "alice": 8])).gapToPass == nil)
     }

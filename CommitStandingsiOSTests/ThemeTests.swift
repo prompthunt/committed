@@ -32,6 +32,33 @@ struct ThemeTests {
         #expect(Palette.contrast(foreground, background) >= 4.5, "\(name)")
     }
 
+    /// Stale Live rank swaps lime for the deeper lime instead of dimming it.
+    @Test func deepLimeReadsOnInk() {
+        #expect(Palette.contrast(Palette.limeDeep, Palette.ink) >= 4.5)
+    }
+
+    /// Text over a square field, against the brightest pixel that field can draw: the glow at its
+    /// center with the top allowed square on it at full opacity. Muted text never sits on a field.
+    @Test(arguments: [
+        ("hero", FieldTone.hero, Palette.tile),
+        ("Lock Screen", FieldTone.lockScreen, Palette.ink),
+        ("Connect GitHub", FieldTone.connect, Palette.ink),
+        ("Live rank disclosure", FieldTone.disclosure, Palette.ink),
+    ])
+    func textOverTheFieldMeetsAA(name: String, tone: FieldTone, background: Palette.RGB) {
+        let brightest = tone.brightest(on: background)
+        for (token, color) in [("white", Palette.white), ("soft", Palette.soft), ("lime", Palette.lime)] {
+            #expect(Palette.contrast(color, brightest) >= 4.5, "\(token) over the \(name) field")
+        }
+    }
+
+    /// The cap is what keeps text legible; without it the hero's top square alone fails soft text.
+    @Test func theHeroFieldNeedsItsOpacityCap() {
+        var uncapped = FieldTone.hero
+        uncapped.maxOpacity = 1
+        #expect(Palette.contrast(Palette.soft, uncapped.brightest(on: Palette.tile)) < 4.5)
+    }
+
     /// The brightest contribution square has to read as a mark against ink.
     @Test func topSquareReadsAgainstInk() {
         #expect(Palette.contrast(Palette.squares[3], Palette.ink) >= 3)

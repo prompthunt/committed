@@ -6,6 +6,8 @@ import SwiftUI
 struct RootView: View {
     @Environment(AppModel.self) private var model
     @Environment(\.scenePhase) private var scenePhase
+    /// Lets the square fields rest after a while without a touch.
+    @State private var interactions = InteractionClock()
 
     var body: some View {
         @Bindable var model = model
@@ -35,6 +37,10 @@ struct RootView: View {
             LiveRankDisclosureView()
         }
         .onOpenURL { model.open($0) }
+        // Last, so the Connect cover and the disclosure sheet get them too.
+        .environment(\.avatarFallbackStyle, .committed)
+        .environment(interactions)
+        .background { InteractionClockInstaller(clock: interactions) }
         .onChange(of: model.store.visibilityRevision) {
             Task { await model.visibilityDidChange() }
         }

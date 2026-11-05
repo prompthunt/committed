@@ -24,4 +24,13 @@ struct AvatarColorTests {
         #expect(AvatarColor.initials(for: "ada-lovelace") == "AL")
         #expect(AvatarColor.initials(for: "z") == "Z")
     }
+
+    /// The iPhone's fallback avatars use letters only, so "guest-08" isn't "G0".
+    @Test func letterInitialsSkipDigits() {
+        #expect(AvatarColor.letterInitials(for: "guest-08") == "GU")
+        #expect(AvatarColor.letterInitials(for: "guest-10") == "GU")
+        #expect(AvatarColor.letterInitials(for: "maya-chen") == "MC")
+        #expect(AvatarColor.letterInitials(for: "r2d2") == "RD")
+        #expect(AvatarColor.letterInitials(for: "42") == "4")
+    }
 }

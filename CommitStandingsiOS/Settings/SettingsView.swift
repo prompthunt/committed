@@ -22,7 +22,10 @@ struct SettingsView: View {
                 .listRowBackground(Color.tile)
                 .listRowSeparatorTint(.hairline)
             }
+            // One rhythm between every section, masthead included.
+            .listSectionSpacing(28)
             .inkScreen()
+            .readableContentWidth(minimumMargin: 20)
             .navigationTitle("Settings")
         }
     }
@@ -36,9 +39,9 @@ private struct SettingsMasthead: View {
         HStack(spacing: 14) {
             AppMark(size: iconSize, glows: false)
             VStack(alignment: .leading, spacing: 2) {
+                // SF, not a second ExtraBold headline under the "Settings" title.
                 Text("Committed")
-                    .font(CommittedType.display(28, relativeTo: .title))
-                    .displayTracking(28)
+                    .font(.title3.weight(.semibold))
                 Text("Your GitHub leaderboard, on iPhone.")
                     .font(.subheadline)
                     .foregroundStyle(Color.muted)
@@ -46,5 +49,23 @@ private struct SettingsMasthead: View {
             .accessibilityElement(children: .combine)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+/// A Settings action that leaves the app: white, with a soft ↗, so lime stays for what's yours
+/// and what's selected.
+struct OutboundLabel: View {
+    let title: String
+
+    init(_ title: String) { self.title = title }
+
+    var body: some View {
+        HStack(spacing: 4) {
+            Text(title).foregroundStyle(.white)
+            Image(systemName: "arrow.up.right")
+                .imageScale(.small)
+                .foregroundStyle(Color.soft)
+                .accessibilityHidden(true)
+        }
     }
 }

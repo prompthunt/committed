@@ -11,7 +11,7 @@ struct LiveRankSection: View {
 
     var body: some View {
         Section {
-            Toggle("Live rank", isOn: Binding(
+            Toggle("Show Live rank", isOn: Binding(
                 get: { liveRank.isEnabled },
                 set: { enabled in Task { await model.liveRankSwitchChanged(enabled) } }
             ))
@@ -26,12 +26,14 @@ struct LiveRankSection: View {
                 }
             }
             if liveRank.status == .disabledInSystem {
-                Button("Open iOS Settings") {
+                Button {
                     if let url = URL(string: UIApplication.openSettingsURLString) { openURL(url) }
+                } label: {
+                    OutboundLabel("Open iOS Settings")
                 }
             }
         } header: {
-            Text("Live rank")
+            FolioHeader("Live rank")
         } footer: {
             Text(statusText)
         }

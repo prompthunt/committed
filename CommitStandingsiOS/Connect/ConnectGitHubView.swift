@@ -42,14 +42,25 @@ struct ConnectGitHubView: View {
                 // The site's hero: a lit field of contribution squares, kept dim behind the text.
                 ZStack(alignment: .top) {
                     Color.ink
-                    AnimatedSquareField(light: UnitPoint(x: 0.5, y: 0.05), reach: 0.75, cell: 22, brightness: 0.7, maxLevel: 3)
+                    AnimatedSquareField(light: UnitPoint(x: 0.5, y: 0.05), reach: 0.75, cell: 22, tone: .connect)
                         .frame(height: 460)
                         .mask(LinearGradient(colors: [.black, .black.opacity(0.6), .clear], startPoint: .top, endPoint: .bottom))
                 }
                 .ignoresSafeArea()
             }
-            .navigationTitle("Connect GitHub")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                // The site header's wordmark rather than a title that repeats the button.
+                ToolbarItem(placement: .principal) {
+                    HStack(spacing: 6) {
+                        TrophyMark(size: 17)
+                        Text("Committed").font(.headline)
+                    }
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel("Committed")
+                    .accessibilityAddTraits(.isHeader)
+                }
+            }
         }
         .interactiveDismissDisabled()
         .task(id: copiedCode) {
@@ -69,7 +80,7 @@ struct ConnectGitHubView: View {
                 .displayTracking(46)
                 .multilineTextAlignment(.center)
                 .accessibilityAddTraits(.isHeader)
-            Text("Committed ranks you against your organization members and the people you follow, by GitHub Contributions. Your list updates automatically.")
+            Text("Rank against your organization and the people you follow, by GitHub Contributions.")
                 .font(.body)
                 .foregroundStyle(Color.soft)
                 .multilineTextAlignment(.center)
@@ -90,7 +101,8 @@ struct ConnectGitHubView: View {
             .padding(.top, 8)
             Text("Read-only access to your profile, who you follow, and your organizations. Committed never sees your code.")
                 .font(.footnote)
-                .foregroundStyle(Color.muted)
+                // Soft, not muted: the field can reach this far down.
+                .foregroundStyle(Color.soft)
                 .multilineTextAlignment(.center)
         }
     }

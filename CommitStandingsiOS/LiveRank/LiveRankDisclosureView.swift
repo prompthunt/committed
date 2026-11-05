@@ -13,7 +13,7 @@ struct LiveRankDisclosureView: View {
                 VStack(alignment: .leading, spacing: 18) {
                     TrophyMark(size: 40)
                         .shadow(color: Color.lime.opacity(0.45), radius: 12)
-                    Text("Keep Live rank on all day")
+                    Text("Keep Live rank on all day.")
                         .font(CommittedType.display(34, relativeTo: .largeTitle))
                         .displayTracking(34)
                         .accessibilityAddTraits(.isHeader)
@@ -41,7 +41,7 @@ struct LiveRankDisclosureView: View {
             .background {
                 ZStack(alignment: .top) {
                     Color.ink
-                    AnimatedSquareField(light: UnitPoint(x: 0.85, y: 0), reach: 0.6, cell: 18, brightness: 0.55, maxLevel: 3)
+                    AnimatedSquareField(light: UnitPoint(x: 0.85, y: 0), reach: 0.6, cell: 18, tone: .disclosure)
                         .frame(height: 260)
                         .mask(LinearGradient(colors: [.black, .clear], startPoint: .top, endPoint: .bottom))
                 }
@@ -62,7 +62,19 @@ struct LiveRankDisclosureView: View {
                 }
                 .disabled(isWorking)
                 .padding()
-                .background(.bar)
+                // Ink with a hairline, and the scroll content fading into it above, instead of
+                // the system's gray bar cutting the card mid-sentence.
+                .background {
+                    Color.ink
+                        .overlay(alignment: .top) { Rectangle().fill(Color.hairline).frame(height: 1) }
+                        .overlay(alignment: .top) {
+                            LinearGradient(colors: [.clear, .ink], startPoint: .top, endPoint: .bottom)
+                                .frame(height: 28)
+                                .offset(y: -28)
+                                .allowsHitTesting(false)
+                        }
+                        .ignoresSafeArea(edges: .bottom)
+                }
             }
             .navigationTitle("Live rank")
             .navigationBarTitleDisplayMode(.inline)

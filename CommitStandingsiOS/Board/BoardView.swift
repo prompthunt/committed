@@ -9,6 +9,8 @@ import SwiftUI
 struct BoardView: View {
     @Environment(AppModel.self) private var model
     @Environment(StandingsStore.self) private var store
+    /// Read here, not in the toolbar: bar items see a capped text size, never an accessibility one.
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     /// Where the two panes are, as they last reported. Lives above the arrangement so it survives
     /// the panes being rebuilt when the device opens, closes, or folds.
     @State private var arrangementFrame: CGRect?
@@ -39,8 +41,7 @@ struct BoardView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .principal) {
-                    ContributionWindowPicker()
-                        .fixedSize()
+                    WindowSwitch(asMenu: dynamicTypeSize.isAccessibilitySize)
                 }
             }
             .refreshable { await model.pullToRefresh() }
@@ -119,7 +120,7 @@ struct BoardLeaderboard: View {
                 }
 
                 Section {
-                    PrivateContributionsTip()
+                    PrivateWorkTip()
                         .listRowSeparator(.hidden)
                         .listRowBackground(Color.clear)
                         .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
@@ -143,16 +144,122 @@ struct BoardLeaderboard: View {
     }
 }
 
-/// Your summary in its own pane, beside the leaderboard. It scrolls so it still fits at
-/// accessibility text sizes or in a short pane.
+/// The Window switch in the navigation bar: segments, or a menu ("Today ▾") at accessibility text
+/// sizes, where the segmented control doesn't grow.
+private struct WindowSwitch: View {
+    @Environment(StandingsStore.self) private var store
+    let asMenu: Bool
+
+    var body: some View {
+        if asMenu {
+            @Bindable var store = store
+            Picker("Contribution window", selection: $store.selectedWindow) {
+                ForEach(ContributionWindow.allCases) { window in
+                    Text(window.shortTitle).tag(window)
+                }
+            }
+            .pickerStyle(.menu)
+            .fixedSize()
+        } else {
+            ContributionWindowPicker()
+                .fixedSize()
+        }
+    }
+}
+
+/// Your summary in its own pane, beside the leaderboard, with the people directly above and below
+/// you under it. It scrolls so it still fits at accessibility text sizes or in a short pane.
 private struct BoardSummaryPane: View {
     var body: some View {
         ScrollView {
-            BoardSummaryView()
-                .padding(16)
+            VStack(alignment: .leading, spacing: 20) {
+                BoardSummaryView()
+                AroundYou()
+            }
+            .padding(16)
         }
         .background(Color.ink)
         .accessibilityLabel("Your standing")
+    }
+}
+
+/// The ladder from Live rank, on the board: whoever's directly above you, you, and whoever's
+/// directly below, in the shared row.
+private struct AroundYou: View {
+    @Environment(StandingsStore.self) private var store
+    @Environment(RefreshCoordinator.self) private var refresh
+
+    var body: some View {
+        let window = store.selectedWindow
+        let standings = store.standings(for: window)
+        let entries = Ranking.order(competitors: store.visibleCompetitors, standings: standings, window: window)
+        let maxContributions = entries.compactMap { standings[$0.competitor.username] }
+            .filter { $0.lastUpdated != .distantPast }
+            .map(\.contributions).max() ?? 0
+        if entries.count > 1, let mine = entries.firstIndex(where: { $0.competitor.isSelf }) {
+            VStack(alignment: .leading, spacing: 8) {
+                FolioHeader("Around you")
+                    .padding(.horizontal, 6)
+                VStack(spacing: 2) {
+                    ForEach(entries[max(0, mine - 1)...min(entries.count - 1, mine + 1)]) { entry in
+                        StandingRow(
+                            rank: entry.rank,
+                            competitor: entry.competitor,
+                            standing: store.standing(for: entry.competitor.username, window: window),
+                            window: window,
+                            maxContributions: maxContributions,
+                            rankDelta: window == .daily ? refresh.rankDelta(for: entry.competitor.username) : nil
+                        )
+                    }
+                }
+                .padding(6)
+                .tileCard()
+            }
+        }
+    }
+}
+
+/// The Mac's private-contributions tip (`PrivateContributionsTip`, same copy and dismissal) in the
+/// iPhone's materials: a tile card, a soft icon, and a tile button rather than a lime one.
+private struct PrivateWorkTip: View {
+    @AppStorage("dismissedPrivateContribTip") private var dismissed = false
+
+    var body: some View {
+        if !dismissed {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack(spacing: 8) {
+                    Image(systemName: "lock.open").foregroundStyle(Color.soft)
+                    Text("Want your private work to count?")
+                        .font(.callout.weight(.semibold))
+                    Spacer()
+                    Button {
+                        dismissed = true
+                    } label: {
+                        Image(systemName: "xmark").imageScale(.small).foregroundStyle(Color.muted)
+                            .frame(minWidth: 44, minHeight: 44)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Dismiss tip")
+                }
+                .padding(.bottom, -10)
+                Text("Include private repo and org activity: on your GitHub profile, above the green squares, choose **Contribution settings → Private contributions**.")
+                    .font(.footnote)
+                    .foregroundStyle(Color.soft)
+                    .fixedSize(horizontal: false, vertical: true)
+                Text("Only daily counts are shared. Your code and repo details stay private.")
+                    .font(.footnote)
+                    .foregroundStyle(Color.muted)
+                    .fixedSize(horizontal: false, vertical: true)
+                Link(destination: URL(string: "https://docs.github.com/en/account-and-profile/how-tos/contribution-settings/manage-visibility-settings-for-private-contributions-and-achievements")!) {
+                    Label("How to enable on GitHub", systemImage: "arrow.up.right")
+                        .labelStyle(.titleAndIcon)
+                }
+                .buttonStyle(TileButtonStyle())
+                .padding(.top, 4)
+            }
+            .padding(16)
+            .tileCard()
+        }
     }
 }
 

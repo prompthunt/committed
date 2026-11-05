@@ -26,6 +26,7 @@ struct PeopleView: View {
 private struct PeopleList: View {
     @Environment(StandingsStore.self) private var store
     @Environment(GitHubRoster.self) private var roster
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     // The filter sits in the list rather than the toolbar: three segments are too wide for the
     // iPhone Duo's vertical bars, and it has to work without an active search.
     @State private var source = PeopleSourceFilter.all
@@ -38,24 +39,15 @@ private struct PeopleList: View {
         let hiddenCount = store.competitors.count - store.visibleCompetitors.count
         List {
             Section {
-                Picker("People source", selection: $source) {
-                    ForEach(PeopleSourceFilter.allCases) { filter in
-                        Text(filter.rawValue).tag(filter)
-                    }
+                sourcePicker
+                    .listRowSeparator(.hidden)
+                    .listRowBackground(Color.clear)
+                // Only while syncing or after a failure; the sync time is in the eyebrow below.
+                if roster.isRefreshing || roster.errorMessage != nil {
+                    RosterSyncNotice()
+                        .listRowSeparator(.hidden)
+                        .listRowBackground(Color.clear)
                 }
-                .pickerStyle(.segmented)
-                // Full width, the segments would cross a book-style fold on the inner display.
-                .avoidingFold()
-                .listRowSeparator(.hidden)
-                .listRowBackground(Color.clear)
-                VStack(alignment: .leading, spacing: 8) {
-                    RosterStatusView()
-                    Text("Choose who appears on your board. Hidden people stay here so you can show them again.")
-                        .font(.footnote)
-                        .foregroundStyle(Color.muted)
-                }
-                .listRowSeparator(.hidden)
-                .listRowBackground(Color.clear)
             }
 
             if !people.isEmpty {
@@ -66,22 +58,30 @@ private struct PeopleList: View {
                             .listRowSeparatorTint(.hairline)
                     }
                 } header: {
-                    FolioHeader("\(store.visibleCompetitors.count) on your board · \(hiddenCount) hidden")
-                } footer: {
-                    if let owner = roster.snapshot?.owner,
-                       let url = URL(string: "https://github.com/\(owner)?tab=following") {
-                        Link(destination: url) {
-                            Label("Who you follow on GitHub", systemImage: "arrow.up.right")
-                                .labelStyle(TrailingIconLabelStyle())
-                        }
-                        .font(.footnote.weight(.semibold))
-                        .padding(.top, 8)
+                    TimelineView(.periodic(from: .now, by: 30)) { context in
+                        FolioHeader(eyebrow(hiddenCount: hiddenCount, now: context.date))
                     }
+                } footer: {
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text("Choose who appears on your board. Hidden people stay here so you can show them again.")
+                            .foregroundStyle(Color.muted)
+                        if let owner = roster.snapshot?.owner,
+                           let url = URL(string: "https://github.com/\(owner)?tab=following") {
+                            Link(destination: url) {
+                                Label("Who you follow on GitHub", systemImage: "arrow.up.right")
+                                    .labelStyle(TrailingIconLabelStyle())
+                            }
+                            .fontWeight(.semibold)
+                        }
+                    }
+                    .font(.footnote)
+                    .padding(.top, 8)
                 }
             }
         }
         .listStyle(.plain)
         .inkScreen()
+        .readableContentWidth(minimumMargin: 0)
         .accessibilityLabel("People, alphabetical")
         .overlay {
             if store.competitors.isEmpty {
@@ -96,6 +96,36 @@ private struct PeopleList: View {
                 )
             }
         }
+    }
+}
+
+extension PeopleList {
+    /// All / Following / Organizations: segments, or a menu at accessibility text sizes, where the
+    /// segmented control doesn't grow.
+    @ViewBuilder fileprivate var sourcePicker: some View {
+        let picker = Picker("Show", selection: $source) {
+            ForEach(PeopleSourceFilter.allCases) { filter in
+                Text(filter.rawValue).tag(filter)
+            }
+        }
+        if dynamicTypeSize.isAccessibilitySize {
+            // "All ⌃⌄" on one line; "Show" stays the VoiceOver label.
+            picker.pickerStyle(.menu).labelsHidden()
+        } else {
+            picker
+                .pickerStyle(.segmented)
+                // Full width, the segments would cross a book-style fold on the inner display.
+                .avoidingFold()
+        }
+    }
+
+    /// "5 on your board · 1 hidden · synced 4 min ago".
+    fileprivate func eyebrow(hiddenCount: Int, now: Date) -> String {
+        var parts = ["\(store.visibleCompetitors.count) on your board", "\(hiddenCount) hidden"]
+        if let synced = roster.snapshot?.updatedAt {
+            parts.append("synced \(CoarseAge.text(since: synced, now: now))")
+        }
+        return parts.joined(separator: " · ")
     }
 }
 
@@ -147,7 +177,8 @@ private struct PersonVisibilityRow: View {
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.borderless)
-                .foregroundStyle(hidden ? Color.muted : Color.lime)
+                // Lime is yours; a rival's visible eye is soft, a hidden one muted.
+                .foregroundStyle(hidden ? Color.muted : Color.soft)
                 .accessibilityLabel(actionLabel)
                 .accessibilityValue(hidden ? "Hidden" : "Visible")
             }

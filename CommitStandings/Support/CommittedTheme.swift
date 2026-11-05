@@ -23,9 +23,14 @@ enum Palette {
             return 0.2126 * linear(r) + 0.7152 * linear(g) + 0.0722 * linear(b)
         }
 
-        func mixed(with other: RGB, _ t: Double) -> Color {
-            Color(.sRGB, red: r + (other.r - r) * t, green: g + (other.g - g) * t, blue: b + (other.b - b) * t)
+        init(r: Double, g: Double, b: Double) { self.r = r; self.g = g; self.b = b }
+
+        /// `other` laid over this color at opacity `t`.
+        func blended(with other: RGB, _ t: Double) -> RGB {
+            RGB(r: r + (other.r - r) * t, g: g + (other.g - g) * t, b: b + (other.b - b) * t)
         }
+
+        func mixed(with other: RGB, _ t: Double) -> Color { blended(with: other, t).color }
     }
 
     /// The page.
@@ -69,6 +74,9 @@ extension Color {
     /// Hairlines between rows and around cards, as on the site (`white / .08`).
     static let hairline = Color.white.opacity(0.08)
     static let contributionSquares = Palette.squares.map(\.color)
+    /// The board rows' ramp: the same levels, topped with the deeper lime, so a busy rival's
+    /// square never outshines your own row. Full lime squares are the hero's and the bursts'.
+    static let rowSquares = Palette.squares.dropLast().map(\.color) + [Color.limeDeep]
 }
 
 // MARK: - Type
@@ -89,8 +97,22 @@ enum CommittedType {
         .custom(regularFace, size: size, relativeTo: style).monospacedDigit()
     }
 
-    /// Small tracked labels, like the site's card folios ("CONTRIBUTIONS").
-    static let label = Font.caption2.weight(.semibold)
+    /// Eyebrows and folios ("CONTRIBUTIONS", "6 PEOPLE · TODAY"): the site's monospace labels
+    /// (`font-mono text-[11px] font-medium tracking-[.06em]`), uppercase.
+    static let label = Font.caption2.monospaced().weight(.medium)
+    /// The site's .06em at 11 pt.
+    static let labelTracking: CGFloat = 0.7
+}
+
+extension View {
+    /// The site's eyebrow: monospace, tracked, uppercase. It stops growing at accessibility 1,
+    /// where wide monospace capitals would wrap a short label over three lines.
+    func eyebrow() -> some View {
+        font(CommittedType.label)
+            .tracking(CommittedType.labelTracking)
+            .textCase(.uppercase)
+            .dynamicTypeSize(...DynamicTypeSize.accessibility1)
+    }
 }
 
 extension View {
@@ -101,6 +123,42 @@ extension View {
 }
 
 // MARK: - Contribution squares
+
+/// How bright a square field draws. Every field behind text uses one of these presets, and
+/// `ThemeTests` checks white, soft, and lime text against each preset's brightest pixel.
+struct FieldTone: Sendable {
+    var brightness: Double
+    /// The brightest square level drawn. Below lime (4) behind text.
+    var maxLevel: Int = 3
+    /// The most opaque any square gets, whatever the light. Dim squares keep their look; only the
+    /// hottest ones are held back, so text over them stays at 4.5:1.
+    var maxOpacity: Double = 0.45
+
+    /// The glow under the squares, at the light's center.
+    var glowOpacity: Double { 0.16 * brightness }
+
+    /// A square's opacity where the light reaches `lit` (0…1).
+    func squareOpacity(lit: Double) -> Double {
+        min(min(1, lit * 1.4) * brightness, maxOpacity)
+    }
+
+    /// The brightest pixel this field can draw on `background`: the glow's center with the top
+    /// square at its highest opacity.
+    func brightest(on background: Palette.RGB) -> Palette.RGB {
+        background
+            .blended(with: Palette.lime, glowOpacity)
+            .blended(with: Palette.squares[maxLevel], squareOpacity(lit: 1))
+    }
+
+    /// The Board's hero card (on tile).
+    static let hero = FieldTone(brightness: 0.8)
+    /// Live rank's Lock Screen card (on ink).
+    static let lockScreen = FieldTone(brightness: 0.55)
+    /// Connect GitHub, behind the headline (on ink).
+    static let connect = FieldTone(brightness: 0.7)
+    /// The Live rank relay disclosure, behind the headline (on ink).
+    static let disclosure = FieldTone(brightness: 0.55)
+}
 
 /// One square of the contribution graph.
 struct ContributionSquare: View {
@@ -129,9 +187,7 @@ struct SquareFieldCanvas: View {
     var gap: CGFloat = 4
     /// Seconds; 0 for a still field.
     var time: Double = 0
-    var brightness: Double = 1
-    /// The brightest square level drawn. Keep it below lime (4) behind lime or white text.
-    var maxLevel: Int = 4
+    var tone: FieldTone
 
     var body: some View {
         Canvas(opaque: false, rendersAsynchronously: false) { context, size in
@@ -151,12 +207,12 @@ struct SquareFieldCanvas: View {
         context.fill(
             Path(CGRect(origin: .zero, size: size)),
             with: .radialGradient(
-                Gradient(colors: [Color.lime.opacity(0.16 * brightness), Color.limeDeep.opacity(0.05 * brightness), .clear]),
+                Gradient(colors: [Color.lime.opacity(tone.glowOpacity), Color.limeDeep.opacity(0.05 * tone.brightness), .clear]),
                 center: center, startRadius: 0, endRadius: span * reach
             )
         )
         let t = time * 0.35
-        let ramp = Array(Palette.squares.prefix(max(1, min(maxLevel, Palette.squares.count - 1)) + 1))
+        let ramp = Array(Palette.squares.prefix(max(1, min(tone.maxLevel, Palette.squares.count - 1)) + 1))
         for row in 0..<rows {
             for column in 0..<columns {
                 let x = CGFloat(column) * step
@@ -175,7 +231,7 @@ struct SquareFieldCanvas: View {
                 // Ease between levels so moving squares fade rather than pop.
                 let blend = max(0, (value - Double(level) - 0.7) / 0.3)
                 let rect = CGRect(x: x, y: y, width: cell, height: cell)
-                context.opacity = min(1, lit * 1.4) * brightness
+                context.opacity = tone.squareOpacity(lit: lit)
                 context.fill(
                     Path(roundedRect: rect, cornerRadius: cell * 0.22, style: .continuous),
                     with: .color(ramp[level].mixed(with: ramp[next], blend))

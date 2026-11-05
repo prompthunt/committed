@@ -16,6 +16,9 @@ struct BoardSummary: Equatable {
     let contributions: Int?
     /// Places moved since the start of today (+ up, − down); Today only, nil when unmoved.
     let movementToday: Int?
+    /// "2 to pass priya-s", Live rank's line: the gap to the person directly above you. nil in
+    /// first place, or when either count hasn't loaded.
+    let passLine: String?
     let window: ContributionWindow
     let lastUpdated: Date?
 
@@ -36,6 +39,11 @@ struct BoardSummary: Equatable {
         let rank = mine != nil && hasRivals
             ? entries.first(where: { $0.competitor.username == me.username })?.rank : nil
         let movement = window == .daily ? rankDelta(me.username).flatMap { $0 == 0 ? nil : $0 } : nil
+        // Live rank's derivation, from counts that have loaded (as `LiveRankState.board` does), so
+        // the hero and Live rank never disagree about the gap.
+        let loaded = standings.filter { $0.value.lastUpdated != .distantPast }
+        let live = LiveRankState.derive(competitors: competitors, standings: loaded, window: window,
+                                        rankDeltas: [:], now: lastUpdated ?? .distantPast)
         return BoardSummary(
             username: me.username,
             firstName: DisplayName.firstName(from: displayName),
@@ -43,6 +51,7 @@ struct BoardSummary: Equatable {
             competitorCount: entries.count,
             contributions: mine,
             movementToday: movement,
+            passLine: rank == nil ? nil : live.passLine,
             window: window,
             lastUpdated: lastUpdated
         )
@@ -61,6 +70,7 @@ struct BoardSummary: Equatable {
             let places = movementToday.magnitude == 1 ? "place" : "places"
             parts.append("\(movementToday > 0 ? "up" : "down") \(movementToday.magnitude) \(places) today")
         }
+        if let passLine { parts.append(passLine) }
         return parts.joined(separator: ", ")
     }
 }

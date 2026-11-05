@@ -16,6 +16,8 @@ struct StandingRowStyle {
     var selfNameFont: Font = .callout.weight(.semibold)
     var countFont: Font = .callout.monospacedDigit()
     var selfCountFont: Font = .callout.monospacedDigit().weight(.semibold)
+    /// Your count's color. nil = the row's text color (the Mac).
+    var selfCountColor: Color? = nil
     var avatarSize: CGFloat = 26
     var spacing: CGFloat = 10
     var horizontalPadding: CGFloat = 8

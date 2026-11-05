@@ -50,6 +50,20 @@ extension LiveRankState {
         return max(above.contributions - contributions, 1)
     }
 
+    /// "3 to pass alice": `gapToPass` and who's ahead, as Live rank and the Board's hero show it.
+    var passLine: String? {
+        guard let gap = gapToPass, let above else { return nil }
+        return "\(gap) to pass \(above.login)"
+    }
+
+    /// Said in place of a rank when there isn't one: nobody else on the board, or your count hasn't
+    /// loaded yet. nil when there's a rank to show.
+    var emptyStateLine: String? {
+        if competitorCount <= 1 { return "Just you so far" }
+        if contributions == nil { return "Waiting for your first count" }
+        return nil
+    }
+
     /// Tapping Live rank opens the Board on its Window.
     var boardURL: URL { DeepLink.board(window: contributionWindow).url }
 }

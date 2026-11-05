@@ -8,7 +8,7 @@ struct GitHubAccountSection: View {
     @State private var confirmingDisconnect = false
 
     var body: some View {
-        Section("GitHub") {
+        Section {
             if let username = auth.username {
                 LabeledContent("Connected as", value: "@\(username)")
             }
@@ -22,6 +22,8 @@ struct GitHubAccountSection: View {
             } message: {
                 Text("This deletes your GitHub token from this iPhone and clears your board. Who you've hidden stays saved for when you reconnect.")
             }
+        } header: {
+            FolioHeader("GitHub")
         }
     }
 }

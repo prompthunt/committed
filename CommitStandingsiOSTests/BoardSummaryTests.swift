@@ -33,7 +33,25 @@ struct BoardSummaryTests {
         #expect(result?.contributions == 7)
         #expect(result?.firstName == "Addison")
         #expect(result?.username == "me")
-        #expect(result?.accessibilityDescription == "You, @me, rank 2 of 3, 7 contributions for today")
+        #expect(result?.accessibilityDescription == "You, @me, rank 2 of 3, 7 contributions for today, 5 to pass ada")
+    }
+
+    /// The same line Live rank shows: the gap to the person directly above you.
+    @Test func saysHowManyToPassThePersonAhead() {
+        let result = summary([me, ada, lin], [standing("me", 7), standing("ada", 12), standing("lin", 2)])
+        #expect(result?.passLine == "5 to pass ada")
+    }
+
+    @Test func nobodyToPassInFirst() {
+        let result = summary([me, ada], [standing("me", 12), standing("ada", 7)])
+        #expect(result?.rank == 1)
+        #expect(result?.passLine == nil)
+    }
+
+    /// Someone loading for the first time has no count yet, so there's no gap to them.
+    @Test func noGapToSomeoneWithoutACount() {
+        let result = summary([ada, me], [standing("ada", 0, loaded: false), standing("me", 0)])
+        #expect(result?.passLine == nil)
     }
 
     @Test func tiesKeepRosterOrderLikeTheRows() {

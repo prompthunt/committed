@@ -174,9 +174,16 @@ struct StandingRow: View {
                 .font(style.countFont)
                 .foregroundStyle(.orange)
         default:
-            Text(contributionsText)
-                .font(competitor.isSelf ? style.selfCountFont : style.countFont)
-                .pulsing(isRefreshing)
+            if competitor.isSelf, let color = style.selfCountColor {
+                Text(contributionsText)
+                    .font(style.selfCountFont)
+                    .foregroundStyle(color)
+                    .pulsing(isRefreshing)
+            } else {
+                Text(contributionsText)
+                    .font(competitor.isSelf ? style.selfCountFont : style.countFont)
+                    .pulsing(isRefreshing)
+            }
         }
     }
 }

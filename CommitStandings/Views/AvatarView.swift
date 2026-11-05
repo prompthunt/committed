@@ -31,8 +31,25 @@ struct AvatarView: View {
 struct InitialsCircle: View {
     let username: String
     var size: CGFloat = 32
+    /// The iPhone's quieter fallback; nil on the Mac (a colored circle).
+    @Environment(\.avatarFallbackStyle) private var fallbackStyle
 
     var body: some View {
+        if let fallbackStyle {
+            Circle()
+                .fill(fallbackStyle.fill)
+                .overlay { Circle().strokeBorder(fallbackStyle.stroke, lineWidth: 1) }
+                .overlay(
+                    Text(AvatarColor.letterInitials(for: username))
+                        .font(.system(size: size * 0.4, weight: .semibold, design: .rounded))
+                        .foregroundStyle(fallbackStyle.text)
+                )
+        } else {
+            coloredCircle
+        }
+    }
+
+    private var coloredCircle: some View {
         Circle()
             .fill(AvatarColor.color(for: username).gradient)
             .overlay(
@@ -43,7 +60,16 @@ struct InitialsCircle: View {
     }
 }
 
+/// A fallback avatar drawn as a quiet tile instead of a colored circle, with letters-only
+/// initials. The iPhone sets it; the Mac leaves it nil.
+struct AvatarFallbackStyle {
+    var fill: Color
+    var stroke: Color
+    var text: Color
+}
+
 extension EnvironmentValues {
+    @Entry var avatarFallbackStyle: AvatarFallbackStyle? = nil
     /// Off for sample and screenshot data, so a made-up username never shows a real account's
     /// avatar; rows show colored initials instead.
     @Entry var loadsGitHubAvatars = true

@@ -7,11 +7,15 @@ struct AboutCommittedSection: View {
             NavigationLink {
                 AboutCommittedPage()
             } label: {
-                Label("How Contributions are counted", systemImage: "square.grid.3x3")
+                Label {
+                    Text("How Contributions are counted")
+                } icon: {
+                    Image(systemName: "square.grid.3x3").foregroundStyle(Color.soft)
+                }
             }
             LabeledContent("Version", value: Self.version)
         } header: {
-            Text("About Committed")
+            FolioHeader("About Committed")
         }
     }
 

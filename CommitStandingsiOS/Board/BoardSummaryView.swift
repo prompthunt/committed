@@ -1,10 +1,13 @@
 import SwiftUI
 
-/// You first, as the site's hero: your rank set huge over a lit field of contribution squares,
-/// your Contributions for the Window in lime, today's movement, how long ago the numbers
-/// refreshed, and people-sync status. When your rank improves, squares burst out of it.
+/// You first, as the site's hero: a folio ("01 · TODAY"), your rank set huge over a lit field of
+/// contribution squares, your Contributions for the Window in lime, today's movement, the gap to
+/// pass the person ahead, and how long ago the numbers refreshed. People sync shows under the card
+/// only while it's running or has failed. When your rank improves, squares burst out of it.
 ///
-/// Every size follows Dynamic Type; at accessibility sizes the numbers stack under your name.
+/// Text on the card is white, soft, or lime, never muted: the field can sit under any of it
+/// (`FieldTone.hero`, checked in `ThemeTests`). Every size follows Dynamic Type; at accessibility
+/// sizes the numbers stack under your name and the rank stops growing at accessibility 2.
 /// VoiceOver reads the card as one sentence (`BoardSummary.accessibilityDescription`).
 struct BoardSummaryView: View {
     @Environment(StandingsStore.self) private var store
@@ -34,7 +37,7 @@ struct BoardSummaryView: View {
             if let summary {
                 card(summary)
             }
-            RosterStatusView()
+            RosterSyncNotice()
                 .padding(.horizontal, 6)
         }
         .onChange(of: BurstKey(rank: summary?.rank, window: store.selectedWindow)) { old, new in
@@ -51,6 +54,7 @@ struct BoardSummaryView: View {
             && summary.contributions != nil
 
         return VStack(alignment: .leading, spacing: 18) {
+            FolioRow(leading: Self.folio(summary.window), trailing: "Your rank")
             identity(summary, stacked: stacked)
             numbers(summary, stacked: stacked, pulsing: isRefreshingMine)
             footer(summary)
@@ -59,9 +63,16 @@ struct BoardSummaryView: View {
         .padding(.vertical, 18)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background {
-            AnimatedSquareField(light: UnitPoint(x: 0.88, y: 0.05), reach: 0.7, cell: 15, brightness: 0.8, maxLevel: 3)
-                // Keep the field behind the numbers, not under your name.
-                .mask(LinearGradient(colors: [.clear, .black.opacity(0.55), .black], startPoint: .leading, endPoint: .trailing))
+            AnimatedSquareField(light: UnitPoint(x: 0.86, y: 0.4), reach: 0.7, cell: 15, tone: .hero)
+                // Behind the numbers: away from your name, and faded out above the folio and
+                // below the numbers, so the label and footer rows sit on the bare tile.
+                .mask {
+                    LinearGradient(colors: [.clear, .black.opacity(0.55), .black], startPoint: .leading, endPoint: .trailing)
+                        .mask(LinearGradient(stops: [
+                            .init(color: .clear, location: 0.1), .init(color: .black, location: 0.3),
+                            .init(color: .black, location: 0.52), .init(color: .clear, location: 0.78),
+                        ], startPoint: .top, endPoint: .bottom))
+                }
         }
         .tileCard(cornerRadius: 22)
         .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
@@ -77,7 +88,7 @@ struct BoardSummaryView: View {
             VStack(alignment: .leading, spacing: 0) {
                 if let firstName = summary.firstName {
                     Text(firstName).font(.headline)
-                    Text("@\(summary.username)").font(.subheadline).foregroundStyle(Color.muted)
+                    Text("@\(summary.username)").font(.subheadline).foregroundStyle(Color.soft)
                 } else {
                     Text("@\(summary.username)").font(.headline)
                 }
@@ -115,9 +126,11 @@ struct BoardSummaryView: View {
                     .minimumScaleFactor(0.6)
                 Text("of \(summary.competitorCount)")
                     .font(CommittedType.numeral(20, relativeTo: .title3))
-                    .foregroundStyle(Color.muted)
+                    .foregroundStyle(Color.soft)
                     .fixedSize()
             }
+            // Past accessibility 2 the rank alone would fill the first screen.
+            .dynamicTypeSize(...DynamicTypeSize.accessibility2)
         } else {
             TrophyMark(size: trophySize)
                 .shadow(color: Color.lime.opacity(0.45), radius: 14)
@@ -140,35 +153,43 @@ struct BoardSummaryView: View {
                     content.opacity(opacity)
                 } animation: { _ in .easeInOut(duration: 0.85) }
             Text("Contributions")
-                .font(CommittedType.label)
-                .tracking(1.1)
-                .textCase(.uppercase)
-                .foregroundStyle(Color.muted)
+                .eyebrow()
+                .foregroundStyle(Color.soft)
         }
+        .dynamicTypeSize(...DynamicTypeSize.accessibility2)
         .fixedSize()
     }
 
     @ViewBuilder
     private func footer(_ summary: BoardSummary) -> some View {
         TimelineView(.periodic(from: .now, by: 30)) { context in
-            let layout = dynamicTypeSize.isAccessibilitySize
+            let age = refreshAgeText(summary.lastUpdated, now: context.date) ?? (refresh.isRefreshing ? "Updating…" : nil)
+            let news = dynamicTypeSize.isAccessibilitySize
                 ? AnyLayout(VStackLayout(alignment: .leading, spacing: 4))
-                : AnyLayout(HStackLayout(alignment: .firstTextBaseline, spacing: 12))
-            layout {
-                if let movement = summary.movementToday {
-                    Label(movement > 0 ? "Up \(movement) today" : "Down \(-movement) today",
-                          systemImage: movement > 0 ? "chevron.up" : "chevron.down")
+                : AnyLayout(HStackLayout(alignment: .firstTextBaseline, spacing: 14))
+            // The news (movement, the gap to pass), then how fresh the numbers are.
+            VStack(alignment: .leading, spacing: 4) {
+                news {
+                    if let movement = summary.movementToday {
+                        HStack(spacing: 4) {
+                            Image(systemName: movement > 0 ? "chevron.up" : "chevron.down")
+                                .imageScale(.small)
+                            Text(movement > 0 ? "Up \(movement) today" : "Down \(-movement) today")
+                        }
                         .fontWeight(.semibold)
-                        .foregroundStyle(movement > 0 ? Color.lime : Color.muted)
+                        .foregroundStyle(movement > 0 ? Color.lime : Color.soft)
+                    }
+                    if let passLine = summary.passLine {
+                        Text(passLine)
+                            .fontWeight(.semibold)
+                            .foregroundStyle(Color.lime)
+                            .monospacedDigit()
+                    }
                 }
-                if let age = refreshAgeText(summary.lastUpdated, now: context.date) {
-                    Text(age)
-                } else if refresh.isRefreshing {
-                    Text("Updating…")
-                }
+                if let age { Text(age) }
             }
             .font(.footnote)
-            .foregroundStyle(Color.muted)
+            .foregroundStyle(Color.soft)
         }
     }
 
@@ -180,7 +201,48 @@ struct BoardSummaryView: View {
 
     private func refreshAgeText(_ lastUpdated: Date?, now: Date) -> String? {
         guard let lastUpdated else { return nil }
-        let age = RelativeTimeFormatter.short(from: lastUpdated, to: now)
-        return age == "just now" ? "Updated just now" : "Updated \(age)"
+        return "Updated \(CoarseAge.text(since: lastUpdated, now: now))"
+    }
+
+    /// "01 · TODAY": the Window's place in the switch, as the site numbers its cards.
+    static func folio(_ window: ContributionWindow) -> String {
+        let number = (ContributionWindow.allCases.firstIndex(of: window) ?? 0) + 1
+        return String(format: "%02d · %@", number, window.shortTitle)
+    }
+}
+
+/// People sync, only when there's something to say: it's running, or it failed (with Retry). The
+/// Board's freshness is the hero's "Updated …" line; People shows when people last synced.
+struct RosterSyncNotice: View {
+    @Environment(GitHubRoster.self) private var roster
+    @Environment(RefreshCoordinator.self) private var refresh
+
+    var body: some View {
+        if roster.isRefreshing {
+            HStack(spacing: 6) {
+                ProgressView().controlSize(.small).tint(.soft)
+                Text("Syncing people from GitHub…")
+            }
+            .font(.caption)
+            .foregroundStyle(Color.muted)
+            .accessibilityElement(children: .combine)
+        } else if let error = roster.errorMessage {
+            VStack(alignment: .leading, spacing: 2) {
+                HStack(spacing: 6) {
+                    Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(Color.warning)
+                    Text("Couldn’t sync people")
+                        .foregroundStyle(.white)
+                    Text("·").foregroundStyle(Color.muted)
+                    Button("Retry") { Task { await refresh.refreshAll(reason: .manual) } }
+                        .fontWeight(.semibold)
+                        .tint(.lime)
+                        .disabled(refresh.isRefreshing)
+                }
+                Text(roster.snapshot == nil ? error : "\(error) Showing your last synced people.")
+                    .foregroundStyle(Color.muted)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .font(.caption)
+        }
     }
 }
