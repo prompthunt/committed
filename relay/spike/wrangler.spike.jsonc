@@ -1,0 +1,7 @@
+{
+  // Throwaway: deploy, curl, then delete. Not part of the relay.
+  "name": "committed-apns-spike",
+  "main": "apns-h2-spike.js",
+  "compatibility_date": "2026-11-01",
+  "workers_dev": true
+}
