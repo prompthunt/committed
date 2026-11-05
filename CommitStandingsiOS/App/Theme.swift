@@ -50,12 +50,16 @@ extension View {
             .background(Color.ink)
     }
 
-    /// Caps a scrolling list or form at a readable width, centered, so rows and their controls
-    /// don't stretch across the open iPhone Duo display. `minimumMargin` is the container's own
-    /// side margin at phone widths (20 for an inset-grouped `Form`, 0 for a plain `List`), which
-    /// this replaces.
-    func readableContentWidth(_ maxWidth: CGFloat = 640, minimumMargin: CGFloat) -> some View {
-        modifier(ReadableContentWidth(maxWidth: maxWidth, minimumMargin: minimumMargin))
+    /// Caps a scrolling list or form at a readable width, centered on the ink page, so rows and
+    /// their controls don't stretch across the open iPhone Duo display. It caps the container's
+    /// frame rather than setting content margins: a content-margin override replaces the list's
+    /// own safe-area insets, which pushed row separators under the closed Duo's vertical tab bar.
+    /// Narrower than `maxWidth`, it changes nothing, and the view's identity never changes
+    /// between poses, so scroll position survives opening and closing.
+    func readableContentWidth(_ maxWidth: CGFloat = 640) -> some View {
+        frame(maxWidth: maxWidth)
+            .frame(maxWidth: .infinity)
+            .background(Color.ink)
     }
 
     /// The site's card: a tile with a hairline edge.
@@ -65,18 +69,6 @@ extension View {
                 RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                     .strokeBorder(Color.white.opacity(0.07), lineWidth: 1)
             }
-    }
-}
-
-private struct ReadableContentWidth: ViewModifier {
-    let maxWidth: CGFloat
-    let minimumMargin: CGFloat
-    @State private var width: CGFloat = 0
-
-    func body(content: Content) -> some View {
-        content
-            .contentMargins(.horizontal, max(minimumMargin, (width - maxWidth) / 2), for: .scrollContent)
-            .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { width = $0 }
     }
 }
 

@@ -81,7 +81,7 @@ private struct PeopleList: View {
         }
         .listStyle(.plain)
         .inkScreen()
-        .readableContentWidth(minimumMargin: 0)
+        .readableContentWidth()
         .accessibilityLabel("People, alphabetical")
         .overlay {
             if store.competitors.isEmpty {

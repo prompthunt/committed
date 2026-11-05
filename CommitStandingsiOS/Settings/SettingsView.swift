@@ -25,7 +25,7 @@ struct SettingsView: View {
             // One rhythm between every section, masthead included.
             .listSectionSpacing(28)
             .inkScreen()
-            .readableContentWidth(minimumMargin: 20)
+            .readableContentWidth()
             .navigationTitle("Settings")
         }
     }
