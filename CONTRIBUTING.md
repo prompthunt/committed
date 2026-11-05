@@ -22,9 +22,10 @@ the tests. The test host uses in-memory credentials and does not connect to GitH
 Using the app's live board requires connecting your own GitHub account.
 
 The checked-in `CommitStandings.xcodeproj` is ready to open in Xcode. Keep it at
-the repository root. `project.yml` is the optional XcodeGen specification; it reads
-the checked-in `Info.plist` and entitlements rather than generating replacements.
-If you add Swift files, include them in the Xcode project and verify a build.
+the repository root. `project.yml` only describes the project: never regenerate the
+project from it, because that can reset the Mac Info.plist, entitlements, or Sparkle
+setup. If you add Swift files, add them to their targets with
+`ruby scripts/add-xcode-files.rb <targets> <files>` and verify a build.
 
 Local development uses a separate bundle ID from the distributed app. Preserve
 that separation and the existing official bundle ID, Keychain service, and Sparkle

@@ -86,7 +86,14 @@ After publishing, confirm (the script does this automatically):
 xcodebuild -scheme CommitStandings -destination 'platform=macOS' build test
 # local packaging smoke test (no notarization / no clean-git requirement):
 scripts/package-release.sh --skip-notarization --skip-git-check
+# iPhone app + Live rank extension (iOS 27.1 runs only on the iPhone Duo simulator):
+xcodebuild -scheme CommitStandingsiOS -destination 'platform=iOS Simulator,name=iPhone Duo' test
+# Committed relay (Cloudflare Worker):
+cd relay && npm ci && npm run typecheck && npm test
 ```
+
+The iOS targets build only through the `CommitStandingsiOS` scheme. Keep them out of the
+`CommitStandings` scheme: CI's Mac job runs an older Xcode without the iOS 27.1 SDK.
 
 `git push` to the GitHub remote needs the repo-local `http.version HTTP/1.1` + large
 `http.postBuffer` (already configured) or it fails with HTTP 400.
