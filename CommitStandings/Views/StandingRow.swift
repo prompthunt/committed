@@ -12,6 +12,8 @@ struct StandingRow: View {
     var rankDelta: Int? = nil
     /// Grows with Dynamic Type on iPhone so "#12" never truncates; stays 24pt on the Mac.
     @ScaledMetric(relativeTo: .caption) private var rankWidth: CGFloat = 24
+    /// iPhone at accessibility text sizes wraps long usernames instead of truncating them.
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
         HStack(spacing: 10) {
@@ -23,7 +25,7 @@ struct StandingRow: View {
             HStack(spacing: 4) {
                 Text(competitor.username)
                     .font(.callout)
-                    .lineLimit(1)
+                    .lineLimit(dynamicTypeSize.isAccessibilitySize ? 2 : 1)
                     .truncationMode(.middle)
                     .fontWeight(competitor.isSelf ? .semibold : .regular)
                 if competitor.isSelf {

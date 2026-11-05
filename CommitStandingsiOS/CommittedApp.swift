@@ -6,9 +6,23 @@ struct CommittedApp: App {
     // The same shared graph as the Mac app: saved standings and people show immediately on
     // launch, and the token lives in this iPhone's Keychain.
     @State private var model = AppModel(
-        services: CommittedServices.live(),
+        services: CommittedApp.makeServices(),
         backgroundTime: UIApplicationBackgroundTime()
     )
+
+    private static var loadsGitHubAvatars: Bool {
+        #if DEBUG
+        if ScreenshotFixture.isRequested { return false }
+        #endif
+        return true
+    }
+
+    private static func makeServices() -> CommittedServices {
+        #if DEBUG
+        if ScreenshotFixture.isRequested { return ScreenshotFixture.services() }
+        #endif
+        return CommittedServices.live()
+    }
 
     var body: some Scene {
         WindowGroup {
@@ -19,6 +33,7 @@ struct CommittedApp: App {
                 .environment(model.auth)
                 .environment(model.roster)
                 .environment(model.services.notifications)
+                .environment(\.loadsGitHubAvatars, CommittedApp.loadsGitHubAvatars)
         }
     }
 }

@@ -8,7 +8,8 @@ struct BoardSummaryView: View {
     @Environment(RefreshCoordinator.self) private var refresh
     @Environment(AuthModel.self) private var auth
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
-    @ScaledMetric(relativeTo: .title) private var avatarSize: CGFloat = 52
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @ScaledMetric(relativeTo: .title) private var avatarSize: CGFloat = 44
 
     private var summary: BoardSummary? {
         BoardSummary.make(
@@ -53,14 +54,16 @@ struct BoardSummaryView: View {
                     .lineLimit(stacked ? 2 : 1)
                     .truncationMode(.middle)
                 }
+                .layoutPriority(1)
                 if !stacked { Spacer(minLength: 8) }
                 HStack(alignment: .firstTextBaseline, spacing: 16) {
                     if let rank = summary.rank {
                         metric(value: "#\(rank)", caption: "of \(summary.competitorCount)")
                     }
-                    metric(value: summary.contributions?.formatted() ?? "—", caption: "contributions")
-                        .pulsing(isRefreshingMine)
+                    metric(value: summary.contributions?.formatted() ?? "—", caption: "contributions",
+                           pulsing: isRefreshingMine)
                 }
+                .fixedSize()
             }
             footer(summary)
         }
@@ -76,16 +79,18 @@ struct BoardSummaryView: View {
         .accessibilityValue(refreshAgeText(summary.lastUpdated, now: .now) ?? "")
     }
 
-    private func metric(value: String, caption: String) -> some View {
+    private func metric(value: String, caption: String, pulsing: Bool = false) -> some View {
         VStack(alignment: .trailing, spacing: 0) {
             Text(value)
                 .font(.title.weight(.semibold).width(.condensed))
                 .monospacedDigit()
-                .lineLimit(1)
-                .minimumScaleFactor(0.7)
+                // Opacity-only pulse while refreshing. A repeating animation started with
+                // withAnimation would also replay the number change and layout forever.
+                .phaseAnimator(pulsing && !reduceMotion ? [1.0, 0.4] : [1.0]) { content, opacity in
+                    content.opacity(opacity)
+                } animation: { _ in .easeInOut(duration: 0.85) }
             Text(caption)
-                .font(.caption2.weight(.medium))
-                .textCase(.uppercase)
+                .font(.caption)
                 .foregroundStyle(.secondary)
         }
     }
@@ -93,7 +98,10 @@ struct BoardSummaryView: View {
     @ViewBuilder
     private func footer(_ summary: BoardSummary) -> some View {
         TimelineView(.periodic(from: .now, by: 30)) { context in
-            HStack(spacing: 10) {
+            let layout = dynamicTypeSize.isAccessibilitySize
+                ? AnyLayout(VStackLayout(alignment: .leading, spacing: 4))
+                : AnyLayout(HStackLayout(alignment: .firstTextBaseline, spacing: 10))
+            layout {
                 if let movement = summary.movementToday {
                     Label(movement > 0 ? "Up \(movement) today" : "Down \(-movement) today",
                           systemImage: movement > 0 ? "chevron.up" : "chevron.down")

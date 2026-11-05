@@ -5,13 +5,14 @@ import SwiftUI
 struct AvatarView: View {
     let username: String
     var size: CGFloat = 32
+    @Environment(\.loadsGitHubAvatars) private var loadsGitHubAvatars
 
     private var avatarURL: URL? {
         URL(string: "https://github.com/\(username).png?size=\(Int(size * 2))")
     }
 
     var body: some View {
-        AsyncImage(url: avatarURL) { phase in
+        AsyncImage(url: loadsGitHubAvatars ? avatarURL : nil) { phase in
             switch phase {
             case .success(let image):
                 image.resizable().scaledToFill()
@@ -40,4 +41,10 @@ struct InitialsCircle: View {
                     .foregroundStyle(.white)
             )
     }
+}
+
+extension EnvironmentValues {
+    /// Off for sample and screenshot data, so a made-up username never shows a real account's
+    /// avatar; rows show colored initials instead.
+    @Entry var loadsGitHubAvatars = true
 }
