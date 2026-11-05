@@ -5,10 +5,7 @@ import UIKit
 struct CommittedApp: App {
     // The same shared graph as the Mac app: saved standings and people show immediately on
     // launch, and the token lives in this iPhone's Keychain.
-    @State private var model = AppModel(
-        services: CommittedApp.makeServices(),
-        backgroundTime: UIApplicationBackgroundTime()
-    )
+    @State private var model = CommittedApp.makeModel()
 
     private static var loadsGitHubAvatars: Bool {
         #if DEBUG
@@ -17,11 +14,27 @@ struct CommittedApp: App {
         return true
     }
 
-    private static func makeServices() -> CommittedServices {
+    private static func makeModel() -> AppModel {
         #if DEBUG
-        if ScreenshotFixture.isRequested { return ScreenshotFixture.services() }
+        if ScreenshotFixture.isRequested {
+            return AppModel(
+                services: ScreenshotFixture.services(), backgroundTime: UIApplicationBackgroundTime(),
+                liveRankActivities: ActivityKitLiveRankActivities(),
+                liveRankRelay: ScreenshotFixture.liveRankRelay
+            )
+        }
         #endif
-        return CommittedServices.live()
+        let services = CommittedServices.live()
+        // A unit-test host never shows a Live Activity or touches saved Live rank settings.
+        guard !CommittedServices.isRunningTests else {
+            return AppModel(services: services, backgroundTime: UIApplicationBackgroundTime())
+        }
+        return AppModel(
+            services: services,
+            backgroundTime: UIApplicationBackgroundTime(),
+            liveRankActivities: ActivityKitLiveRankActivities(),
+            liveRankPreferences: UserDefaultsLiveRankPreferences()
+        )
     }
 
     var body: some Scene {
@@ -34,6 +47,10 @@ struct CommittedApp: App {
                 .environment(model.roster)
                 .environment(model.services.notifications)
                 .environment(\.loadsGitHubAvatars, CommittedApp.loadsGitHubAvatars)
+        }
+        .backgroundTask(.appRefresh(BackgroundRefresh.identifier)) { [model] in
+            await model.backgroundRefresh()
+            await BackgroundRefresh.schedule()
         }
     }
 }

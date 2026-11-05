@@ -1,7 +1,7 @@
 import SwiftUI
 
-/// The Settings tab. #42 adds Leaderboard Notifications and About Committed, and #43 adds the Live
-/// rank section above Account. Add each as its own `Section` in this `Form`.
+/// The Settings tab. #42 adds Leaderboard Notifications and About Committed. Add each as its own
+/// `Section` in this `Form`; Live rank's section is its own view.
 struct SettingsView: View {
     @Environment(AuthModel.self) private var auth
     @State private var confirmingDisconnect = false
@@ -9,6 +9,7 @@ struct SettingsView: View {
     var body: some View {
         NavigationStack {
             Form {
+                LiveRankSettingsSection()
                 Section("GitHub") {
                     if let username = auth.username {
                         LabeledContent("Connected as", value: "@\(username)")

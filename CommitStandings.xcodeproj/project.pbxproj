@@ -68,9 +68,11 @@
 		91CEC08111EB05B33948FB40 /* StandingsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 898A1B0791B453A31529D80F /* StandingsStore.swift */; };
 		9231C5A18BEFA28ED9170221 /* GitHubAccountClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 82EC1D669C7B8DC1BFE57F26 /* GitHubAccountClient.swift */; };
 		970FB0ADF42495071CEA73B6 /* LiveRankState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C62F24CB54A093905756EA7 /* LiveRankState.swift */; };
+		A207D059369BFA376E3A9536 /* LiveRankAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 034B0283256CD719632FBFBE /* LiveRankAttributes.swift */; };
 		A3675410FD8EC029FF38C4E8 /* NotificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1B215A09A572661D0932EFE0 /* NotificationService.swift */; };
 		A53B55B8E897F16C8D1ED918 /* GitHubCredentialStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4032F32750CF1C2CED529773 /* GitHubCredentialStoreTests.swift */; };
 		A6BC9E4363F0C41EB32FA911 /* RosterStatusView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4338259CFDF799D3722D35BB /* RosterStatusView.swift */; };
+		A7216C18ECB3E9B6D6B93B4A /* LiveRankAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 034B0283256CD719632FBFBE /* LiveRankAttributes.swift */; };
 		A74694A89902AC300C807ED8 /* LiveRankState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C62F24CB54A093905756EA7 /* LiveRankState.swift */; };
 		A95EAC8810E38D88FF85D8A4 /* LeaderboardTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3058EE5B282BF655A566A283 /* LeaderboardTests.swift */; };
 		AB5BBC2E13A1A1D2A2C1A3BB /* AvatarColor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B3C587C1FCCF5F4B4F05B1C /* AvatarColor.swift */; };
@@ -151,6 +153,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		034B0283256CD719632FBFBE /* LiveRankAttributes.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = LiveRankAttributes.swift; sourceTree = "<group>"; };
 		097C01BB9106955B00914A66 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		0B5E85671D4798A73E1A4CB5 /* RankChangeDetector.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RankChangeDetector.swift; sourceTree = "<group>"; };
 		0CAA6B14EEB106C96EF47BC6 /* ActivityKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ActivityKit.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS18.0.sdk/System/Library/Frameworks/ActivityKit.framework; sourceTree = DEVELOPER_DIR; };
@@ -407,6 +410,7 @@
 				6B67DA147AA79BFA7435B025 /* CommittedServices.swift */,
 				6C62F24CB54A093905756EA7 /* LiveRankState.swift */,
 				284070E7C171FF3A46332457 /* LiveRankDerivation.swift */,
+				034B0283256CD719632FBFBE /* LiveRankAttributes.swift */,
 			);
 			path = Store;
 			sourceTree = "<group>";
@@ -696,6 +700,7 @@
 				F2000195E1621477F641F7DA /* PrivateContributionsTip.swift in Sources */,
 				1340FD5B6B512CD7EE02FD08 /* LiveRankState.swift in Sources */,
 				137D042B7606C9A3252E08B8 /* LiveRankDerivation.swift in Sources */,
+				A7216C18ECB3E9B6D6B93B4A /* LiveRankAttributes.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -785,6 +790,7 @@
 				970FB0ADF42495071CEA73B6 /* LiveRankState.swift in Sources */,
 				164C5629DB7AB1BDFB3D503F /* DeepLink.swift in Sources */,
 				8A757784E5352821C5229F8E /* Standing.swift in Sources */,
+				A207D059369BFA376E3A9536 /* LiveRankAttributes.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -860,6 +866,8 @@
 				INFOPLIST_FILE = CommitStandingsiOS/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Committed;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.developer-tools";
+				INFOPLIST_KEY_NSSupportsLiveActivities = YES;
+				INFOPLIST_KEY_NSSupportsLiveActivitiesFrequentUpdates = YES;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
@@ -1175,6 +1183,8 @@
 				INFOPLIST_FILE = CommitStandingsiOS/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Committed;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.developer-tools";
+				INFOPLIST_KEY_NSSupportsLiveActivities = YES;
+				INFOPLIST_KEY_NSSupportsLiveActivitiesFrequentUpdates = YES;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";

@@ -24,10 +24,15 @@ struct RootView: View {
             ConnectGitHubView()
         }
         .onOpenURL { model.open($0) }
+        .onChange(of: model.store.visibilityRevision) {
+            Task { await model.visibilityDidChange() }
+        }
         .onChange(of: scenePhase, initial: true) { _, phase in
             switch phase {
             case .active: Task { await model.sceneDidBecomeActive() }
-            case .background: model.sceneDidEnterBackground()
+            case .background:
+                model.sceneDidEnterBackground()
+                if model.auth.isSignedIn { BackgroundRefresh.schedule() }
             default: break
             }
         }

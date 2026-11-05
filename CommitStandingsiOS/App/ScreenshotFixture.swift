@@ -17,6 +17,18 @@ enum ScreenshotFixture {
         ProcessInfo.processInfo.arguments.contains(launchArgument)
     }
 
+    /// With `-LiveRankPushUpdates`, Live rank starts with a push token, so `xcrun simctl push`
+    /// payloads can update it (see the spec #39 notes, 43-live-rank.md).
+    static var liveRankRelay: any LiveRankRegistrar {
+        ProcessInfo.processInfo.arguments.contains("-LiveRankPushUpdates") ? PushUpdatesRelay() : NoLiveRankRelay()
+    }
+
+    /// No relay, but activities take push updates like they will with one.
+    private final class PushUpdatesRelay: LiveRankRegistrar {
+        var pushUpdates: LiveRankPushUpdates { .token }
+        func liveRankDidChange(_ configuration: LiveRankConfiguration?) async {}
+    }
+
     static func services() -> CommittedServices {
         // Keep GitHub requests offline. Avatars are off too (`loadsGitHubAvatars`), so no real
         // account's avatar appears for these made-up usernames.

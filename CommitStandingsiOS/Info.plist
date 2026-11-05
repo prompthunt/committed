@@ -15,5 +15,14 @@
 			</array>
 		</dict>
 	</array>
+	<!-- Background app refresh brings the board and Live rank up to date (BackgroundRefresh.swift). -->
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>fetch</string>
+	</array>
+	<key>BGTaskSchedulerPermittedIdentifiers</key>
+	<array>
+		<string>com.addisonk.CommitStandings.iOS.refresh</string>
+	</array>
 </dict>
 </plist>

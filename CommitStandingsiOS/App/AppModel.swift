@@ -25,6 +25,8 @@ final class AppModel {
     var selectedTab: AppTab = .board
 
     let services: CommittedServices
+    /// Live rank in the Dynamic Island and on the Lock Screen.
+    let liveRank: LiveRankController
     private let backgroundTime: any BackgroundTimeProviding
     private var didRefreshIdentity = false
 
@@ -33,9 +35,34 @@ final class AppModel {
     var auth: AuthModel { services.auth }
     var roster: GitHubRoster { services.roster }
 
-    init(services: CommittedServices, backgroundTime: any BackgroundTimeProviding) {
+    /// The Live rank defaults never show an activity, for tests and previews. The app passes
+    /// ActivityKit and saved preferences.
+    init(
+        services: CommittedServices,
+        backgroundTime: any BackgroundTimeProviding,
+        liveRankActivities: any LiveRankActivities = NoLiveRankActivities(),
+        liveRankPreferences: any LiveRankPreferenceStoring = InMemoryLiveRankPreferences(),
+        liveRankRelay: any LiveRankRegistrar = NoLiveRankRelay(),
+        now: @escaping @Sendable () -> Date = { Date() }
+    ) {
         self.services = services
         self.backgroundTime = backgroundTime
+        let refresh = services.refresh
+        let auth = services.auth
+        let liveRank = LiveRankController(
+            store: services.store,
+            activities: liveRankActivities,
+            relay: liveRankRelay,
+            preferences: liveRankPreferences,
+            isSignedIn: { auth.isSignedIn },
+            rankDelta: { refresh.rankDelta(for: $0) },
+            now: now
+        )
+        self.liveRank = liveRank
+        // Every refresh also brings Live rank's Window up to date and then updates the activity.
+        refresh.additionalWindows = { liveRank.windowsToRefresh }
+        refresh.didRefresh = { _ in await liveRank.sync() }
+        services.onDisconnect = { liveRank.disconnected() }
     }
 
     /// Connect GitHub screen versus the board, from the shared onboarding rule.
@@ -49,13 +76,15 @@ final class AppModel {
     /// (older than about 2 minutes), so opening the app doesn't flash "updating" every time.
     func sceneDidBecomeActive() async {
         refresh.resumeTimer()
+        // Ends strays from an earlier launch, and restarts Live rank if iOS ended it.
+        await liveRank.enteredForeground()
         guard auth.isSignedIn else { return }
         if !didRefreshIdentity {
             didRefreshIdentity = true
             // A relaunch never ran sign-in, so fetch the display name for the summary.
             await auth.refreshIdentity()
         }
-        if refresh.shouldRefreshOnOpen {
+        if refresh.shouldRefreshOnOpen || liveRankNeedsRefresh {
             await refresh.refreshAll(reason: .becameActive)
         }
     }
@@ -63,6 +92,41 @@ final class AppModel {
     /// The timer pauses in the background; iOS would suspend it anyway.
     func sceneDidEnterBackground() {
         refresh.pauseTimer()
+        liveRank.enteredBackground()
+    }
+
+    /// Background app refresh: people and Contributions, then Live rank (update only; iOS doesn't
+    /// let the app start one from the background).
+    func backgroundRefresh() async {
+        guard auth.isSignedIn else { return }
+        await refresh.refreshAll(reason: .background)
+    }
+
+    // MARK: - Live rank
+
+    func setLiveRankEnabled(_ enabled: Bool) async {
+        await liveRank.setEnabled(enabled)
+        await refreshLiveRankIfStale()
+    }
+
+    func setLiveRankWindow(_ window: ContributionWindow) async {
+        await liveRank.setWindow(window)
+        await refreshLiveRankIfStale()
+    }
+
+    /// Hiding or showing someone updates Live rank right away while the app is open.
+    func visibilityDidChange() async {
+        await liveRank.sync()
+    }
+
+    private var liveRankNeedsRefresh: Bool {
+        liveRank.windowsToRefresh.contains { refresh.needsRefresh(for: $0) }
+    }
+
+    /// A Window Live rank hasn't loaded yet is fetched now (the refresh then updates Live rank).
+    private func refreshLiveRankIfStale() async {
+        guard auth.isSignedIn, liveRankNeedsRefresh else { return }
+        await refresh.refreshAll(reason: .windowChanged)
     }
 
     /// Switching Window shows cached numbers instantly and fetches only when they're stale.

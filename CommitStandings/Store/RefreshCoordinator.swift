@@ -11,6 +11,8 @@ enum RefreshReason: String {
     case visibilityChanged
     /// iPhone: the app became active (foreground) with stale data.
     case becameActive
+    /// iPhone: a background app refresh (`BGAppRefreshTask`).
+    case background
 }
 
 @Observable
