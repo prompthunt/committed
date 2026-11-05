@@ -11,6 +11,8 @@ enum RefreshReason: String {
     case visibilityChanged
     /// iPhone: the app became active (foreground) with stale data.
     case becameActive
+    /// iPhone: a background app refresh (`BGAppRefreshTask`).
+    case background
 }
 
 @Observable
@@ -41,6 +43,14 @@ final class RefreshCoordinator {
     }
 
     private let beforeRefresh: @MainActor (RefreshReason) async -> Void
+    /// Windows to keep fresh alongside the board's (iPhone: Live rank's Window, which can differ
+    /// from the one on screen). Each is fetched in the same refresh when `needsRefresh(for:)`.
+    /// Counts and today's movement only: crossing notifications follow the board's Window.
+    /// The Mac leaves this empty.
+    var additionalWindows: @MainActor () -> [ContributionWindow] = { [] }
+    /// Runs after every completed `refreshAll` and `refreshOne`, once the new counts are in the
+    /// store. iPhone updates Live rank here; the Mac leaves it empty.
+    var didRefresh: @MainActor (RefreshReason) async -> Void = { _ in }
     private let store: StandingsStore
     private let client: ContributionsFetching
     private let interval: TimeInterval
@@ -104,6 +114,43 @@ final class RefreshCoordinator {
         guard !usernames.isEmpty else { return }
         let window = store.selectedWindow
         lastReason = reason
+        let reference = now()
+        let extras = staleAdditionalWindows(excluding: window)
+        await fetch(usernames, window: window, reference: reference)
+        guard !Task.isCancelled, generation == requestGeneration else { return }
+
+        if baselineVisibilityRevision != store.visibilityRevision {
+            previousRanking = [:]
+            dailyBaselineRanks = [:]
+            dailyBaselineDate = nil
+            dailyRankDeltas = [:]
+            baselineVisibilityRevision = store.visibilityRevision
+        }
+        notifyPositionChanges(window: window, reference: reference)
+        updateDailyRankDeltas(window: window, reference: reference)
+
+        for extra in extras {
+            await fetch(usernames, window: extra, reference: reference)
+            guard !Task.isCancelled, generation == requestGeneration else { return }
+            updateDailyRankDeltas(window: extra, reference: reference)
+        }
+        store.markRefreshComplete(at: reference)
+        await didRefresh(reason)
+    }
+
+    /// The additional Windows other than `window` that have missing or old counts.
+    private func staleAdditionalWindows(excluding window: ContributionWindow) -> [ContributionWindow] {
+        var windows: [ContributionWindow] = []
+        for extra in additionalWindows() where extra != window && !windows.contains(extra) && needsRefresh(for: extra) {
+            windows.append(extra)
+        }
+        return windows
+    }
+
+    /// Fetch `window`'s counts for `usernames` (six at a time) and apply them, keeping prior good
+    /// numbers on failure. Results that arrive after a sign-out are dropped.
+    private func fetch(_ usernames: [String], window: ContributionWindow, reference: Date) async {
+        let requestGeneration = generation
         // Snapshot prior good standings *before* markLoading flips state to
         // .loading. Without this, a competitor whose last successful counts were
         // legitimate zeroes (state == .loaded) would be
@@ -116,7 +163,6 @@ final class RefreshCoordinator {
         for username in usernames {
             store.markLoading(username: username, window: window)
         }
-        let reference = now()
         let client = self.client
 
         let results = await withTaskGroup(of: (String, Result<StandingCounts, ContributionsError>).self) { group in
@@ -150,17 +196,6 @@ final class RefreshCoordinator {
                 prior: priorStandings[username]
             )
         }
-
-        if baselineVisibilityRevision != store.visibilityRevision {
-            previousRanking = [:]
-            dailyBaselineRanks = [:]
-            dailyBaselineDate = nil
-            dailyRankDeltas = [:]
-            baselineVisibilityRevision = store.visibilityRevision
-        }
-        notifyPositionChanges(window: window, reference: reference)
-        updateDailyRankDeltas(window: window, reference: reference)
-        store.markRefreshComplete(at: reference)
     }
 
     /// The signed-in user (or anyone's) placement change since the start of today, or nil when the
@@ -252,13 +287,22 @@ final class RefreshCoordinator {
         guard store.visibleCompetitors.contains(where: { $0.username == username }) else { return }
         let requestGeneration = generation
         let window = store.selectedWindow
-        let prior = store.standing(for: username, window: window)
-        store.markLoading(username: username, window: window)
+        // Live rank's Window too, when this person has no recent count for it.
+        let windows = [window] + staleAdditionalWindows(excluding: window).filter { extra in
+            store.standing(for: username, window: extra).map {
+                $0.lastUpdated == .distantPast || now().timeIntervalSince($0.lastUpdated) > 120
+            } ?? true
+        }
         let reference = now()
-        let result = await client.standingCounts(for: username, window: window, asOf: reference)
-        guard !Task.isCancelled, generation == requestGeneration, !store.isHidden(username) else { return }
-        applyResult(result, username: username, window: window, reference: reference, prior: prior)
+        for window in windows {
+            let prior = store.standing(for: username, window: window)
+            store.markLoading(username: username, window: window)
+            let result = await client.standingCounts(for: username, window: window, asOf: reference)
+            guard !Task.isCancelled, generation == requestGeneration, !store.isHidden(username) else { return }
+            applyResult(result, username: username, window: window, reference: reference, prior: prior)
+        }
         lastReason = reason
+        await didRefresh(reason)
     }
 
     /// Single failure-handling policy shared by `refreshAll` and `refreshOne`:

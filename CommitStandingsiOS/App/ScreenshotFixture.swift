@@ -6,8 +6,9 @@ import Foundation
 ///
 ///     xcrun simctl launch <udid> com.addisonk.CommitStandings.iOS -ScreenshotFixture
 ///
-/// Optional, after `-ScreenshotFixture`: `-ScreenshotTab people|settings` opens on that tab, and
-/// `-ScreenshotHide <login>` hides that person before the first refresh (so Today still moves).
+/// Optional, after `-ScreenshotFixture`: `-ScreenshotTab people|settings` opens on that tab,
+/// `-ScreenshotHide <login>` hides that person before the first refresh (so Today still moves), and
+/// `-LiveRankPayload <file.json>` shows a Live Activity push payload's content state in Live rank.
 ///
 /// Everything above the data layer is real: `CommittedServices`, `RefreshCoordinator`, `Ranking`,
 /// and every view. Counts move between the first two refreshes so Today shows movement chevrons.
@@ -35,6 +36,40 @@ enum ScreenshotFixture {
         let arguments = ProcessInfo.processInfo.arguments
         guard let index = arguments.firstIndex(of: flag), arguments.indices.contains(index + 1) else { return nil }
         return arguments[index + 1]
+    }
+
+    /// `-LiveRankPayload <file.json>`: a Live Activity push payload, the same file you'd give
+    /// `xcrun simctl push` (`aps.content-state`). This machine's `simctl push` only delivers
+    /// ordinary notifications, so the app applies the payload's content state itself: Live rank
+    /// runs its real lifecycle, but shows the payload instead of the derived state.
+    static func liveRankActivities(_ base: any LiveRankActivities) -> any LiveRankActivities {
+        guard let path = value(after: "-LiveRankPayload"),
+              let data = FileManager.default.contents(atPath: path),
+              let payload = try? JSONDecoder().decode(LiveRankPayload.self, from: data) else { return base }
+        return PayloadLiveRankActivities(base: base, state: payload.aps.contentState)
+    }
+
+    private struct LiveRankPayload: Decodable {
+        struct APS: Decodable {
+            let contentState: LiveRankState
+            enum CodingKeys: String, CodingKey { case contentState = "content-state" }
+        }
+        let aps: APS
+    }
+
+    private final class PayloadLiveRankActivities: LiveRankActivities {
+        let base: any LiveRankActivities
+        let state: LiveRankState
+        init(base: any LiveRankActivities, state: LiveRankState) { self.base = base; self.state = state }
+
+        var areActivitiesEnabled: Bool { base.areActivitiesEnabled }
+        func current() -> [LiveRankActivity] { base.current() }
+        func start(_ attributes: LiveRankAttributes, state _: LiveRankState, pushUpdates: LiveRankPushUpdates) throws
+            -> LiveRankActivity {
+            try base.start(attributes, state: state, pushUpdates: pushUpdates)
+        }
+        func update(id: String, to _: LiveRankState) async { await base.update(id: id, to: state) }
+        func end(id: String) async { await base.end(id: id) }
     }
 
     /// `extraPeople` adds that many followed people (`guest-01`, …) below everyone else, for a

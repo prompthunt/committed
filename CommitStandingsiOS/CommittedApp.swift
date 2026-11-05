@@ -12,14 +12,6 @@ struct CommittedApp: App {
         if !CommittedServices.isRunningTests { ForegroundNotificationPresenter.install() }
     }
 
-    private static func makeModel() -> AppModel {
-        let model = AppModel(services: makeServices(), backgroundTime: UIApplicationBackgroundTime())
-        #if DEBUG
-        if let tab = ScreenshotFixture.requestedTab { model.selectedTab = tab }
-        #endif
-        return model
-    }
-
     private static var loadsGitHubAvatars: Bool {
         #if DEBUG
         if ScreenshotFixture.isRequested { return false }
@@ -27,11 +19,28 @@ struct CommittedApp: App {
         return true
     }
 
-    private static func makeServices() -> CommittedServices {
+    private static func makeModel() -> AppModel {
         #if DEBUG
-        if ScreenshotFixture.isRequested { return ScreenshotFixture.services() }
+        if ScreenshotFixture.isRequested {
+            let model = AppModel(
+                services: ScreenshotFixture.services(), backgroundTime: UIApplicationBackgroundTime(),
+                liveRankActivities: ScreenshotFixture.liveRankActivities(ActivityKitLiveRankActivities())
+            )
+            if let tab = ScreenshotFixture.requestedTab { model.selectedTab = tab }
+            return model
+        }
         #endif
-        return CommittedServices.live()
+        let services = CommittedServices.live()
+        // A unit-test host never shows a Live Activity or touches saved Live rank settings.
+        guard !CommittedServices.isRunningTests else {
+            return AppModel(services: services, backgroundTime: UIApplicationBackgroundTime())
+        }
+        return AppModel(
+            services: services,
+            backgroundTime: UIApplicationBackgroundTime(),
+            liveRankActivities: ActivityKitLiveRankActivities(),
+            liveRankPreferences: UserDefaultsLiveRankPreferences()
+        )
     }
 
     var body: some Scene {
@@ -44,6 +53,10 @@ struct CommittedApp: App {
                 .environment(model.roster)
                 .environment(model.services.notifications)
                 .environment(\.loadsGitHubAvatars, CommittedApp.loadsGitHubAvatars)
+        }
+        .backgroundTask(.appRefresh(BackgroundRefresh.identifier)) { [model] in
+            await model.backgroundRefresh()
+            await BackgroundRefresh.schedule()
         }
     }
 }

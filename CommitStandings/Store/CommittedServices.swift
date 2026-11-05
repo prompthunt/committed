@@ -12,6 +12,19 @@ final class CommittedServices {
     let auth: AuthModel
     let notifications: NotificationService
 
+    /// Extra work on Disconnect GitHub, after the token and this account's board are gone. The
+    /// iPhone ends Live rank here; the Mac sets nothing.
+    var onDisconnect: @MainActor () -> Void {
+        get { hooks.onDisconnect }
+        set { hooks.onDisconnect = newValue }
+    }
+
+    @MainActor private final class Hooks {
+        var onDisconnect: @MainActor () -> Void = {}
+    }
+
+    private let hooks: Hooks
+
     init(
         store: StandingsStore,
         credentials: any GitHubCredentialStoring,
@@ -38,6 +51,8 @@ final class CommittedServices {
             notifier: notifications,
             beforeRefresh: { reason in await roster.refresh(force: reason == .manual) }
         )
+        let hooks = Hooks()
+        self.hooks = hooks
         self.store = store
         self.roster = roster
         self.refresh = refresh
@@ -47,7 +62,7 @@ final class CommittedServices {
             auth: gitHubAuth,
             accountFactory: accountFactory,
             onSignedIn: { _ in await refresh.refreshAll(reason: .manual) },
-            onSignedOut: { refresh.invalidate(); roster.disconnect() }
+            onSignedOut: { refresh.invalidate(); roster.disconnect(); hooks.onDisconnect() }
         )
     }
 

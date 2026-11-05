@@ -422,3 +422,136 @@ struct RefreshTimerTests {
         #expect(!coordinator.isTimerRunning)
     }
 }
+
+/// Counts per window, so a test can tell which Windows a refresh fetched.
+actor WindowFetcher: ContributionsFetching {
+    private let counts: [ContributionWindow: [String: Int]]
+    private(set) var fetched: [ContributionWindow: [String]] = [:]
+
+    init(_ counts: [ContributionWindow: [String: Int]]) { self.counts = counts }
+
+    func calls(_ window: ContributionWindow) -> [String] { fetched[window] ?? [] }
+
+    func standingCounts(for username: String, window: ContributionWindow, asOf reference: Date)
+        async -> Result<StandingCounts, ContributionsError> {
+        fetched[window, default: []].append(username)
+        guard let count = counts[window]?[username] else { return .failure(.network("no stub")) }
+        return .success(StandingCounts(contributions: count))
+    }
+}
+
+/// Mutable counts per window for multi-refresh tests.
+final class WindowCounts: @unchecked Sendable {
+    var counts: [ContributionWindow: [String: Int]]
+    init(_ counts: [ContributionWindow: [String: Int]]) { self.counts = counts }
+}
+
+actor MutableWindowFetcher: ContributionsFetching {
+    let source: WindowCounts
+    init(_ source: WindowCounts) { self.source = source }
+    func standingCounts(for username: String, window: ContributionWindow, asOf reference: Date)
+        async -> Result<StandingCounts, ContributionsError> {
+        guard let count = source.counts[window]?[username] else { return .failure(.network("no stub")) }
+        return .success(StandingCounts(contributions: count))
+    }
+}
+
+/// iPhone hooks: Live rank's Window is refreshed alongside the board's, and Live rank hears about
+/// every completed refresh. The Mac sets neither.
+@MainActor
+struct RefreshCompanionTests {
+    private let clock = MutableClock(Date(timeIntervalSince1970: 1_793_800_000))
+
+    private func makeStore() -> StandingsStore {
+        let store = StandingsStore(persistence: InMemoryCompetitorPersistence())
+        store.replaceRoster(owner: "me", members: ["alice"])
+        return store
+    }
+
+    @Test func staleAdditionalWindowIsFetchedInTheSameRefresh() async {
+        let store = makeStore()
+        store.selectedWindow = .weekly
+        let fetcher = WindowFetcher([.weekly: ["me": 30, "alice": 40], .daily: ["me": 3, "alice": 1]])
+        let clock = clock
+        let refresh = RefreshCoordinator(store: store, client: fetcher, interval: 99999, now: { clock.date })
+        refresh.additionalWindows = { [.daily] }
+
+        await refresh.refreshAll(reason: .manual)
+
+        #expect(Set(await fetcher.calls(.daily)) == ["me", "alice"])
+        #expect(store.standing(for: "me", window: .daily)?.contributions == 3)
+        #expect(store.standing(for: "me", window: .weekly)?.contributions == 30)
+    }
+
+    @Test func freshAdditionalWindowIsNotFetchedAgain() async {
+        let store = makeStore()
+        let fetcher = WindowFetcher([.daily: ["me": 3, "alice": 1], .weekly: ["me": 30, "alice": 40]])
+        let clock = clock
+        let refresh = RefreshCoordinator(store: store, client: fetcher, interval: 99999, now: { clock.date })
+        refresh.additionalWindows = { [.weekly] }
+        await refresh.refreshAll(reason: .manual)
+
+        clock.date = clock.date.addingTimeInterval(60)
+        await refresh.refreshAll(reason: .timer)
+
+        #expect(await fetcher.calls(.weekly).count == 2)   // once per person, first refresh only
+        #expect(await fetcher.calls(.daily).count == 4)    // the board's Window, every refresh
+    }
+
+    @Test func boardWindowIsNotFetchedTwice() async {
+        let store = makeStore()
+        let fetcher = WindowFetcher([.daily: ["me": 3, "alice": 1]])
+        let refresh = RefreshCoordinator(store: store, client: fetcher, interval: 99999)
+        refresh.additionalWindows = { [.daily] }
+
+        await refresh.refreshAll(reason: .manual)
+
+        #expect(await fetcher.calls(.daily).count == 2)
+    }
+
+    @Test func todaysMovementTracksWhileTheBoardShowsAnotherWindow() async {
+        let store = makeStore()
+        store.selectedWindow = .monthly
+        let counts = WindowCounts([.monthly: ["me": 1, "alice": 2], .daily: ["me": 1, "alice": 2]])
+        let clock = clock
+        let refresh = RefreshCoordinator(store: store, client: MutableWindowFetcher(counts), interval: 99999,
+                                         now: { clock.date })
+        refresh.additionalWindows = { [.daily] }
+        await refresh.refreshAll(reason: .manual)
+
+        counts.counts[.daily] = ["me": 5, "alice": 2]
+        clock.date = clock.date.addingTimeInterval(180)
+        await refresh.refreshAll(reason: .timer)
+
+        #expect(refresh.rankDelta(for: "me") == 1)
+    }
+
+    @Test func didRefreshRunsAfterEveryRefresh() async {
+        let store = makeStore()
+        let fetcher = WindowFetcher([.daily: ["me": 3, "alice": 1]])
+        let refresh = RefreshCoordinator(store: store, client: fetcher, interval: 99999)
+        var reasons: [RefreshReason] = []
+        refresh.didRefresh = { reason in
+            // Counts are in place by the time Live rank hears about the refresh.
+            #expect(store.standing(for: "me", window: .daily)?.state == .loaded)
+            reasons.append(reason)
+        }
+
+        await refresh.refreshAll(reason: .manual)
+        await refresh.refreshOne(username: "alice", reason: .visibilityChanged)
+
+        #expect(reasons == [.manual, .visibilityChanged])
+    }
+
+    @Test func showingSomeoneAlsoFetchesTheAdditionalWindow() async {
+        let store = makeStore()
+        let fetcher = WindowFetcher([.daily: ["me": 3, "alice": 1], .weekly: ["me": 30, "alice": 40]])
+        let refresh = RefreshCoordinator(store: store, client: fetcher, interval: 99999)
+        refresh.additionalWindows = { [.weekly] }
+
+        await refresh.refreshOne(username: "alice", reason: .visibilityChanged)
+
+        #expect(store.standing(for: "alice", window: .weekly)?.contributions == 40)
+        #expect(store.standing(for: "alice", window: .daily)?.contributions == 1)
+    }
+}

@@ -7,7 +7,7 @@ struct SettingsView: View {
     var body: some View {
         NavigationStack {
             Form {
-                // #43: LiveRankSection() goes here, first.
+                LiveRankSection()
                 LeaderboardNotificationsSection()
                 AboutCommittedSection()
                 GitHubAccountSection()
