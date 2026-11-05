@@ -18,6 +18,7 @@ CREATE TABLE installations (
   baseline_ranks TEXT,                      -- JSON { login: rank } captured at the day's first run
   rate_window_start INTEGER NOT NULL DEFAULT 0,
   rate_count INTEGER NOT NULL DEFAULT 0,
+  revision INTEGER NOT NULL DEFAULT 0,      -- bumped on every write; guards cron vs. device races
   created_at INTEGER NOT NULL,
   updated_at INTEGER NOT NULL
 );
