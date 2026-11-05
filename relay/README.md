@@ -217,5 +217,35 @@ npx wrangler d1 migrations apply committed-relay --local
 npx wrangler dev --test-scheduled           # then: curl "localhost:8787/__scheduled?cron=*/5+*+*+*+*"
 ```
 
-Local runs fetch real GitHub pages. Pushes fail locally (see the spike), and are logged without
-tokens.
+Local runs fetch real GitHub pages. Pushes to Apple fail locally (see the spike), and are logged
+without tokens.
+
+### With the iPhone app and a fake APNs
+
+To watch the whole loop locally, point the relay at `dev/fake-apns.mjs`, which prints each push
+and answers 200. Put this in `relay/.dev.vars` (gitignored), with a throwaway P-256 key so the
+provider token can be signed:
+
+```bash
+node -e "const {generateKeyPairSync}=require('crypto');const k=generateKeyPairSync('ec',{namedCurve:'P-256'}).privateKey.export({type:'pkcs8',format:'pem'});console.log('APNS_KEY_ID=\"LOCALKEY01\"\nAPNS_TEAM_ID=\"LOCALTEAM1\"\nAPNS_PRIVATE_KEY=\"'+k.trim().replace(/\n/g,'\\\\n')+'\"\nAPNS_ORIGIN=\"http://127.0.0.1:8788\"')" > .dev.vars
+node dev/fake-apns.mjs &                    # fake APNs on 127.0.0.1:8788
+npx wrangler dev --test-scheduled --ip 127.0.0.1 --port 8787
+```
+
+Build the iPhone app with `COMMITTED_RELAY_URL=http://localhost:8787` (Debug) and run it in the
+simulator. The Debug screenshot fixture works offline: launch with
+`-ScreenshotFixture -RelayDisclosureAccepted` and the app registers its fixture board, its
+push-to-start token, and its activity's push token. The simulator issues both tokens once the app
+has `aps-environment`. To change a count without GitHub, seed the shared cache (it's fresh for 5
+minutes, so the cycle won't refetch). Use today's date in the registration's time zone:
+
+```bash
+npx wrangler d1 execute committed-relay --local --command \
+  "INSERT OR REPLACE INTO contribution_cache VALUES ('sam-rivera', strftime('%s','now'), strftime('%s','now'), '{\"2026-11-04\": 10}', NULL)"
+curl "localhost:8787/__scheduled?cron=*/5+*+*+*+*"
+```
+
+The fake APNs prints the `update` (or the `end` and push-to-start `start` at rotation) with its
+content state. Apple's simulator can't receive a Live Activity push from the relay (`simctl push`
+delivers only ordinary notifications), so showing it in the Dynamic Island needs a device and
+real APNs credentials.
