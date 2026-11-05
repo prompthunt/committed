@@ -94,10 +94,7 @@ struct ConnectGitHubView: View {
                 .background(.fill.tertiary, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
                 .accessibilityLabel("Code")
                 .accessibilityValue(Text(userCode).speechSpellsOutCharacters())
-            ViewThatFits(in: .horizontal) {
-                HStack(spacing: 12) { buttons(userCode: userCode, verificationURL: verificationURL) }
-                VStack(spacing: 12) { buttons(userCode: userCode, verificationURL: verificationURL) }
-            }
+            VStack(spacing: 12) { buttons(userCode: userCode, verificationURL: verificationURL) }
             HStack(spacing: 8) {
                 ProgressView()
                 Text("Waiting for you to approve on GitHub…")
@@ -116,16 +113,6 @@ struct ConnectGitHubView: View {
     private func buttons(userCode: String, verificationURL: String) -> some View {
         Button {
             copy(userCode)
-        } label: {
-            Label(copiedCode == userCode ? "Copied" : "Copy Code",
-                  systemImage: copiedCode == userCode ? "checkmark" : "doc.on.doc")
-                .lineLimit(1)
-                .frame(maxWidth: .infinity)
-        }
-        .buttonStyle(.bordered)
-        .controlSize(.large)
-        Button {
-            copy(userCode)
             if let url = URL(string: verificationURL) { openURL(url) }
         } label: {
             Label("Open GitHub", systemImage: "safari")
@@ -133,6 +120,16 @@ struct ConnectGitHubView: View {
                 .frame(maxWidth: .infinity)
         }
         .buttonStyle(.borderedProminent)
+        .controlSize(.large)
+        Button {
+            copy(userCode)
+        } label: {
+            Label(copiedCode == userCode ? "Copied" : "Copy Code",
+                  systemImage: copiedCode == userCode ? "checkmark" : "doc.on.doc")
+                .lineLimit(1)
+                .frame(maxWidth: .infinity)
+        }
+        .buttonStyle(.bordered)
         .controlSize(.large)
     }
 
