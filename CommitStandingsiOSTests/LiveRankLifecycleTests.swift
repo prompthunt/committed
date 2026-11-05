@@ -232,8 +232,8 @@ struct LiveRankLifecycleTests {
         let h = connected()
         await h.app.sceneDidBecomeActive()
 
-        h.app.store.setHidden(true, username: "alice")
-        await h.app.visibilityDidChange()
+        h.app.setHidden(true, username: "alice")
+        await h.app.liveRank.idle()
 
         let state = try #require(h.activities.only?.state)
         #expect(state.rank == 1)

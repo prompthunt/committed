@@ -95,7 +95,16 @@ final class LiveRankController {
     /// runs in a task; `idle()` waits for it.
     func disconnected() {
         isConnected = false
-        pending = Task { await sync() }
+        scheduleSync()
+    }
+
+    /// Sync soon, from synchronous code (hide/show, sign-out); `idle()` waits for it.
+    func scheduleSync() {
+        let previous = pending
+        pending = Task {
+            await previous?.value
+            await sync()
+        }
     }
 
     func enteredForeground() async {
@@ -107,7 +116,7 @@ final class LiveRankController {
         isForeground = false
     }
 
-    /// Wait for work started by `disconnected()`.
+    /// Wait for work started by `scheduleSync()`.
     func idle() async {
         await pending?.value
     }

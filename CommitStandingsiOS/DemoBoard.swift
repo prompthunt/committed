@@ -14,8 +14,12 @@ extension AppDependencies {
             competitorPersistence: InMemoryCompetitorPersistence(),
             snapshotPersistence: InMemoryStandingsSnapshotPersistence(),
             hiddenPeoplePersistence: InMemoryHiddenPeoplePersistence(),
-            rosterPersistence: nil
+            rosterPersistence: nil,
+            // Never the real app's toggle.
+            notificationDefaults: UserDefaults(suiteName: "CommitStandingsiOS.demo")!
         )
+        // One hidden person, so People shows how hiding looks.
+        dependencies.hiddenPeoplePersistence.save(["octocat": ["mojombo"]])
         // The real Live Activity, so Live rank can be checked in the simulator.
         dependencies.makeLiveRankActivities = { ActivityKitLiveRankActivities() }
         // A second refresh a few seconds after launch moves you up one place today.

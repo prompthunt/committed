@@ -21,6 +21,9 @@ struct AppDependencies {
     /// The wait between device-flow polls (real sleeping in production).
     var authSleep: @Sendable (UInt64) async -> Void = { try? await Task.sleep(nanoseconds: $0) }
     var now: @Sendable () -> Date = { Date() }
+    /// Where the Leaderboard Notifications toggle is saved, and the center that shows them.
+    var notificationDefaults: UserDefaults = .standard
+    var notificationCenter: any NotificationCentering = SystemNotificationCenter()
     /// ActivityKit, for Live rank. The default never shows anything (the unit-test host).
     var makeLiveRankActivities: @MainActor () -> any LiveRankActivities = { NoLiveRankActivities() }
     var liveRankPersistence: any LiveRankPersistence = InMemoryLiveRankPersistence()
@@ -76,7 +79,10 @@ final class AppModel {
             now: dependencies.now,
             fetch: { [rosterFetch = dependencies.rosterFetch] in try await rosterFetch(session, $0) }
         )
-        let notifications = NotificationService()
+        let notifications = NotificationService(
+            defaults: dependencies.notificationDefaults,
+            center: dependencies.notificationCenter
+        )
         let liveRank = LiveRankController(
             store: store,
             activities: dependencies.makeLiveRankActivities(),
@@ -170,11 +176,6 @@ final class AppModel {
         await refreshLiveRankWindowIfStale()
     }
 
-    /// Someone was hidden or shown: Live rank follows the board right away.
-    func visibilityDidChange() async {
-        await liveRank.sync()
-    }
-
     private func refreshLiveRankWindowIfStale() async {
         guard auth.isSignedIn, let window = liveRank.windowsToRefresh.first, refresh.needsRefresh(for: window) else { return }
         await refresh.refreshAll(reason: .windowChanged)
@@ -184,6 +185,27 @@ final class AppModel {
     func windowDidChange() async {
         guard auth.isSignedIn, refresh.needsRefresh(for: store.selectedWindow) else { return }
         await refresh.refreshAll(reason: .windowChanged)
+    }
+
+    // MARK: - People and account
+
+    /// Hide or show someone from the People tab. The board changes before this returns; the
+    /// returned task is the one-person refresh after showing someone again. Every visibility
+    /// change on iPhone comes through here, so anything that mirrors the visible board (Live
+    /// rank, the relay) hooks in below.
+    @discardableResult
+    func setHidden(_ hidden: Bool, username: String) -> Task<Void, Never>? {
+        let refreshOne = PeopleDirectory.setHidden(hidden, username: username, store: store, refresh: refresh)
+        // Live rank follows the board right away, not at the next refresh.
+        liveRank.scheduleSync()
+        return refreshOne
+    }
+
+    /// Settings → Disconnect GitHub: delete the token and this account's cached people and counts,
+    /// keeping visibility choices for a later reconnect. Anything else to revoke on disconnect
+    /// (Live rank, the relay registration) goes here.
+    func disconnect() {
+        auth.signOut()
     }
 
     // MARK: - Deep links

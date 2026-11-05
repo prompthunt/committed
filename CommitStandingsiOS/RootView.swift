@@ -25,9 +25,6 @@ struct RootView: View {
         .onChange(of: app.store.selectedWindow) {
             Task { await app.windowDidChange() }
         }
-        .onChange(of: app.store.visibilityRevision) {
-            Task { await app.visibilityDidChange() }
-        }
         .task {
             #if DEBUG
             // Simulator checks of the real device flow, where nobody can tap Connect.
@@ -53,10 +50,10 @@ struct AppTabs: View {
                 BoardView()
             }
             Tab("People", systemImage: "person.2", value: AppModel.Tab.people) {
-                PeoplePlaceholderView()
+                PeopleView()
             }
             Tab("Settings", systemImage: "gearshape", value: AppModel.Tab.settings) {
-                SettingsPlaceholderView()
+                SettingsView()
             }
         }
     }

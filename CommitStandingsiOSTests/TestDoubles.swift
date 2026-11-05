@@ -135,6 +135,28 @@ actor StubContributions: ContributionsFetching {
     }
 }
 
+/// A notification center that records what it was asked to show.
+final class FakeNotificationCenter: NotificationCentering, @unchecked Sendable {
+    private let lock = NSLock()
+    private var _delivered: [(id: String, title: String, body: String)] = []
+    private var _authorizationRequests = 0
+    let grantsPermission: Bool
+
+    init(grantsPermission: Bool = true) { self.grantsPermission = grantsPermission }
+
+    var delivered: [(id: String, title: String, body: String)] { lock.withLock { _delivered } }
+    var authorizationRequests: Int { lock.withLock { _authorizationRequests } }
+
+    func requestAuthorization() async -> Bool {
+        lock.withLock { _authorizationRequests += 1 }
+        return grantsPermission
+    }
+    func isAuthorized() async -> Bool { grantsPermission }
+    func add(id: String, title: String, body: String) async {
+        lock.withLock { _delivered.append((id, title, body)) }
+    }
+}
+
 /// A clock tests can move, e.g. past a device code's expiry while the app is "suspended".
 final class TestClock: @unchecked Sendable {
     var date: Date
@@ -160,7 +182,10 @@ extension AppDependencies {
             rosterPersistence: nil,
             refreshInterval: 99_999,
             authSleep: authSleep ?? { _ in },
-            now: { clock.date }
+            now: { clock.date },
+            // A throwaway store, so tests never flip the real app's notification toggle.
+            notificationDefaults: UserDefaults(suiteName: "CommitStandingsiOSTests.\(UUID().uuidString)")!,
+            notificationCenter: FakeNotificationCenter()
         )
     }
 }

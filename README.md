@@ -2,7 +2,7 @@
 
 [![Build and test](https://github.com/prompthunt/committed/actions/workflows/ci.yml/badge.svg)](https://github.com/prompthunt/committed/actions/workflows/ci.yml)
 
-A tiny Mac menu-bar and Windows tray app that turns your GitHub contributions into a friendly leaderboard
+A tiny Mac menu-bar app, Windows tray app, and iPhone app that turns your GitHub contributions into a friendly leaderboard
 among friends. See who's shipping, get a nudge when someone passes you (or you pass them),
 and watch your spot on the board move through the day.
 
@@ -36,6 +36,7 @@ Prefer to see all versions and release notes? Browse the
 - **Today / 7 days / 30 days** views.
 - **Leaderboard Notifications** (opt-in): a ping when a friend passes you, or you pass them.
 - Small rank-shift chevrons showing how your placement moved today.
+- On iPhone, the same board plus **People** and **Settings** tabs (Leaderboard Notifications, About Committed, Disconnect GitHub).
 
 ## Website
 
@@ -57,6 +58,12 @@ only needed for official distribution; local builds use ad hoc signing.
 xcodebuild -scheme CommitStandings -configuration Debug \
   -destination 'platform=macOS' CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY=- \
   DEVELOPMENT_TEAM= build test
+```
+
+The iPhone app (iOS 27.1, Xcode 27.1) builds from the same project with its own scheme:
+
+```bash
+xcodebuild -scheme CommitStandingsiOS -destination 'platform=iOS Simulator,name=iPhone Duo' test
 ```
 
 Read [CONTRIBUTING.md](CONTRIBUTING.md) for setup and pull requests,

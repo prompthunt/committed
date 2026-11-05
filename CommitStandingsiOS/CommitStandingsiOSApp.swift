@@ -7,6 +7,11 @@ import SwiftUI
 struct CommitStandingsiOSApp: App {
     @State private var app = AppModel.forLaunch()
 
+    init() {
+        // Leaderboard Notifications found while the app is open show as banners.
+        if NSClassFromString("XCTestCase") == nil { ForegroundNotificationPresenter.install() }
+    }
+
     var body: some Scene {
         WindowGroup {
             RootView()
@@ -33,7 +38,14 @@ extension AppModel {
         }
         #if DEBUG
         if ProcessInfo.processInfo.arguments.contains("-demoBoard") {
-            return AppModel(.demo())
+            let app = AppModel(.demo())
+            // `-demoTab people|settings` opens on that tab, for screenshots.
+            switch UserDefaults.standard.string(forKey: "demoTab") {
+            case "people": app.selectedTab = .people
+            case "settings": app.selectedTab = .settings
+            default: break
+            }
+            return app
         }
         #endif
         return AppModel(.live())
