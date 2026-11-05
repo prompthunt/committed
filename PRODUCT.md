@@ -73,6 +73,8 @@ Committed for iPhone has three tabs: **Board**, **People**, and **Settings**. It
 - **People** lists everyone alphabetically with search and **All / Following / Organizations** filters. Tap the eye to hide someone or the eye-slash to show them again; the board updates right away. Hidden people stay listed, and you cannot hide yourself. Visibility choices are saved on that iPhone per GitHub account.
 - **Settings** has **Leaderboard Notifications** (iOS asks for permission when you turn it on; crossings are checked whenever the app refreshes while open), **About Committed**, and **Disconnect GitHub**, which deletes the token from the iPhone's Keychain and returns to Connect GitHub. Launch at Login, updates, and Quit are Mac-only.
 
+On **iPhone Duo**, the tabs sit in the side bar when the device is closed, and the Window and People filter switches stay in the navigation bar. Opened, the Board shows the ranked board and your summary side by side, split evenly at the fold, or top and bottom when the screen is taller than wide. Closed, on other iPhones, and in Split View, your summary is the first thing in the board's list instead. Opening or closing keeps your tab, Window, and place in the board.
+
 ### Live rank (iPhone)
 
 Live rank keeps your current rank in the Dynamic Island and on the Lock Screen as a Live Activity.
