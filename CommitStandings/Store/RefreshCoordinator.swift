@@ -9,6 +9,8 @@ enum RefreshReason: String {
     case competitorAdded
     case competitorRenamed
     case visibilityChanged
+    /// iPhone: the app became active (foreground) with stale data.
+    case becameActive
 }
 
 @Observable
@@ -299,6 +301,23 @@ final class RefreshCoordinator {
                 ))
             }
         }
+    }
+
+    /// Whether the periodic refresh timer is scheduled. The Mac never pauses it; iPhone pauses it
+    /// while the app is in the background and resumes it on becoming active.
+    var isTimerRunning: Bool { timerTask != nil }
+
+    /// Stop the periodic refresh (iPhone: entering the background).
+    func pauseTimer() {
+        timerTask?.cancel()
+        timerTask = nil
+    }
+
+    /// Restart the periodic refresh if it's paused (iPhone: becoming active). The next timer
+    /// refresh comes one full interval later; becoming active refreshes separately when stale.
+    func resumeTimer() {
+        guard timerTask == nil else { return }
+        startTimer()
     }
 
     private func startTimer() {

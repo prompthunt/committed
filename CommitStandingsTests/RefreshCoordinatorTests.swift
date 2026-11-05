@@ -375,3 +375,50 @@ private actor ConcurrencyCountingFetcher: ContributionsFetching {
         return .success(StandingCounts(contributions: 1))
     }
 }
+
+/// iPhone pauses the 5-minute timer in the background and resumes it on becoming active.
+@MainActor
+struct RefreshTimerTests {
+    private func makeCoordinator(_ fetcher: StubFetcher) throws -> RefreshCoordinator {
+        let store = StandingsStore(persistence: InMemoryCompetitorPersistence())
+        _ = try store.addSelf(username: "addisonk")
+        return RefreshCoordinator(store: store, client: fetcher, interval: 0.05)
+    }
+
+    @Test func timerRefreshesWhileActive() async throws {
+        let fetcher = StubFetcher()
+        await fetcher.setSuccess(contributions: 1, for: "addisonk")
+        let coordinator = try makeCoordinator(fetcher)
+        try await Task.sleep(for: .milliseconds(400))
+        #expect(await fetcher.calls(for: "addisonk") >= 1)
+        withExtendedLifetime(coordinator) {}
+    }
+
+    @Test func pausedTimerDoesNotRefreshUntilResumed() async throws {
+        let fetcher = StubFetcher()
+        await fetcher.setSuccess(contributions: 1, for: "addisonk")
+        let coordinator = try makeCoordinator(fetcher)
+        coordinator.pauseTimer()
+        #expect(!coordinator.isTimerRunning)
+        try await Task.sleep(for: .milliseconds(400))
+        #expect(await fetcher.calls(for: "addisonk") == 0)
+
+        coordinator.resumeTimer()
+        #expect(coordinator.isTimerRunning)
+        try await Task.sleep(for: .milliseconds(400))
+        #expect(await fetcher.calls(for: "addisonk") >= 1)
+    }
+
+    @Test func resumingARunningTimerKeepsOneTimer() async throws {
+        let fetcher = StubFetcher()
+        await fetcher.setSuccess(contributions: 1, for: "addisonk")
+        let store = StandingsStore(persistence: InMemoryCompetitorPersistence())
+        _ = try store.addSelf(username: "addisonk")
+        let coordinator = RefreshCoordinator(store: store, client: fetcher, interval: 9_999)
+        coordinator.resumeTimer()
+        coordinator.resumeTimer()
+        #expect(coordinator.isTimerRunning)
+        coordinator.pauseTimer()
+        #expect(!coordinator.isTimerRunning)
+    }
+}
