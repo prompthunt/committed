@@ -6,8 +6,9 @@ import Foundation
 ///
 ///     xcrun simctl launch <udid> com.addisonk.CommitStandings.iOS -ScreenshotFixture
 ///
-/// Optional, after `-ScreenshotFixture`: `-ScreenshotTab people|settings` opens on that tab, and
-/// `-ScreenshotHide <login>` hides that person before the first refresh (so Today still moves).
+/// Optional, after `-ScreenshotFixture`: `-ScreenshotTab people|settings` opens on that tab,
+/// `-ScreenshotHide <login>` hides that person before the first refresh (so Today still moves), and
+/// `-LiveRankPayload <file.json>` shows a Live Activity push payload's content state in Live rank.
 ///
 /// Everything above the data layer is real: `CommittedServices`, `RefreshCoordinator`, `Ranking`,
 /// and every view. Counts move between the first two refreshes so Today shows movement chevrons.
@@ -37,16 +38,51 @@ enum ScreenshotFixture {
         return arguments[index + 1]
     }
 
-    /// With `-LiveRankPushUpdates`, Live rank starts with a push token, so `xcrun simctl push`
-    /// payloads can update it (see the spec #39 notes, 43-live-rank.md).
-    static var liveRankRelay: any LiveRankRegistrar {
-        ProcessInfo.processInfo.arguments.contains("-LiveRankPushUpdates") ? PushUpdatesRelay() : NoLiveRankRelay()
+    /// `-LiveRankPayload <file.json>`: a Live Activity push payload, the same file you'd give
+    /// `xcrun simctl push` (`aps.content-state`). This machine's `simctl push` only delivers
+    /// ordinary notifications, so the app applies the payload's content state itself: Live rank
+    /// runs its real lifecycle, but shows the payload instead of the derived state. Add
+    /// `-LiveRankAddActivity` to start another activity next to the running one (two activities
+    /// share the Dynamic Island, so both show their minimal presentation).
+    static func liveRankActivities(_ base: any LiveRankActivities) -> any LiveRankActivities {
+        guard let path = value(after: "-LiveRankPayload"),
+              let data = FileManager.default.contents(atPath: path),
+              let payload = try? JSONDecoder().decode(LiveRankPayload.self, from: data) else { return base }
+        let adds = ProcessInfo.processInfo.arguments.contains("-LiveRankAddActivity")
+        return PayloadLiveRankActivities(base: base, state: payload.aps.contentState, hidesRunning: adds)
     }
 
-    /// No relay, but activities take push updates like they will with one.
-    private final class PushUpdatesRelay: LiveRankRegistrar {
-        var pushUpdates: LiveRankPushUpdates { .token }
-        func liveRankDidChange(_ configuration: LiveRankConfiguration?) async {}
+    private struct LiveRankPayload: Decodable {
+        struct APS: Decodable {
+            let contentState: LiveRankState
+            enum CodingKeys: String, CodingKey { case contentState = "content-state" }
+        }
+        let aps: APS
+    }
+
+    private final class PayloadLiveRankActivities: LiveRankActivities {
+        let base: any LiveRankActivities
+        let state: LiveRankState
+        /// Add mode: the lifecycle sees only the activity this launch started, so it neither ends
+        /// nor adopts the one already running.
+        let hidesRunning: Bool
+        private var started: Set<String> = []
+        init(base: any LiveRankActivities, state: LiveRankState, hidesRunning: Bool) {
+            self.base = base; self.state = state; self.hidesRunning = hidesRunning
+        }
+
+        var areActivitiesEnabled: Bool { base.areActivitiesEnabled }
+        func current() -> [LiveRankActivity] {
+            hidesRunning ? base.current().filter { started.contains($0.id) } : base.current()
+        }
+        func start(_ attributes: LiveRankAttributes, state _: LiveRankState, pushUpdates: LiveRankPushUpdates) throws
+            -> LiveRankActivity {
+            let activity = try base.start(attributes, state: state, pushUpdates: pushUpdates)
+            started.insert(activity.id)
+            return activity
+        }
+        func update(id: String, to _: LiveRankState) async { await base.update(id: id, to: state) }
+        func end(id: String) async { await base.end(id: id) }
     }
 
     static func services() -> CommittedServices {

@@ -24,8 +24,7 @@ struct CommittedApp: App {
         if ScreenshotFixture.isRequested {
             let model = AppModel(
                 services: ScreenshotFixture.services(), backgroundTime: UIApplicationBackgroundTime(),
-                liveRankActivities: ActivityKitLiveRankActivities(),
-                liveRankRelay: ScreenshotFixture.liveRankRelay
+                liveRankActivities: ScreenshotFixture.liveRankActivities(ActivityKitLiveRankActivities())
             )
             if let tab = ScreenshotFixture.requestedTab { model.selectedTab = tab }
             return model
