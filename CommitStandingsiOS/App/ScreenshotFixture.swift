@@ -41,15 +41,12 @@ enum ScreenshotFixture {
     /// `-LiveRankPayload <file.json>`: a Live Activity push payload, the same file you'd give
     /// `xcrun simctl push` (`aps.content-state`). This machine's `simctl push` only delivers
     /// ordinary notifications, so the app applies the payload's content state itself: Live rank
-    /// runs its real lifecycle, but shows the payload instead of the derived state. Add
-    /// `-LiveRankAddActivity` to start another activity next to the running one (two activities
-    /// share the Dynamic Island, so both show their minimal presentation).
+    /// runs its real lifecycle, but shows the payload instead of the derived state.
     static func liveRankActivities(_ base: any LiveRankActivities) -> any LiveRankActivities {
         guard let path = value(after: "-LiveRankPayload"),
               let data = FileManager.default.contents(atPath: path),
               let payload = try? JSONDecoder().decode(LiveRankPayload.self, from: data) else { return base }
-        let adds = ProcessInfo.processInfo.arguments.contains("-LiveRankAddActivity")
-        return PayloadLiveRankActivities(base: base, state: payload.aps.contentState, hidesRunning: adds)
+        return PayloadLiveRankActivities(base: base, state: payload.aps.contentState)
     }
 
     private struct LiveRankPayload: Decodable {
@@ -63,23 +60,13 @@ enum ScreenshotFixture {
     private final class PayloadLiveRankActivities: LiveRankActivities {
         let base: any LiveRankActivities
         let state: LiveRankState
-        /// Add mode: the lifecycle sees only the activity this launch started, so it neither ends
-        /// nor adopts the one already running.
-        let hidesRunning: Bool
-        private var started: Set<String> = []
-        init(base: any LiveRankActivities, state: LiveRankState, hidesRunning: Bool) {
-            self.base = base; self.state = state; self.hidesRunning = hidesRunning
-        }
+        init(base: any LiveRankActivities, state: LiveRankState) { self.base = base; self.state = state }
 
         var areActivitiesEnabled: Bool { base.areActivitiesEnabled }
-        func current() -> [LiveRankActivity] {
-            hidesRunning ? base.current().filter { started.contains($0.id) } : base.current()
-        }
+        func current() -> [LiveRankActivity] { base.current() }
         func start(_ attributes: LiveRankAttributes, state _: LiveRankState, pushUpdates: LiveRankPushUpdates) throws
             -> LiveRankActivity {
-            let activity = try base.start(attributes, state: state, pushUpdates: pushUpdates)
-            started.insert(activity.id)
-            return activity
+            try base.start(attributes, state: state, pushUpdates: pushUpdates)
         }
         func update(id: String, to _: LiveRankState) async { await base.update(id: id, to: state) }
         func end(id: String) async { await base.end(id: id) }
