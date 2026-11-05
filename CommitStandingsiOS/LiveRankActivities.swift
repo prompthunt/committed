@@ -37,10 +37,17 @@ final class NoLiveRankActivities: LiveRankActivities {
     func end(id: String) async {}
 }
 
-/// The real thing. Phase 1 starts activities without a push token; the relay (#45) is where
-/// `pushType: .token` and token observation come in.
+/// The real thing, and the only file that touches ActivityKit. Phase 1 starts activities
+/// without a push token; the relay (#45) passes `.token` and observes the tokens.
 @MainActor
 final class ActivityKitLiveRankActivities: LiveRankActivities {
+    private let pushType: PushType?
+
+    /// `pushType: .token` lets APNs (or `xcrun simctl push` in the simulator) update the activity.
+    init(pushType: PushType? = nil) {
+        self.pushType = pushType
+    }
+
     var areActivitiesEnabled: Bool { ActivityAuthorizationInfo().areActivitiesEnabled }
 
     func current() -> [LiveRankActivity] {
@@ -53,7 +60,7 @@ final class ActivityKitLiveRankActivities: LiveRankActivities {
         let activity = try Activity.request(
             attributes: LiveRankAttributes(selfLogin: selfLogin),
             content: Self.content(state),
-            pushType: nil
+            pushType: pushType
         )
         return Self.snapshot(activity)
     }
