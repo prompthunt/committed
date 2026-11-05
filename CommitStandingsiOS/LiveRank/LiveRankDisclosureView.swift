@@ -9,21 +9,17 @@ struct LiveRankDisclosureView: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(alignment: .leading, spacing: 20) {
-                    Image(systemName: "trophy.circle.fill")
-                        .font(.system(size: 56))
-                        .foregroundStyle(.tint)
-                        .accessibilityHidden(true)
+                VStack(alignment: .leading, spacing: 16) {
                     Text("Keep Live rank on all day")
-                        .font(.largeTitle.bold())
-                    Text("To keep your rank current while Committed is closed, the Committed relay checks the public contribution graphs every 5 minutes and updates Live rank.")
+                        .font(.title.bold())
+                    Text("The Committed relay checks public contribution graphs every 5 minutes and updates Live rank, even with Committed closed.")
                     VStack(alignment: .leading, spacing: 12) {
-                        Label("Your GitHub username and the usernames on your board. These are public.",
+                        Label("It receives your GitHub username and the usernames on your board. These are public.",
                               systemImage: "person.2")
-                        Label("Your Live rank Window and time zone, and tokens that let it update Live rank on this iPhone.",
-                              systemImage: "clock")
-                        Label("Never your GitHub token. That's sent only to GitHub.",
+                        Label("It never receives your GitHub token. That's sent only to GitHub.",
                               systemImage: "lock")
+                        Label("It also gets your Live rank Window, time zone, and the tokens that update Live rank on this iPhone.",
+                              systemImage: "clock")
                     }
                     .font(.body)
                     Text("Turning Live rank off or disconnecting GitHub deletes this iPhone's registration from the relay.")

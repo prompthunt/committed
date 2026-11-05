@@ -130,6 +130,11 @@ export interface HttpApnsConfig {
   bundleId: string;
   now: () => number;
   fetch?: typeof fetch;
+  /**
+   * Local development only: send every push to this origin (a fake APNs, see `dev/fake-apns.mjs`)
+   * instead of Apple's hosts. Local workerd can't speak HTTP/2 to APNs.
+   */
+  origin?: string;
 }
 
 const HOSTS: Record<ApnsEnvironment, string> = {
@@ -142,7 +147,8 @@ export function createHttpApnsSender(config: HttpApnsConfig): ApnsSender {
   const doFetch = config.fetch ?? fetch;
   return {
     async send(request) {
-      const response = await doFetch(`${HOSTS[request.environment]}/3/device/${request.token}`, {
+      const host = config.origin ? config.origin.replace(/\/+$/, "") : HOSTS[request.environment];
+      const response = await doFetch(`${host}/3/device/${request.token}`, {
         method: "POST",
         headers: {
           authorization: `bearer ${await provider.get()}`,
