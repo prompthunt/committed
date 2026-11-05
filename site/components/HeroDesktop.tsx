@@ -14,7 +14,7 @@ import { seeded, SQUARE_SCALE } from "@/lib/contributions";
  */
 
 type Cursor = "hidden" | "desk" | "pill" | "card";
-type Step = { at: number; frame: number; open: boolean; banners: boolean; cursor: Cursor; click?: boolean; burst?: boolean };
+type Step = { at: number; frame: number; open: boolean; banners: boolean; cursor: Cursor; click?: boolean; burst?: boolean; cut?: boolean };
 
 const STEPS: Step[] = [
   { at: 0, frame: 0, open: false, banners: true, cursor: "hidden" },
@@ -27,9 +27,12 @@ const STEPS: Step[] = [
   { at: 7800, frame: 3, open: true, banners: false, cursor: "card", burst: true },
   { at: 10300, frame: 3, open: true, banners: false, cursor: "desk" },
   { at: 11300, frame: 3, open: false, banners: false, cursor: "desk", click: true },
-  { at: 12100, frame: 0, open: false, banners: false, cursor: "hidden" },
+  // The screen dips to black before the counts go back to the start of the day, so the
+  // replay reads as a new scene rather than your rank silently dropping from #1 to #3.
+  { at: 12100, frame: 3, open: false, banners: false, cursor: "hidden", cut: true },
+  { at: 12700, frame: 0, open: false, banners: false, cursor: "hidden", cut: true },
 ];
-const LOOP = 12900;
+const LOOP = 13300;
 /** Start where the board is already open, so the first thing you see is the app. */
 const FIRST_STEP = 6;
 const RESTING: Step = { at: 0, frame: 3, open: true, banners: false, cursor: "hidden" };
@@ -70,6 +73,27 @@ function StatusIcon({ children, className = "" }: { children: ReactNode; classNa
 }
 
 const APP_MENUS = ["File", "Edit", "View", "Go", "Window", "Help"];
+
+/** The menu-bar rank: the old number rolls out while the new one rolls in, so the item is never blank. */
+function RankRoll({ rank }: { rank: number }) {
+  // Track the outgoing rank during render, so the first frame of a change already shows it.
+  const [roll, setRoll] = useState<{ rank: number; leaving: number | null }>({ rank, leaving: null });
+  if (roll.rank !== rank) setRoll({ rank, leaving: roll.rank });
+  const leaving = roll.rank === rank ? roll.leaving : roll.rank;
+  useEffect(() => {
+    if (roll.leaving === null) return;
+    const id = window.setTimeout(() => setRoll((r) => ({ ...r, leaving: null })), 600);
+    return () => window.clearTimeout(id);
+  }, [roll]);
+  return (
+    <span className="inline-grid overflow-hidden">
+      {leaving !== null && (
+        <span key={`out-${leaving}-${rank}`} className="desk-rank desk-rank-out tabular-nums [grid-area:1/1]">#{leaving}</span>
+      )}
+      <span key={rank} className="desk-rank tabular-nums [grid-area:1/1]">#{rank}</span>
+    </span>
+  );
+}
 
 function usePrefersReducedMotion() {
   const [reduce, setReduce] = useState(false);
@@ -169,9 +193,7 @@ export function HeroDesktop() {
                 className="desk-pill relative inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-[5px] text-[13px] font-semibold text-white"
               >
                 <Glyph className="size-[1.05em]" />
-                <span className="inline-flex overflow-hidden">
-                  <span key={youRank} className="desk-rank tabular-nums">#{youRank}</span>
-                </span>
+                <RankRoll rank={youRank} />
                 <span className="desk-burst">
                   {step.burst && (
                     <span key={index}>
@@ -244,6 +266,7 @@ export function HeroDesktop() {
           )}
         </div>
       </FrameOverride>
+      <div aria-hidden data-show={step.cut || undefined} className="desk-cut pointer-events-none absolute inset-0 z-[28]" />
       <div className="absolute right-5 bottom-5 z-30 size-11">
         <DemoMotionToggle />
       </div>
