@@ -45,7 +45,8 @@ enum RelayClientError: Error, Equatable {
 /// The relay's device API. `HTTPLiveRankRelayClient` is the real one; tests use a fake.
 protocol LiveRankRelayClient: Sendable {
     func register(_ registration: RelayRegistration, as installation: RelayInstallation) async throws
-    func reportActivity(id: String, pushToken: String, as installation: RelayInstallation) async throws
+    /// `startedAt`: Unix seconds the app started the activity; nil for one the relay started.
+    func reportActivity(id: String, pushToken: String, startedAt: Int?, as installation: RelayInstallation) async throws
     func unregister(_ installation: RelayInstallation) async throws
 }
 
@@ -120,12 +121,14 @@ final class LiveRankRelay {
         }
     }
 
-    func sync(board: RelayBoard?, activityID: String?) async {
-        if let notBefore, now() < notBefore { return }
+    func sync(board: RelayBoard?, activity: LiveRankActivity?) async {
+        // Turning Live rank off or disconnecting is never held up by a 429's Retry-After: the
+        // relay never rate-limits DELETE.
         guard let board else {
             await unregisterIfNeeded()
             return
         }
+        if let notBefore, now() < notBefore { return }
         let installation = installationOrNew()
         let registration = RelayRegistration(
             login: board.login, competitors: board.competitors, window: board.window,
@@ -141,29 +144,30 @@ final class LiveRankRelay {
             sent.registration = registration
             store.saveSent(sent)
         }
-        if let activityID { await report(activityID: activityID, as: installation) }
+        if let activity { await report(activity, as: installation) }
     }
 
     /// Report an activity's token when the relay already holds a registration it belongs to,
     /// without touching the registration. For token updates that arrive while the app can't
     /// read its board (a background launch before first unlock).
-    func reportIfRegistered(activityID: String) async {
+    func reportIfRegistered(_ activity: LiveRankActivity) async {
         guard sent.registration != nil, let installation = store.loadInstallation() else { return }
         if let notBefore, now() < notBefore { return }
-        await report(activityID: activityID, as: installation)
+        await report(activity, as: installation)
     }
 
-    private func report(activityID: String, as installation: RelayInstallation) async {
-        guard let token = activityTokens[activityID] else { return }
-        let activity = RelaySentState.Activity(id: activityID, pushToken: token)
-        guard sent.activity != activity else { return }
+    private func report(_ activity: LiveRankActivity, as installation: RelayInstallation) async {
+        guard let token = activityTokens[activity.id] else { return }
+        let reported = RelaySentState.Activity(id: activity.id, pushToken: token)
+        guard sent.activity != reported else { return }
+        let startedAt = activity.startedAt.map { Int($0.timeIntervalSince1970) }
         do {
-            try await client.reportActivity(id: activityID, pushToken: token, as: installation)
+            try await client.reportActivity(id: activity.id, pushToken: token, startedAt: startedAt, as: installation)
         } catch {
             handle(error)
             return
         }
-        sent.activity = activity
+        sent.activity = reported
         store.saveSent(sent)
     }
 
@@ -317,8 +321,13 @@ struct HTTPLiveRankRelayClient: LiveRankRelayClient {
         try await send("PUT", path: installation.id, body: JSONEncoder().encode(registration), as: installation)
     }
 
-    func reportActivity(id: String, pushToken: String, as installation: RelayInstallation) async throws {
-        let body = try JSONEncoder().encode(["activityId": id, "pushToken": pushToken])
+    func reportActivity(id: String, pushToken: String, startedAt: Int?, as installation: RelayInstallation) async throws {
+        struct Body: Encodable {
+            var activityId: String
+            var pushToken: String
+            var startedAt: Int?  // left out when nil
+        }
+        let body = try JSONEncoder().encode(Body(activityId: id, pushToken: pushToken, startedAt: startedAt))
         try await send("PUT", path: "\(installation.id)/activity", body: body, as: installation)
     }
 

@@ -13,14 +13,14 @@ final class FakeLiveRankActivities: LiveRankActivities {
     private var nextID = 1
 
     init(existing: [(selfLogin: String, state: LiveRankState)] = []) {
-        for item in existing { _ = try? start(selfLogin: item.selfLogin, state: item.state) }
+        for item in existing { _ = try? start(selfLogin: item.selfLogin, state: item.state, startedAt: .distantPast) }
         started = 0
     }
 
     func current() -> [LiveRankActivity] { activities }
 
-    func start(selfLogin: String, state: LiveRankState) throws -> LiveRankActivity {
-        let activity = LiveRankActivity(id: String(nextID), selfLogin: selfLogin, state: state)
+    func start(selfLogin: String, state: LiveRankState, startedAt: Date) throws -> LiveRankActivity {
+        let activity = LiveRankActivity(id: String(nextID), selfLogin: selfLogin, state: state, startedAt: startedAt)
         nextID += 1
         started += 1
         activities.append(activity)
@@ -30,7 +30,7 @@ final class FakeLiveRankActivities: LiveRankActivities {
     func update(id: String, to state: LiveRankState) async {
         guard let index = activities.firstIndex(where: { $0.id == id }) else { return }
         updated += 1
-        activities[index] = LiveRankActivity(id: id, selfLogin: activities[index].selfLogin, state: state)
+        activities[index].state = state
     }
 
     func end(id: String) async {
@@ -163,6 +163,24 @@ struct LiveRankLifecycleTests {
         #expect(h.activities.only?.id == id, "the same activity, updated in place")
         #expect(h.activities.only?.state.rank == 1)
         #expect(h.activities.only?.state.below == .init(login: "alice", contributions: 9))
+    }
+
+    @Test func sameNumbersLaterAreNoUpdateUntilTheStaleDateIsNear() async throws {
+        let h = connected()
+        await h.app.sceneDidBecomeActive()  // its stale date is 20 minutes away
+
+        h.clock.advance(300)
+        await h.app.refresh.refreshAll(reason: .timer)
+        #expect(h.activities.updated == 0, "same numbers, later time: nothing new to show")
+
+        h.clock.advance(300)  // the stale date is now 10 minutes away
+        await h.app.refresh.refreshAll(reason: .timer)
+        #expect(h.activities.updated == 1, "a heartbeat moves the stale date before it passes")
+        #expect(h.activities.only?.state.updatedAt == Int(h.clock.date.timeIntervalSince1970))
+
+        h.clock.advance(300)
+        await h.app.refresh.refreshAll(reason: .timer)
+        #expect(h.activities.updated == 1, "the new stale date is far away again")
     }
 
     @Test func backgroundRefreshUpdatesButNeverStartsUntilTheAppIsOpen() async throws {

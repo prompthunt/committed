@@ -6,7 +6,7 @@ import Foundation
 final class FakeRelayClient: LiveRankRelayClient, @unchecked Sendable {
     enum Call: Equatable {
         case register(RelayRegistration, install: String)
-        case activity(id: String, token: String, install: String)
+        case activity(id: String, token: String, startedAt: Int?, install: String)
         case unregister(install: String)
     }
 
@@ -20,7 +20,11 @@ final class FakeRelayClient: LiveRankRelayClient, @unchecked Sendable {
     }
     var lastRegistration: RelayRegistration? { registrations.last }
     var reportedActivities: [String] {
-        calls.compactMap { if case .activity(let id, let token, _) = $0 { "\(id):\(token)" } else { nil } }
+        calls.compactMap { if case .activity(let id, let token, _, _) = $0 { "\(id):\(token)" } else { nil } }
+    }
+    /// The start time sent with each activity report (nil when the app didn't start it).
+    var reportedStarts: [Int?] {
+        calls.compactMap { if case .activity(_, _, let startedAt, _) = $0 { .some(startedAt) } else { nil } }
     }
     var unregisterCount: Int {
         calls.filter { if case .unregister = $0 { true } else { false } }.count
@@ -34,8 +38,8 @@ final class FakeRelayClient: LiveRankRelayClient, @unchecked Sendable {
         try record(.register(registration, install: installation.id))
     }
 
-    func reportActivity(id: String, pushToken: String, as installation: RelayInstallation) async throws {
-        try record(.activity(id: id, token: pushToken, install: installation.id))
+    func reportActivity(id: String, pushToken: String, startedAt: Int?, as installation: RelayInstallation) async throws {
+        try record(.activity(id: id, token: pushToken, startedAt: startedAt, install: installation.id))
     }
 
     func unregister(_ installation: RelayInstallation) async throws {
@@ -207,6 +211,19 @@ struct LiveRankRelayTests {
         #expect(h.relay.reportedActivities.count == 1, "the same token isn't sent twice")
     }
 
+    @Test func anActivityTheAppStartedIsReportedWithItsStartTime() async throws {
+        let h = await live()  // started now
+        let started = Int(h.clock.date.timeIntervalSince1970)
+        let id = try #require(h.activities.only?.id)
+
+        h.clock.advance(3600)  // its token only arrives an hour later
+        h.activities.issue(.activity(id: id, token: Data([0x0a])))
+        await h.app.liveRank.idle()
+
+        #expect(h.relay.reportedActivities == ["\(id):0a"])
+        #expect(h.relay.reportedStarts == [started], "the relay ages it from its start, not from the report")
+    }
+
     @Test func anActivityTheRelayStartedIsKeptAndItsTokenReportedInTheBackground() async throws {
         let h = await live()
         let first = try #require(h.activities.only)
@@ -219,6 +236,7 @@ struct LiveRankRelayTests {
         await h.app.liveRank.idle()
 
         #expect(h.relay.reportedActivities.last == "\(pushed.id):0f")
+        #expect(h.relay.reportedStarts.last == .some(nil), "the relay knows when it sent the start")
         #expect(h.activities.ended.isEmpty, "the relay's activity is Live rank's, not a stray")
         #expect(h.activities.started == 1, "no second activity next to it")
         #expect(h.activities.only?.id == pushed.id)
@@ -436,6 +454,19 @@ struct LiveRankRelayTests {
         h.clock.advance(61)
         await h.app.refresh.refreshAll(reason: .timer)
         #expect(h.relay.lastRegistration?.competitors == ["me"])
+    }
+
+    @Test func tooManyRequestsNeverHoldsUpTurningLiveRankOff() async throws {
+        let h = await live()
+        h.relay.failNext(.rejected(status: 429, retryAfter: 600))
+        h.app.setHidden(true, username: "alice")
+        await h.app.liveRank.idle()
+        h.relay.reset()
+
+        await h.app.setLiveRankEnabled(false)
+        await h.app.liveRank.idle()
+
+        #expect(h.relay.unregisterCount == 1, "the registration is deleted at once, inside Retry-After")
     }
 
     @Test func aRelayThatForgotThisIPhoneIsRegisteredAgain() async throws {

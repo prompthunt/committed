@@ -95,13 +95,24 @@ struct RelayClientTests {
     @Test func reportingAnActivityPutsItsIDAndToken() async throws {
         let client = client()
 
-        try await client.reportActivity(id: "A1", pushToken: "c41d", as: installation)
+        try await client.reportActivity(id: "A1", pushToken: "c41d", startedAt: nil, as: installation)
 
         let request = try #require(RelayStub.captured.only)
         #expect(request.method == "PUT")
         #expect(request.url.path() == "/v1/installations/\(installation.id)/activity")
         let json = try #require(try JSONSerialization.jsonObject(with: request.body) as? [String: String])
-        #expect(json == ["activityId": "A1", "pushToken": "c41d"])
+        #expect(json == ["activityId": "A1", "pushToken": "c41d"], "no start time for one the relay started")
+    }
+
+    @Test func reportingAnActivityTheAppStartedAddsItsStartTime() async throws {
+        let client = client()
+
+        try await client.reportActivity(id: "A2", pushToken: "c41d", startedAt: 1_793_838_000, as: installation)
+
+        let request = try #require(RelayStub.captured.only)
+        let json = try #require(try JSONSerialization.jsonObject(with: request.body) as? [String: Any])
+        #expect(Set(json.keys) == ["activityId", "pushToken", "startedAt"])
+        #expect(json["startedAt"] as? Int == 1_793_838_000)
     }
 
     @Test func unregisteringDeletes() async throws {

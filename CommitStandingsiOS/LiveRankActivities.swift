@@ -5,7 +5,9 @@ import Foundation
 struct LiveRankActivity: Equatable {
     let id: String
     let selfLogin: String
-    let state: LiveRankState
+    var state: LiveRankState
+    /// When the app started it; nil for one the relay started with push-to-start.
+    var startedAt: Date? = nil
 }
 
 /// A push token ActivityKit issued, for the Committed relay.
@@ -26,8 +28,9 @@ protocol LiveRankActivities: AnyObject {
     /// Live rank activities still on screen (active or stale), oldest first. Ended and
     /// dismissed ones (including iOS's 8-hour cutoff) are left out.
     func current() -> [LiveRankActivity]
-    /// Request a new activity. Fails in the background, and when iOS disallows it.
-    func start(selfLogin: String, state: LiveRankState) throws -> LiveRankActivity
+    /// Request a new activity, recording `startedAt` with it. Fails in the background, and
+    /// when iOS disallows it.
+    func start(selfLogin: String, state: LiveRankState, startedAt: Date) throws -> LiveRankActivity
     func update(id: String, to state: LiveRankState) async
     /// End and dismiss right away.
     func end(id: String) async
@@ -42,7 +45,7 @@ protocol LiveRankActivities: AnyObject {
 final class NoLiveRankActivities: LiveRankActivities {
     var areActivitiesEnabled: Bool { false }
     func current() -> [LiveRankActivity] { [] }
-    func start(selfLogin: String, state: LiveRankState) throws -> LiveRankActivity {
+    func start(selfLogin: String, state: LiveRankState, startedAt: Date) throws -> LiveRankActivity {
         throw CocoaError(.featureUnsupported)
     }
     func update(id: String, to state: LiveRankState) async {}
@@ -70,9 +73,9 @@ final class ActivityKitLiveRankActivities: LiveRankActivities {
             .map(Self.snapshot)
     }
 
-    func start(selfLogin: String, state: LiveRankState) throws -> LiveRankActivity {
+    func start(selfLogin: String, state: LiveRankState, startedAt: Date) throws -> LiveRankActivity {
         let activity = try Activity.request(
-            attributes: LiveRankAttributes(selfLogin: selfLogin),
+            attributes: LiveRankAttributes(selfLogin: selfLogin, startedAt: Int(startedAt.timeIntervalSince1970)),
             content: Self.content(state),
             pushType: pushType
         )
@@ -134,6 +137,11 @@ final class ActivityKitLiveRankActivities: LiveRankActivities {
     }
 
     private static func snapshot(_ activity: Activity<LiveRankAttributes>) -> LiveRankActivity {
-        LiveRankActivity(id: activity.id, selfLogin: activity.attributes.selfLogin, state: activity.content.state)
+        LiveRankActivity(
+            id: activity.id,
+            selfLogin: activity.attributes.selfLogin,
+            state: activity.content.state,
+            startedAt: activity.attributes.startedAt.map { Date(timeIntervalSince1970: TimeInterval($0)) }
+        )
     }
 }

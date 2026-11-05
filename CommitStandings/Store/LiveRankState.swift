@@ -42,6 +42,24 @@ extension LiveRankState {
     /// The Live Activity's stale date: 20 minutes after the data, not after the update.
     var staleDate: Date { updatedDate.addingTimeInterval(Self.staleInterval) }
 
+    /// How close the stale date may get before a heartbeat moves it (the relay's
+    /// `HEARTBEAT_LEAD_SECONDS`).
+    static let heartbeatLead: TimeInterval = 10 * 60
+
+    /// The same numbers, apart from `updatedAt` (which advances with every fetch).
+    func sameContent(as other: LiveRankState) -> Bool {
+        var other = other
+        other.updatedAt = updatedAt
+        return self == other
+    }
+
+    /// Whether `next` should replace this state on screen: its numbers changed, or this one's
+    /// stale date is near and `next` moves it later (a heartbeat). Matches the relay's rule.
+    func shouldUpdate(to next: LiveRankState, now: Date) -> Bool {
+        !sameContent(as: next)
+            || (now >= staleDate.addingTimeInterval(-Self.heartbeatLead) && next.staleDate > staleDate)
+    }
+
     /// Contributions you need to pass the person ahead ("3 to pass alice"). One more than the
     /// gap, since a tie keeps them ahead; nil when nobody is ahead or your count isn't loaded.
     var gapToPass: Int? {

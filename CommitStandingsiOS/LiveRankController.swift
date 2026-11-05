@@ -205,13 +205,13 @@ final class LiveRankController {
             return
         }
         guard case .activity(let id, _) = token, let relay, let registered = relay.registered,
-              activities.current().contains(where: { $0.id == id && $0.selfLogin == registered.login
+              let activity = activities.current().first(where: { $0.id == id && $0.selfLogin == registered.login
                   && $0.state.window == registered.window })
         else { return }
         let previous = pending
         pending = Task {
             await previous?.value
-            await relay.reportIfRegistered(activityID: id)
+            await relay.reportIfRegistered(activity)
         }
     }
 
@@ -242,7 +242,7 @@ final class LiveRankController {
             persistence.saveLatestState(nil)
             status = isEnabled ? .waiting : .off
             offerDisclosureIfUndecided()
-            await relay?.sync(board: nil, activityID: nil)
+            await relay?.sync(board: nil, activity: nil)
             return
         }
         // Connected but your board isn't here yet (first sync): leave any activity as it is.
@@ -250,8 +250,8 @@ final class LiveRankController {
             status = .waiting
             return
         }
-        let keptID = await syncActivity(me: me, running: running)
-        await relay?.sync(board: relayBoard(me: me), activityID: keptID)
+        let kept = await syncActivity(me: me, running: running)
+        await relay?.sync(board: relayBoard(me: me), activity: kept)
     }
 
     /// With a relay and no decision yet, ask once per launch, in the foreground, once your
@@ -272,8 +272,8 @@ final class LiveRankController {
                           timeZone: timeZone().identifier)
     }
 
-    /// Ends strays, updates or starts the one activity; returns the ID of the one showing.
-    private func syncActivity(me: String, running: [LiveRankActivity]) async -> String? {
+    /// Ends strays, updates or starts the one activity; returns the one showing.
+    private func syncActivity(me: String, running: [LiveRankActivity]) async -> LiveRankActivity? {
         let state = LiveRankState(store: store, window: window, rankDelta: rankDelta, now: now())
         latestState = state
         persistence.saveLatestState(state)
@@ -284,9 +284,10 @@ final class LiveRankController {
         }
         let enabledInSystem = activities.areActivitiesEnabled
         if let kept {
-            if kept.state != state { await activities.update(id: kept.id, to: state) }
+            // Like the relay: only new numbers, or a heartbeat before the stale date passes.
+            if kept.state.shouldUpdate(to: state, now: now()) { await activities.update(id: kept.id, to: state) }
             status = enabledInSystem ? .live : .disabledInSystem
-            return kept.id
+            return kept
         }
         guard enabledInSystem else {
             status = .disabledInSystem
@@ -297,9 +298,9 @@ final class LiveRankController {
             return nil
         }
         do {
-            let started = try activities.start(selfLogin: me, state: state)
+            let started = try activities.start(selfLogin: me, state: state, startedAt: now())
             status = .live
-            return started.id
+            return started
         } catch {
             status = .failed(error.localizedDescription)
             return nil
