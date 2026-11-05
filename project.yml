@@ -1,8 +1,13 @@
 name: CommitStandings
+# Describes CommitStandings.xcodeproj; it is NOT used to regenerate it. Regenerating would
+# reset the Mac app's Info.plist, entitlements, and Sparkle setup. The pbxproj is the source of
+# truth: edit it with Xcode or the xcodeproj gem (scripts/xcode-add-files.rb) and keep this file
+# in step by hand.
 options:
   bundleIdPrefix: com.addisonk
   deploymentTarget:
     macOS: "26.0"
+    iOS: "27.1"
   developmentLanguage: en
   createIntermediateGroups: true
   generateEmptyDirectories: true
@@ -57,6 +62,75 @@ targets:
         BUNDLE_LOADER: "$(TEST_HOST)"
         TEST_HOST: "$(BUILT_PRODUCTS_DIR)/CommitStandings.app/Contents/MacOS/CommitStandings"
 
+  # Committed for iPhone. Its own folder is a filesystem-synchronized group; the shared core
+  # below is the same files the Mac app compiles (multiple target membership, no package).
+  CommitStandingsiOS:
+    type: application
+    platform: iOS
+    deploymentTarget: "27.1"
+    sources:
+      - path: CommitStandingsiOS
+      - path: CommitStandings/Models
+      - path: CommitStandings/Services/ContributionsClient.swift
+      - path: CommitStandings/Services/ContributionsParser.swift
+      - path: CommitStandings/Services/GitHubAccountClient.swift
+      - path: CommitStandings/Services/GitHubAuth.swift
+      - path: CommitStandings/Services/GitHubConfig.swift
+      - path: CommitStandings/Services/GitHubCredentialStore.swift
+      - path: CommitStandings/Services/NotificationService.swift
+      - path: CommitStandings/Store
+      - path: CommitStandings/Support
+      - path: CommitStandings/Views/StandingRow.swift
+      - path: CommitStandings/Views/AvatarView.swift
+    dependencies:
+      - target: CommitStandingsLiveRank
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.addisonk.CommitStandings.iOS
+        TARGETED_DEVICE_FAMILY: "1"
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_CFBundleDisplayName: Committed
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        CODE_SIGN_ENTITLEMENTS: CommitStandingsiOS/CommitStandingsiOS.entitlements # App Group group.com.addisonk.CommitStandings
+
+  # Live rank: WidgetKit extension holding only the Live Activity, embedded in the iOS app.
+  CommitStandingsLiveRank:
+    type: app-extension
+    platform: iOS
+    deploymentTarget: "27.1"
+    sources:
+      - path: CommitStandingsLiveRank
+        excludes: [Info.plist]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.addisonk.CommitStandings.iOS.LiveRank
+        TARGETED_DEVICE_FAMILY: "1"
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_FILE: CommitStandingsLiveRank/Info.plist
+        INFOPLIST_KEY_CFBundleDisplayName: Live rank
+        CODE_SIGN_ENTITLEMENTS: CommitStandingsLiveRank/CommitStandingsLiveRank.entitlements # App Group
+        APPLICATION_EXTENSION_API_ONLY: YES
+        SKIP_INSTALL: YES
+
+  # iOS-only tests, hosted in the iOS app. Platform-neutral core tests stay in CommitStandingsTests.
+  CommitStandingsiOSTests:
+    type: bundle.unit-test
+    platform: iOS
+    deploymentTarget: "27.1"
+    sources:
+      - path: CommitStandingsiOSTests
+    dependencies:
+      - target: CommitStandingsiOS
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.addisonk.CommitStandings.iOSTests
+        TARGETED_DEVICE_FAMILY: "1"
+        GENERATE_INFOPLIST_FILE: YES
+        BUNDLE_LOADER: "$(TEST_HOST)"
+        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/CommitStandingsiOS.app/CommitStandingsiOS"
+
 schemes:
   CommitStandings:
     build:
@@ -66,6 +140,17 @@ schemes:
     test:
       targets:
         - CommitStandingsTests
+      gatherCoverageData: true
+    run:
+      config: Debug
+  CommitStandingsiOS:
+    build:
+      targets:
+        CommitStandingsiOS: all
+        CommitStandingsiOSTests: [test]
+    test:
+      targets:
+        - CommitStandingsiOSTests
       gatherCoverageData: true
     run:
       config: Debug
