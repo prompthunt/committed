@@ -13,8 +13,6 @@ export interface RelayDeps extends PushSender {
   /** Unix seconds. */
   now(): number;
   log: Log;
-  /** Most GitHub page fetches per cron run (Workers caps subrequests per invocation). */
-  githubFetchBudget?: number;
 }
 
 export function defaultDeps(): RelayDeps {

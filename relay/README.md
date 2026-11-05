@@ -22,7 +22,7 @@ request bodies (`src/log.ts` is the only logging path). Workers invocation logs 
 | `src/cron.ts` | The 5-minute update: counts, movement, push decisions, rotation |
 | `src/ranking.ts` | Port of `Ranking.order` and the `LiveRankState` derivation |
 | `src/parser.ts` | Port of `ContributionsParser` |
-| `src/contributions.ts` | Anonymous contributions fetch with a shared 5-minute D1 cache |
+| `src/contributions.ts` | Anonymous contributions fetch with a shared 5-minute D1 cache, refresh order |
 | `src/apns.ts` | APNs transport interface, `fetch()` transport, response handling |
 | `src/auth.ts` | ES256 provider token (WebCrypto), cached under an hour |
 | `src/payload.ts` | `start` / `update` / `end` payloads |
@@ -138,9 +138,11 @@ zone changes. Outside Today no baseline is kept.
 Each cron run, for every installation:
 
 1. **Counts.** Every login on any board is read from `contribution_cache`. Entries 5 minutes old
-   or older are refetched, never-fetched logins first, up to a per-run budget (default 40,
-   `RelayDeps.githubFetchBudget`). Logins beyond the budget keep their cached counts until a
-   later run. A failed fetch keeps the last cached counts. A login that was never fetched
+   or older are due a refetch, in this order: first each board's own login and the people
+   directly above and below it (by the cached counts), so the numbers Live rank shows stay
+   fresh; then everyone else, stalest first, never-fetched logins before cached ones. A run
+   fetches at most its fetch budget ("Limits to know"); the rest keep their cached counts until a later
+   run. A failed fetch keeps the last cached counts. A login that was never fetched
    successfully has no data. `lastUpdated` is the time of the successful fetch.
 2. **State.** Sum the Window for the installation's local calendar day, apply the movement
    baseline, and derive `LiveRankState`.
@@ -268,15 +270,32 @@ npx wrangler deploy
 
 ### Limits to know
 
-- **Subrequests per invocation.** Workers caps outbound requests per invocation (50 on the free
-  plan). The GitHub fetch budget defaults to 40 per run to leave room for APNs. With more distinct
-  logins than that, counts refresh over several runs: 200 logins refresh about every 25 minutes
-  on the free plan. On a paid plan, raise `githubFetchBudget` in `src/app.ts`.
+- **Subrequests per run.** Every GitHub fetch and every APNs push is an outbound subrequest,
+  and Workers caps them per invocation: 50 on the free plan, 10,000 by default on Workers Paid
+  (raise it further with `limits.subrequests` in `wrangler.jsonc`). D1 calls draw on a separate
+  pool. Two vars set the relay's share:
+  - `SUBREQUEST_LIMIT` (default `"50"`): outbound requests per run. On Workers Paid, set it
+    to `"10000"` (or your `limits.subrequests`).
+  - `GITHUB_FETCH_BUDGET` (default `"40"`): most GitHub fetches per run. On Workers Paid, set
+    it to the number of distinct logins you expect (for example `"5000"`), so every count
+    refreshes every run.
+
+  Pushes always come first. Before fetching, a run reserves one subrequest for each
+  installation that may get a push (an activity to update, or a push-to-start that is due),
+  and two for each rotation (`end` and `start`). It fetches at most
+  `min(GITHUB_FETCH_BUDGET, SUBREQUEST_LIMIT − reserve)`. A push that still doesn't fit waits
+  for the next run (`push_deferred`); a rotation sends both pushes or neither.
+
+  On the free plan this leaves 50 minus the installation count for fetches. Past about 25
+  installations, counts refresh slowly; past 50, pushes queue across runs. Each board's own
+  login and neighbors are fetched first, so Live rank stays current longest. Move to Workers
+  Paid before that.
 - **CPU.** Parsing a contributions page is small, but each installation costs a D1 write per
   change. Large deployments should batch installations across invocations.
-- **Budget and heartbeats.** A login refreshed in a later run keeps its older `lastUpdated`. If
-  none of a board's logins refresh in a run, `updatedAt` doesn't advance, so no heartbeat goes out
-  and the activity can show as stale until its counts come around.
+- **Budget and heartbeats.** `updatedAt` is the oldest of the counts a state shows. If one of
+  them misses a run, `updatedAt` doesn't advance, no heartbeat goes out, and the activity can
+  show as stale until that count comes around. Fetching each board's own login and neighbors
+  first keeps this rare.
 - **GitHub.** Pages are fetched anonymously from Cloudflare IPs. If GitHub rate-limits those,
   counts go stale (the activity shows its refresh age) rather than wrong.
 

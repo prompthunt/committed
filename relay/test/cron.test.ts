@@ -384,7 +384,7 @@ describe("cron: contribution counts", () => {
   });
 
   it("spreads fetches over runs when the board exceeds the per-run budget", async () => {
-    const relay = makeRelay({ githubFetchBudget: 2 });
+    const relay = makeRelay({}, { GITHUB_FETCH_BUDGET: "2" });
     relay.github.set("me", { [DAY]: 5 });
     relay.github.set("alice", { [DAY]: 9 });
     relay.github.set("bob", { [DAY]: 3 });
@@ -394,5 +394,86 @@ describe("cron: contribution counts", () => {
     await tick(relay, 60);
     expect(relay.github.fetched).toHaveLength(3);
     expect(new Set(relay.github.fetched).size).toBe(3);
+  });
+});
+
+describe("cron: fetch priority and the subrequest budget", () => {
+  // p1 80, p2 70, p3 60, p4 50, me 45, p5 40, p6 30, p7 20, p8 10: you sit between p4 and p5.
+  const board = ["me", "p1", "p2", "p3", "p4", "p5", "p6", "p7", "p8"];
+  const counts: Record<string, number> = { me: 45, p1: 80, p2: 70, p3: 60, p4: 50, p5: 40, p6: 30, p7: 20, p8: 10 };
+
+  function relayWith(vars: Record<string, string>): TestRelay {
+    const relay = makeRelay({}, vars);
+    for (const login of board) relay.github.set(login, { [DAY]: counts[login]! });
+    return relay;
+  }
+
+  /** A first run at T0 that caches everyone but `failing`. */
+  async function warmCache(failing: string[] = []): Promise<void> {
+    const warm = relayWith({});
+    warm.github.failing = new Set(failing);
+    await warm.request("PUT", path, { body: registration({ competitors: board }) });
+    await warm.request("PUT", `${path}/activity`, { body: { activityId: "activity-1", pushToken: ACTIVITY_TOKEN } });
+    await warm.cron();
+    expect(warm.github.fetched).toHaveLength(board.length);
+  }
+
+  it("refreshes your own count and your neighbors' before anyone else's", async () => {
+    await warmCache();
+    const short = relayWith({ GITHUB_FETCH_BUDGET: "3" });
+    short.clock.seconds = T0 + 300;
+    await short.cron();
+    expect([...short.github.fetched].sort()).toEqual(["me", "p4", "p5"]);
+  });
+
+  it("then refreshes the stalest cached counts, never-fetched ones first", async () => {
+    await warmCache(["p8"]); // p8 has never been fetched
+    const relay = relayWith({ GITHUB_FETCH_BUDGET: "5" });
+    relay.clock.seconds = T0 + 300; // everyone is due; p8 first, then board order breaks the tie
+    await relay.cron();
+    expect([...relay.github.fetched].sort()).toEqual(["me", "p1", "p4", "p5", "p8"]);
+
+    relay.github.fetched.length = 0;
+    relay.clock.seconds = T0 + 600; // p2, p3, p6, p7 (fetched at T0) are now the stalest
+    await relay.cron();
+    expect([...relay.github.fetched].sort()).toEqual(["me", "p2", "p3", "p4", "p5"]);
+  });
+
+  it("keeps a subrequest for every push it may send, and still pushes", async () => {
+    await warmCache();
+    // 5 subrequests in all; the activity may need 1 push, so at most 4 fetches.
+    const relay = relayWith({ SUBREQUEST_LIMIT: "5" });
+    relay.github.set("me", { [DAY]: 55 }); // passes p4
+    relay.clock.seconds = T0 + 300;
+    await relay.cron();
+    expect(relay.github.fetched).toHaveLength(4);
+    expect(relay.apns.payloads().map((push) => push.aps["content-state"])).toMatchObject([{ rank: 4 }]);
+  });
+
+  it("reserves two pushes for a rotation", async () => {
+    await warmCache();
+    const relay = relayWith({ SUBREQUEST_LIMIT: "5" });
+    relay.clock.seconds = T0 + ROTATION;
+    await relay.cron();
+    expect(relay.github.fetched).toHaveLength(3);
+    expect(relay.apns.payloads().map((push) => push.aps.event)).toEqual(["end", "start"]);
+  });
+
+  it("defers pushes beyond the limit to the next run instead of failing", async () => {
+    const installs = ["8F14E45F-CEA7-4B5B-9D0A-7C5E2B1A0011", "8F14E45F-CEA7-4B5B-9D0A-7C5E2B1A0012", "8F14E45F-CEA7-4B5B-9D0A-7C5E2B1A0013"];
+    const relay = relayWith({ SUBREQUEST_LIMIT: "2" });
+    for (const [index, id] of installs.entries()) {
+      await relay.request("PUT", `/v1/installations/${id}`, { body: registration({ competitors: ["me", "p1"] }) });
+      const token = String(index + 1).repeat(64);
+      await relay.request("PUT", `/v1/installations/${id}/activity`, { body: { activityId: `a${index}`, pushToken: token } });
+    }
+    await relay.cron();
+    expect(relay.github.fetched).toHaveLength(0);
+    expect(relay.apns.requests).toHaveLength(2);
+    expect(relay.logs.join("\n")).toContain("push_deferred");
+
+    relay.apns.clear();
+    await tick(relay);
+    expect(relay.apns.payloads().map((push) => push.token)).toEqual(["3".repeat(64)]);
   });
 });

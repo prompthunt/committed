@@ -1,12 +1,18 @@
 // Public contribution graphs, fetched anonymously and cached per login for 5 minutes in D1 so every
-// installation that tracks a login shares one fetch.
+// installation that tracks a login shares one fetch. What to fetch first is decided in cron.ts.
 
 import { logEvent, type Log } from "./log";
 import { addDays, parseDays } from "./parser";
 import type { ContributionDays } from "./types";
 
 export const CACHE_TTL_SECONDS = 300;
-/** Workers' free plan allows 50 subrequests per invocation; leave room for APNs. */
+/**
+ * Outbound requests (GitHub fetches + APNs pushes) one cron run may make: the free plan's 50
+ * external subrequests per invocation. D1 calls draw on a separate pool. Override with the
+ * SUBREQUEST_LIMIT var (Workers Paid allows 10,000).
+ */
+export const DEFAULT_SUBREQUEST_LIMIT = 50;
+/** Most GitHub fetches per run before the APNs reserve; override with the GITHUB_FETCH_BUDGET var. */
 export const DEFAULT_FETCH_BUDGET = 40;
 /** Days kept per login: the 30-day window from any local "today" (UTC-12 to UTC+14) fits inside. */
 const RETAINED_DAYS = 35;
@@ -24,14 +30,8 @@ export interface CountsDeps {
   log: Log;
 }
 
-/** Loads cached counts for `logins`, refreshing the stalest (never-fetched first) up to `budget`. */
-export async function loadCounts(
-  db: D1Database,
-  deps: CountsDeps,
-  logins: readonly string[],
-  now: number,
-  budget: number,
-): Promise<Map<string, CachedCounts>> {
+/** Reads the cached counts for `logins` (logins never fetched successfully are absent). */
+export async function readCounts(db: D1Database, logins: readonly string[]): Promise<Map<string, CachedCounts>> {
   const counts = new Map<string, CachedCounts>();
   for (let i = 0; i < logins.length; i += IN_CLAUSE_CHUNK) {
     const chunk = logins.slice(i, i + IN_CLAUSE_CHUNK);
@@ -41,20 +41,47 @@ export async function loadCounts(
       .all<{ login: string; days: string; fetched_at: number }>();
     for (const row of results) counts.set(row.login, { days: JSON.parse(row.days) as ContributionDays, fetchedAt: row.fetched_at });
   }
+  return counts;
+}
 
-  const due = logins
+/**
+ * The logins due a refresh (5 minutes old, or never fetched), in the order to fetch them:
+ * `first` (each board's own login and its neighbors) before the rest, the stalest first within
+ * each group, never-fetched before cached. Ties keep `logins` order.
+ */
+export function refreshOrder(
+  logins: readonly string[],
+  first: ReadonlySet<string>,
+  counts: ReadonlyMap<string, CachedCounts>,
+  now: number,
+): string[] {
+  const age = (login: string) => counts.get(login)?.fetchedAt ?? -1;
+  return logins
     .filter((login) => {
       const cached = counts.get(login);
       return !cached || now - cached.fetchedAt >= CACHE_TTL_SECONDS;
     })
-    .sort((a, b) => (counts.get(a)?.fetchedAt ?? -1) - (counts.get(b)?.fetchedAt ?? -1))
-    .slice(0, Math.max(0, budget));
+    .sort((a, b) => Number(first.has(b)) - Number(first.has(a)) || age(a) - age(b));
+}
 
-  const queue = [...due];
+/**
+ * Fetches up to `budget` of `ordered` and writes successes to `counts` and the cache. A failed
+ * fetch keeps any cached counts: stale data beats a blank. Returns the number of fetches made.
+ */
+export async function refreshCounts(
+  db: D1Database,
+  deps: CountsDeps,
+  counts: Map<string, CachedCounts>,
+  ordered: readonly string[],
+  now: number,
+  budget: number,
+): Promise<number> {
+  const queue = ordered.slice(0, Math.max(0, budget));
+  const attempts = queue.length;
   const workers = Array.from({ length: Math.min(CONCURRENCY, queue.length) }, async () => {
     for (let login = queue.shift(); login !== undefined; login = queue.shift()) {
       const fresh = await fetchCounts(deps, login, now);
-      if (!fresh) continue; // keep any cached counts: stale data beats a blank
+      if (!fresh) continue;
       counts.set(login, fresh);
       await db
         .prepare(
@@ -65,7 +92,7 @@ export async function loadCounts(
     }
   });
   await Promise.all(workers);
-  return counts;
+  return attempts;
 }
 
 async function fetchCounts(deps: CountsDeps, login: string, now: number): Promise<CachedCounts | null> {

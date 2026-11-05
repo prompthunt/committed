@@ -1,6 +1,7 @@
 import { env } from "cloudflare:workers";
 import { createRelay, type RelayDeps } from "../src/app";
 import type { ApnsRequest, ApnsResponse, ApnsTransport } from "../src/apns";
+import type { Env } from "../src/env";
 
 /** Records every APNs request and answers from a script (default 200). */
 export class FakeApns implements ApnsTransport {
@@ -82,7 +83,9 @@ export interface TestRelay {
 /** 2026-11-04 17:00:00 UTC — 09:00 in Los Angeles, 18:00 in London. */
 export const T0 = Date.UTC(2026, 10, 4, 17, 0, 0) / 1000;
 
-export function makeRelay(overrides: Partial<RelayDeps> = {}): TestRelay {
+/** `vars` overrides Worker vars (wrangler.jsonc), e.g. `{ GITHUB_FETCH_BUDGET: "3" }`. */
+export function makeRelay(overrides: Partial<RelayDeps> = {}, vars: Partial<Record<keyof Env, string>> = {}): TestRelay {
+  const relayEnv = { ...env, ...vars } as Env;
   const apns = new FakeApns();
   const github = new FakeGitHub();
   const clock = new Clock(T0);
@@ -99,10 +102,10 @@ export function makeRelay(overrides: Partial<RelayDeps> = {}): TestRelay {
       if (secret !== null) headers.set("authorization", `Bearer ${secret}`);
       const init: RequestInit = { method, headers };
       if (options.body !== undefined) init.body = JSON.stringify(options.body);
-      return worker.fetch!(new Request(`https://relay.test${path}`, init) as never, env, ctx());
+      return worker.fetch!(new Request(`https://relay.test${path}`, init) as never, relayEnv, ctx());
     },
     async cron() {
-      await worker.scheduled!({ cron: "*/5 * * * *", scheduledTime: clock.seconds * 1000 } as never, env, ctx());
+      await worker.scheduled!({ cron: "*/5 * * * *", scheduledTime: clock.seconds * 1000 } as never, relayEnv, ctx());
     },
   };
   const worker = createRelay({

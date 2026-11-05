@@ -4,7 +4,14 @@
 import { sendPush, type PushOutcome } from "./apns";
 import type { RelayDeps } from "./app";
 import { ApnsNotConfiguredError } from "./auth";
-import { DEFAULT_FETCH_BUDGET, loadCounts, type CachedCounts } from "./contributions";
+import {
+  DEFAULT_FETCH_BUDGET,
+  DEFAULT_SUBREQUEST_LIMIT,
+  readCounts,
+  refreshCounts,
+  refreshOrder,
+  type CachedCounts,
+} from "./contributions";
 import type { Env } from "./env";
 import { logEvent } from "./log";
 import { END_PRIORITY, START_PRIORITY, endPayload, staleDate, startPayload, updatePayload } from "./payload";
@@ -23,12 +30,22 @@ export async function runCron(env: Env, deps: RelayDeps): Promise<void> {
   const installations = await listInstallations(env.DB);
   if (installations.length === 0) return;
 
+  // Every GitHub fetch and APNs push is a subrequest, and a run has a fixed number. Pushes come
+  // first: the fetch budget is what's left after reserving every push this run may send.
+  const limit = nonNegativeInt(env.SUBREQUEST_LIMIT) ?? DEFAULT_SUBREQUEST_LIMIT;
+  const reserve = installations.reduce((total, installation) => total + pushesDue(installation, now), 0);
+  const fetchBudget = Math.max(0, Math.min(nonNegativeInt(env.GITHUB_FETCH_BUDGET) ?? DEFAULT_FETCH_BUDGET, limit - reserve));
+
   const logins = [...new Set(installations.flatMap((installation) => installation.competitors))];
-  const counts = await loadCounts(env.DB, deps, logins, now, deps.githubFetchBudget ?? DEFAULT_FETCH_BUDGET);
+  const counts = await readCounts(env.DB, logins);
+  // What each board shows first: your own count and the people right above and below you.
+  const focus = new Set(installations.flatMap((installation) => shownLogins(installation, counts, now)));
+  const fetched = await refreshCounts(env.DB, deps, counts, refreshOrder(logins, focus, counts, now), now, fetchBudget);
+  const budget: PushBudget = { left: limit - fetched };
 
   for (const installation of installations) {
     try {
-      await updateInstallation(env, deps, installation, counts, now);
+      await updateInstallation(env, deps, installation, counts, now, budget);
     } catch (cause) {
       if (cause instanceof ApnsNotConfiguredError) {
         logEvent(deps.log, "apns_not_configured");
@@ -52,13 +69,22 @@ interface Outcome {
   startedAt?: number;
 }
 
-async function updateInstallation(
-  env: Env,
-  deps: RelayDeps,
-  installation: Installation,
-  counts: Map<string, CachedCounts>,
-  now: number,
-): Promise<void> {
+/** Subrequests left for APNs in this run. */
+interface PushBudget {
+  left: number;
+}
+
+/** The most pushes `installation` can need this run: an update, or a rotation's end and start. */
+function pushesDue(installation: Installation, now: number): number {
+  const rotationDue = (since: number | null) => since !== null && now - since >= ROTATE_AFTER_SECONDS;
+  if (installation.activityPushToken) {
+    return rotationDue(installation.activityStartedAt) && installation.pushToStartToken ? 2 : 1;
+  }
+  return installation.pushToStartToken && rotationDue(installation.rotationAnchorAt) ? 1 : 0;
+}
+
+/** Each board as the cache has it now. */
+function board(installation: Installation, counts: ReadonlyMap<string, CachedCounts>, now: number) {
   const today = localDate(now, installation.timeZone);
   const competitors: Competitor[] = installation.competitors.map((login) => ({ login, isSelf: login === installation.login }));
   const standings: Record<string, Standing> = {};
@@ -71,12 +97,39 @@ async function updateInstallation(
       lastUpdated: cached.fetchedAt,
     };
   }
+  return { today, competitors, standings };
+}
+
+/** You and the people directly above and below you, by the cached counts. */
+function shownLogins(installation: Installation, counts: ReadonlyMap<string, CachedCounts>, now: number): string[] {
+  const { competitors, standings } = board(installation, counts, now);
+  const ranked = order(competitors, standings, installation.window);
+  const self = ranked.findIndex((entry) => entry.competitor.isSelf);
+  return ranked.slice(Math.max(0, self - 1), self + 2).map((entry) => entry.competitor.login);
+}
+
+async function updateInstallation(
+  env: Env,
+  deps: RelayDeps,
+  installation: Installation,
+  counts: Map<string, CachedCounts>,
+  now: number,
+  budget: PushBudget,
+): Promise<void> {
+  const { today, competitors, standings } = board(installation, counts, now);
 
   const outcome: Outcome = { readRevision: installation.revision };
   const rankDeltas = todaysMovement(installation, competitors, standings, today, outcome);
   const state = deriveLiveRankState({ competitors, standings, window: installation.window, rankDeltas, now });
 
+  // Pushes past the run's subrequest limit wait for the next run (nothing is recorded as sent).
+  const canPush = (count: number): boolean => {
+    if (budget.left >= count) return true;
+    logEvent(deps.log, "push_deferred", { install: installation.id });
+    return false;
+  };
   const push = async (token: string, priority: 5 | 10, payload: unknown, kind: string): Promise<PushOutcome> => {
+    budget.left -= 1;
     const result = await sendPush(deps, env, { environment: installation.environment, token, priority, payload });
     logEvent(deps.log, result.outcome === "token-gone" ? "token_removed" : `push_${result.outcome}`, {
       install: installation.id,
@@ -92,19 +145,21 @@ async function updateInstallation(
   const activityAge = installation.activityStartedAt === null ? 0 : now - installation.activityStartedAt;
 
   if (activityToken && activityAge >= ROTATE_AFTER_SECONDS) {
-    // Rotation: end the old activity at once, then push-to-start a fresh one.
-    await push(activityToken, END_PRIORITY, endPayload(installation.lastState ?? state, now), "end");
-    outcome.endedActivityToken = activityToken;
-    if (pushToStart) await start(pushToStart);
+    // Rotation: end the old activity at once, then push-to-start a fresh one (both, or neither).
+    if (canPush(pushToStart ? 2 : 1)) {
+      await push(activityToken, END_PRIORITY, endPayload(installation.lastState ?? state, now), "end");
+      outcome.endedActivityToken = activityToken;
+      if (pushToStart) await start(pushToStart);
+    }
   } else if (!activityToken && pushToStart && now - installation.rotationAnchorAt >= ROTATE_AFTER_SECONDS) {
-    await start(pushToStart);
+    if (canPush(1)) await start(pushToStart);
   } else if (activityToken) {
     const last = installation.lastState;
     const nextStale = staleDate(state);
     const changed = last === null || !sameContent(last, state);
     const heartbeat =
       installation.lastStaleAt !== null && now >= installation.lastStaleAt - HEARTBEAT_LEAD_SECONDS && nextStale > installation.lastStaleAt;
-    if (changed || heartbeat) {
+    if ((changed || heartbeat) && canPush(1)) {
       const priority = last !== null && last.rank !== state.rank ? 10 : 5;
       const result = await push(activityToken, priority, updatePayload(state, now), "update");
       if (result === "delivered") outcome.delivered = { token: activityToken, state, staleAt: nextStale };
@@ -197,4 +252,9 @@ function sameContent(a: LiveRankState, b: LiveRankState): boolean {
     neighbor(a.below) === neighbor(b.below) &&
     a.movementToday === b.movementToday
   );
+}
+
+function nonNegativeInt(value: string | undefined): number | undefined {
+  const parsed = value === undefined ? NaN : Number(value);
+  return Number.isSafeInteger(parsed) && parsed >= 0 ? parsed : undefined;
 }

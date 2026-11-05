@@ -19,7 +19,12 @@
   ],
   "vars": {
     // The iOS app's bundle ID; APNs topic is "<bundle>.push-type.liveactivity".
-    "APNS_BUNDLE_ID": "com.addisonk.CommitStandings.iOS"
+    "APNS_BUNDLE_ID": "com.addisonk.CommitStandings.iOS",
+    // Outbound requests (GitHub fetches + APNs pushes) per cron run: 50 on the free plan,
+    // 10,000 on Workers Paid (see README "Limits to know").
+    "SUBREQUEST_LIMIT": "50",
+    // Most GitHub fetches per run, within SUBREQUEST_LIMIT minus the pushes the run may send.
+    "GITHUB_FETCH_BUDGET": "40"
   }
   // Secrets (wrangler secret put): APNS_TEAM_ID, APNS_KEY_ID, APNS_PRIVATE_KEY.
 }
