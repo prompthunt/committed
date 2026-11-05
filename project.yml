@@ -70,6 +70,7 @@ targets:
     deploymentTarget: "27.1"
     sources:
       - path: CommitStandingsiOS
+        excludes: [Info.plist]
       - path: CommitStandings/Models
       - path: CommitStandings/Services/ContributionsClient.swift
       - path: CommitStandings/Services/ContributionsParser.swift
@@ -82,6 +83,9 @@ targets:
       - path: CommitStandings/Support
       - path: CommitStandings/Views/StandingRow.swift
       - path: CommitStandings/Views/AvatarView.swift
+      - path: CommitStandings/Views/RosterStatusView.swift
+      - path: CommitStandings/Views/ContributionWindowPicker.swift
+      - path: CommitStandings/Views/PrivateContributionsTip.swift
     dependencies:
       - target: CommitStandingsLiveRank
     settings:
@@ -89,6 +93,7 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.addisonk.CommitStandings.iOS
         TARGETED_DEVICE_FAMILY: "1"
         GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_FILE: CommitStandingsiOS/Info.plist # CFBundleURLTypes: committed:// deep links
         INFOPLIST_KEY_CFBundleDisplayName: Committed
         INFOPLIST_KEY_UILaunchScreen_Generation: YES
         INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES

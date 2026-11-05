@@ -10,13 +10,15 @@ struct StandingRow: View {
     var maxContributions: Int = 0
     /// Change in this row's placement since the start of the day (+ up, − down). nil/0 ⇒ no marker.
     var rankDelta: Int? = nil
+    /// Grows with Dynamic Type on iPhone so "#12" never truncates; stays 24pt on the Mac.
+    @ScaledMetric(relativeTo: .caption) private var rankWidth: CGFloat = 24
 
     var body: some View {
         HStack(spacing: 10) {
             Text("#\(rank)")
                 .font(.caption.monospacedDigit())
                 .foregroundStyle(.secondary)
-                .frame(width: 24, alignment: .trailing)
+                .frame(width: rankWidth, alignment: .trailing)
             AvatarView(username: competitor.username, size: 26)
             HStack(spacing: 4) {
                 Text(competitor.username)
