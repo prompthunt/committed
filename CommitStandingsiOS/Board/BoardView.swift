@@ -3,36 +3,62 @@ import SwiftUI
 /// The Board tab: your summary, then everyone ranked with the shared `StandingRow`. The Window
 /// switch sits in the navigation bar; pull to refresh reloads people and Contributions.
 ///
-/// #46 turns this into a split arrangement: `BoardLeaderboard` stays the primary pane and
-/// `BoardSummaryView` becomes the secondary pane in regular width.
+/// Two panes in a split arrangement: the leaderboard is primary, so it's the pane that survives
+/// when there's room for only one, and your summary is secondary. Side by side they divide the
+/// width evenly (at the fold on iPhone Duo); otherwise the summary heads the leaderboard.
 struct BoardView: View {
     @Environment(AppModel.self) private var model
     @Environment(StandingsStore.self) private var store
+    /// Where the two panes are, as they last reported. Lives above the arrangement so it survives
+    /// the panes being rebuilt when the device opens, closes, or folds.
+    @State private var arrangementFrame: CGRect?
+    @State private var leaderboardFrame: CGRect?
+    @State private var summaryFrame: CGRect?
 
     var body: some View {
         NavigationStack {
-            BoardLeaderboard()
-                .navigationTitle("Board")
-                .navigationBarTitleDisplayMode(.inline)
-                .toolbar {
-                    ToolbarItem(placement: .principal) {
-                        ContributionWindowPicker()
-                            .fixedSize()
-                    }
+            ArrangementView {
+                BoardLeaderboard(
+                    summaryPlacement: BoardArrangement.summaryPlacement(
+                        arrangement: arrangementFrame, leaderboard: leaderboardFrame, summary: summaryFrame
+                    )
+                )
+                .onGeometryChange(for: CGRect.self) { $0.frame(in: .named(Self.arrangementSpace)) } action: {
+                    leaderboardFrame = $0
                 }
-                .refreshable { await model.pullToRefresh() }
+            } secondary: {
+                BoardSummaryPane()
+                    .onGeometryChange(for: CGRect.self) { $0.frame(in: .named(Self.arrangementSpace)) } action: {
+                        summaryFrame = $0
+                    }
+            }
+            .coordinateSpace(.named(Self.arrangementSpace))
+            .onGeometryChange(for: CGRect.self) { $0.frame(in: .local) } action: { arrangementFrame = $0 }
+            .arrangementViewStyle(.split.axes(.horizontal))
+            .navigationTitle("Board")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .principal) {
+                    ContributionWindowPicker()
+                        .fixedSize()
+                }
+            }
+            .refreshable { await model.pullToRefresh() }
         }
         .onChange(of: store.selectedWindow) {
             Task { await model.windowDidChange() }
         }
     }
+
+    private nonisolated static let arrangementSpace = "BoardArrangement"
 }
 
-/// The ranked list, with the summary as its header in compact width.
+/// The ranked list, headed by your summary whenever the summary has no pane of its own.
 struct BoardLeaderboard: View {
     @Environment(AppModel.self) private var model
     @Environment(StandingsStore.self) private var store
     @Environment(RefreshCoordinator.self) private var refresh
+    let summaryPlacement: BoardArrangement.SummaryPlacement
 
     var body: some View {
         let window = store.selectedWindow
@@ -43,10 +69,12 @@ struct BoardLeaderboard: View {
             .map(\.contributions).max() ?? 0
 
         List {
-            Section {
-                BoardSummaryView()
-                    .listRowSeparator(.hidden)
-                    .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 4, trailing: 16))
+            if summaryPlacement == .leaderboardHeader {
+                Section {
+                    BoardSummaryView()
+                        .listRowSeparator(.hidden)
+                        .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 4, trailing: 16))
+                }
             }
 
             if !store.hasSelf {
@@ -104,6 +132,18 @@ struct BoardLeaderboard: View {
             else { return false }
             return standing.lastUpdated != .distantPast
         }
+    }
+}
+
+/// Your summary in its own pane, beside the leaderboard. It scrolls so it still fits at
+/// accessibility text sizes or in a short pane.
+private struct BoardSummaryPane: View {
+    var body: some View {
+        ScrollView {
+            BoardSummaryView()
+                .padding(16)
+        }
+        .accessibilityLabel("Your standing")
     }
 }
 

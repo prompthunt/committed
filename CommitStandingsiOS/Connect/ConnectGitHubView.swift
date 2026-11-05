@@ -10,6 +10,8 @@ struct ConnectGitHubView: View {
     @Environment(\.openURL) private var openURL
     @Environment(\.colorScheme) private var colorScheme
     @State private var copiedCode: String?
+    /// A readable column that grows with Dynamic Type instead of a fixed width.
+    @ScaledMetric(relativeTo: .body) private var readableWidth: CGFloat = 520
 
     var body: some View {
         NavigationStack {
@@ -29,8 +31,10 @@ struct ConnectGitHubView: View {
                     }
                 }
                 .padding(24)
-                .frame(maxWidth: 520)
-                .frame(maxWidth: .infinity)
+                .frame(maxWidth: readableWidth)
+                // Partially folded like a book, the centered column would put Connect GitHub in
+                // the fold; it moves to one side instead.
+                .avoidingFold()
             }
             .scrollBounceBehavior(.basedOnSize)
             .navigationTitle("Connect GitHub")
