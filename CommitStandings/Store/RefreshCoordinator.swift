@@ -3,6 +3,8 @@ import Observation
 
 enum RefreshReason: String {
     case menuOpened
+    /// The iPhone app came to the foreground.
+    case becameActive
     case timer
     case manual
     case windowChanged
