@@ -12,6 +12,10 @@ struct AppDependencies {
     var snapshotPersistence: any StandingsSnapshotPersistence
     var hiddenPeoplePersistence: any HiddenPeoplePersistence
     var rosterPersistence: (any GitHubRosterPersistence)?
+    /// Loads your people (follows plus accessible org members) with a token.
+    var rosterFetch: @Sendable (URLSession, String) async throws -> GitHubRosterSnapshot = { session, token in
+        try await GitHubAccountClient(token: token, session: session).roster()
+    }
     /// Seconds between refreshes while the app is active.
     var refreshInterval: TimeInterval = 300
     /// The wait between device-flow polls (real sleeping in production).
@@ -59,7 +63,7 @@ final class AppModel {
             credentials: credentials,
             persistence: dependencies.rosterPersistence,
             now: dependencies.now,
-            fetch: { try await GitHubAccountClient(token: $0, session: session).roster() }
+            fetch: { [rosterFetch = dependencies.rosterFetch] in try await rosterFetch(session, $0) }
         )
         let notifications = NotificationService()
         let refresh = RefreshCoordinator(

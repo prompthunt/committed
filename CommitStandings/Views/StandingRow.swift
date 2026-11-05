@@ -10,18 +10,28 @@ struct StandingRow: View {
     var maxContributions: Int = 0
     /// Change in this row's placement since the start of the day (+ up, − down). nil/0 ⇒ no marker.
     var rankDelta: Int? = nil
+    /// Column widths grow with Dynamic Type (iPhone) so "#12" and counts never wrap; at the
+    /// default size they're the Mac's fixed 24 and 40 points.
+    @ScaledMetric(relativeTo: .caption) private var rankWidth: CGFloat = 24
+    @ScaledMetric(relativeTo: .callout) private var countWidth: CGFloat = 40
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
         HStack(spacing: 10) {
             Text("#\(rank)")
                 .font(.caption.monospacedDigit())
                 .foregroundStyle(.secondary)
-                .frame(width: 24, alignment: .trailing)
+                .lineLimit(1)
+                .frame(width: rankWidth, alignment: .trailing)
             AvatarView(username: competitor.username, size: 26)
             HStack(spacing: 4) {
                 Text(competitor.username)
                     .font(.callout)
                     .lineLimit(1)
+                    // At accessibility text sizes, shrink a long name a little before
+                    // truncating it. (Wrapping would hyphenate, and hyphens are valid in
+                    // GitHub usernames.)
+                    .minimumScaleFactor(dynamicTypeSize.isAccessibilitySize ? 0.6 : 1)
                     .truncationMode(.middle)
                     .fontWeight(competitor.isSelf ? .semibold : .regular)
                 if competitor.isSelf {
@@ -37,7 +47,7 @@ struct StandingRow: View {
             HStack(spacing: 4) {
                 rankDeltaIndicator
                 contributionsLabel
-                    .frame(minWidth: 40, alignment: .trailing)
+                    .frame(minWidth: countWidth, alignment: .trailing)
             }
             contributionSquare
         }

@@ -1,18 +1,52 @@
 import SwiftUI
 
-/// Committed for iPhone. This shell compiles the Mac app's platform-neutral core (models,
-/// ranking, persistence, the stores, and `StandingRow`) through shared target membership.
+/// Committed for iPhone. The app compiles the Mac app's platform-neutral core (models,
+/// ranking, persistence, the stores, auth, and `StandingRow`) through shared target
+/// membership; `AppModel` composes it.
 @main
 struct CommitStandingsiOSApp: App {
-    // Same durable snapshot as the Mac, so saved numbers render immediately on launch.
-    @State private var store = StandingsStore(
-        snapshotPersistence: UserDefaultsStandingsSnapshotPersistence(),
-        hiddenPeoplePersistence: UserDefaultsHiddenPeoplePersistence()
-    )
+    @State private var app = AppModel.forLaunch()
 
     var body: some Scene {
         WindowGroup {
-            PlaceholderBoardView(store: store)
+            RootView()
+                .environment(app)
+                .environment(app.store)
+                .environment(app.refresh)
+                .environment(app.auth)
+                .environment(app.roster)
+                .environment(app.notifications)
         }
+    }
+}
+
+extension AppModel {
+    /// Production wiring, except under the unit-test host (which must never touch the real
+    /// Keychain or network) and the DEBUG `-demoBoard` launch argument used for screenshots.
+    static func forLaunch() -> AppModel {
+        if NSClassFromString("XCTestCase") != nil {
+            return AppModel(.testHost())
+        }
+        #if DEBUG
+        if ProcessInfo.processInfo.arguments.contains("-demoBoard") {
+            return AppModel(.demo())
+        }
+        #endif
+        return AppModel(.live())
+    }
+}
+
+extension AppDependencies {
+    /// Signed out, in memory, offline: the test host app does nothing on its own.
+    static func testHost() -> AppDependencies {
+        AppDependencies(
+            credentials: InMemoryGitHubCredentialStore(),
+            gitHubSession: .shared,
+            contributions: ContributionsClient(),
+            competitorPersistence: InMemoryCompetitorPersistence(),
+            snapshotPersistence: InMemoryStandingsSnapshotPersistence(),
+            hiddenPeoplePersistence: InMemoryHiddenPeoplePersistence(),
+            rosterPersistence: nil
+        )
     }
 }

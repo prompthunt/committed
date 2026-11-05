@@ -68,6 +68,8 @@ targets:
     deploymentTarget: "27.1"
     sources:
       - path: CommitStandingsiOS
+        excludes:
+          - Info.plist  # merged into the generated Info.plist via INFOPLIST_FILE, not a resource
       - path: CommitStandings/Models
       - path: CommitStandings/Store
       - path: CommitStandings/Support
@@ -80,6 +82,8 @@ targets:
       - path: CommitStandings/Services/NotificationService.swift
       - path: CommitStandings/Views/StandingRow.swift
       - path: CommitStandings/Views/AvatarView.swift
+      - path: CommitStandings/Views/RosterStatusView.swift
+      - path: CommitStandings/Views/PrivateContributionsTip.swift
     dependencies:
       - target: CommitStandingsLiveRank
         embed: true
@@ -90,6 +94,7 @@ targets:
         MARKETING_VERSION: "0.1.51"
         CURRENT_PROJECT_VERSION: "1"
         GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_FILE: CommitStandingsiOS/Info.plist  # only CFBundleURLTypes (committed://)
         INFOPLIST_KEY_CFBundleDisplayName: Committed
         INFOPLIST_KEY_NSSupportsLiveActivities: YES
         INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
