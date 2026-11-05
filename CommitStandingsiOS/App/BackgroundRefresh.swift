@@ -11,10 +11,9 @@ enum BackgroundRefresh {
 
     /// Ask for the next refresh, no sooner than 15 minutes from now. Submitting again replaces the
     /// pending request.
-    @MainActor
-    static func schedule() {
+    static func schedule() async {
         let request = BGAppRefreshTaskRequest(identifier: identifier)
         request.earliestBeginDate = Date(timeIntervalSinceNow: 15 * 60)
-        try? BGTaskScheduler.shared.submit(request)
+        try? await BGTaskScheduler.shared.submitTaskRequest(request)
     }
 }

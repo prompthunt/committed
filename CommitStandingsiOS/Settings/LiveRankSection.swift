@@ -3,7 +3,7 @@ import UIKit
 
 /// Settings ▸ Live rank: the switch, Live rank's Window (Today by default), and a status line that
 /// links to iOS Settings when Live Activities are off for Committed.
-struct LiveRankSettingsSection: View {
+struct LiveRankSection: View {
     @Environment(AppModel.self) private var model
     @Environment(\.openURL) private var openURL
 

@@ -244,4 +244,29 @@ struct ConnectGitHubTests {
         #expect(app.store.competitors.isEmpty)
         #expect(app.roster.snapshot == nil)
     }
+
+    @Test func visibilitySurvivesDisconnectAndReconnect() async throws {
+        let script = Script()
+        let credentials = InMemoryGitHubCredentialStore(token: "gho_x")
+        let app = services(script: script, roster: { _ in
+            GitHubRosterSnapshot(owner: "me", sources: [
+                GitHubRosterSource(id: "following", title: "Following", members: ["ada", "grace"]),
+            ], updatedAt: Date(timeIntervalSince1970: 0))
+        }, credentials: credentials)
+        await app.roster.refresh(force: true)
+        let ada = try #require(app.store.competitors.first { $0.username == "ada" })
+        PeopleDirectory.toggleVisibility(of: ada, store: app.store, refresh: app.refresh)
+        #expect(app.store.visibleCompetitors.map(\.username) == ["me", "grace"])
+
+        app.auth.signOut()
+        #expect(credentials.read() == nil)
+        #expect(app.store.competitors.isEmpty)
+
+        // Connecting the same account again brings everyone back, with ada still hidden.
+        credentials.save("gho_y")
+        await app.roster.refresh(force: true)
+        #expect(app.store.competitors.map(\.username) == ["me", "ada", "grace"])
+        #expect(app.store.isHidden("ada"))
+        #expect(app.store.visibleCompetitors.map(\.username) == ["me", "grace"])
+    }
 }

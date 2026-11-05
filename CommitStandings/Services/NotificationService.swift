@@ -8,7 +8,7 @@ protocol RankChangeNotifying: AnyObject {
     func post(_ events: [RankChangeEvent])
 }
 
-/// Posts local macOS notifications for position changes, gated by the opt-in toggle and the
+/// Posts local notifications (Mac and iPhone) for position changes, gated by the opt-in toggle and the
 /// system notification authorization. Everything degrades to a no-op when the toggle is off,
 /// authorization isn't granted, or `UNUserNotificationCenter` is unavailable (e.g. an unsigned
 /// dev build) — so a missing permission never crashes or blocks a refresh.
@@ -23,9 +23,12 @@ final class NotificationService: RankChangeNotifying {
     // when we actually request authorization or post.
     private var center: UNUserNotificationCenter { .current() }
     private let defaults: UserDefaults
+    /// Replaces the system permission prompt in tests. `nil` asks `UNUserNotificationCenter`.
+    private let authorize: (@MainActor () async -> Bool)?
 
-    init(defaults: UserDefaults = .standard) {
+    init(defaults: UserDefaults = .standard, authorize: (@MainActor () async -> Bool)? = nil) {
         self.defaults = defaults
+        self.authorize = authorize
     }
 
     var isEnabled: Bool { defaults.bool(forKey: Self.enabledDefaultsKey) }
@@ -35,7 +38,22 @@ final class NotificationService: RankChangeNotifying {
     /// the toggle state rather than leaving it on with no notifications ever arriving.
     @discardableResult
     func requestAuthorization() async -> Bool {
-        (try? await center.requestAuthorization(options: [.alert, .sound])) ?? false
+        if let authorize { return await authorize() }
+        return (try? await center.requestAuthorization(options: [.alert, .sound])) ?? false
+    }
+
+    /// The Leaderboard Notifications switch. Turning it on saves the choice at once, then asks for
+    /// permission and switches back off if it's denied, so the switch never sits on while nothing
+    /// can arrive. Turning it off never prompts. Returns whether notifications ended up on.
+    @discardableResult
+    func setEnabled(_ enabled: Bool) async -> Bool {
+        defaults.set(enabled, forKey: Self.enabledDefaultsKey)
+        guard enabled else { return false }
+        let granted = await requestAuthorization()
+        // The user may have switched it off again while the prompt was up.
+        guard isEnabled else { return false }
+        if !granted { defaults.set(false, forKey: Self.enabledDefaultsKey) }
+        return granted
     }
 
     func post(_ events: [RankChangeEvent]) {

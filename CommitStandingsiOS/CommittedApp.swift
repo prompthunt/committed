@@ -7,6 +7,11 @@ struct CommittedApp: App {
     // launch, and the token lives in this iPhone's Keychain.
     @State private var model = CommittedApp.makeModel()
 
+    init() {
+        // A unit-test host must not touch the notification center at launch.
+        if !CommittedServices.isRunningTests { ForegroundNotificationPresenter.install() }
+    }
+
     private static var loadsGitHubAvatars: Bool {
         #if DEBUG
         if ScreenshotFixture.isRequested { return false }
@@ -17,11 +22,13 @@ struct CommittedApp: App {
     private static func makeModel() -> AppModel {
         #if DEBUG
         if ScreenshotFixture.isRequested {
-            return AppModel(
+            let model = AppModel(
                 services: ScreenshotFixture.services(), backgroundTime: UIApplicationBackgroundTime(),
                 liveRankActivities: ActivityKitLiveRankActivities(),
                 liveRankRelay: ScreenshotFixture.liveRankRelay
             )
+            if let tab = ScreenshotFixture.requestedTab { model.selectedTab = tab }
+            return model
         }
         #endif
         let services = CommittedServices.live()

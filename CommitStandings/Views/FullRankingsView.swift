@@ -10,14 +10,7 @@ struct FullRankingsView: View {
     @State private var searchText = ""
 
     private var people: [Competitor] {
-        let allowed = roster.snapshot?.usernames(in: source) ?? []
-        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
-            .trimmingCharacters(in: CharacterSet(charactersIn: "@"))
-        return store.competitors.filter { person in
-            (source == .all || allowed.contains(person.username))
-                && (query.isEmpty || person.username.localizedCaseInsensitiveContains(query))
-        }
-        .sorted { $0.username < $1.username }
+        PeopleDirectory.people(in: store.competitors, roster: roster.snapshot, source: source, search: searchText)
     }
 
     var body: some View {
@@ -90,7 +83,7 @@ private struct PersonVisibilityRow: View {
 
     private var hidden: Bool { store.isHidden(person.username) }
     private var actionLabel: String {
-        "\(hidden ? "Show" : "Hide") @\(person.username)\(hidden ? " on" : " from") leaderboard"
+        PeopleDirectory.visibilityActionLabel(username: person.username, hidden: hidden)
     }
 
     var body: some View {
@@ -129,11 +122,6 @@ private struct PersonVisibilityRow: View {
     }
 
     private func toggleVisibility() {
-        guard !person.isSelf else { return }
-        let shouldHide = !hidden
-        store.setHidden(shouldHide, username: person.username)
-        if !shouldHide {
-            Task { await refresh.refreshOne(username: person.username, reason: .visibilityChanged) }
-        }
+        PeopleDirectory.toggleVisibility(of: person, store: store, refresh: refresh)
     }
 }

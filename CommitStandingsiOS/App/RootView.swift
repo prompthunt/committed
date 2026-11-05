@@ -32,7 +32,7 @@ struct RootView: View {
             case .active: Task { await model.sceneDidBecomeActive() }
             case .background:
                 model.sceneDidEnterBackground()
-                if model.auth.isSignedIn { BackgroundRefresh.schedule() }
+                if model.auth.isSignedIn { Task { await BackgroundRefresh.schedule() } }
             default: break
             }
         }

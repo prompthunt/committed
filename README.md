@@ -2,7 +2,7 @@
 
 [![Build and test](https://github.com/prompthunt/committed/actions/workflows/ci.yml/badge.svg)](https://github.com/prompthunt/committed/actions/workflows/ci.yml)
 
-A tiny Mac menu-bar and Windows tray app that turns your GitHub contributions into a friendly leaderboard
+A tiny Mac menu-bar app, Windows tray app, and iPhone app that turns your GitHub contributions into a friendly leaderboard
 among friends. See who's shipping, get a nudge when someone passes you (or you pass them),
 and watch your spot on the board move through the day.
 
@@ -29,10 +29,13 @@ warnings. It keeps itself up to date automatically — no need to re-download.
 Prefer to see all versions and release notes? Browse the
 [releases page](https://github.com/prompthunt/commit-standings-releases/releases/latest).
 
+**Committed for iPhone** (iOS 27.1 or later) isn't publicly available yet; TestFlight comes first.
+It has the same board, plus **People** and **Settings** tabs.
+
 ## What it does
 
 - A compact leaderboard of you, your GitHub organization members, and people you follow, ranked by GitHub contributions.
-- People sync automatically from GitHub; use **People…** to search, filter by source, and hide or show anyone on your board.
+- People sync automatically from GitHub; use **People** (**People…** on the Mac) to search, filter by source, and hide or show anyone on your board.
 - **Today / 7 days / 30 days** views.
 - **Leaderboard Notifications** (opt-in): a ping when a friend passes you, or you pass them.
 - Small rank-shift chevrons showing how your placement moved today.
@@ -58,6 +61,9 @@ xcodebuild -scheme CommitStandings -configuration Debug \
   -destination 'platform=macOS' CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY=- \
   DEVELOPMENT_TEAM= build test
 ```
+
+The iPhone app is the `CommitStandingsiOS` scheme in the same project. It needs Xcode 27.1 and
+an iOS 27.1 simulator (for example iPhone Duo).
 
 Read [CONTRIBUTING.md](CONTRIBUTING.md) for setup and pull requests,
 [AGENTS.md](AGENTS.md) for release invariants, and [SECURITY.md](SECURITY.md) to
