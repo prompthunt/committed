@@ -8,7 +8,9 @@ import Foundation
 ///
 /// Optional, after `-ScreenshotFixture`: `-ScreenshotTab people|settings` opens on that tab,
 /// `-ScreenshotHide <login>` hides that person before the first refresh (so Today still moves), and
-/// `-LiveRankPayload <file.json>` shows a Live Activity push payload's content state in Live rank.
+/// `-LiveRankPayload <file.json>` shows a Live Activity push payload's content state in Live rank,
+/// and `-RelayDisclosureAccepted` starts with the Committed relay disclosure already accepted (for
+/// builds with `COMMITTED_RELAY_URL`; without it, a relay build shows the disclosure sheet).
 ///
 /// Everything above the data layer is real: `CommittedServices`, `RefreshCoordinator`, `Ranking`,
 /// and every view. Counts move between the first two refreshes so Today shows movement chevrons.
@@ -30,6 +32,15 @@ enum ScreenshotFixture {
         case "settings": return .settings
         default: return nil
         }
+    }
+
+    /// Live rank settings for the fixture, in memory: never chosen, or accepted and on with
+    /// `-RelayDisclosureAccepted`.
+    static func liveRankPreferences() -> InMemoryLiveRankPreferences {
+        guard ProcessInfo.processInfo.arguments.contains("-RelayDisclosureAccepted") else {
+            return InMemoryLiveRankPreferences()
+        }
+        return InMemoryLiveRankPreferences(LiveRankPreferences(isEnabled: true, relayDisclosureAccepted: true))
     }
 
     private static func value(after flag: String) -> String? {

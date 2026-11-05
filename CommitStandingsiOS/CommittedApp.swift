@@ -24,7 +24,9 @@ struct CommittedApp: App {
         if ScreenshotFixture.isRequested {
             let model = AppModel(
                 services: ScreenshotFixture.services(), backgroundTime: UIApplicationBackgroundTime(),
-                liveRankActivities: ScreenshotFixture.liveRankActivities(ActivityKitLiveRankActivities())
+                liveRankActivities: ScreenshotFixture.liveRankActivities(ActivityKitLiveRankActivities()),
+                liveRankPreferences: ScreenshotFixture.liveRankPreferences(),
+                liveRankRelay: makeLiveRankRelay()
             )
             if let tab = ScreenshotFixture.requestedTab { model.selectedTab = tab }
             return model
@@ -39,8 +41,30 @@ struct CommittedApp: App {
             services: services,
             backgroundTime: UIApplicationBackgroundTime(),
             liveRankActivities: ActivityKitLiveRankActivities(),
-            liveRankPreferences: UserDefaultsLiveRankPreferences()
+            liveRankPreferences: UserDefaultsLiveRankPreferences(),
+            liveRankRelay: makeLiveRankRelay()
         )
+    }
+
+    /// Keeps ActivityKit's token observers alive for the app's lifetime.
+    private static var liveRankTokens: ActivityKitLiveRankTokens?
+
+    /// The Committed relay when the `COMMITTED_RELAY_URL` build setting names one (phase 2), with
+    /// ActivityKit's token streams feeding it from launch. Otherwise phase 1: no relay.
+    private static func makeLiveRankRelay() -> any LiveRankRegistrar {
+        let settings = LiveRankRelaySettings.main
+        guard let baseURL = settings.baseURL else { return NoLiveRankRelay() }
+        let registrar = RelayLiveRankRegistrar(
+            api: URLSessionLiveRankRelayAPI(baseURL: baseURL),
+            installations: KeychainRelayInstallationStore(),
+            apnsEnvironment: settings.apnsEnvironment,
+            backgroundTime: UIApplicationBackgroundTime()
+        )
+        let tokens = ActivityKitLiveRankTokens(receiver: registrar)
+        tokens.start()
+        liveRankTokens = tokens
+        LiveRankLog.relay.info("relay \(baseURL.absoluteString, privacy: .public), \(settings.apnsEnvironment.rawValue, privacy: .public)")
+        return registrar
     }
 
     var body: some Scene {

@@ -1,4 +1,11 @@
 import Foundation
+import os
+
+enum LiveRankLog {
+    /// `log stream --predicate 'subsystem == "com.addisonk.CommitStandings.iOS"'` shows what the app
+    /// sends the relay. Tokens are logged as short prefixes; the install secret never.
+    static let relay = Logger(subsystem: "com.addisonk.CommitStandings.iOS", category: "LiveRankRelay")
+}
 
 /// This iPhone's identity at the Committed relay: a random installation ID and a random secret,
 /// generated once and kept in the Keychain. The relay stores only the secret's hash; the first
@@ -233,8 +240,10 @@ final class RelayLiveRankRegistrar: LiveRankRegistrar, LiveRankTokenReceiving {
             do {
                 try await api.register(registration, as: installation.credentials)
             } catch {
+                LiveRankLog.relay.error("register failed: \(String(describing: error), privacy: .public)")
                 return
             }
+            LiveRankLog.relay.info("registered \(registration.competitors.count) people, \(registration.window, privacy: .public), push-to-start \(registration.pushToStartToken == nil ? "none" : "yes", privacy: .public)")
             lastRegistered = registration
             if !installation.isRegistered {
                 installation.isRegistered = true
@@ -253,8 +262,10 @@ final class RelayLiveRankRegistrar: LiveRankRegistrar, LiveRankTokenReceiving {
                 lastRegistered = nil
                 return
             } catch {
+                LiveRankLog.relay.error("activity report failed: \(String(describing: error), privacy: .public)")
                 return
             }
+            LiveRankLog.relay.info("reported activity \(next.id, privacy: .public)")
             pendingActivities.removeFirst()
             reportedActivities[next.id] = next.token
         }
@@ -265,8 +276,10 @@ final class RelayLiveRankRegistrar: LiveRankRegistrar, LiveRankTokenReceiving {
         do {
             try await api.unregister(installation.credentials)
         } catch {
+            LiveRankLog.relay.error("unregister failed: \(String(describing: error), privacy: .public)")
             return
         }
+        LiveRankLog.relay.info("unregistered")
         installation.isRegistered = false
         installations.save(installation)
         lastRegistered = nil

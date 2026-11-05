@@ -24,5 +24,12 @@
 	<array>
 		<string>com.addisonk.CommitStandings.iOS.refresh</string>
 	</array>
+	<!-- The Committed relay (Live rank phase 2), from build settings. An empty COMMITTED_RELAY_URL
+	     means no relay: Live rank stays phase 1. COMMITTED_APNS_ENVIRONMENT is sandbox (Debug) or
+	     production (Release), matching aps-environment. See LiveRankRelaySettings. -->
+	<key>CommittedRelayURL</key>
+	<string>$(COMMITTED_RELAY_URL)</string>
+	<key>CommittedAPNsEnvironment</key>
+	<string>$(COMMITTED_APNS_ENVIRONMENT)</string>
 </dict>
 </plist>

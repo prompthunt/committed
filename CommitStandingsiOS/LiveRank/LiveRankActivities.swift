@@ -45,11 +45,8 @@ final class NoLiveRankActivities: LiveRankActivities {
     func end(id: String) async {}
 }
 
-/// The real thing, over `Activity<LiveRankAttributes>`.
-///
-/// #45 adds the relay's token streams here, next to these methods: `Activity<LiveRankAttributes>
-/// .pushToStartTokenUpdates`, `.activityUpdates` (relay-started activities), and each activity's
-/// `pushTokenUpdates`. See the spec #39 notes, `43-live-rank.md`.
+/// The real thing, over `Activity<LiveRankAttributes>`. The relay's token streams are in
+/// `ActivityKitLiveRankTokens`.
 @MainActor
 final class ActivityKitLiveRankActivities: LiveRankActivities {
     var areActivitiesEnabled: Bool { ActivityAuthorizationInfo().areActivitiesEnabled }
@@ -93,5 +90,50 @@ final class ActivityKitLiveRankActivities: LiveRankActivities {
 
     private static func snapshot(_ activity: Activity<LiveRankAttributes>) -> LiveRankActivity {
         LiveRankActivity(id: activity.id, selfLogin: activity.attributes.selfLogin, state: activity.content.state)
+    }
+}
+
+/// ActivityKit's push tokens, handed to the relay client as they arrive: the push-to-start token,
+/// and the push token of every Live rank activity, including ones the relay started by
+/// push-to-start. Started at app launch, background launches included, so a relay-started activity
+/// is reported promptly (the relay counts its age from the report).
+@MainActor
+final class ActivityKitLiveRankTokens {
+    private let receiver: any LiveRankTokenReceiving
+    private var observed: Set<String> = []
+    private var tasks: [Task<Void, Never>] = []
+
+    init(receiver: any LiveRankTokenReceiving) {
+        self.receiver = receiver
+    }
+
+    func start() {
+        guard tasks.isEmpty else { return }
+        let receiver = receiver
+        tasks.append(Task {
+            for await token in Activity<LiveRankAttributes>.pushToStartTokenUpdates {
+                LiveRankLog.relay.info("push-to-start token \(token.lowercaseHex.prefix(8), privacy: .public)…")
+                await receiver.pushToStartTokenDidChange(token)
+            }
+        })
+        for activity in Activity<LiveRankAttributes>.activities { observe(activity) }
+        tasks.append(Task { [weak self] in
+            for await activity in Activity<LiveRankAttributes>.activityUpdates {
+                self?.observe(activity)
+            }
+        })
+    }
+
+    private func observe(_ activity: Activity<LiveRankAttributes>) {
+        guard observed.insert(activity.id).inserted else { return }
+        let id = activity.id
+        let receiver = receiver
+        LiveRankLog.relay.info("observing activity \(id, privacy: .public)")
+        tasks.append(Task {
+            for await token in activity.pushTokenUpdates {
+                LiveRankLog.relay.info("activity \(id, privacy: .public) push token \(token.lowercaseHex.prefix(8), privacy: .public)…")
+                await receiver.activityPushTokenDidChange(activityID: id, token: token)
+            }
+        })
     }
 }
