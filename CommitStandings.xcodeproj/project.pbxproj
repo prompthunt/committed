@@ -59,6 +59,7 @@
 		A95EAC8810E38D88FF85D8A4 /* LeaderboardTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3058EE5B282BF655A566A283 /* LeaderboardTests.swift */; };
 		AB5BBC2E13A1A1D2A2C1A3BB /* AvatarColor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B3C587C1FCCF5F4B4F05B1C /* AvatarColor.swift */; };
 		ACA2232D77F266C80E01046C /* AvatarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A4640E60F739D66B0052E1DB /* AvatarView.swift */; };
+		C78AD49582EF32C9E85D1CC3 /* RankingConformanceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B34C0F5E8D8A2A28DB0D858 /* RankingConformanceTests.swift */; };
 		AD4D2BDE60C60FF0FE57FF05 /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43F151A7886D36663BC7B56A /* OnboardingView.swift */; };
 		B62E6DE114A6202040D08058 /* AvatarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A4640E60F739D66B0052E1DB /* AvatarView.swift */; };
 		B679D8FC245B57CBAE47D1DF /* AuthModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE7E951F92E7474C9A74738C /* AuthModel.swift */; };
@@ -140,6 +141,7 @@
 		244D017B10D3447C59BBCE58 /* SignInView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignInView.swift; sourceTree = "<group>"; };
 		250E32FDF5E7C3FE33602A75 /* RefreshCoordinatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RefreshCoordinatorTests.swift; sourceTree = "<group>"; };
 		3058EE5B282BF655A566A283 /* LeaderboardTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LeaderboardTests.swift; sourceTree = "<group>"; };
+		9B34C0F5E8D8A2A28DB0D858 /* RankingConformanceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RankingConformanceTests.swift; sourceTree = "<group>"; };
 		30D5A9162DEF41FE01E23129 /* OnboardingFlowTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = OnboardingFlowTests.swift; sourceTree = "<group>"; };
 		349DC217EFDB69766A74A420 /* NotificationCopyTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotificationCopyTests.swift; sourceTree = "<group>"; };
 		359887BF93AA64D5EF9EC654 /* GitHubAuthTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GitHubAuthTests.swift; sourceTree = "<group>"; };
@@ -314,6 +316,7 @@
 				359887BF93AA64D5EF9EC654 /* GitHubAuthTests.swift */,
 				4032F32750CF1C2CED529773 /* GitHubCredentialStoreTests.swift */,
 				3058EE5B282BF655A566A283 /* LeaderboardTests.swift */,
+				9B34C0F5E8D8A2A28DB0D858 /* RankingConformanceTests.swift */,
 				250E32FDF5E7C3FE33602A75 /* RefreshCoordinatorTests.swift */,
 				3E5DD6D55F78B5A2D681C4C0 /* StandingMetricsTests.swift */,
 				D0A959028CC5DCE0C6391589 /* StandingsStoreTests.swift */,
@@ -655,6 +658,7 @@
 				69958B6473C6DD95B30518D5 /* GitHubAuthTests.swift in Sources */,
 				A53B55B8E897F16C8D1ED918 /* GitHubCredentialStoreTests.swift in Sources */,
 				A95EAC8810E38D88FF85D8A4 /* LeaderboardTests.swift in Sources */,
+				C78AD49582EF32C9E85D1CC3 /* RankingConformanceTests.swift in Sources */,
 				0B552DFCAA866228B548BEC3 /* RefreshCoordinatorTests.swift in Sources */,
 				16D54CEC37BEA4E3CC4BC5B5 /* StandingMetricsTests.swift in Sources */,
 				0F2F1AE321FD06897B196070 /* StandingsStoreTests.swift in Sources */,
