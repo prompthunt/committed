@@ -11,7 +11,8 @@ It is a TypeScript Cloudflare Worker with a Cron Trigger (`*/5 * * * *`) and a D
 It never accepts, stores, or logs a GitHub token. Request bodies are strict, so a body with any
 field outside the contract is rejected with `400` and nothing is stored. The install secret is
 stored only as a SHA-256 hash. Logs carry a shortened install ID, never push tokens, secrets, or
-request bodies (`src/log.ts` is the only logging path).
+request bodies (`src/log.ts` is the only logging path). Workers invocation logs are off in
+`wrangler.jsonc`, because they record request headers and so the bearer secret.
 
 ## Layout
 
@@ -260,6 +261,9 @@ npx wrangler deploy
   on the free plan. On a paid plan, raise `githubFetchBudget` in `src/app.ts`.
 - **CPU.** Parsing a contributions page is small, but each installation costs a D1 write per
   change. Large deployments should batch installations across invocations.
+- **Budget and heartbeats.** A login refreshed in a later run keeps its older `lastUpdated`. If
+  none of a board's logins refresh in a run, `updatedAt` doesn't advance, so no heartbeat goes out
+  and the activity can show as stale until its counts come around.
 - **GitHub.** Pages are fetched anonymously from Cloudflare IPs. If GitHub rate-limits those,
   counts go stale (the activity shows its refresh age) rather than wrong.
 
