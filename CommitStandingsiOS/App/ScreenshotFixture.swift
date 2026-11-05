@@ -37,12 +37,15 @@ enum ScreenshotFixture {
         return arguments[index + 1]
     }
 
-    static func services() -> CommittedServices {
+    /// `extraPeople` adds that many followed people (`guest-01`, …) below everyone else, for a
+    /// board long enough to scroll on the open iPhone Duo display (used by the #46 render tests).
+    static func services(extraPeople: Int = 0) -> CommittedServices {
         // Keep GitHub requests offline. Avatars are off too (`loadsGitHubAvatars`), so no real
         // account's avatar appears for these made-up usernames.
         let config = URLSessionConfiguration.ephemeral
         config.protocolClasses = [OfflineProtocol.self]
         let session = URLSession(configuration: config)
+        let guests = (0..<extraPeople).map { String(format: "guest-%02d", $0 + 1) }
         let services = CommittedServices(
             store: StandingsStore(persistence: InMemoryCompetitorPersistence()),
             credentials: InMemoryGitHubCredentialStore(token: "fixture"),
@@ -50,7 +53,8 @@ enum ScreenshotFixture {
             accountFactory: { GitHubAccountClient(token: $0, session: session) },
             fetchRoster: { _ in
                 GitHubRosterSnapshot(owner: "sam-rivera", sources: [
-                    GitHubRosterSource(id: "following", title: "Following", members: ["maya-chen", "devon-k"]),
+                    GitHubRosterSource(id: "following", title: "Following",
+                                       members: ["maya-chen", "devon-k"] + guests),
                     GitHubRosterSource(id: "org", title: "Acme", members: ["priya-s", "lee-park", "jordan-a"]),
                 ], updatedAt: Date().addingTimeInterval(-240))
             }
@@ -69,7 +73,8 @@ enum ScreenshotFixture {
         return services
     }
 
-    /// Round 1 sets today's baseline; later rounds have sam-rivera passing devon-k.
+    /// Round 1 sets today's baseline; later rounds have sam-rivera passing devon-k. Guests have
+    /// fewer Contributions than anyone else.
     private actor FixtureContributions: ContributionsFetching {
         private var rounds: [String: Int] = [:]
 
@@ -84,6 +89,9 @@ enum ScreenshotFixture {
                 "devon-k": [.daily: 6, .weekly: 52, .monthly: 160],
                 "lee-park": [.daily: 0, .weekly: 11, .monthly: 57],
             ]
+            if username.hasPrefix("guest-"), let number = Int(username.dropFirst(6)) {
+                return .success(StandingCounts(contributions: max(0, 40 - number)))
+            }
             guard let count = counts[username]?[window] else { return .failure(.network("offline")) }
             return .success(StandingCounts(contributions: count))
         }

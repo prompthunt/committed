@@ -44,6 +44,8 @@ private struct PeopleList: View {
                     }
                 }
                 .pickerStyle(.segmented)
+                // Full width, the segments would cross a book-style fold on the inner display.
+                .avoidingFold()
                 .listRowSeparator(.hidden)
                 RosterStatusView()
                     .listRowSeparator(.hidden)
