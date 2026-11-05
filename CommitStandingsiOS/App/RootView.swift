@@ -20,8 +20,13 @@ struct RootView: View {
                 SettingsView()
             }
         }
+        // The marketing site's world: ink, lime, Inter Tight, dark only (also UIUserInterfaceStyle
+        // in Info.plist, so launch and system sheets match). Set here so every host of the root,
+        // including the render tests, gets it.
+        .environment(\.standingRowStyle, .committed)
         .tint(.lime)
         .background(Color.ink)
+        .preferredColorScheme(.dark)
         .fullScreenCover(isPresented: .constant(model.needsConnect)) {
             ConnectGitHubView()
         }
