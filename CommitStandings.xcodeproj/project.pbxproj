@@ -59,6 +59,7 @@
 		69958B6473C6DD95B30518D5 /* GitHubAuthTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 359887BF93AA64D5EF9EC654 /* GitHubAuthTests.swift */; };
 		6A2C4840A42C64F4C1F7E228 /* NotificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1B215A09A572661D0932EFE0 /* NotificationService.swift */; };
 		6C738698753C7FF59139E992 /* Ranking.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BE6286655EE3892D7B537EF /* Ranking.swift */; };
+		70F53C68B63D781B545F0690 /* KeychainCredentialTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87344DEA1C3DF7F628A5C311 /* KeychainCredentialTests.swift */; };
 		75759F10125F149BEFC3F082 /* AuthModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE7E951F92E7474C9A74738C /* AuthModel.swift */; };
 		7D68E5552EE3D805425E4977 /* CommitStandingsiOSApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 192BF03E077467B606CAAAD8 /* CommitStandingsiOSApp.swift */; };
 		845DC509E8ED7BAED937D1C3 /* ConnectFlowTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 76866934215DEC3819692529 /* ConnectFlowTests.swift */; };
@@ -193,6 +194,7 @@
 		84B2AD36396AB9D0E10D3216 /* CommitStandings.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = CommitStandings.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		84C736F295D55E0F2EF7A2FB /* Assets.xcassets */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		861E0C8E25ABA3DEA23A9AF9 /* CommitStandingsiOSTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = CommitStandingsiOSTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		87344DEA1C3DF7F628A5C311 /* KeychainCredentialTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = KeychainCredentialTests.swift; sourceTree = "<group>"; };
 		898A1B0791B453A31529D80F /* StandingsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StandingsStore.swift; sourceTree = "<group>"; };
 		8BE6286655EE3892D7B537EF /* Ranking.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = Ranking.swift; sourceTree = "<group>"; };
 		8D7951BB34A16E4847FB3A75 /* Standing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Standing.swift; sourceTree = "<group>"; };
@@ -303,6 +305,7 @@
 				2009E672B835296C1533DC05 /* AppLifecycleTests.swift */,
 				7BDB03341126129F2FC2BF7B /* DeepLinkTests.swift */,
 				632FC14211AD4F3E06D8F0A0 /* BoardTests.swift */,
+				87344DEA1C3DF7F628A5C311 /* KeychainCredentialTests.swift */,
 			);
 			name = CommitStandingsiOSTests;
 			path = CommitStandingsiOSTests;
@@ -700,6 +703,7 @@
 				644DBEC17EBD8E450D922128 /* AppLifecycleTests.swift in Sources */,
 				E8C02CA56C4C5B0502B324F8 /* DeepLinkTests.swift in Sources */,
 				4D52E753787CC3957D381AC4 /* BoardTests.swift in Sources */,
+				70F53C68B63D781B545F0690 /* KeychainCredentialTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -115,6 +115,11 @@ struct BoardSummaryView: View {
             let places = movement.magnitude == 1 ? "place" : "places"
             parts.append("\(movement > 0 ? "up" : "down") \(movement.magnitude) \(places) today")
         }
+        if refresh.isRefreshing {
+            parts.append("updating")
+        } else if let lastUpdated = store.lastUpdated {
+            parts.append("updated \(RelativeTimeFormatter.short(from: lastUpdated, to: Date()))")
+        }
         return parts.joined(separator: ", ")
     }
 }

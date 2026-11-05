@@ -375,6 +375,8 @@ struct RefreshCoordinatorTests {
         coord.resumeTimer()
         try await Task.sleep(for: .milliseconds(250))
         coord.pauseTimer()
+        // Let a tick that was already running finish before taking the count.
+        try await Task.sleep(for: .milliseconds(50))
         let afterResume = await fetcher.calls(for: "me")
         #expect(afterResume >= 1, "a resumed timer refreshes again")
         #expect(coord.lastReason == .timer)
