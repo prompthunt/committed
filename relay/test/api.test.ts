@@ -46,6 +46,25 @@ describe("device API: registration and auth", () => {
   });
 });
 
+describe("device API: the iPhone app's requests", () => {
+  // Byte for byte what the app's HTTPLiveRankRelayClient sends (Swift JSONEncoder: key order
+  // varies, "/" escaped, nil pushToStartToken left out). Keep in step with
+  // CommitStandingsiOS/LiveRankRelay.swift and CommitStandingsiOSTests/RelayClientTests.swift.
+  const swiftRegistration =
+    '{"competitors":["me","alice","bob"],"timeZone":"America\\/Los_Angeles","environment":"sandbox","window":"daily","login":"me"}';
+  const swiftRegistrationWithToken =
+    `{"pushToStartToken":"${PTS_TOKEN}","login":"me","window":"weekly","environment":"production","timeZone":"Europe\\/Berlin","competitors":["me","alice"]}`;
+  const swiftActivity = `{"activityId":"4E7C1D2A-ABCD-4E1F-9F00-123456789ABC","pushToken":"${ACTIVITY_TOKEN}"}`;
+
+  it("accepts registration, activity, and unregister bodies as the app encodes them", async () => {
+    const relay = makeRelay();
+    expect((await relay.request("PUT", path, { body: JSON.parse(swiftRegistration) })).status).toBe(204);
+    expect((await relay.request("PUT", `${path}/activity`, { body: JSON.parse(swiftActivity) })).status).toBe(204);
+    expect((await relay.request("PUT", path, { body: JSON.parse(swiftRegistrationWithToken) })).status).toBe(204);
+    expect((await relay.request("DELETE", path)).status).toBe(204);
+  });
+});
+
 describe("device API: validation", () => {
   const invalid: [string, Record<string, unknown>][] = [
     ["a GitHub token field", { githubToken: "gho_0123456789abcdefghijklmnopqrstuvwxyz" }],

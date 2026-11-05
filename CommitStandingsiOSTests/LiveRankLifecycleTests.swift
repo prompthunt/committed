@@ -43,6 +43,27 @@ final class FakeLiveRankActivities: LiveRankActivities {
         activities.removeAll { $0.id == id }
     }
 
+    private var tokenHandler: (@MainActor (LiveRankPushToken) -> Void)?
+    var observingPushTokens: Bool { tokenHandler != nil }
+
+    func observePushTokens(_ handler: @escaping @MainActor (LiveRankPushToken) -> Void) {
+        tokenHandler = handler
+    }
+
+    /// ActivityKit hands out a push token.
+    func issue(_ token: LiveRankPushToken) {
+        tokenHandler?(token)
+    }
+
+    /// The relay started an activity with push-to-start (not counted as `started`).
+    @discardableResult
+    func startedByPush(selfLogin: String, state: LiveRankState) -> LiveRankActivity {
+        let activity = LiveRankActivity(id: "push-\(nextID)", selfLogin: selfLogin, state: state)
+        nextID += 1
+        activities.append(activity)
+        return activity
+    }
+
     var only: LiveRankActivity? { activities.count == 1 ? activities[0] : nil }
 }
 

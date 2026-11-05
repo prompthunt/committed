@@ -2,6 +2,10 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyLists/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>CommittedRelayURL</key>
+	<string>$(COMMITTED_RELAY_URL)</string>
+	<key>CommittedAPNsEnvironment</key>
+	<string>$(COMMITTED_APNS_ENVIRONMENT)</string>
 	<key>BGTaskSchedulerPermittedIdentifiers</key>
 	<array>
 		<string>com.addisonk.CommitStandings.iOS.refresh</string>

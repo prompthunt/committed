@@ -14,6 +14,7 @@ struct RootView: View {
                 ConnectView()
             }
         }
+        .liveRankDisclosure()
         .onOpenURL { app.open($0) }
         .onChange(of: scenePhase, initial: true) { _, phase in
             switch phase {

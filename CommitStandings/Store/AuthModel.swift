@@ -84,6 +84,16 @@ final class AuthModel {
         displayName = profile.name
     }
 
+    /// Pick up a token that couldn't be read at launch. On iPhone the token is readable only
+    /// while the phone is unlocked, so a background launch while locked starts signed out.
+    /// Returns true when this signed in. Never signs out, and does nothing mid-Connect.
+    @discardableResult
+    func restoreSavedSession() -> Bool {
+        guard phase == .signedOut, credentials.read() != nil else { return false }
+        phase = .signedIn
+        return true
+    }
+
     func signOut() {
         credentials.clear()
         username = nil

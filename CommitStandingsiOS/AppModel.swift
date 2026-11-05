@@ -1,5 +1,6 @@
 import Foundation
 import Observation
+import UIKit
 
 /// Everything the iPhone app talks to outside itself. `live()` is production; tests and the
 /// DEBUG demo board swap in fakes. GitHub stays reachable only through `gitHubSession`, and
@@ -29,6 +30,15 @@ struct AppDependencies {
     var liveRankPersistence: any LiveRankPersistence = InMemoryLiveRankPersistence()
     /// Ask iOS for the next background refresh (`BGAppRefreshTask`).
     var scheduleBackgroundRefresh: @Sendable () -> Void = {}
+    /// The Committed relay that keeps Live rank current while the app is closed. Nil (the
+    /// default, and always for tests' host and the demo board) means no relay: Live rank runs
+    /// on the device only and nothing is sent anywhere.
+    var relay: LiveRankRelayDependencies?
+    /// Your time zone; the relay counts Today for its calendar day.
+    var timeZone: @Sendable () -> TimeZone = { .autoupdatingCurrent }
+    /// Whether the phone is unlocked enough to read the Keychain. A background launch while
+    /// locked (Background App Refresh, a relay-started Live Activity) can't read the token.
+    var isProtectedDataAvailable: @MainActor () -> Bool = { true }
 
     static func live() -> AppDependencies {
         var dependencies = AppDependencies(
@@ -40,9 +50,21 @@ struct AppDependencies {
             hiddenPeoplePersistence: UserDefaultsHiddenPeoplePersistence(),
             rosterPersistence: UserDefaultsGitHubRosterPersistence()
         )
-        dependencies.makeLiveRankActivities = { ActivityKitLiveRankActivities() }
+        // A relay comes from the COMMITTED_RELAY_URL build setting; without one, phase 1.
+        if let relay = RelayConfiguration(info: Bundle.main.infoDictionary) {
+            dependencies.relay = LiveRankRelayDependencies(
+                client: HTTPLiveRankRelayClient(baseURL: relay.baseURL),
+                store: DeviceLiveRankRelayStore(),
+                environment: relay.environment
+            )
+            // Push tokens let the relay update and start activities.
+            dependencies.makeLiveRankActivities = { ActivityKitLiveRankActivities(pushType: .token) }
+        } else {
+            dependencies.makeLiveRankActivities = { ActivityKitLiveRankActivities() }
+        }
         dependencies.liveRankPersistence = UserDefaultsLiveRankPersistence()
         dependencies.scheduleBackgroundRefresh = { BackgroundRefresh.schedule() }
+        dependencies.isProtectedDataAvailable = { UIApplication.shared.isProtectedDataAvailable }
         return dependencies
     }
 }
@@ -87,6 +109,8 @@ final class AppModel {
             store: store,
             activities: dependencies.makeLiveRankActivities(),
             persistence: dependencies.liveRankPersistence,
+            relay: dependencies.relay,
+            timeZone: dependencies.timeZone,
             now: dependencies.now
         )
         let refresh = RefreshCoordinator(
@@ -123,7 +147,11 @@ final class AppModel {
                 liveRank.disconnected()
             }
         )
-        if auth.isSignedIn { liveRank.connected() }
+        if auth.isSignedIn {
+            liveRank.connected()
+        } else if dependencies.isProtectedDataAvailable() {
+            liveRank.signedOutAtLaunch()
+        }
         self.store = store
         self.roster = roster
         self.refresh = refresh
@@ -131,6 +159,29 @@ final class AppModel {
         self.notifications = notifications
         self.liveRank = liveRank
         scheduleBackgroundRefresh = dependencies.scheduleBackgroundRefresh
+        // The relay counts Today in your time zone: tell it when that changes.
+        observers.append(NotificationCenter.default.addObserver(
+            forName: .NSSystemTimeZoneDidChange, object: nil, queue: .main
+        ) { [weak liveRank] _ in
+            MainActor.assumeIsolated { liveRank?.scheduleSync() }
+        })
+        // Unlocked after a launch while locked: the saved token can be read now.
+        observers.append(NotificationCenter.default.addObserver(
+            forName: UIApplication.protectedDataDidBecomeAvailableNotification, object: nil, queue: .main
+        ) { [weak self] _ in
+            MainActor.assumeIsolated { self?.restoreSavedSession() }
+        })
+    }
+
+    @ObservationIgnored private nonisolated(unsafe) var observers: [any NSObjectProtocol] = []
+
+    deinit {
+        for observer in observers { NotificationCenter.default.removeObserver(observer) }
+    }
+
+    /// Sign back in from the saved token after a launch while the phone was locked.
+    private func restoreSavedSession() {
+        if auth.restoreSavedSession() { liveRank.connected() }
     }
 
     // MARK: - Refresh policy
@@ -139,6 +190,7 @@ final class AppModel {
     /// when the board is older than about two minutes so opening the app doesn't flash
     /// "updating" every time.
     func sceneDidBecomeActive() async {
+        restoreSavedSession()
         refresh.resumeTimer()
         // Ends strays from an earlier launch, restarts Live rank if iOS ended it, and picks up
         // a change to Live Activities in iOS Settings.
@@ -159,14 +211,28 @@ final class AppModel {
     func backgroundRefresh() async {
         guard auth.isSignedIn else { return }
         await refresh.refreshAll(reason: .backgroundRefresh)
+        await liveRank.idle()
         scheduleBackgroundRefresh()
     }
 
     // MARK: - Live rank
 
+    /// The Live rank switch. With a relay, turning it on the first time shows the disclosure
+    /// instead (`acceptLiveRankDisclosure` finishes turning it on).
     func setLiveRankEnabled(_ enabled: Bool) async {
         await liveRank.setEnabled(enabled)
         await refreshLiveRankWindowIfStale()
+    }
+
+    /// The relay disclosure's "Turn On Live rank".
+    func acceptLiveRankDisclosure() async {
+        await liveRank.acceptDisclosure()
+        await refreshLiveRankWindowIfStale()
+    }
+
+    /// The relay disclosure's "Not Now": Live rank stays off.
+    func declineLiveRankDisclosure() {
+        liveRank.declineDisclosure()
     }
 
     /// Live rank's own Window (Settings), separate from the board's: ends the activity, starts
@@ -202,8 +268,8 @@ final class AppModel {
     }
 
     /// Settings → Disconnect GitHub: delete the token and this account's cached people and counts,
-    /// keeping visibility choices for a later reconnect. Anything else to revoke on disconnect
-    /// (Live rank, the relay registration) goes here.
+    /// keeping visibility choices for a later reconnect. Signing out also ends Live rank and
+    /// deletes this iPhone's relay registration (`AuthModel.onSignedOut` → `liveRank.disconnected()`).
     func disconnect() {
         auth.signOut()
     }

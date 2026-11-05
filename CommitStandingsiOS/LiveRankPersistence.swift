@@ -2,10 +2,19 @@ import Foundation
 
 /// Live rank's settings on this iPhone.
 struct LiveRankPreferences: Codable, Equatable, Sendable {
-    /// nil until the person has decided; phase 1 treats that as on. The relay disclosure (#45)
-    /// asks before the first enable, so it needs "never decided" to stay distinguishable.
+    /// nil until the person has decided. Without a relay that counts as on (phase 1); with a
+    /// relay it counts as off until the disclosure is accepted.
     var isEnabled: Bool?
     var window: ContributionWindow = .daily
+    /// Whether the person accepted the Committed relay disclosure. With a relay configured,
+    /// Live rank is on only once this is true.
+    var relayDisclosureAccepted: Bool?
+
+    init(isEnabled: Bool? = nil, window: ContributionWindow = .daily, relayDisclosureAccepted: Bool? = nil) {
+        self.isEnabled = isEnabled
+        self.window = window
+        self.relayDisclosureAccepted = relayDisclosureAccepted
+    }
 }
 
 protocol LiveRankPersistence: Sendable {
