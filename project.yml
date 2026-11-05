@@ -34,6 +34,7 @@ targets:
     deploymentTarget: "26.0"
     sources:
       - path: CommitStandings
+        excludes: [Store/LiveRankAttributes.swift] # ActivityKit: iPhone app + Live rank extension only
     dependencies:
       - package: Sparkle
         product: Sparkle
@@ -93,10 +94,12 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.addisonk.CommitStandings.iOS
         TARGETED_DEVICE_FAMILY: "1"
         GENERATE_INFOPLIST_FILE: YES
-        INFOPLIST_FILE: CommitStandingsiOS/Info.plist # CFBundleURLTypes: committed:// deep links
+        INFOPLIST_FILE: CommitStandingsiOS/Info.plist # committed:// deep links, background app refresh
         INFOPLIST_KEY_CFBundleDisplayName: Committed
         INFOPLIST_KEY_UILaunchScreen_Generation: YES
         INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
+        INFOPLIST_KEY_NSSupportsLiveActivities: YES
+        INFOPLIST_KEY_NSSupportsLiveActivitiesFrequentUpdates: YES
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         CODE_SIGN_ENTITLEMENTS: CommitStandingsiOS/CommitStandingsiOS.entitlements # App Group group.com.addisonk.CommitStandings
 
@@ -108,6 +111,11 @@ targets:
     sources:
       - path: CommitStandingsLiveRank
         excludes: [Info.plist]
+      # Shared with the app: the Live rank contract and the Board deep link.
+      - path: CommitStandings/Store/LiveRankState.swift
+      - path: CommitStandings/Store/LiveRankAttributes.swift
+      - path: CommitStandings/Support/DeepLink.swift
+      - path: CommitStandings/Models/Standing.swift
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.addisonk.CommitStandings.iOS.LiveRank

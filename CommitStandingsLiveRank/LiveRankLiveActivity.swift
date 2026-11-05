@@ -61,40 +61,53 @@ struct LiveRankRankLabel: View {
     let style: Style
 
     var body: some View {
-        HStack(spacing: 3) {
-            if style != .minimal || state.rank == nil {
-                Image(systemName: "trophy.fill")
-                    .foregroundStyle(.yellow)
-                    .accessibilityHidden(true)
-            }
-            if let rank = state.rank {
-                Text("#\(rank)")
-                    .fontWeight(.semibold)
-                    .monospacedDigit()
-            } else if state.competitorCount > 1 {
-                // Rivals but no count of yours yet.
-                Text(placeholder)
-            }
-            if style == .expanded, state.rank != nil {
-                Text("of \(state.competitorCount)")
-                    .foregroundStyle(.secondary)
-                    .monospacedDigit()
-                if state.movementToday != 0 {
-                    // Today's movement since the morning, like the board's chevrons.
-                    Label("\(abs(state.movementToday))",
-                          systemImage: state.movementToday > 0 ? "chevron.up" : "chevron.down")
-                        .labelStyle(.titleAndIcon)
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(state.movementToday > 0 ? .green : .red)
-                        .monospacedDigit()
-                }
-            }
+        // The Duo's vertical Dynamic Island is narrow: stack the trophy over the rank there
+        // rather than truncating it.
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: 3) { trophy; rankText; extras }
+            VStack(spacing: 1) { trophy; rankText; extras }
         }
         .font(style == .expanded ? .title3 : .body)
         .lineLimit(1)
         .minimumScaleFactor(0.7)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(LiveRankText.rankAccessibility(state))
+    }
+
+    @ViewBuilder private var trophy: some View {
+        if style != .minimal || state.rank == nil {
+            Image(systemName: "trophy.fill")
+                .foregroundStyle(.yellow)
+                .accessibilityHidden(true)
+        }
+    }
+
+    @ViewBuilder private var rankText: some View {
+        if let rank = state.rank {
+            Text("#\(rank)")
+                .fontWeight(.semibold)
+                .monospacedDigit()
+        } else if state.competitorCount > 1 {
+            // Rivals but no count of yours yet.
+            Text(placeholder)
+        }
+    }
+
+    @ViewBuilder private var extras: some View {
+        if style == .expanded, state.rank != nil {
+            Text("of \(state.competitorCount)")
+                .foregroundStyle(.secondary)
+                .monospacedDigit()
+            if state.movementToday != 0 {
+                // Today's movement since the morning, like the board's chevrons.
+                Label("\(abs(state.movementToday))",
+                      systemImage: state.movementToday > 0 ? "chevron.up" : "chevron.down")
+                    .labelStyle(.titleAndIcon)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(state.movementToday > 0 ? .green : .red)
+                    .monospacedDigit()
+            }
+        }
     }
 }
 
