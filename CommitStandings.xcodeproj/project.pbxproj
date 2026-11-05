@@ -13,10 +13,14 @@
 		0D3AE1AA0E436B1844D3562E /* GitHubAuth.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CCEC8B61BB3028EE7E6EA92 /* GitHubAuth.swift */; };
 		0F2F1AE321FD06897B196070 /* StandingsStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0A959028CC5DCE0C6391589 /* StandingsStoreTests.swift */; };
 		12B47221761E6A9F389617B9 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 06267963EF8D67576962B748 /* Sparkle */; };
+		1340FD5B6B512CD7EE02FD08 /* LiveRankState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C62F24CB54A093905756EA7 /* LiveRankState.swift */; };
+		137D042B7606C9A3252E08B8 /* LiveRankDerivation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 284070E7C171FF3A46332457 /* LiveRankDerivation.swift */; };
 		139EBF56DA674179C4604A63 /* RefreshCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = ABC6DA1FB2CD9C804A5518A0 /* RefreshCoordinator.swift */; };
+		164C5629DB7AB1BDFB3D503F /* DeepLink.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0D91579108402981623D843 /* DeepLink.swift */; };
 		16D54CEC37BEA4E3CC4BC5B5 /* StandingMetricsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E5DD6D55F78B5A2D681C4C0 /* StandingMetricsTests.swift */; };
 		16F53F4EF22C05529906CC84 /* PrivateContributionsTip.swift in Sources */ = {isa = PBXBuildFile; fileRef = C216DCA8F4A0082D45F4A186 /* PrivateContributionsTip.swift */; };
 		175648AB8F108EAA3D7A9597 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7F9769AEDC289028AB740605 /* SwiftUI.framework */; };
+		19293676EFFC0AD39EFC0425 /* LiveRankDerivation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 284070E7C171FF3A46332457 /* LiveRankDerivation.swift */; };
 		1BFF599CDA9B42CF731CB9C1 /* GitHubAuth.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CCEC8B61BB3028EE7E6EA92 /* GitHubAuth.swift */; };
 		1DBD73B51A540C56EB82C6C0 /* ContributionsClientTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 677A5198E1F2064191B89865 /* ContributionsClientTests.swift */; };
 		1E0B23A50D4CE71D56746312 /* SoloView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1278902C8E1364C523CD07BA /* SoloView.swift */; };
@@ -54,20 +58,23 @@
 		772C429B0B0740F47AA3CA56 /* RankChangeDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B5E85671D4798A73E1A4CB5 /* RankChangeDetector.swift */; };
 		7C4774F35340BBFEADDB3A8C /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = FB58E10B74FF8CEFFBA9831E /* WidgetKit.framework */; };
 		7CCED0776048CBCA3688E2F5 /* RosterStatusView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4338259CFDF799D3722D35BB /* RosterStatusView.swift */; };
+		7E3F81CBAAFF3BEAF500E2A3 /* LiveRankStateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E601D9649EE5D1432D5DD9E /* LiveRankStateTests.swift */; };
 		82B5BFE7B07253C2BF99FA03 /* ConnectGitHubTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8BBD806D18E8F38CE25EB6D /* ConnectGitHubTests.swift */; };
 		84703AB10291059624AC8596 /* DeepLink.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0D91579108402981623D843 /* DeepLink.swift */; };
 		8526DCDE44E0DB284545225A /* GitHubConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 97B1C9E37DF68B21D1A5888B /* GitHubConfig.swift */; };
+		8A757784E5352821C5229F8E /* Standing.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D7951BB34A16E4847FB3A75 /* Standing.swift */; };
 		8B6B59534FC172BD8D6750E6 /* RefreshCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = ABC6DA1FB2CD9C804A5518A0 /* RefreshCoordinator.swift */; };
 		914F13EB6C67C76FBF2E6EE5 /* DeepLink.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0D91579108402981623D843 /* DeepLink.swift */; };
 		91CEC08111EB05B33948FB40 /* StandingsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 898A1B0791B453A31529D80F /* StandingsStore.swift */; };
 		9231C5A18BEFA28ED9170221 /* GitHubAccountClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 82EC1D669C7B8DC1BFE57F26 /* GitHubAccountClient.swift */; };
+		970FB0ADF42495071CEA73B6 /* LiveRankState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C62F24CB54A093905756EA7 /* LiveRankState.swift */; };
 		A3675410FD8EC029FF38C4E8 /* NotificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1B215A09A572661D0932EFE0 /* NotificationService.swift */; };
 		A53B55B8E897F16C8D1ED918 /* GitHubCredentialStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4032F32750CF1C2CED529773 /* GitHubCredentialStoreTests.swift */; };
 		A6BC9E4363F0C41EB32FA911 /* RosterStatusView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4338259CFDF799D3722D35BB /* RosterStatusView.swift */; };
+		A74694A89902AC300C807ED8 /* LiveRankState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C62F24CB54A093905756EA7 /* LiveRankState.swift */; };
 		A95EAC8810E38D88FF85D8A4 /* LeaderboardTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3058EE5B282BF655A566A283 /* LeaderboardTests.swift */; };
 		AB5BBC2E13A1A1D2A2C1A3BB /* AvatarColor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B3C587C1FCCF5F4B4F05B1C /* AvatarColor.swift */; };
 		ACA2232D77F266C80E01046C /* AvatarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A4640E60F739D66B0052E1DB /* AvatarView.swift */; };
-		C78AD49582EF32C9E85D1CC3 /* RankingConformanceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B34C0F5E8D8A2A28DB0D858 /* RankingConformanceTests.swift */; };
 		AD4D2BDE60C60FF0FE57FF05 /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43F151A7886D36663BC7B56A /* OnboardingView.swift */; };
 		B62E6DE114A6202040D08058 /* AvatarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A4640E60F739D66B0052E1DB /* AvatarView.swift */; };
 		B679D8FC245B57CBAE47D1DF /* AuthModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE7E951F92E7474C9A74738C /* AuthModel.swift */; };
@@ -77,6 +84,7 @@
 		B7D11B700B0246E99FE93E17 /* MacSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 925A59270BC94DE49E4F2898 /* MacSystem.swift */; };
 		BA58F61D65EBB87C58171158 /* GitHubAccountAuthTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD58C2584D572964D962D12E /* GitHubAccountAuthTests.swift */; };
 		BC7021E2AB61E35E06068726 /* StandingsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 898A1B0791B453A31529D80F /* StandingsStore.swift */; };
+		C78AD49582EF32C9E85D1CC3 /* RankingConformanceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B34C0F5E8D8A2A28DB0D858 /* RankingConformanceTests.swift */; };
 		C98915AC4B6406E8E052D0FA /* LoginItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7192384D63DE5967A162AC30 /* LoginItem.swift */; };
 		CB4AF69B34234966E1E100A9 /* ContributionWindowPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB984BFA2EC81E758FDE6559 /* ContributionWindowPicker.swift */; };
 		CCB720008976A2D9A1A03753 /* UpdatePromptStateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45A478B0A1112D6FBA8C546C /* UpdatePromptStateTests.swift */; };
@@ -151,13 +159,14 @@
 		1B215A09A572661D0932EFE0 /* NotificationService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotificationService.swift; sourceTree = "<group>"; };
 		244D017B10D3447C59BBCE58 /* SignInView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignInView.swift; sourceTree = "<group>"; };
 		250E32FDF5E7C3FE33602A75 /* RefreshCoordinatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RefreshCoordinatorTests.swift; sourceTree = "<group>"; };
+		284070E7C171FF3A46332457 /* LiveRankDerivation.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = LiveRankDerivation.swift; sourceTree = "<group>"; };
 		3058EE5B282BF655A566A283 /* LeaderboardTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LeaderboardTests.swift; sourceTree = "<group>"; };
-		9B34C0F5E8D8A2A28DB0D858 /* RankingConformanceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RankingConformanceTests.swift; sourceTree = "<group>"; };
 		30D5A9162DEF41FE01E23129 /* OnboardingFlowTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = OnboardingFlowTests.swift; sourceTree = "<group>"; };
 		349DC217EFDB69766A74A420 /* NotificationCopyTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotificationCopyTests.swift; sourceTree = "<group>"; };
 		359887BF93AA64D5EF9EC654 /* GitHubAuthTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GitHubAuthTests.swift; sourceTree = "<group>"; };
 		3C64308148F4474677E3544E /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		3E5DD6D55F78B5A2D681C4C0 /* StandingMetricsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StandingMetricsTests.swift; sourceTree = "<group>"; };
+		3E601D9649EE5D1432D5DD9E /* LiveRankStateTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = LiveRankStateTests.swift; sourceTree = "<group>"; };
 		3FAB1FCBCB92E3AC535A48D3 /* FullRankingsView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = FullRankingsView.swift; sourceTree = "<group>"; };
 		4032F32750CF1C2CED529773 /* GitHubCredentialStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GitHubCredentialStoreTests.swift; sourceTree = "<group>"; };
 		4338259CFDF799D3722D35BB /* RosterStatusView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RosterStatusView.swift; sourceTree = "<group>"; };
@@ -172,6 +181,7 @@
 		6897E162A39A7B93BAE6EE8E /* MenuBarLabel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarLabel.swift; sourceTree = "<group>"; };
 		69C38EE664A128783937CCDE /* AppUpdaterTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AppUpdaterTests.swift; sourceTree = "<group>"; };
 		6B67DA147AA79BFA7435B025 /* CommittedServices.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CommittedServices.swift; sourceTree = "<group>"; };
+		6C62F24CB54A093905756EA7 /* LiveRankState.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = LiveRankState.swift; sourceTree = "<group>"; };
 		7192384D63DE5967A162AC30 /* LoginItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginItem.swift; sourceTree = "<group>"; };
 		7F9769AEDC289028AB740605 /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS18.0.sdk/System/Library/Frameworks/SwiftUI.framework; sourceTree = DEVELOPER_DIR; };
 		821A52FA909DBC1D0B53A42D /* CommitStandingsLiveRank.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = CommitStandingsLiveRank.appex; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -188,6 +198,7 @@
 		97B1C9E37DF68B21D1A5888B /* GitHubConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GitHubConfig.swift; sourceTree = "<group>"; };
 		9943B5DF24FA90CDCCC59C63 /* RankChangeDetectorTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RankChangeDetectorTests.swift; sourceTree = "<group>"; };
 		9B2B9D07A5A41395C59FC1D3 /* UpdatePromptState.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = UpdatePromptState.swift; sourceTree = "<group>"; };
+		9B34C0F5E8D8A2A28DB0D858 /* RankingConformanceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RankingConformanceTests.swift; sourceTree = "<group>"; };
 		A0E062D81143D59018AE88D4 /* Competitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Competitor.swift; sourceTree = "<group>"; };
 		A0E64E6FBCF74B2DA76BFF35 /* GitHubRoster.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GitHubRoster.swift; sourceTree = "<group>"; };
 		A1D9FF722CEB71F2996EB033 /* AppUpdater.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppUpdater.swift; sourceTree = "<group>"; };
@@ -353,6 +364,7 @@
 				349DC217EFDB69766A74A420 /* NotificationCopyTests.swift */,
 				ECD804E1435439B0A50B4F2D /* DeepLinkTests.swift */,
 				D8BBD806D18E8F38CE25EB6D /* ConnectGitHubTests.swift */,
+				3E601D9649EE5D1432D5DD9E /* LiveRankStateTests.swift */,
 			);
 			path = CommitStandingsTests;
 			sourceTree = "<group>";
@@ -393,6 +405,8 @@
 				0B5E85671D4798A73E1A4CB5 /* RankChangeDetector.swift */,
 				8BE6286655EE3892D7B537EF /* Ranking.swift */,
 				6B67DA147AA79BFA7435B025 /* CommittedServices.swift */,
+				6C62F24CB54A093905756EA7 /* LiveRankState.swift */,
+				284070E7C171FF3A46332457 /* LiveRankDerivation.swift */,
 			);
 			path = Store;
 			sourceTree = "<group>";
@@ -680,6 +694,8 @@
 				7CCED0776048CBCA3688E2F5 /* RosterStatusView.swift in Sources */,
 				CB4AF69B34234966E1E100A9 /* ContributionWindowPicker.swift in Sources */,
 				F2000195E1621477F641F7DA /* PrivateContributionsTip.swift in Sources */,
+				1340FD5B6B512CD7EE02FD08 /* LiveRankState.swift in Sources */,
+				137D042B7606C9A3252E08B8 /* LiveRankDerivation.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -706,6 +722,7 @@
 				21DDE44540E0592AD399E643 /* NotificationCopyTests.swift in Sources */,
 				76C2835AB0484A3037CFBC6D /* DeepLinkTests.swift in Sources */,
 				82B5BFE7B07253C2BF99FA03 /* ConnectGitHubTests.swift in Sources */,
+				7E3F81CBAAFF3BEAF500E2A3 /* LiveRankStateTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -756,6 +773,8 @@
 				427D65EB558830937069AA66 /* CommittedServices.swift in Sources */,
 				A6BC9E4363F0C41EB32FA911 /* RosterStatusView.swift in Sources */,
 				62BBEB634FEC2759C58C2611 /* ContributionWindowPicker.swift in Sources */,
+				A74694A89902AC300C807ED8 /* LiveRankState.swift in Sources */,
+				19293676EFFC0AD39EFC0425 /* LiveRankDerivation.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -763,6 +782,9 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				970FB0ADF42495071CEA73B6 /* LiveRankState.swift in Sources */,
+				164C5629DB7AB1BDFB3D503F /* DeepLink.swift in Sources */,
+				8A757784E5352821C5229F8E /* Standing.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
