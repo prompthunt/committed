@@ -231,9 +231,17 @@ relay pushes it through `api.push.apple.com`.
 
 ### TestFlight
 
+The iOS targets sign with the Prompt Hunt team (`R36J43WZ34`), set as `DEVELOPMENT_TEAM` on those
+targets only; the Mac app keeps signing with the team `package-release.sh` passes. Another developer
+owns the App Store name "Committed", so the listing is **Committed: Commit Leaderboard**; the home
+screen still shows "Committed" (`CFBundleDisplayName`). `ITSAppUsesNonExemptEncryption = NO` (HTTPS
+only), so uploads skip the export-compliance question.
+
 1. Bump `MARKETING_VERSION` / `CURRENT_PROJECT_VERSION` on the iOS targets.
 2. Product ▸ Archive with the `CommitStandingsiOS` scheme, then distribute to App Store Connect.
 3. The App Store privacy label lists the GitHub username and the usernames of people on your board,
    linked to device identifiers, for app functionality (sent to the Committed relay).
-4. Before release, flatten the app icon's alpha channel (App Store Connect rejects it).
+
+The iOS icon is a full-bleed, opaque square (iOS applies its own mask); it isn't the Mac icon,
+whose rounded shape and transparent margin App Store Connect rejects.
 
