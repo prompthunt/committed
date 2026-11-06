@@ -44,7 +44,8 @@ struct LiveRankRows: View {
         // Shaded against the busiest row shown, as the board shades against its leader.
         let busiest = rows.map(\.contributions).max() ?? 0
         let window = state.contributionWindow ?? .daily
-        VStack(spacing: 2) {
+        // Room between rows, so your highlighted row stands clear of its neighbors.
+        VStack(spacing: 6) {
             ForEach(rows, id: \.rank) { row in
                 StandingRow(
                     rank: row.rank,
@@ -83,7 +84,7 @@ extension StandingRowStyle {
             selfCountColor: accent,
             avatarSize: 22,
             spacing: 8,
-            horizontalPadding: 8,
+            horizontalPadding: 10,
             verticalPadding: 4,
             accent: accent,
             badgeFont: .caption2.weight(.bold),

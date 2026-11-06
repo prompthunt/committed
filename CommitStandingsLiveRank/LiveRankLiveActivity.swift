@@ -47,7 +47,11 @@ struct LiveRankLiveActivity: Widget {
                         } else if state.competitorCount <= 1, let line = state.emptyStateLine {
                             Text(line).font(.subheadline).foregroundStyle(Color.soft)
                         }
-                        LiveRankFooter(state: state, showsWindow: false, showsPassLine: false)
+                        // The corners already carry the Window and the gap to pass, so the
+                        // footer only appears with something to add: staleness or a missing count.
+                        if LiveRankFooter.showsStatus(state, showsWindow: false, isStale: stale) {
+                            LiveRankFooter(state: state, showsWindow: false, showsPassLine: false)
+                        }
                     }
                     // A fixed-height presentation: three rows must not wrap off the bottom.
                     .dynamicTypeSize(...DynamicTypeSize.xxLarge)
@@ -63,6 +67,9 @@ struct LiveRankLiveActivity: Widget {
                 LiveRankRankLabel(state: state, style: .minimal)
                     .liveRankStale(stale)
             }
+            // The default bottom margin left more room under the rows than between them; this
+            // keeps the island inside its 160 pt cap with the rows' wider spacing.
+            .contentMargins(.bottom, 12, for: .expanded)
             .widgetURL(state.boardURL)
             .keylineTint(.lime)
         }
@@ -297,6 +304,12 @@ struct LiveRankFooter: View {
         .lineLimit(1)
     }
 
+    /// Whether the status (refresh age, or what it's waiting for) has anything to say.
+    static func showsStatus(_ state: LiveRankState, showsWindow: Bool, isStale: Bool) -> Bool {
+        (state.contributions == nil && state.competitorCount > 1 && state.emptyStateLine != nil)
+            || showsWindow || isStale
+    }
+
     @ViewBuilder private var status: some View {
         if state.contributions == nil, state.competitorCount > 1, let line = state.emptyStateLine {
             // No count yet: say so, rather than "Updated" beside dashes.
@@ -330,7 +343,7 @@ struct LiveRankLockScreen: View {
             if state.hasLadder {
                 LiveRankRows(state: state, selfLogin: selfLogin)
                     // Line the rows' content up with the footer's text.
-                    .padding(.horizontal, -8)
+                    .padding(.horizontal, -10)
             } else {
                 HStack(alignment: .firstTextBaseline) {
                     LiveRankRankLabel(state: state, style: .lockScreen)
