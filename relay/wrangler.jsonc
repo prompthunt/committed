@@ -2,6 +2,8 @@
   // Committed relay: keeps Live rank current while the iPhone app is closed. See README.md.
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "committed-relay",
+  // Prompt Hunt's Cloudflare account; deploys to committed-relay.prompt-hunt.workers.dev.
+  "account_id": "b5438d46cc2771671a2aeba8cb802a4d",
   "main": "src/index.ts",
   "compatibility_date": "2026-11-01",
   "observability": { "enabled": true },
@@ -10,8 +12,7 @@
     {
       "binding": "DB",
       "database_name": "committed-relay",
-      // Replaced by the provisioning ticket with the id from `wrangler d1 create committed-relay`.
-      "database_id": "00000000-0000-0000-0000-000000000000",
+      "database_id": "03ee761d-a453-4f36-8cfa-45e2bd52fcfa",
       "migrations_dir": "migrations"
     }
   ],

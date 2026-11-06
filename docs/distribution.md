@@ -204,7 +204,7 @@ The app reads two build settings through its Info.plist:
 
 | Setting | Debug | Release | Meaning |
 |---|---|---|---|
-| `COMMITTED_RELAY_URL` | empty | empty | Base URL of the Committed relay. Empty = no relay: Live rank stays phase 1. |
+| `COMMITTED_RELAY_URL` | empty | `https://committed-relay.prompt-hunt.workers.dev` | Base URL of the Committed relay. Empty = no relay: Live rank stays phase 1. |
 | `COMMITTED_APNS_ENVIRONMENT` | `sandbox` | `production` | Sent to the relay so it pushes through the APNs host that matches `aps-environment`. |
 
 Set `COMMITTED_RELAY_URL` to the deployed relay (for example `https://committed-relay.<subdomain>.workers.dev`)

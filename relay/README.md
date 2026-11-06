@@ -26,28 +26,28 @@ Run on 2026-11-04 (`spike/apns-h2-spike.js`):
 | `curl --http2` from a Mac (control) | `HTTP/2 403 {"reason":"InvalidProviderToken"}` |
 | `curl --http1.1` from a Mac (control) | no response: APNs refuses HTTP/1.1 |
 | `wrangler dev` (local workerd, wrangler 4.157.0 / workerd 1.20261103) | `fetch` throws `Network connection lost.`, with or without a token |
-| Deployed Worker on Cloudflare's edge | **Not run.** The Cloudflare account available during the spike had no workers.dev subdomain. `wrangler deploy` and `wrangler dev --remote` both stop with error 10063 ("You need a workers.dev subdomain"). Cron-only deploys stop there too. Registering a subdomain changes the account, so the spike left it for the provisioning ticket. The throwaway script that was uploaded has been deleted. |
+| Deployed Worker on Cloudflare's edge (2026-11-06, `committed-apns-spike.prompt-hunt.workers.dev`) | **HTTP/2 works.** `403 {"reason":"InvalidProviderToken"}` with a token, `MissingProviderToken` without. The spike Worker was deleted afterwards. |
 
 **What this means:**
 
 - **Local `wrangler dev` cannot reach APNs.** Local workerd's outbound `fetch` is HTTP/1.1.
   Tests and local runs use a fake APNs (`test/support/fakes.ts`); everything else (device
   API, D1, cron via `--test-scheduled`, real GitHub fetches) works locally.
-- **The edge is still unconfirmed.** There's indirect evidence that it works: maintained
-  Workers-native APNs clients such as
-  [`@fivesheepco/cloudflare-apns2`](https://www.npmjs.com/package/@fivesheepco/cloudflare-apns2)
-  send with plain `fetch` and no Node compatibility layer.
+- **The edge works.** A deployed Worker's plain `fetch` reaches APNs over HTTP/2.
 
-**Chosen runtime: Cloudflare Workers, as the spec says, pending the edge check.** All APNs I/O
-sits behind the small `ApnsSender` interface (`src/apns.ts`). If the edge check fails, only that
-transport moves, not the relay logic.
+**Runtime: Cloudflare Workers, as the spec says.** All APNs I/O sits behind the small
+`ApnsSender` interface (`src/apns.ts`), so a transport change wouldn't touch the relay logic.
 
-**First step of the provisioning ticket** (about a minute, needs a workers.dev subdomain):
+**Production:** `https://committed-relay.prompt-hunt.workers.dev`, on Prompt Hunt's Cloudflare
+account (`account_id` in `wrangler.jsonc`), with D1 `committed-relay`. The iOS Release build's
+`COMMITTED_RELAY_URL` points here.
+
+**To re-run the check** (about a minute):
 
 ```bash
 cd relay
 npx wrangler deploy -c spike/wrangler.spike.jsonc
-curl https://committed-apns-spike.<your-subdomain>.workers.dev/   # {"http2": true, ...} means Workers works
+curl https://committed-apns-spike.prompt-hunt.workers.dev/   # {"http2": true, ...} means Workers works
 npx wrangler delete -c spike/wrangler.spike.jsonc
 ```
 
