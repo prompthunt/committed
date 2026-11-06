@@ -26,8 +26,12 @@ struct LiveRankLiveActivity: Widget {
             return DynamicIsland {
                 // Beside the sensor: the trophy and the Window, then the gap to pass (or, with
                 // no rows to show, your count).
+                // Both corners sit inward from their regions' edges: flush, the island's corner
+                // curve clipped the trophy and the region's edge shaved the pass line's last glyph.
+                // The trailing 10 pt also ends the pass line where the rows' squares end.
                 DynamicIslandExpandedRegion(.leading) {
                     LiveRankWindowLabel(state: state)
+                        .padding(.leading, 12)
                         .liveRankStale(stale)
                 }
                 DynamicIslandExpandedRegion(.trailing) {
@@ -38,6 +42,7 @@ struct LiveRankLiveActivity: Widget {
                             LiveRankCountLabel(state: state, style: .expanded)
                         }
                     }
+                    .padding(.trailing, 10)
                     .liveRankStale(stale)
                 }
                 DynamicIslandExpandedRegion(.bottom) {
