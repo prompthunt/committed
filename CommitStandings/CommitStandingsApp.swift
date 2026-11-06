@@ -10,39 +10,15 @@ struct CommitStandingsApp: App {
     @State private var updater: AppUpdater
 
     init() {
-        // Durable standings snapshot so relaunches show the last numbers immediately
-        // and refresh in the background, instead of a cold, blank board every time.
-        let isTesting = NSClassFromString("XCTestCase") != nil
-        let store = isTesting
-            ? StandingsStore(persistence: InMemoryCompetitorPersistence())
-            : StandingsStore(snapshotPersistence: UserDefaultsStandingsSnapshotPersistence(),
-                             hiddenPeoplePersistence: UserDefaultsHiddenPeoplePersistence())
-        // Credentials power sign-in + the automatic roster (GitHubAccountClient). The
-        // contributions scrape is anonymous, so the standings client needs no token.
-        // The test host must never prompt for or mutate the signed-in user's credentials.
-        let credentials: any GitHubCredentialStoring = isTesting
-            ? InMemoryGitHubCredentialStore() : KeychainGitHubCredentialStore()
-        let roster = GitHubRoster(
-            store: store, credentials: credentials,
-            persistence: isTesting ? nil : UserDefaultsGitHubRosterPersistence(),
-            legacyBackup: isTesting ? nil : UserDefaultsCompetitorPersistence(key: "competitors.manual-backup.v1")
-        )
-        _roster = State(initialValue: roster)
-        let client = ContributionsClient()
-        // Posts a local notification when a rival crosses you; refresh feeds it crossings.
-        let notifications = NotificationService()
-        let refresh = RefreshCoordinator(store: store, client: client, notifier: notifications, beforeRefresh: { reason in
-            await roster.refresh(force: reason == .manual)
-        })
-        _store = State(initialValue: store)
-        _refresh = State(initialValue: refresh)
-        _notifications = State(initialValue: notifications)
-        _auth = State(initialValue: AuthModel(
-            credentials: credentials,
-            auth: GitHubAuth(clientID: GitHubConfig.clientID, scope: GitHubConfig.scope),
-            onSignedIn: { _ in await refresh.refreshAll(reason: .manual) },
-            onSignedOut: { refresh.invalidate(); roster.disconnect() }
-        ))
+        // One shared graph for Mac and iPhone (see CommittedServices): durable snapshot so
+        // relaunches show the last numbers immediately, Keychain token, automatic roster. The
+        // test host gets in-memory storage and never touches the signed-in user's credentials.
+        let services = CommittedServices.live()
+        _store = State(initialValue: services.store)
+        _roster = State(initialValue: services.roster)
+        _refresh = State(initialValue: services.refresh)
+        _notifications = State(initialValue: services.notifications)
+        _auth = State(initialValue: services.auth)
         _updater = State(initialValue: AppUpdater())
     }
 
