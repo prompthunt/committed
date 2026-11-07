@@ -8,6 +8,19 @@ the shared project account and an optional local CLI profile.
 macOS menu-bar app (SwiftUI) showing a GitHub-contributions leaderboard among friends.
 Distributed as a Developer ID-signed, notarized app that auto-updates via **Sparkle**.
 
+## Required project rules
+
+`.agents/rules/` holds required project rules. Read each one that applies before
+starting the task:
+
+| When working on | Required rule |
+|---|---|
+| Builds, tests, packaging, Simulators or dev servers (starting or finishing) | [Development resource cleanup](.agents/rules/resource-cleanup.md) |
+| Any new or changed screen, window, popover, sheet or interaction (Mac, iPhone, Windows, site) | [UI evidence](.agents/rules/ui-evidence.md) |
+
+Every UI change needs real screenshots in a PR comment, uploaded as direct GitHub
+attachments and verified inline; the UI evidence rule has the workflow.
+
 > Naming: the product is **"Committed"**, but the bundle id, Xcode target, Sparkle keys,
 > and repos deliberately stay **"CommitStandings"** / `com.digg.commitstandings`. This
 > mismatch is intentional — **do not "fix" it**, or you break auto-update continuity.
@@ -43,7 +56,8 @@ Do it in this order:
 2. Land the change on `main` (branch → PR → merge). Build the release **from `main`**.
 3. Run `scripts/publish-release.sh`. It calls `package-release.sh` (notarize + sign +
    `appcast.xml`), then publishes the release with **all seven assets** and verifies the
-   public links return 200.
+   public links return 200. On a Mac with the shared queue, run it as the native session:
+   `apple-session run --app "Committed" --worktree "$PWD" -- scripts/publish-release.sh`.
 
 First prepare the Windows artifact on `main` with the **Prepare Windows release**
 workflow. The publishing script downloads and validates its exact commit and version.
@@ -97,11 +111,35 @@ never reaches the external testers. See `docs/distribution.md` → TestFlight.
 
 ## Build & test
 
+Before native work, read the [resource rule](.agents/rules/resource-cleanup.md) and
+[worktree hygiene](docs/IOS_WORKTREE_HYGIENE.md), and check that this checkout has
+the current `scripts/ios*.py` from `origin/main`.
+
+Every local build, test, packaging run and Simulator session takes its turn in the
+machine-wide `apple-session` queue shared with Old Sport, HiFi and Diem, one native
+session at a time. When another agent owns it, say you are waiting and do independent
+code work; `apple-session status` shows the owner and queue.
+
 ```bash
-xcodebuild -scheme CommitStandings -destination 'platform=macOS' build test
-# local packaging smoke test (no notarization / no clean-git requirement):
-scripts/package-release.sh --skip-notarization --skip-git-check
+python3 scripts/ios_check.py mac            # Mac gate: CommitStandings build + test
+python3 scripts/ios_check.py mac --package  # plus the local packaging smoke test
+python3 scripts/ios_check.py ios            # iPhone app tests on one disposable simulator
+python3 scripts/ios.py -- <xcodebuild build/archive/export arguments>
+python3 -m unittest discover -s scripts -p 'test_*.py'   # tests for these scripts
 ```
+
+`mac` runs the same build and test as CI (`.github/workflows/ci.yml`, ad hoc signed)
+under the lease. `ios` needs the iPhone app's `CommitStandingsiOS` scheme and fails
+with "iPhone app not in this checkout" where it is absent.
+
+**At most one automated-test simulator exists across Committed worktrees**, created
+only by `ios_check.py ios`. A busy slot or incomplete cleanup means wait or report the
+blocker. For interactive review, reuse the persistent iPhone Duo
+(`94D56458-B90B-484A-BA5E-16748D2CBEE5`, iOS 27.1) by exact UDID inside
+`apple-session run --app "Committed" --worktree "$PWD" -- /bin/zsh -f`; every branch
+shares it. The iPhone 18 Pro Max (`CAE5A835-4734-4944-8CF5-4BCB043FE467`) is on
+iOS 27.0 and cannot run the iPhone app until a 27.1 runtime supports it.
+See [native checks](docs/IOS_CHECKS.md).
 
 `git push` to the GitHub remote needs the repo-local `http.version HTTP/1.1` + large
 `http.postBuffer` (already configured) or it fails with HTTP 400.
@@ -119,6 +157,10 @@ Default labels: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-huma
 ### Domain docs
 
 Single-context. The glossary currently lives in `PRODUCT.md` → Glossary. See `docs/agents/domain.md`.
+
+### Simulators and native checks
+
+Starting, finishing or recovering simulator tests or interactive sessions? Use [simulator-resource-hygiene](.agents/skills/simulator-resource-hygiene/SKILL.md) before any simulator tooling.
 
 ### Windows app
 

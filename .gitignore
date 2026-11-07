@@ -53,3 +53,7 @@ windows/release/
 windows/src-tauri/icons/*
 !windows/src-tauri/icons/32x32.png
 !windows/src-tauri/icons/icon.ico
+
+# Python
+__pycache__/
+*.pyc
