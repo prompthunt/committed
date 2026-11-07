@@ -237,10 +237,28 @@ owns the App Store name "Committed", so the listing is **Committed: Commit Leade
 screen still shows "Committed" (`CFBundleDisplayName`). `ITSAppUsesNonExemptEncryption = NO` (HTTPS
 only), so uploads skip the export-compliance question.
 
-1. Bump `MARKETING_VERSION` / `CURRENT_PROJECT_VERSION` on the iOS targets.
-2. Product ▸ Archive with the `CommitStandingsiOS` scheme, then distribute to App Store Connect.
-3. The App Store privacy label lists the GitHub username and the usernames of people on your board,
-   linked to device identifiers, for app functionality (sent to the Committed relay).
+**Upload every build with `scripts/testflight.sh`**, from a clean checkout of `main`:
+
+```bash
+scripts/testflight.sh                    # "What to Test" = the last commit's subject
+scripts/testflight.sh "What to test…"    # custom notes
+```
+
+It takes the next build number from App Store Connect, archives the Release build, uploads it, and
+releases it to every tester:
+
+- **Prompt Hunt** (internal, team members) gets every build as soon as it processes.
+- **Friends** (external, for example people outside the team) gets each build after TestFlight beta
+  review, which the script submits. The first build of a version takes a few hours to a day;
+  later builds are usually approved quickly. Add people with
+  `asc testflight testers add --app 6831797452 --email <email> --group Friends`.
+
+Uploading from Xcode's Organizer instead skips the Friends group and beta review, so outside
+testers would fall behind. Bump `MARKETING_VERSION` on the iOS targets for a new version; build
+numbers need no bump.
+
+The App Store privacy label lists the GitHub username and the usernames of people on your board,
+linked to device identifiers, for app functionality (sent to the Committed relay).
 
 The iOS icon is a full-bleed, opaque square (iOS applies its own mask); it isn't the Mac icon,
 whose rounded shape and transparent margin App Store Connect rejects.
