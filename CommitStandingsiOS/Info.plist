@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyLists-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- Merged with the generated Info.plist (INFOPLIST_KEY_* build settings). Only keys with no
+	     build-setting form live here. -->
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>com.addisonk.CommitStandings.iOS</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>committed</string>
+			</array>
+		</dict>
+	</array>
+	<!-- Background app refresh brings the board and Live rank up to date (BackgroundRefresh.swift). -->
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>fetch</string>
+	</array>
+	<key>BGTaskSchedulerPermittedIdentifiers</key>
+	<array>
+		<string>com.addisonk.CommitStandings.iOS.refresh</string>
+	</array>
+	<!-- #51: Committed is dark only on iPhone, and uses the site's Inter Tight (OFL, Fonts/OFL.txt). -->
+	<key>UIUserInterfaceStyle</key>
+	<string>Dark</string>
+	<key>UIAppFonts</key>
+	<array>
+		<string>InterTight-Regular.ttf</string>
+		<string>InterTight-ExtraBold.ttf</string>
+	</array>
+	<!-- The Committed relay (Live rank phase 2), from build settings. An empty COMMITTED_RELAY_URL
+	     means no relay: Live rank stays phase 1. COMMITTED_APNS_ENVIRONMENT is sandbox (Debug) or
+	     production (Release), matching aps-environment. See LiveRankRelaySettings. -->
+	<key>CommittedRelayURL</key>
+	<string>$(COMMITTED_RELAY_URL)</string>
+	<key>CommittedAPNsEnvironment</key>
+	<string>$(COMMITTED_APNS_ENVIRONMENT)</string>
+</dict>
+</plist>

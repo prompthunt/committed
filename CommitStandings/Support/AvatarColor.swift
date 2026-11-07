@@ -11,6 +11,19 @@ enum AvatarColor {
         return String(username.prefix(2)).uppercased()
     }
 
+    /// Like `initials(for:)`, from letters only ("guest-08" is "GU", not "G0"). A name with no
+    /// letters keeps its first character. The iPhone's fallback avatars use these.
+    static func letterInitials(for username: String) -> String {
+        let parts = username.split(separator: "-")
+            .map { $0.filter(\.isLetter) }
+            .filter { !$0.isEmpty }
+        if parts.count >= 2 {
+            return (String(parts[0].prefix(1)) + String(parts[1].prefix(1))).uppercased()
+        }
+        if let only = parts.first { return String(only.prefix(2)).uppercased() }
+        return String(username.prefix(1)).uppercased()
+    }
+
     /// Deterministic color picked from a palette by hashing the username.
     /// Uses a stable UTF-8 byte sum rather than `Hasher`, whose seed is
     /// randomized per process and would make avatar colors flicker between

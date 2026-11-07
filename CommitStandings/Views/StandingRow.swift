@@ -10,27 +10,32 @@ struct StandingRow: View {
     var maxContributions: Int = 0
     /// Change in this row's placement since the start of the day (+ up, − down). nil/0 ⇒ no marker.
     var rankDelta: Int? = nil
+    /// Grows with Dynamic Type on iPhone so "#12" never truncates; stays 24pt on the Mac.
+    @ScaledMetric(relativeTo: .caption) private var rankWidth: CGFloat = 24
+    /// iPhone at accessibility text sizes wraps long usernames instead of truncating them.
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    /// The Mac's look by default; the iPhone sets its own (see `StandingRowStyle`).
+    @Environment(\.standingRowStyle) private var style
 
     var body: some View {
-        HStack(spacing: 10) {
+        HStack(spacing: style.spacing) {
             Text("#\(rank)")
-                .font(.caption.monospacedDigit())
-                .foregroundStyle(.secondary)
-                .frame(width: 24, alignment: .trailing)
-            AvatarView(username: competitor.username, size: 26)
+                .font(style.rankFont)
+                .foregroundStyle(style.rankColor.map(AnyShapeStyle.init) ?? AnyShapeStyle(.secondary))
+                .frame(width: rankWidth * style.rankWidthScale, alignment: .trailing)
+            AvatarView(username: competitor.username, size: style.avatarSize)
             HStack(spacing: 4) {
                 Text(competitor.username)
-                    .font(.callout)
-                    .lineLimit(1)
+                    .font(competitor.isSelf ? style.selfNameFont : style.nameFont)
+                    .lineLimit(dynamicTypeSize.isAccessibilitySize ? 2 : 1)
                     .truncationMode(.middle)
-                    .fontWeight(competitor.isSelf ? .semibold : .regular)
                 if competitor.isSelf {
                     Text("you")
-                        .font(.caption2)
+                        .font(style.badgeFont)
                         .padding(.horizontal, 5)
                         .padding(.vertical, 1)
-                        .background(.tint.opacity(0.18), in: .capsule)
-                        .foregroundStyle(.tint)
+                        .background(accent.opacity(style.badgeFillOpacity), in: .capsule)
+                        .foregroundStyle(style.badgeForeground.map(AnyShapeStyle.init) ?? accent)
                 }
             }
             Spacer(minLength: 6)
@@ -41,8 +46,8 @@ struct StandingRow: View {
             }
             contributionSquare
         }
-        .padding(.horizontal, 8)
-        .padding(.vertical, 7)
+        .padding(.horizontal, style.horizontalPadding)
+        .padding(.vertical, style.verticalPadding)
         .background(selfHighlight)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(accessibilityDescription)
@@ -53,13 +58,18 @@ struct StandingRow: View {
     @ViewBuilder
     private var selfHighlight: some View {
         if competitor.isSelf {
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .fill(.tint.opacity(0.12))
+            RoundedRectangle(cornerRadius: style.cornerRadius, style: .continuous)
+                .fill(accent.opacity(style.selfFillOpacity))
                 .overlay(
-                    RoundedRectangle(cornerRadius: 8, style: .continuous)
-                        .stroke(.tint.opacity(0.30), lineWidth: 1)
+                    RoundedRectangle(cornerRadius: style.cornerRadius, style: .continuous)
+                        .stroke(accent.opacity(style.selfStrokeOpacity), lineWidth: 1)
                 )
         }
+    }
+
+    /// The badge and highlight color: the style's accent, or the tint (the Mac).
+    private var accent: AnyShapeStyle {
+        style.accent.map(AnyShapeStyle.init) ?? AnyShapeStyle(.tint)
     }
 
     /// A small, quiet chevron showing how this row moved since the start of the day: a single
@@ -69,8 +79,8 @@ struct StandingRow: View {
     private var rankDeltaIndicator: some View {
         if let delta = rankDelta, delta != 0 {
             Image(systemName: deltaSymbol(delta))
-                .font(.system(size: 9, weight: .semibold))
-                .foregroundStyle(delta > 0 ? Color.green : Color.secondary)
+                .font(style.movementFont)
+                .foregroundStyle(delta > 0 ? style.movementUpColor : (style.movementDownColor ?? Color.secondary))
                 .accessibilityLabel(delta > 0 ? "up \(delta)" : "down \(-delta)")
         }
     }
@@ -88,14 +98,29 @@ struct StandingRow: View {
     /// low counts, richer/darker green for high. Hidden when there's no data yet.
     @ViewBuilder
     private var contributionSquare: some View {
-        if hasData, let standing {
-            Image(systemName: "square.grid.2x2.fill")
-                .imageScale(.small)
-                .foregroundStyle(ContributionShade.color(value: standing.contributions, max: maxContributions))
-                .frame(width: 16)
-                .accessibilityHidden(true)
-        } else {
-            Color.clear.frame(width: 16)
+        switch style.squares {
+        case .symbol:
+            if hasData, let standing {
+                Image(systemName: "square.grid.2x2.fill")
+                    .imageScale(.small)
+                    .foregroundStyle(ContributionShade.color(value: standing.contributions, max: maxContributions))
+                    .frame(width: 16)
+                    .accessibilityHidden(true)
+            } else {
+                Color.clear.frame(width: 16)
+            }
+        case .shadedSymbol(let colors):
+            // The same glyph, shaded by quartile of the leader's count.
+            if hasData, let standing, !colors.isEmpty {
+                let level = min(SquareRamp.level(value: standing.contributions, max: maxContributions), colors.count - 1)
+                Image(systemName: "square.grid.2x2.fill")
+                    .imageScale(.small)
+                    .foregroundStyle(colors[level])
+                    .frame(width: 16)
+                    .accessibilityHidden(true)
+            } else {
+                Color.clear.frame(width: 16)
+            }
         }
     }
 
@@ -143,13 +168,19 @@ struct StandingRow: View {
             SkeletonCell()
         case .failed where !hasData:
             Text("—")
-                .font(.callout.monospacedDigit())
+                .font(style.countFont)
                 .foregroundStyle(.orange)
         default:
-            Text(contributionsText)
-                .font(.callout.monospacedDigit())
-                .fontWeight(competitor.isSelf ? .semibold : .regular)
-                .pulsing(isRefreshing)
+            if competitor.isSelf, let color = style.selfCountColor {
+                Text(contributionsText)
+                    .font(style.selfCountFont)
+                    .foregroundStyle(color)
+                    .pulsing(isRefreshing)
+            } else {
+                Text(contributionsText)
+                    .font(competitor.isSelf ? style.selfCountFont : style.countFont)
+                    .pulsing(isRefreshing)
+            }
         }
     }
 }

@@ -1,0 +1,254 @@
+{
+  "version": 1,
+  "about": "Shared ranking conformance cases. Consumed by CommitStandingsTests/RankingConformanceTests.swift (Ranking.order) and relay/test/ranking.test.ts (Ranking port + LiveRankState). Expected values are worked by hand from the rules in CommitStandings/Store/Ranking.swift: contributions descending, a missing standing (or one for a different window) sorts last below a real 0, ties keep competitor order, ranks start at 1. LiveRankState's movementToday, yours and each neighbor's, is that login's rankDeltas entry on daily, else 0. See relay/README.md#conformance-fixture.",
+  "cases": [
+    {
+      "name": "descending by contributions, self in the middle",
+      "input": {
+        "self": "me",
+        "competitors": ["me", "alice", "bob"],
+        "window": "daily",
+        "standings": {
+          "me": { "contributions": 50, "window": "daily" },
+          "alice": { "contributions": 90, "window": "daily" },
+          "bob": { "contributions": 20, "window": "daily" }
+        },
+        "rankDeltas": { "me": 1, "alice": -1 },
+        "now": 1793800000
+      },
+      "expected": {
+        "order": [
+          { "login": "alice", "rank": 1 },
+          { "login": "me", "rank": 2 },
+          { "login": "bob", "rank": 3 }
+        ],
+        "liveRankState": {
+          "window": "daily",
+          "rank": 2,
+          "competitorCount": 3,
+          "contributions": 50,
+          "above": { "login": "alice", "contributions": 90, "movementToday": -1 },
+          "below": { "login": "bob", "contributions": 20, "movementToday": 0 },
+          "movementToday": 1,
+          "updatedAt": 1793800000
+        }
+      }
+    },
+    {
+      "name": "ties keep competitor order; movement is 0 outside Today",
+      "input": {
+        "self": "me",
+        "competitors": ["me", "alice", "bob"],
+        "window": "weekly",
+        "standings": {
+          "me": { "contributions": 40, "window": "weekly" },
+          "alice": { "contributions": 40, "window": "weekly" },
+          "bob": { "contributions": 40, "window": "weekly" }
+        },
+        "rankDeltas": { "me": 2, "alice": 1 },
+        "now": 1793800300
+      },
+      "expected": {
+        "order": [
+          { "login": "me", "rank": 1 },
+          { "login": "alice", "rank": 2 },
+          { "login": "bob", "rank": 3 }
+        ],
+        "liveRankState": {
+          "window": "weekly",
+          "rank": 1,
+          "competitorCount": 3,
+          "contributions": 40,
+          "above": null,
+          "below": { "login": "alice", "contributions": 40, "movementToday": 0 },
+          "movementToday": 0,
+          "updatedAt": 1793800300
+        }
+      }
+    },
+    {
+      "name": "a real zero ranks above missing data; self without data has no rank",
+      "input": {
+        "self": "me",
+        "competitors": ["me", "alice"],
+        "window": "weekly",
+        "standings": {
+          "alice": { "contributions": 0, "window": "weekly" }
+        },
+        "rankDeltas": {},
+        "now": 1793800600
+      },
+      "expected": {
+        "order": [
+          { "login": "alice", "rank": 1 },
+          { "login": "me", "rank": 2 }
+        ],
+        "liveRankState": {
+          "window": "weekly",
+          "rank": null,
+          "competitorCount": 2,
+          "contributions": null,
+          "above": null,
+          "below": null,
+          "movementToday": 0,
+          "updatedAt": 1793800600
+        }
+      }
+    },
+    {
+      "name": "a standing for another window counts as missing",
+      "input": {
+        "self": "me",
+        "competitors": ["me", "alice"],
+        "window": "daily",
+        "standings": {
+          "me": { "contributions": 10, "window": "daily" },
+          "alice": { "contributions": 9999, "window": "monthly" }
+        },
+        "rankDeltas": {},
+        "now": 1793800900
+      },
+      "expected": {
+        "order": [
+          { "login": "me", "rank": 1 },
+          { "login": "alice", "rank": 2 }
+        ],
+        "liveRankState": {
+          "window": "daily",
+          "rank": 1,
+          "competitorCount": 2,
+          "contributions": 10,
+          "above": null,
+          "below": null,
+          "movementToday": 0,
+          "updatedAt": 1793800900
+        }
+      }
+    },
+    {
+      "name": "no visible rivals: contributions without a rank",
+      "input": {
+        "self": "me",
+        "competitors": ["me"],
+        "window": "daily",
+        "standings": {
+          "me": { "contributions": 7, "window": "daily" }
+        },
+        "rankDeltas": {},
+        "now": 1793801200
+      },
+      "expected": {
+        "order": [
+          { "login": "me", "rank": 1 }
+        ],
+        "liveRankState": {
+          "window": "daily",
+          "rank": null,
+          "competitorCount": 1,
+          "contributions": 7,
+          "above": null,
+          "below": null,
+          "movementToday": 0,
+          "updatedAt": 1793801200
+        }
+      }
+    },
+    {
+      "name": "self last on Today, moved down since the baseline",
+      "input": {
+        "self": "me",
+        "competitors": ["me", "alice", "bob"],
+        "window": "daily",
+        "standings": {
+          "me": { "contributions": 1, "window": "daily" },
+          "alice": { "contributions": 4, "window": "daily" },
+          "bob": { "contributions": 2, "window": "daily" }
+        },
+        "rankDeltas": { "me": -2, "bob": 1 },
+        "now": 1793801500
+      },
+      "expected": {
+        "order": [
+          { "login": "alice", "rank": 1 },
+          { "login": "bob", "rank": 2 },
+          { "login": "me", "rank": 3 }
+        ],
+        "liveRankState": {
+          "window": "daily",
+          "rank": 3,
+          "competitorCount": 3,
+          "contributions": 1,
+          "above": { "login": "bob", "contributions": 2, "movementToday": 1 },
+          "below": null,
+          "movementToday": -2,
+          "updatedAt": 1793801500
+        }
+      }
+    },
+    {
+      "name": "tie broken by board order with a missing rival at the end",
+      "input": {
+        "self": "me",
+        "competitors": ["me", "alice", "bob", "carol"],
+        "window": "monthly",
+        "standings": {
+          "me": { "contributions": 3, "window": "monthly" },
+          "alice": { "contributions": 10, "window": "monthly" },
+          "bob": { "contributions": 3, "window": "monthly" }
+        },
+        "rankDeltas": {},
+        "now": 1793801800
+      },
+      "expected": {
+        "order": [
+          { "login": "alice", "rank": 1 },
+          { "login": "me", "rank": 2 },
+          { "login": "bob", "rank": 3 },
+          { "login": "carol", "rank": 4 }
+        ],
+        "liveRankState": {
+          "window": "monthly",
+          "rank": 2,
+          "competitorCount": 4,
+          "contributions": 3,
+          "above": { "login": "alice", "contributions": 10, "movementToday": 0 },
+          "below": { "login": "bob", "contributions": 3, "movementToday": 0 },
+          "movementToday": 0,
+          "updatedAt": 1793801800
+        }
+      }
+    },
+    {
+      "name": "you win a tie with a rival: you're first on your own board",
+      "input": {
+        "self": "me",
+        "competitors": ["me", "alice", "bob"],
+        "window": "daily",
+        "standings": {
+          "me": { "contributions": 5, "window": "daily" },
+          "alice": { "contributions": 5, "window": "daily" },
+          "bob": { "contributions": 6, "window": "daily" }
+        },
+        "rankDeltas": {},
+        "now": 1793802100
+      },
+      "expected": {
+        "order": [
+          { "login": "bob", "rank": 1 },
+          { "login": "me", "rank": 2 },
+          { "login": "alice", "rank": 3 }
+        ],
+        "liveRankState": {
+          "window": "daily",
+          "rank": 2,
+          "competitorCount": 3,
+          "contributions": 5,
+          "above": { "login": "bob", "contributions": 6, "movementToday": 0 },
+          "below": { "login": "alice", "contributions": 5, "movementToday": 0 },
+          "movementToday": 0,
+          "updatedAt": 1793802100
+        }
+      }
+    }
+  ]
+}

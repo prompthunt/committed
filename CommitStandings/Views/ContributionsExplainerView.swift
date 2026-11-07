@@ -1,10 +1,35 @@
 import SwiftUI
 
-/// Standalone explainer for the Contributions metric, hosted in its own window (opened from
-/// the board card or the ⋯ menu). Kept self-contained and static — a scannable icon-per-row
-/// breakdown of what GitHub actually counts, so friends stop conflating it with commits/LOC.
+/// Standalone explainer for the Contributions metric, hosted in its own window on the Mac (opened
+/// from the board card or the ⋯ menu). The iPhone shows the same `ContributionsExplainerContent`
+/// on its About Committed page.
 struct ContributionsExplainerView: View {
     @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            ContributionsExplainerContent()
+
+            HStack {
+                Spacer()
+                Button("Got it") { dismiss() }
+                    .buttonStyle(.borderedProminent)
+                    .keyboardShortcut(.defaultAction)
+            }
+        }
+        .padding(28)
+        .frame(width: 460)
+    }
+}
+
+/// What a contribution is, shared by the Mac explainer window and iPhone's About Committed. Kept
+/// self-contained and static — a scannable icon-per-row breakdown of what GitHub actually counts,
+/// so friends stop conflating it with commits/LOC.
+struct ContributionsExplainerContent: View {
+    // Fixed 16 pt on the Mac (no Dynamic Type there); scales with text size on iPhone.
+    @ScaledMetric(relativeTo: .callout) private var iconSize = 16
+    @ScaledMetric(relativeTo: .callout) private var iconWidth = 24
+    @ScaledMetric(relativeTo: .callout) private var iconHeight = 22
 
     private struct Item: Identifiable {
         let id = UUID()
@@ -28,6 +53,7 @@ struct ContributionsExplainerView: View {
             VStack(alignment: .leading, spacing: 6) {
                 Text("What’s a contribution?")
                     .font(.title3.weight(.semibold))
+                    .accessibilityAddTraits(.isHeader)
                 Text("Your rank is your GitHub contribution count — basically, how much you got done. Four kinds of work count:")
                     .font(.callout)
                     .foregroundStyle(.secondary)
@@ -38,9 +64,10 @@ struct ContributionsExplainerView: View {
                 ForEach(items) { item in
                     HStack(alignment: .top, spacing: 12) {
                         Image(systemName: item.symbol)
-                            .font(.system(size: 16, weight: .medium))
+                            .font(.system(size: iconSize, weight: .medium))
                             .foregroundStyle(.tint)
-                            .frame(width: 24, height: 22, alignment: .center)
+                            .frame(width: iconWidth, height: iconHeight, alignment: .center)
+                            .accessibilityHidden(true)
                         VStack(alignment: .leading, spacing: 1) {
                             Text(item.label)
                                 .font(.callout.weight(.semibold))
@@ -51,6 +78,7 @@ struct ContributionsExplainerView: View {
                         }
                         Spacer(minLength: 0)
                     }
+                    .accessibilityElement(children: .combine)
                 }
             }
             .padding(14)
@@ -60,21 +88,13 @@ struct ContributionsExplainerView: View {
             HStack(alignment: .top, spacing: 8) {
                 Image(systemName: "square.grid.3x3.fill")
                     .foregroundStyle(.green)
+                    .accessibilityHidden(true)
                 Text("It's the same count behind the **green squares** on your GitHub profile.")
                     .font(.callout)
                     .fixedSize(horizontal: false, vertical: true)
             }
 
             PrivateContributionsTip(dismissible: false)
-
-            HStack {
-                Spacer()
-                Button("Got it") { dismiss() }
-                    .buttonStyle(.borderedProminent)
-                    .keyboardShortcut(.defaultAction)
-            }
         }
-        .padding(28)
-        .frame(width: 460)
     }
 }

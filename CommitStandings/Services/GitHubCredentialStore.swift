@@ -12,15 +12,29 @@ protocol GitHubCredentialStoring: Sendable {
 /// Keychain-backed store (generic password keyed by service + account). Works under
 /// the app sandbox with no extra entitlement for the app's own keychain item.
 final class KeychainGitHubCredentialStore: GitHubCredentialStoring, @unchecked Sendable {
-    private let service: String
+    let service: String
     private let account: String
+    private let accessibility: CFString
+
+    /// The Mac keeps the token readable only while unlocked. The iPhone needs it after first
+    /// unlock: background refresh and a background launch run while the phone is locked, and a
+    /// token that reads as nil there would look like a Disconnect.
+    static var defaultAccessibility: CFString {
+        #if os(iOS)
+        kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
+        #else
+        kSecAttrAccessibleWhenUnlockedThisDeviceOnly
+        #endif
+    }
 
     init(
         service: String = "com.addisonk.CommitStandings.github",
-        account: String = "oauth-token"
+        account: String = "oauth-token",
+        accessibility: CFString = KeychainGitHubCredentialStore.defaultAccessibility
     ) {
         self.service = service
         self.account = account
+        self.accessibility = accessibility
     }
 
     private var baseQuery: [String: Any] {
@@ -41,13 +55,28 @@ final class KeychainGitHubCredentialStore: GitHubCredentialStoring, @unchecked S
         // The Developer ID-signed release reads its own item without any UI, so this is a no-op
         // there.
         query[kSecUseAuthenticationUI as String] = kSecUseAuthenticationUISkip
+        query[kSecReturnAttributes as String] = true
         var item: CFTypeRef?
         guard SecItemCopyMatching(query as CFDictionary, &item) == errSecSuccess,
-              let data = item as? Data,
+              let attributes = item as? [String: Any],
+              let data = attributes[kSecValueData as String] as? Data,
               let token = String(data: data, encoding: .utf8) else {
             return nil
         }
+        // iPhone builds before the Committed relay (#45) saved it as "when unlocked": move it over.
+        if Self.needsMigration(stored: attributes[kSecAttrAccessible as String] as? String, to: accessibility) {
+            SecItemUpdate(baseQuery as CFDictionary, [kSecAttrAccessible as String: accessibility] as CFDictionary)
+        }
         return token
+    }
+
+    /// Whether a token saved with `stored` accessibility should move to `wanted`. Only the old
+    /// "when unlocked" token moves, and only to something else: the iPhone's pre-relay builds saved
+    /// it that way. The Mac wants "when unlocked" itself, so a Mac read never writes, whatever its
+    /// file keychain reports.
+    static func needsMigration(stored: String?, to wanted: CFString) -> Bool {
+        let whenUnlocked = kSecAttrAccessibleWhenUnlockedThisDeviceOnly as String
+        return stored == whenUnlocked && wanted as String != whenUnlocked
     }
 
     func save(_ token: String) {
@@ -55,9 +84,9 @@ final class KeychainGitHubCredentialStore: GitHubCredentialStoring, @unchecked S
         SecItemDelete(baseQuery as CFDictionary)
         var attributes = baseQuery
         attributes[kSecValueData as String] = Data(token.utf8)
-        // Explicit least-privilege accessibility: readable only while unlocked, and
-        // never migrated to another device via encrypted backups.
-        attributes[kSecAttrAccessible as String] = kSecAttrAccessibleWhenUnlockedThisDeviceOnly
+        // Explicit least-privilege accessibility (see `defaultAccessibility`), never migrated to
+        // another device via encrypted backups.
+        attributes[kSecAttrAccessible as String] = accessibility
         SecItemAdd(attributes as CFDictionary, nil)
     }
 

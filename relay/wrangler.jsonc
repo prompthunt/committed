@@ -1,0 +1,24 @@
+{
+  // Committed relay: keeps Live rank current while the iPhone app is closed. See README.md.
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "committed-relay",
+  // Prompt Hunt's Cloudflare account; deploys to committed-relay.prompt-hunt.workers.dev.
+  "account_id": "b5438d46cc2771671a2aeba8cb802a4d",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-11-01",
+  "observability": { "enabled": true },
+  "triggers": { "crons": ["*/5 * * * *"] },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "committed-relay",
+      "database_id": "03ee761d-a453-4f36-8cfa-45e2bd52fcfa",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "vars": {
+    // iOS app bundle id; the APNs topic is `${APNS_BUNDLE_ID}.push-type.liveactivity`.
+    "APNS_BUNDLE_ID": "com.addisonk.CommitStandings.iOS"
+  }
+  // Secrets (set with `wrangler secret put`): APNS_KEY_ID, APNS_TEAM_ID, APNS_PRIVATE_KEY.
+}

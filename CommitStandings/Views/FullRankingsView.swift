@@ -10,14 +10,7 @@ struct FullRankingsView: View {
     @State private var searchText = ""
 
     private var people: [Competitor] {
-        let allowed = roster.snapshot?.usernames(in: source) ?? []
-        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
-            .trimmingCharacters(in: CharacterSet(charactersIn: "@"))
-        return store.competitors.filter { person in
-            (source == .all || allowed.contains(person.username))
-                && (query.isEmpty || person.username.localizedCaseInsensitiveContains(query))
-        }
-        .sorted { $0.username < $1.username }
+        PeopleDirectory.people(in: store.competitors, roster: roster.snapshot, source: source, search: searchText)
     }
 
     var body: some View {
@@ -90,7 +83,7 @@ private struct PersonVisibilityRow: View {
 
     private var hidden: Bool { store.isHidden(person.username) }
     private var actionLabel: String {
-        "\(hidden ? "Show" : "Hide") @\(person.username)\(hidden ? " on" : " from") leaderboard"
+        PeopleDirectory.visibilityActionLabel(username: person.username, hidden: hidden)
     }
 
     var body: some View {
@@ -129,42 +122,6 @@ private struct PersonVisibilityRow: View {
     }
 
     private func toggleVisibility() {
-        guard !person.isSelf else { return }
-        let shouldHide = !hidden
-        store.setHidden(shouldHide, username: person.username)
-        if !shouldHide {
-            Task { await refresh.refreshOne(username: person.username, reason: .visibilityChanged) }
-        }
-    }
-}
-
-/// Status also lives on the board so an offline or permission failure is never hidden.
-struct RosterStatusView: View {
-    @Environment(GitHubRoster.self) private var roster
-    @Environment(RefreshCoordinator.self) private var refresh
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            if roster.isRefreshing {
-                HStack(spacing: 6) {
-                    ProgressView().controlSize(.small)
-                    Text("Syncing people from GitHub…")
-                }
-            } else if let error = roster.errorMessage {
-                Text(error).foregroundStyle(.orange)
-                HStack {
-                    Text(roster.snapshot == nil ? "Your saved list hasn’t changed." : "Showing your last synced people.")
-                    Button("Retry") { Task { await refresh.refreshAll(reason: .manual) } }
-                        .disabled(refresh.isRefreshing)
-                }
-            } else if let snapshot = roster.snapshot {
-                Text("Synced \(snapshot.updatedAt, style: .relative) ago")
-            } else {
-                Text("Your people will sync from GitHub automatically.")
-            }
-        }
-        .font(.caption)
-        .foregroundStyle(.secondary)
-        .fixedSize(horizontal: false, vertical: true)
+        PeopleDirectory.toggleVisibility(of: person, store: store, refresh: refresh)
     }
 }

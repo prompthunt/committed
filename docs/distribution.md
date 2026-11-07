@@ -177,3 +177,89 @@ To override the Digg defaults for a one-off package:
 ```sh
 TEAM_ID=ABCDE12345 PRODUCT_BUNDLE_IDENTIFIER=com.example.commitstandings ./scripts/package-release.sh
 ```
+
+## iPhone (TestFlight, then the App Store)
+
+The iPhone app (`CommitStandingsiOS` scheme, display name **Committed**, bundle ID
+`com.addisonk.CommitStandings.iOS`, Live rank extension `com.addisonk.CommitStandings.iOS.LiveRank`)
+ships through TestFlight first, then the App Store. It is **not** part of the GitHub Release:
+`publish-release.sh`, its seven assets, and the Mac and Windows steps above don't change. The iOS
+marketing version follows the shared version number.
+
+### Signing and capabilities
+
+- An App ID for the app with **Push Notifications** and the App Group
+  `group.com.addisonk.CommitStandings`, and one for the extension with the same App Group.
+- `CommitStandingsiOS/CommitStandingsiOS.entitlements` has `aps-environment = development`, which
+  is what Debug and development-signed device builds use. Distribution signing for TestFlight and
+  the App Store uses `production` (Xcode's automatic signing sets it from the distribution
+  profile when exporting; with manual signing, the distribution profile must include Push
+  Notifications). Without the entitlement, ActivityKit refuses push-token Live Activities and the
+  app falls back to phase 1 (updated only by the app).
+- The extension needs no push entitlement.
+
+### Relay build settings
+
+The app reads two build settings through its Info.plist:
+
+| Setting | Debug | Release | Meaning |
+|---|---|---|---|
+| `COMMITTED_RELAY_URL` | empty | `https://committed-relay.prompt-hunt.workers.dev` | Base URL of the Committed relay. Empty = no relay: Live rank stays phase 1. |
+| `COMMITTED_APNS_ENVIRONMENT` | `sandbox` | `production` | Sent to the relay so it pushes through the APNs host that matches `aps-environment`. |
+
+Set `COMMITTED_RELAY_URL` to the deployed relay (for example `https://committed-relay.<subdomain>.workers.dev`)
+for Release before the TestFlight upload, and to a staging Worker or `http://localhost:8787`
+(`wrangler dev`) for Debug. For a one-off local build, pass it on the command line:
+
+```sh
+xcodebuild -project CommitStandings.xcodeproj -scheme CommitStandingsiOS \
+  -destination 'platform=iOS Simulator,name=iPhone Duo' COMMITTED_RELAY_URL=http://localhost:8787 build
+```
+
+A TestFlight build is a Release build, so it registers with `apnsEnvironment: production`; the
+relay pushes it through `api.push.apple.com`.
+
+### APNs key and relay deploy
+
+1. Create an **APNs auth key** (`.p8`) in the Apple Developer account. Note its key ID and the
+   team ID.
+2. Deploy the relay from `relay/` (Cloudflare Workers + D1); follow "Setup" in
+   [relay/README.md](../relay/README.md): run the HTTP/2 spike first, create the D1 database,
+   set `APNS_KEY_ID`, `APNS_TEAM_ID`, `APNS_PRIVATE_KEY` with `wrangler secret put`, then
+   `wrangler deploy`. Never set `APNS_ORIGIN` on a deployed relay; it's for local development.
+3. Put the deployed URL in `COMMITTED_RELAY_URL` (Release) and upload the build.
+
+### TestFlight
+
+The iOS targets sign with the Prompt Hunt team (`R36J43WZ34`), set as `DEVELOPMENT_TEAM` on those
+targets only; the Mac app keeps signing with the team `package-release.sh` passes. Another developer
+owns the App Store name "Committed", so the listing is **Committed: Commit Leaderboard**; the home
+screen still shows "Committed" (`CFBundleDisplayName`). `ITSAppUsesNonExemptEncryption = NO` (HTTPS
+only), so uploads skip the export-compliance question.
+
+**Upload every build with `scripts/testflight.sh`**, from a clean checkout of `main`:
+
+```bash
+scripts/testflight.sh                    # "What to Test" = the last commit's subject
+scripts/testflight.sh "What to test…"    # custom notes
+```
+
+It takes the next build number from App Store Connect, archives the Release build, uploads it, and
+releases it to every tester:
+
+- **Prompt Hunt** (internal, team members) gets every build as soon as it processes.
+- **Friends** (external, for example people outside the team) gets each build after TestFlight beta
+  review, which the script submits. The first build of a version takes a few hours to a day;
+  later builds are usually approved quickly. Add people with
+  `asc testflight testers add --app 6831797452 --email <email> --group Friends`.
+
+Uploading from Xcode's Organizer instead skips the Friends group and beta review, so outside
+testers would fall behind. Bump `MARKETING_VERSION` on the iOS targets for a new version; build
+numbers need no bump.
+
+The App Store privacy label lists the GitHub username and the usernames of people on your board,
+linked to device identifiers, for app functionality (sent to the Committed relay).
+
+The iOS icon is a full-bleed, opaque square (iOS applies its own mask); it isn't the Mac icon,
+whose rounded shape and transparent margin App Store Connect rejects.
+

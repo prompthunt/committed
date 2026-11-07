@@ -141,7 +141,7 @@ private struct NotifyRow: View {
                 guard enabled else { return }
                 requestingAuthorization = true
                 Task {
-                    if await notifications.requestAuthorization() == false { isOn = false }
+                    await notifications.setEnabled(true)
                     requestingAuthorization = false
                 }
             }

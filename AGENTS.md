@@ -1,8 +1,9 @@
 # Committed — agent & contributor guide
 
 Read [CONTRIBUTING.md](CONTRIBUTING.md) for setup and verification. Product behavior
-is documented in [PRODUCT.md](PRODUCT.md). Keep personal machine setup and account
-administration notes outside this repository.
+is documented in [PRODUCT.md](PRODUCT.md). Keep credentials and personal account
+administration notes outside this repository; the Cloudflare section below records
+the shared project account and an optional local CLI profile.
 
 macOS menu-bar app (SwiftUI) showing a GitHub-contributions leaderboard among friends.
 Distributed as a Developer ID-signed, notarized app that auto-updates via **Sparkle**.
@@ -23,6 +24,13 @@ attachments and verified inline; the UI evidence rule has the workflow.
 > Naming: the product is **"Committed"**, but the bundle id, Xcode target, Sparkle keys,
 > and repos deliberately stay **"CommitStandings"** / `com.digg.commitstandings`. This
 > mismatch is intentional — **do not "fix" it**, or you break auto-update continuity.
+
+## Cloudflare account
+
+- Target **Prompt Hunt**, account ID `b5438d46cc2771671a2aeba8cb802a4d`. Use this account for the Committed relay and `gitcommitted.app` DNS.
+- On Addison's Mac, use `cf --profile default` with `CLOUDFLARE_ACCOUNT_ID=b5438d46cc2771671a2aeba8cb802a4d` for account-scoped CLI operations, and verify the login with `cf --profile default auth whoami`. The login also exposes a personal account; never infer the target from the login, profile name or account-list order.
+- This profile is local machine setup. Other hosts and CI need their own authorized credentials for the same account. An existing `CLOUDFLARE_API_TOKEN` overrides profile credentials; check its presence without printing it.
+- Preserve this repository's existing MCP and deployment workflows. Wrangler and MCP authenticate independently; a `cf` profile does not authorize either. Keep existing Wrangler projects on Wrangler and do not run `cf migrate` or change deployment targets merely to use the CLI.
 
 ## Releasing (read before shipping a build)
 
@@ -74,6 +82,13 @@ After publishing, confirm (the script does this automatically):
 - `…/releases/latest/download/Committed-Setup.exe` → 200
 - `…/releases/latest/download/latest-windows.json` and its per-tag installer URL → 200
 - the appcast's `<enclosure url>` is the **per-tag** form `…/releases/download/v<ver>/…` and → 200
+
+## iPhone TestFlight
+
+Upload every iPhone build with `scripts/testflight.sh`, from a clean `main`. It releases each build to
+both TestFlight groups: internal **Prompt Hunt** and external **Friends**, which the script submits
+for beta review. Don't upload from Xcode's Organizer or with a bare `xcodebuild` export: that build
+never reaches the external testers. See `docs/distribution.md` → TestFlight.
 
 ## Hard invariants (regressions here have broken updates before)
 
