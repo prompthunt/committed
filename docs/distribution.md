@@ -204,7 +204,7 @@ The app reads two build settings through its Info.plist:
 
 | Setting | Debug | Release | Meaning |
 |---|---|---|---|
-| `COMMITTED_RELAY_URL` | empty | empty | Base URL of the Committed relay. Empty = no relay: Live rank stays phase 1. |
+| `COMMITTED_RELAY_URL` | empty | `https://committed-relay.prompt-hunt.workers.dev` | Base URL of the Committed relay. Empty = no relay: Live rank stays phase 1. |
 | `COMMITTED_APNS_ENVIRONMENT` | `sandbox` | `production` | Sent to the relay so it pushes through the APNs host that matches `aps-environment`. |
 
 Set `COMMITTED_RELAY_URL` to the deployed relay (for example `https://committed-relay.<subdomain>.workers.dev`)
@@ -231,9 +231,35 @@ relay pushes it through `api.push.apple.com`.
 
 ### TestFlight
 
-1. Bump `MARKETING_VERSION` / `CURRENT_PROJECT_VERSION` on the iOS targets.
-2. Product ▸ Archive with the `CommitStandingsiOS` scheme, then distribute to App Store Connect.
-3. The App Store privacy label lists the GitHub username and the usernames of people on your board,
-   linked to device identifiers, for app functionality (sent to the Committed relay).
-4. Before release, flatten the app icon's alpha channel (App Store Connect rejects it).
+The iOS targets sign with the Prompt Hunt team (`R36J43WZ34`), set as `DEVELOPMENT_TEAM` on those
+targets only; the Mac app keeps signing with the team `package-release.sh` passes. Another developer
+owns the App Store name "Committed", so the listing is **Committed: Commit Leaderboard**; the home
+screen still shows "Committed" (`CFBundleDisplayName`). `ITSAppUsesNonExemptEncryption = NO` (HTTPS
+only), so uploads skip the export-compliance question.
+
+**Upload every build with `scripts/testflight.sh`**, from a clean checkout of `main`:
+
+```bash
+scripts/testflight.sh                    # "What to Test" = the last commit's subject
+scripts/testflight.sh "What to test…"    # custom notes
+```
+
+It takes the next build number from App Store Connect, archives the Release build, uploads it, and
+releases it to every tester:
+
+- **Prompt Hunt** (internal, team members) gets every build as soon as it processes.
+- **Friends** (external, for example people outside the team) gets each build after TestFlight beta
+  review, which the script submits. The first build of a version takes a few hours to a day;
+  later builds are usually approved quickly. Add people with
+  `asc testflight testers add --app 6831797452 --email <email> --group Friends`.
+
+Uploading from Xcode's Organizer instead skips the Friends group and beta review, so outside
+testers would fall behind. Bump `MARKETING_VERSION` on the iOS targets for a new version; build
+numbers need no bump.
+
+The App Store privacy label lists the GitHub username and the usernames of people on your board,
+linked to device identifiers, for app functionality (sent to the Committed relay).
+
+The iOS icon is a full-bleed, opaque square (iOS applies its own mask); it isn't the Mac icon,
+whose rounded shape and transparent margin App Store Connect rejects.
 

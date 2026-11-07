@@ -69,6 +69,13 @@ After publishing, confirm (the script does this automatically):
 - `…/releases/latest/download/latest-windows.json` and its per-tag installer URL → 200
 - the appcast's `<enclosure url>` is the **per-tag** form `…/releases/download/v<ver>/…` and → 200
 
+## iPhone TestFlight
+
+Upload every iPhone build with `scripts/testflight.sh`, from a clean `main`. It releases each build to
+both TestFlight groups: internal **Prompt Hunt** and external **Friends**, which the script submits
+for beta review. Don't upload from Xcode's Organizer or with a bare `xcodebuild` export: that build
+never reaches the external testers. See `docs/distribution.md` → TestFlight.
+
 ## Hard invariants (regressions here have broken updates before)
 
 1. **App stays UN-sandboxed.** No `com.apple.security.app-sandbox` entitlement. Sandboxing
