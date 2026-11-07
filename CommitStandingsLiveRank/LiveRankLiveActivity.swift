@@ -17,7 +17,7 @@ import WidgetKit
 struct LiveRankLiveActivity: Widget {
     var body: some WidgetConfiguration {
         ActivityConfiguration(for: LiveRankAttributes.self) { context in
-            LiveRankLockScreen(state: context.state, selfLogin: context.attributes.selfLogin)
+            LiveRankActivityContent(state: context.state, selfLogin: context.attributes.selfLogin)
                 .liveRankStale(context.isStale)
                 .widgetURL(context.state.boardURL)
         } dynamicIsland: { context in
@@ -78,6 +78,26 @@ struct LiveRankLiveActivity: Widget {
             .widgetURL(state.boardURL)
             .keylineTint(.lime)
         }
+        // The small family is what the CarPlay dashboard and Apple Watch's Smart Stack show.
+        // Committed isn't a CarPlay app; supporting this family is all CarPlay needs.
+        .supplementalActivityFamilies([.small])
+    }
+}
+
+/// The Live Activity's non-island content, by family: the Lock Screen card, or the small layout
+/// that CarPlay and Apple Watch show.
+struct LiveRankActivityContent: View {
+    let state: LiveRankState
+    let selfLogin: String
+    @Environment(\.activityFamily) private var family
+
+    var body: some View {
+        switch family {
+        case .small:
+            LiveRankSmall(state: state)
+        default:
+            LiveRankLockScreen(state: state, selfLogin: selfLogin)
+        }
     }
 }
 
@@ -133,7 +153,7 @@ struct LiveRankPassLine: View {
 /// Your rank with the trophy glyph. With no visible rivals there's no rank, just the trophy (and,
 /// on the Lock Screen, "Just you so far").
 struct LiveRankRankLabel: View {
-    enum Style { case compact, minimal, lockScreen }
+    enum Style { case compact, minimal, small, lockScreen }
 
     let state: LiveRankState
     let style: Style
@@ -166,6 +186,7 @@ struct LiveRankRankLabel: View {
     private var font: Font {
         switch style {
         case .lockScreen: CommittedType.display(36, relativeTo: .largeTitle)
+        case .small: CommittedType.display(26, relativeTo: .title)
         case .compact, .minimal: CommittedType.display(16, relativeTo: .body)
         }
     }
@@ -181,9 +202,11 @@ struct LiveRankRankLabel: View {
 
     @ScaledMetric(relativeTo: .body) private var compactTrophy: CGFloat = 16
     @ScaledMetric(relativeTo: .title) private var lockScreenTrophy: CGFloat = 28
+    @ScaledMetric(relativeTo: .title) private var smallTrophy: CGFloat = 22
     private var trophySize: CGFloat {
         switch style {
         case .lockScreen: lockScreenTrophy
+        case .small: smallTrophy
         case .compact, .minimal: compactTrophy
         }
     }
@@ -205,7 +228,7 @@ struct LiveRankRankLabel: View {
 
 /// Your Contributions for the Window.
 struct LiveRankCountLabel: View {
-    enum Style { case compact, expanded, lockScreen }
+    enum Style { case compact, expanded, small, lockScreen }
 
     let state: LiveRankState
     let style: Style
@@ -247,7 +270,7 @@ struct LiveRankCountLabel: View {
     private var row: some View {
         VStack(alignment: .trailing, spacing: 2) {
             HStack(alignment: .center, spacing: 5) {
-                if isStale, style == .compact {
+                if isStale, style == .compact || style == .small {
                     // Stale without relying on brightness: a clock beside the count.
                     Image(systemName: "clock.badge.exclamationmark")
                         .font(.caption.weight(.semibold))
@@ -257,7 +280,7 @@ struct LiveRankCountLabel: View {
                 Text(state.contributions.map { "\($0)" } ?? placeholder)
                     .foregroundStyle(isStale ? Color.limeDeep : Color.lime)
                     .displayTracking(style == .lockScreen ? 40 : 0)
-                if style == .expanded {
+                if style == .expanded || style == .small {
                     // One lit square of the contribution graph.
                     ContributionSquare(level: state.contributions.map { $0 > 0 ? (isStale ? 3 : 4) : 0 } ?? 0,
                                        size: squareSize)
@@ -270,6 +293,7 @@ struct LiveRankCountLabel: View {
     private var font: Font {
         switch style {
         case .lockScreen: CommittedType.display(36, relativeTo: .largeTitle)
+        case .small: CommittedType.display(26, relativeTo: .title)
         case .expanded: CommittedType.display(20, relativeTo: .title3)
         case .compact: CommittedType.display(16, relativeTo: .body)
         }
@@ -376,6 +400,41 @@ struct LiveRankLockScreen: View {
         .environment(\.colorScheme, .dark)
         .activityBackgroundTint(.ink)
         .activitySystemActionForegroundColor(.lime)
+    }
+}
+
+/// The small family: the CarPlay dashboard and Apple Watch's Smart Stack. It's read at a glance
+/// from the driver's seat, so there are no rows. Your rank and count sit on one line, then the gap
+/// to pass ("3 to pass alice"), or what Live rank is waiting for. Stale content adds the clock
+/// and the refresh age. CarPlay doesn't run buttons; a tap on iPhone opens the Board.
+struct LiveRankSmall: View {
+    let state: LiveRankState
+    @Environment(\.liveRankIsStale) private var isStale
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(alignment: .firstTextBaseline) {
+                LiveRankRankLabel(state: state, style: .small)
+                Spacer(minLength: 8)
+                if state.contributions != nil || state.competitorCount <= 1 {
+                    LiveRankCountLabel(state: state, style: .small)
+                }
+            }
+            if state.competitorCount <= 1, let line = state.emptyStateLine {
+                Text(line)
+                    .font(.footnote)
+                    .foregroundStyle(isStale ? Color.muted : Color.soft)
+                    .lineLimit(1)
+            } else {
+                LiveRankFooter(state: state, showsWindow: false, showsPassLine: true)
+            }
+        }
+        // A fixed, small surface: two lines must not wrap.
+        .dynamicTypeSize(...DynamicTypeSize.xxLarge)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+        .environment(\.colorScheme, .dark)
+        .activityBackgroundTint(.ink)
     }
 }
 
