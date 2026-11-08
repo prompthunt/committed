@@ -405,8 +405,9 @@ struct LiveRankLockScreen: View {
 
 /// The small family: the CarPlay dashboard and Apple Watch's Smart Stack. It's read at a glance
 /// from the driver's seat, so there are no rows. Your rank and count sit on one line, then the gap
-/// to pass ("3 to pass alice"), or what Live rank is waiting for. Stale content adds the clock
-/// and the refresh age. CarPlay doesn't run buttons; a tap on iPhone opens the Board.
+/// to pass ("3 to pass alice"), or what Live rank is waiting for. Stale content steps its colors
+/// down and puts the clock beside the count. CarPlay doesn't run buttons; a tap on iPhone opens
+/// the Board.
 struct LiveRankSmall: View {
     let state: LiveRankState
     @Environment(\.liveRankIsStale) private var isStale
@@ -420,13 +421,16 @@ struct LiveRankSmall: View {
                     LiveRankCountLabel(state: state, style: .small)
                 }
             }
-            if state.competitorCount <= 1, let line = state.emptyStateLine {
+            // One line, never two facts: the refresh age doesn't fit beside the gap at this size,
+            // and the clock and stepped-down colors already mark stale numbers.
+            if state.hasLadder {
+                LiveRankPassLine(state: state)
+            } else if let line = state.emptyStateLine {
                 Text(line)
                     .font(.footnote)
                     .foregroundStyle(isStale ? Color.muted : Color.soft)
                     .lineLimit(1)
-            } else {
-                LiveRankFooter(state: state, showsWindow: false, showsPassLine: true)
+                    .minimumScaleFactor(0.8)
             }
         }
         // A fixed, small surface: two lines must not wrap.
