@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Bullets, ContactEmail, ReadingPage, Section } from "@/components/SiteChrome";
+import { Bullets, ReadingPage, Section } from "@/components/SiteChrome";
 import { ISSUES_URL, PRIVACY_EFFECTIVE_DATE, SECURITY_REPORT_URL } from "@/lib/site";
 
 const title = "Privacy policy — Committed";
@@ -80,8 +80,7 @@ export default function Privacy() {
 
       <Section id="contact" title="Contact">
         <Bullets>
-          <li>Email: <ContactEmail /></li>
-          <li>Questions and bugs: <a href={ISSUES_URL}>GitHub Issues</a></li>
+          <li>Privacy questions and bugs: <a href={ISSUES_URL}>GitHub Issues</a></li>
           <li>Security issues: <a href={SECURITY_REPORT_URL}>report privately on GitHub</a></li>
         </Bullets>
       </Section>

@@ -3,11 +3,7 @@
 export const SITE_URL = "https://gitcommitted.app";
 export const WINDOWS_DOWNLOAD_AVAILABLE = process.env.NEXT_PUBLIC_WINDOWS_DOWNLOAD_AVAILABLE === "true";
 
-/**
- * The privacy and support pages' contact address. None exists yet (#69), so the pages
- * show a visible placeholder until this is set. Never fill it with a guessed address.
- */
-export const CONTACT_EMAIL: string | null = null;
+/** Contact goes through GitHub: Issues for questions and bugs, private advisories for security. */
 export const ISSUES_URL = "https://github.com/prompthunt/committed/issues";
 export const SECURITY_REPORT_URL = "https://github.com/prompthunt/committed/security/advisories/new";
 export const PRIVACY_EFFECTIVE_DATE = "November 8, 2026";
