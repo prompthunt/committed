@@ -1,0 +1,17 @@
+{
+  "device": "iPhone Duo Simulator",
+  "os": "iOS 27.1",
+  "notes": "Renders of LiveRankSmall (the .small Live Activity family that CarPlay and Apple Watch show) through ImageRenderer in a throwaway, uncommitted test bundle that compiles the Live rank extension's sources. Not a CarPlay or Watch capture: this Mac's Xcode 27.1 has no Simulator.app (needed to attach the CarPlay display) and no watchOS runtime.",
+  "screenshots": [
+    {
+      "file": "small-states.png",
+      "caption": "Live rank small family: racing, out of date, first, alone, waiting; 176 pt (left) and 240 pt (right) wide",
+      "capture": { "sourceCommit": "59074153785efe11597f48f206df6395a9f762a3", "fixture": true }
+    },
+    {
+      "file": "small-racing.png",
+      "caption": "Live rank small family, 240 pt: #3 with 42 Contributions, 3 to pass alice",
+      "capture": { "sourceCommit": "59074153785efe11597f48f206df6395a9f762a3", "fixture": true }
+    }
+  ]
+}
