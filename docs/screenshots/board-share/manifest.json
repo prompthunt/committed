@@ -1,0 +1,95 @@
+{
+  "device": "iPhone Duo Simulator",
+  "os": "iOS 27.1",
+  "notes": "Captured by BoardShareTests with RENDER_DIR on a disposable iPhone Duo / iOS 27.1 simulator (scripts/ios_check.py ios). The share images are the exported PNGs at full size (1080x1080 and 1080x1920) from a fixture snapshot; the sheet and Board are UIWindow captures at 402x874 pt, 3x, with the screenshot fixture. Avatars show initials because the test cache is empty.",
+  "screenshots": [
+    {
+      "file": "board-square.png",
+      "caption": "Square: the large Board widget, you fourth of 27 over 30 days",
+      "capture": {
+        "sourceCommit": "9e298ac0b92efa088c6260d433ec9364cfc101ca",
+        "fixture": true
+      }
+    },
+    {
+      "file": "board-story.png",
+      "caption": "Story: the Board widget under \"Who shipped more this month?\"",
+      "capture": {
+        "sourceCommit": "9e298ac0b92efa088c6260d433ec9364cfc101ca",
+        "fixture": true
+      }
+    },
+    {
+      "file": "race-square.png",
+      "caption": "Square: Your race (medium widget)",
+      "capture": {
+        "sourceCommit": "9e298ac0b92efa088c6260d433ec9364cfc101ca",
+        "fixture": true
+      }
+    },
+    {
+      "file": "race-story.png",
+      "caption": "Story: Your race",
+      "capture": {
+        "sourceCommit": "9e298ac0b92efa088c6260d433ec9364cfc101ca",
+        "fixture": true
+      }
+    },
+    {
+      "file": "rank-square.png",
+      "caption": "Square: Rank (small widget)",
+      "capture": {
+        "sourceCommit": "9e298ac0b92efa088c6260d433ec9364cfc101ca",
+        "fixture": true
+      }
+    },
+    {
+      "file": "rank-story.png",
+      "caption": "Story: Rank",
+      "capture": {
+        "sourceCommit": "9e298ac0b92efa088c6260d433ec9364cfc101ca",
+        "fixture": true
+      }
+    },
+    {
+      "file": "list-square.png",
+      "caption": "Square: Top 4 (Committed Board widget)",
+      "capture": {
+        "sourceCommit": "9e298ac0b92efa088c6260d433ec9364cfc101ca",
+        "fixture": true
+      }
+    },
+    {
+      "file": "list-story.png",
+      "caption": "Story: Top 4",
+      "capture": {
+        "sourceCommit": "9e298ac0b92efa088c6260d433ec9364cfc101ca",
+        "fixture": true
+      }
+    },
+    {
+      "file": "sheet-square.png",
+      "caption": "Share sheet with Square selected",
+      "capture": {
+        "sourceCommit": "9e298ac0b92efa088c6260d433ec9364cfc101ca",
+        "fixture": true
+      }
+    },
+    {
+      "file": "sheet-story.png",
+      "caption": "Share sheet with Story selected",
+      "capture": {
+        "sourceCommit": "9e298ac0b92efa088c6260d433ec9364cfc101ca",
+        "fixture": true
+      }
+    },
+    {
+      "file": "board-button.png",
+      "caption": "Board with the new share button (iPhone Duo's side bar holds the toolbar)",
+      "capture": {
+        "sourceCommit": "9e298ac0b92efa088c6260d433ec9364cfc101ca",
+        "fixture": true
+      }
+    }
+  ]
+}
