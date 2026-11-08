@@ -268,6 +268,19 @@
 			);
 			target = 14226DF7E216AD5608C1F8F8 /* CommitStandingsLiveRank */;
 		};
+		A1B2C3D4E5F60718293A4B5C /* Exceptions for "CommitStandingsLiveRank" folder in "CommitStandingsiOS" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				CommitStandingsLiveRank.entitlements,
+				CommittedWidget.swift,
+				Fonts/InterTight-ExtraBold.ttf,
+				Fonts/InterTight-Regular.ttf,
+				Fonts/OFL.txt,
+				Info.plist,
+				LiveRankWidgetBundle.swift,
+			);
+			target = 54EE225CD9A20D7FA7EBF259 /* CommitStandingsiOS */;
+		};
 		E3525B85AD0FE8460E714288 /* Exceptions for "CommitStandingsiOS" folder in "CommitStandingsiOS" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
@@ -290,6 +303,7 @@
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
 				D03F7BFE567601F53A1AEDD1 /* Exceptions for "CommitStandingsLiveRank" folder in "CommitStandingsLiveRank" target */,
+				A1B2C3D4E5F60718293A4B5C /* Exceptions for "CommitStandingsLiveRank" folder in "CommitStandingsiOS" target */,
 			);
 			path = CommitStandingsLiveRank;
 			sourceTree = "<group>";
@@ -594,6 +608,7 @@
 			);
 			fileSystemSynchronizedGroups = (
 				5E9EE23908636887511ACA29 /* CommitStandingsiOS */,
+				7DE622D9A994FC6F4B408363 /* CommitStandingsLiveRank */,
 			);
 			name = CommitStandingsiOS;
 			productName = CommitStandingsiOS;

@@ -16,6 +16,10 @@ struct BoardView: View {
     @State private var arrangementFrame: CGRect?
     @State private var leaderboardFrame: CGRect?
     @State private var summaryFrame: CGRect?
+    @Environment(RefreshCoordinator.self) private var refresh
+    /// The board being shared, frozen when Share is tapped so a refresh can't change the image
+    /// under the carousel.
+    @State private var sharing: BoardShareRequest?
 
     var body: some View {
         NavigationStack {
@@ -43,6 +47,18 @@ struct BoardView: View {
                 ToolbarItem(placement: .principal) {
                     WindowSwitch(asMenu: dynamicTypeSize.isAccessibilitySize)
                 }
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Share board", systemImage: "square.and.arrow.up") {
+                        sharing = WidgetSnapshot.board(
+                            store, window: store.selectedWindow,
+                            rankDelta: { refresh.rankDelta(for: $0) }, now: .now
+                        ).map(BoardShareRequest.init)
+                    }
+                    .disabled(!store.hasSelf)
+                }
+            }
+            .sheet(item: $sharing) { request in
+                BoardShareSheet(snapshot: request.snapshot)
             }
             .refreshable { await model.pullToRefresh() }
         }
@@ -52,6 +68,12 @@ struct BoardView: View {
     }
 
     private nonisolated static let arrangementSpace = "BoardArrangement"
+}
+
+/// A board to share, with an identity for `.sheet(item:)`.
+struct BoardShareRequest: Identifiable {
+    let id = UUID()
+    let snapshot: WidgetSnapshot
 }
 
 /// The ranked list, headed by your summary whenever the summary has no pane of its own.
