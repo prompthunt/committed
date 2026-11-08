@@ -12,8 +12,11 @@
 #      "Prompt Hunt" group gets every build without review.
 #
 # Usage:
-#   scripts/testflight.sh                       # "What to Test" = the last commit's subject
-#   scripts/testflight.sh "What to test…"       # custom "What to Test" notes
+#   scripts/testflight.sh --notes-file notes.txt
+#
+# The notes are the build's "What to Test" text, written with the release-notes skill as
+# .agents/rules/testflight-notes.md requires: plain text, category headings and bullets kept.
+# The script won't upload without them, and prints back what App Store Connect saved.
 #
 # Needs the asc CLI signed in to the Prompt Hunt team, and the team API key file for Xcode's
 # cloud signing. Override any of these with environment variables:
@@ -42,7 +45,23 @@ if [[ "${BRANCH}" != "main" && "$(git rev-parse HEAD)" != "$(git rev-parse origi
   echo "warning: uploading $(git rev-parse --short HEAD) from '${BRANCH:-a detached HEAD}', not main." >&2
 fi
 
-NOTES="${1:-$(git log -1 --format=%s)}"
+NOTES_FILE=""
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --notes-file) NOTES_FILE="${2:-}"; shift 2 ;;
+    *) echo "error: unknown argument '$1'. Usage: scripts/testflight.sh --notes-file <file>" >&2; exit 1 ;;
+  esac
+done
+if [[ -z "${NOTES_FILE}" || ! -s "${NOTES_FILE}" ]]; then
+  echo "error: What to Test notes are required: scripts/testflight.sh --notes-file <file>." >&2
+  echo "  Write them with the release-notes skill; see .agents/rules/testflight-notes.md." >&2
+  exit 1
+fi
+NOTES="$(cat "${NOTES_FILE}")"
+if (( ${#NOTES} > 4000 )); then
+  echo "error: the notes are ${#NOTES} characters; App Store Connect allows 4,000." >&2
+  exit 1
+fi
 
 ASC_KEY_ID="${ASC_KEY_ID:-$(asc auth status --output json | python3 -I -c '
 import json, sys
@@ -119,5 +138,14 @@ echo "==> Waiting for processing, then adding to ${BETA_GROUPS} and submitting f
 asc publish testflight --app "${APP_ID}" --build-number "${BUILD}" \
   --group "${BETA_GROUPS}" --test-notes "${NOTES}" --locale en-US \
   --wait --timeout 45m --submit --confirm --output table
+
+echo "==> What to Test, as App Store Connect saved it:"
+BUILD_ID="$(asc builds list --app "${APP_ID}" --paginate --output json | python3 -I -c '
+import json, sys
+print(next(b["id"] for b in json.load(sys.stdin)["data"] if b["attributes"].get("version") == sys.argv[1]))' "${BUILD}")"
+asc builds test-notes list --build-id "${BUILD_ID}" --output json | python3 -I -c '
+import json, sys
+for note in json.load(sys.stdin).get("data", []):
+    print(note["attributes"].get("whatsNew") or "")'
 
 echo "==> Done: ${VERSION} (${BUILD}). Internal testers have it now; ${BETA_GROUPS} get it after beta review."

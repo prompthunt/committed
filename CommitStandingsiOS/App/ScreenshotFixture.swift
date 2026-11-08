@@ -142,6 +142,9 @@ enum ScreenshotFixture {
         config.protocolClasses = [OfflineProtocol.self]
         let session = URLSession(configuration: config)
         let guests = (0..<extraPeople).map { String(format: "guest-%02d", $0 + 1) }
+        // `-ScreenshotRestrictedOrg <name>`: an organization that won't list its members for
+        // Committed, as People shows it.
+        let restricted = value(after: "-ScreenshotRestrictedOrg").map { [$0] }
         let services = CommittedServices(
             store: StandingsStore(persistence: InMemoryCompetitorPersistence()),
             credentials: InMemoryGitHubCredentialStore(token: "fixture"),
@@ -152,7 +155,7 @@ enum ScreenshotFixture {
                     GitHubRosterSource(id: "following", title: "Following",
                                        members: ["maya-chen", "devon-k"] + guests),
                     GitHubRosterSource(id: "org", title: "Acme", members: ["priya-s", "lee-park", "jordan-a"]),
-                ], updatedAt: Date().addingTimeInterval(-240))
+                ], updatedAt: Date().addingTimeInterval(-240), restrictedOrganizations: restricted)
             }
         )
         let hide = value(after: "-ScreenshotHide")

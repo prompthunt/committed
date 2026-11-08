@@ -42,9 +42,10 @@ private struct PeopleList: View {
                 sourcePicker
                     .listRowSeparator(.hidden)
                     .listRowBackground(Color.clear)
-                // Only while syncing or after a failure; the sync time is in the eyebrow below.
-                if roster.isRefreshing || roster.errorMessage != nil {
-                    RosterSyncNotice()
+                // Only while syncing, after a failure, or with an organization left out; the sync
+                // time is in the eyebrow below.
+                if roster.isRefreshing || roster.errorMessage != nil || RosterSyncNotice.hasRestrictedNotice(roster) {
+                    RosterSyncNotice(showsRestricted: true)
                         .listRowSeparator(.hidden)
                         .listRowBackground(Color.clear)
                 }

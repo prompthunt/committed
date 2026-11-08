@@ -1,0 +1,11 @@
+{
+  "device": "iPhone Duo Simulator",
+  "os": "iOS 27.1",
+  "notes": "iPhone captures are runtime screenshots (XCUIScreen) of the app launched with -ScreenshotFixture -ScreenshotRestrictedOrg acme-corp, from a throwaway UI test target that was reverted. The Mac images render the real RosterStatusView with ImageRenderer in a throwaway Mac test (reverted), from a GitHubRoster whose snapshot lists acme-corp as restricted.",
+  "screenshots": [
+    { "file": "board-restricted-org.png", "caption": "Board loads with an organization that restricts app access, instead of staying on Loading your people", "capture": { "sourceCommit": "4a2462286bd8b7a8d77622e716400cf434094af1", "fixture": true } },
+    { "file": "people-restricted-org.png", "caption": "People names the organization left out and how to add it", "capture": { "sourceCommit": "4a2462286bd8b7a8d77622e716400cf434094af1", "fixture": true } },
+    { "file": "mac-sync-status-light.png", "caption": "Mac sync status naming the organization left out, light", "device": "MacBook Pro (ImageRenderer)", "os": "macOS 27", "capture": { "sourceCommit": "4a2462286bd8b7a8d77622e716400cf434094af1", "fixture": true } },
+    { "file": "mac-sync-status-dark.png", "caption": "Mac sync status naming the organization left out, dark", "device": "MacBook Pro (ImageRenderer)", "os": "macOS 27", "capture": { "sourceCommit": "4a2462286bd8b7a8d77622e716400cf434094af1", "fixture": true } }
+  ]
+}

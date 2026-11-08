@@ -12,6 +12,20 @@ struct GitHubRosterSnapshot: Codable, Equatable, Sendable {
     let owner: String
     let sources: [GitHubRosterSource]
     let updatedAt: Date
+    /// Organizations GitHub won't list members of for Committed: they restrict third-party app
+    /// access or enforce SAML single sign-on. Left out of `sources`, and named in the sync status.
+    /// nil in snapshots saved before this was recorded.
+    var restrictedOrganizations: [String]? = nil
+
+    /// "acme isn't on your board: …", naming the organizations left out, or nil when none were.
+    var restrictedNotice: String? {
+        guard let names = restrictedOrganizations, !names.isEmpty else { return nil }
+        let list = names.count == 1 ? names[0]
+            : names.dropLast().joined(separator: ", ") + " and " + names[names.count - 1]
+        return names.count == 1
+            ? "\(list) isn’t on your board: it limits which apps can see its members. An organization owner can approve Committed."
+            : "\(list) aren’t on your board: they limit which apps can see their members. An owner can approve Committed in each organization’s settings."
+    }
 
     func usernames(in filter: PeopleSourceFilter) -> Set<String> {
         let selectedSources = sources.filter { source in

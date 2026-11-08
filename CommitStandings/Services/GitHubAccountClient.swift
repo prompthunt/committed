@@ -36,6 +36,13 @@ struct GitHubAccountClient: Sendable {
         request.timeoutInterval = 15
         let (data, response) = try await session.data(for: request)
         guard let http = response as? HTTPURLResponse else { throw RequestError.invalidResponse }
+        // GitHub answers 403 for rate limits too. That's temporary, so it reads as one (429), never
+        // as an organization that restricts access.
+        if http.statusCode == 403,
+           http.value(forHTTPHeaderField: "x-ratelimit-remaining") == "0"
+            || http.value(forHTTPHeaderField: "retry-after") != nil {
+            throw RequestError.response(429)
+        }
         guard (200...299).contains(http.statusCode) else { throw RequestError.response(http.statusCode) }
         return try JSONDecoder().decode(T.self, from: data)
     }
@@ -65,15 +72,25 @@ struct GitHubAccountClient: Sendable {
     func organizations() async throws -> [String] { try await accounts("user/orgs") }
     func orgMembers(_ org: String) async throws -> [String] { try await accounts("orgs/\(org)/members") }
 
+    /// Every source, or a thrown error so the last complete list stays. One exception: an
+    /// organization that won't list its members for Committed (403: it restricts third-party app
+    /// access or enforces SAML single sign-on) answers that way every time, so failing on it would
+    /// leave the board empty for good. It's left out and named in `restrictedOrganizations`.
     func roster() async throws -> GitHubRosterSnapshot {
         let profile = try await profile()
         let organizations = try await organizations()
         var sources: [GitHubRosterSource] = []
+        var restricted: [String] = []
         for organization in organizations.sorted() {
-            sources.append(GitHubRosterSource(id: "org:\(organization.lowercased())", title: organization,
-                                             members: try await orgMembers(organization)))
+            do {
+                sources.append(GitHubRosterSource(id: "org:\(organization.lowercased())", title: organization,
+                                                 members: try await orgMembers(organization)))
+            } catch RequestError.response(403) {
+                restricted.append(organization)
+            }
         }
         sources.append(GitHubRosterSource(id: "following", title: "People you follow", members: try await following()))
-        return GitHubRosterSnapshot(owner: profile.login.lowercased(), sources: sources, updatedAt: Date())
+        return GitHubRosterSnapshot(owner: profile.login.lowercased(), sources: sources, updatedAt: Date(),
+                                    restrictedOrganizations: restricted.isEmpty ? nil : restricted)
     }
 }
