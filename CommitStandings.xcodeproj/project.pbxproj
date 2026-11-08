@@ -13,6 +13,7 @@
 		0B352F8D38729B05B2E3BF43 /* Competitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0E062D81143D59018AE88D4 /* Competitor.swift */; };
 		0B552DFCAA866228B548BEC3 /* RefreshCoordinatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 250E32FDF5E7C3FE33602A75 /* RefreshCoordinatorTests.swift */; };
 		0D3AE1AA0E436B1844D3562E /* GitHubAuth.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CCEC8B61BB3028EE7E6EA92 /* GitHubAuth.swift */; };
+		0DF25FFF4C060317A3590F0A /* WidgetSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = 07C847D32565E1A367F30DD4 /* WidgetSnapshot.swift */; };
 		0F2F1AE321FD06897B196070 /* StandingsStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0A959028CC5DCE0C6391589 /* StandingsStoreTests.swift */; };
 		12B47221761E6A9F389617B9 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 06267963EF8D67576962B748 /* Sparkle */; };
 		1340FD5B6B512CD7EE02FD08 /* LiveRankState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C62F24CB54A093905756EA7 /* LiveRankState.swift */; };
@@ -72,6 +73,7 @@
 		7E3F81CBAAFF3BEAF500E2A3 /* LiveRankStateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E601D9649EE5D1432D5DD9E /* LiveRankStateTests.swift */; };
 		82B5BFE7B07253C2BF99FA03 /* ConnectGitHubTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8BBD806D18E8F38CE25EB6D /* ConnectGitHubTests.swift */; };
 		84703AB10291059624AC8596 /* DeepLink.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0D91579108402981623D843 /* DeepLink.swift */; };
+		851A1EF58E57494BE1955E5A /* WidgetSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = 07C847D32565E1A367F30DD4 /* WidgetSnapshot.swift */; };
 		8526DCDE44E0DB284545225A /* GitHubConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 97B1C9E37DF68B21D1A5888B /* GitHubConfig.swift */; };
 		8A757784E5352821C5229F8E /* Standing.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D7951BB34A16E4847FB3A75 /* Standing.swift */; };
 		8B6B59534FC172BD8D6750E6 /* RefreshCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = ABC6DA1FB2CD9C804A5518A0 /* RefreshCoordinator.swift */; };
@@ -171,6 +173,7 @@
 
 /* Begin PBXFileReference section */
 		034B0283256CD719632FBFBE /* LiveRankAttributes.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = LiveRankAttributes.swift; sourceTree = "<group>"; };
+		07C847D32565E1A367F30DD4 /* WidgetSnapshot.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WidgetSnapshot.swift; sourceTree = "<group>"; };
 		097C01BB9106955B00914A66 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		0B5E85671D4798A73E1A4CB5 /* RankChangeDetector.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RankChangeDetector.swift; sourceTree = "<group>"; };
 		0CAA6B14EEB106C96EF47BC6 /* ActivityKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ActivityKit.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS18.0.sdk/System/Library/Frameworks/ActivityKit.framework; sourceTree = DEVELOPER_DIR; };
@@ -439,6 +442,7 @@
 				284070E7C171FF3A46332457 /* LiveRankDerivation.swift */,
 				034B0283256CD719632FBFBE /* LiveRankAttributes.swift */,
 				14D700EC17B9737E5660B89C /* PeopleDirectory.swift */,
+				07C847D32565E1A367F30DD4 /* WidgetSnapshot.swift */,
 			);
 			path = Store;
 			sourceTree = "<group>";
@@ -737,6 +741,7 @@
 				93A9E9D049CF633E57233B5A /* StandingRowStyle.swift in Sources */,
 				E4072382362F41353C468E9F /* CommittedTheme.swift in Sources */,
 				2B9F5363ADFAA87FFDADC4AD /* AvatarCache.swift in Sources */,
+				0DF25FFF4C060317A3590F0A /* WidgetSnapshot.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -839,6 +844,7 @@
 				3EB4C7C69C7D0A879A03A886 /* AvatarView.swift in Sources */,
 				3E9600CDBCA81FA11A8617C7 /* AvatarColor.swift in Sources */,
 				0B352F8D38729B05B2E3BF43 /* Competitor.swift in Sources */,
+				851A1EF58E57494BE1955E5A /* WidgetSnapshot.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
