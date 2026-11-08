@@ -125,9 +125,10 @@ private struct WidgetStatusLine: View {
             if isStale {
                 HStack(spacing: 3) {
                     Image(systemName: "clock.badge.exclamationmark").accessibilityHidden(true)
-                    Text("Updated \(Text(state.updatedDate, style: .relative)) ago")
+                    CommittedWidgetText.age(state)
                 }
                 .foregroundStyle(Color.warning)
+                .accessibilityElement(children: .combine)
             } else if state.hasLadder {
                 Text(state.passLine ?? "Leading the board")
                     .fontWeight(.semibold)
@@ -154,16 +155,22 @@ struct CommittedWidgetSmall: View {
         VStack(alignment: .leading, spacing: 2) {
             WidgetHeader(state: state)
             Spacer(minLength: 4)
-            Text(state.rank.map { "#\($0)" } ?? "–")
-                .font(CommittedType.display(44, relativeTo: .largeTitle))
-                .displayTracking(44)
-                .foregroundStyle(isStale ? Color.muted : .white)
-                .accessibilityLabel(LiveRankText.rankAccessibility(state))
+            // With nobody else on the board there's no rank: your count takes its place.
+            let ranked = state.rank != nil || state.competitorCount > 1
+            if ranked {
+                Text(state.rank.map { "#\($0)" } ?? "–")
+                    .font(CommittedType.display(44, relativeTo: .largeTitle))
+                    .displayTracking(44)
+                    .foregroundStyle(isStale ? Color.muted : .white)
+                    .accessibilityLabel(LiveRankText.rankAccessibility(state))
+            }
             HStack(alignment: .center, spacing: 5) {
                 Text(state.contributions.map { "\($0)" } ?? "–")
-                    .font(CommittedType.display(22, relativeTo: .title2))
+                    .font(CommittedType.display(ranked ? 22 : 44, relativeTo: ranked ? .title2 : .largeTitle))
+                    .displayTracking(ranked ? 0 : 44)
                     .foregroundStyle(isStale ? Color.limeDeep : Color.lime)
-                ContributionSquare(level: state.contributions.map { $0 > 0 ? (isStale ? 3 : 4) : 0 } ?? 0, size: 12)
+                ContributionSquare(level: state.contributions.map { $0 > 0 ? (isStale ? 3 : 4) : 0 } ?? 0,
+                                   size: ranked ? 12 : 18)
             }
             .accessibilityElement(children: .ignore)
             .accessibilityLabel(LiveRankText.countAccessibility(state))
@@ -180,6 +187,7 @@ struct CommittedWidgetSmall: View {
 /// in the board's own rows, as Live rank's expanded island shows them.
 struct CommittedWidgetMedium: View {
     let snapshot: WidgetSnapshot
+    @Environment(\.liveRankIsStale) private var isStale
 
     var body: some View {
         let state = snapshot.state
@@ -187,7 +195,10 @@ struct CommittedWidgetMedium: View {
             HStack {
                 WidgetHeader(state: state)
                 Spacer(minLength: 8)
-                WidgetStatusLine(state: state)
+                // Without rows the body already says what it's waiting for.
+                if state.hasLadder || isStale {
+                    WidgetStatusLine(state: state)
+                }
             }
             Spacer(minLength: 0)
             if state.hasLadder {
@@ -224,7 +235,7 @@ struct CommittedWidgetLarge: View {
                 Spacer(minLength: 8)
                 WidgetStatusLine(state: state)
             }
-            VStack(spacing: 4) {
+            VStack(spacing: 8) {
                 ForEach(snapshot.top, id: \.rank) { row in
                     WidgetBoardRow(row: row, window: window, updated: state.updatedDate, busiest: busiest)
                 }
@@ -295,7 +306,7 @@ struct CommittedWidgetRectangular: View {
                     .font(.headline)
                     .widgetAccentable()
                 if isStale {
-                    Label { Text("Updated \(Text(state.updatedDate, style: .relative)) ago") } icon: {
+                    Label { CommittedWidgetText.age(state) } icon: {
                         Image(systemName: "clock.badge.exclamationmark")
                     }
                     .font(.caption)
@@ -346,6 +357,11 @@ struct CommittedWidgetCircular: View {
 }
 
 enum CommittedWidgetText {
+    /// "45 minutes ago", counting on without a reload, as Live rank's footer does.
+    static func age(_ state: LiveRankState) -> Text {
+        Text(.currentDate, format: .reference(to: state.updatedDate, allowedFields: [.minute, .hour, .day], maxFieldCount: 1))
+    }
+
     /// "#3 · 42 today", or "42 today" without a rank, or the Window alone without a count.
     static func headline(_ state: LiveRankState) -> String {
         let window = state.contributionWindow?.shortTitle.lowercased() ?? ""
