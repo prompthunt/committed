@@ -1,0 +1,11 @@
+{
+  "device": "iPhone Duo Simulator",
+  "os": "iOS 27.1",
+  "notes": "Runtime captures (xcrun simctl io screenshot) of a Debug build on the persistent iPhone Duo (closed), on the Sample board's built-in sample data. The Sample board screens open through its saved mode, as on a relaunch, via the launch argument -sampleBoard.v1 YES (and -ScreenshotTab for the tab); Connect used -sampleBoard.v1 NO. Avatars are local identicons left in the simulator's App Group cache by earlier fixture runs; nothing is fetched over the network.",
+  "screenshots": [
+    { "file": "connect.png", "caption": "Connect GitHub with the new Try a sample board button under it", "capture": { "sourceCommit": "6c8bd492288490973d0f86beaf9a08727530ac0d", "fixture": true } },
+    { "file": "board.png", "caption": "Board on the Sample board with the Sample board · Connect GitHub banner", "capture": { "sourceCommit": "6c8bd492288490973d0f86beaf9a08727530ac0d", "fixture": true } },
+    { "file": "people.png", "caption": "People on the Sample board with the banner", "capture": { "sourceCommit": "6c8bd492288490973d0f86beaf9a08727530ac0d", "fixture": true } },
+    { "file": "settings.png", "caption": "Settings on the Sample board: Connect GitHub and Leave Sample Board first, in place of Disconnect GitHub", "capture": { "sourceCommit": "6c8bd492288490973d0f86beaf9a08727530ac0d", "fixture": true } }
+  ]
+}
