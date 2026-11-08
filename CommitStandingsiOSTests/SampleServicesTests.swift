@@ -8,15 +8,32 @@ import Testing
 final class GitHubTrafficRecorder: URLProtocol {
     private static let lock = NSLock()
     nonisolated(unsafe) private static var recorded: [URL] = []
+    nonisolated(unsafe) private static var users = 0
 
     static var requests: [URL] { lock.withLock { recorded } }
 
-    static func start() {
-        lock.withLock { recorded = [] }
-        URLProtocol.registerClass(GitHubTrafficRecorder.self)
+    /// Everything except the positive-control requests (`/recorder-check/…`) tests make to prove
+    /// the recorder is listening. Suites run in parallel, so each test checks its own control with
+    /// `requests.contains` and expects this to stay empty.
+    static var unexpectedRequests: [URL] {
+        requests.filter { !$0.path.hasPrefix("/recorder-check") }
     }
 
-    static func stop() { URLProtocol.unregisterClass(GitHubTrafficRecorder.self) }
+    /// Reference-counted, and never clears what's recorded, so suites running alongside each other
+    /// can't unregister or reset it under one another.
+    static func start() {
+        lock.withLock {
+            users += 1
+            if users == 1 { URLProtocol.registerClass(GitHubTrafficRecorder.self) }
+        }
+    }
+
+    static func stop() {
+        lock.withLock {
+            users -= 1
+            if users == 0 { URLProtocol.unregisterClass(GitHubTrafficRecorder.self) }
+        }
+    }
 
     override class func canInit(with request: URLRequest) -> Bool {
         // Only GitHub hosts, so suites running alongside this one are unaffected.
@@ -55,9 +72,9 @@ struct SampleServicesTests {
         GitHubTrafficRecorder.start()
         defer { GitHubTrafficRecorder.stop() }
         // The recorder sees the shared session's GitHub traffic, so an empty list below means none.
-        let control = try #require(URL(string: "https://api.github.com/recorder-check"))
+        let control = try #require(URL(string: "https://api.github.com/recorder-check/\(UUID().uuidString)"))
         _ = try? await URLSession.shared.data(from: control)
-        #expect(GitHubTrafficRecorder.requests == [control])
+        #expect(GitHubTrafficRecorder.requests.contains(control))
 
         let model = makeModel()
         #expect(!model.needsConnect)
@@ -74,7 +91,7 @@ struct SampleServicesTests {
         await model.windowDidChange()
         #expect(board(model, .monthly) == ["maya-chen", "priya-s", "sam-rivera", "devon-k", "lee-park"])
 
-        #expect(GitHubTrafficRecorder.requests == [control])
+        #expect(GitHubTrafficRecorder.unexpectedRequests.isEmpty)
     }
 
     @Test func pullToRefreshMovesToday() async {

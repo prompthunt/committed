@@ -25,9 +25,9 @@ enum ScreenshotFixture {
         ProcessInfo.processInfo.arguments.contains(launchArgument)
     }
 
-    /// The tab to open on, from `-ScreenshotTab board|people|settings`.
+    /// The tab to open on, from `-ScreenshotTab board|people|settings`. Honored on any Debug
+    /// launch, so captures of the Sample board (which persists) can open on People or Settings too.
     static var requestedTab: AppTab? {
-        guard isRequested else { return nil }
         switch value(after: "-ScreenshotTab") {
         case "board": return .board
         case "people": return .people

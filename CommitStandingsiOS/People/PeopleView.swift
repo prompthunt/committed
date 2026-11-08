@@ -10,6 +10,7 @@ struct PeopleView: View {
     var body: some View {
         NavigationStack {
             PeopleList(searchText: searchText)
+                .sampleBoardBanner()
                 .navigationTitle("People")
                 .searchable(
                     text: $searchText,
