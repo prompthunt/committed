@@ -213,9 +213,16 @@ struct BoardSummaryView: View {
 
 /// People sync, only when there's something to say: it's running, or it failed (with Retry). The
 /// Board's freshness is the hero's "Updated …" line; People shows when people last synced.
+/// On People it also names organizations left out because they restrict app access.
 struct RosterSyncNotice: View {
+    var showsRestricted = false
     @Environment(GitHubRoster.self) private var roster
     @Environment(RefreshCoordinator.self) private var refresh
+
+    /// Whether People has a restricted-organization note to show.
+    static func hasRestrictedNotice(_ roster: GitHubRoster) -> Bool {
+        roster.snapshot?.restrictedNotice != nil
+    }
 
     var body: some View {
         if roster.isRefreshing {
@@ -239,6 +246,15 @@ struct RosterSyncNotice: View {
                         .disabled(refresh.isRefreshing)
                 }
                 Text(roster.snapshot == nil ? error : "\(error) Showing your last synced people.")
+                    .foregroundStyle(Color.muted)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .font(.caption)
+        } else if showsRestricted, let notice = roster.snapshot?.restrictedNotice {
+            HStack(alignment: .firstTextBaseline, spacing: 6) {
+                Image(systemName: "lock.fill").foregroundStyle(Color.muted)
+                    .accessibilityHidden(true)
+                Text(notice)
                     .foregroundStyle(Color.muted)
                     .fixedSize(horizontal: false, vertical: true)
             }

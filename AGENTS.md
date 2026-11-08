@@ -17,6 +17,7 @@ starting the task:
 |---|---|
 | Builds, tests, packaging, Simulators or dev servers (starting or finishing) | [Development resource cleanup](.agents/rules/resource-cleanup.md) |
 | Any new or changed screen, window, popover, sheet or interaction (Mac, iPhone, Windows, site) | [UI evidence](.agents/rules/ui-evidence.md) |
+| Writing or submitting TestFlight What to Test notes | [TestFlight release notes](.agents/rules/testflight-notes.md) |
 
 Every UI change needs real screenshots in a PR comment, uploaded as direct GitHub
 attachments and verified inline; the UI evidence rule has the workflow.
@@ -89,6 +90,10 @@ Upload every iPhone build with `scripts/testflight.sh`, from a clean `main`. It 
 both TestFlight groups: internal **Prompt Hunt** and external **Friends**, which the script submits
 for beta review. Don't upload from Xcode's Organizer or with a bare `xcodebuild` export: that build
 never reaches the external testers. See `docs/distribution.md` → TestFlight.
+
+Every build's **What to Test** notes follow [TestFlight release notes](.agents/rules/testflight-notes.md):
+read and apply the [release-notes skill](.agents/skills/release-notes/SKILL.md) each time, then pass
+the notes with `scripts/testflight.sh --notes-file <file>`. The script won't upload without them.
 
 ## Hard invariants (regressions here have broken updates before)
 

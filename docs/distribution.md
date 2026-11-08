@@ -240,9 +240,13 @@ only), so uploads skip the export-compliance question.
 **Upload every build with `scripts/testflight.sh`**, from a clean checkout of `main`:
 
 ```bash
-scripts/testflight.sh                    # "What to Test" = the last commit's subject
-scripts/testflight.sh "What to test…"    # custom notes
+scripts/testflight.sh --notes-file notes.txt
 ```
+
+The notes are the build's **What to Test** text. Write them with the
+[release-notes skill](../.agents/skills/release-notes/SKILL.md), as
+[TestFlight release notes](../.agents/rules/testflight-notes.md) requires; the script won't
+upload without them and prints back what App Store Connect saved.
 
 It takes the next build number from App Store Connect, archives the Release build, uploads it, and
 releases it to every tester:

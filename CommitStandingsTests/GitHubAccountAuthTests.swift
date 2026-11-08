@@ -6,6 +6,8 @@ import Foundation
 /// serialized suites.
 final class AccountMockURLProtocol: URLProtocol {
     nonisolated(unsafe) static var handler: (@Sendable (URLRequest) -> (Int, Data))?
+    /// Response headers by request, for the cases that need them (GitHub's rate-limit headers).
+    nonisolated(unsafe) static var headers: (@Sendable (URLRequest) -> [String: String]?)?
 
     override class func canInit(with request: URLRequest) -> Bool { true }
     override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
@@ -14,7 +16,8 @@ final class AccountMockURLProtocol: URLProtocol {
             client?.urlProtocol(self, didFailWithError: URLError(.badURL)); return
         }
         let (status, data) = handler(request)
-        let response = HTTPURLResponse(url: request.url!, statusCode: status, httpVersion: nil, headerFields: nil)!
+        let response = HTTPURLResponse(url: request.url!, statusCode: status, httpVersion: nil,
+                                       headerFields: AccountMockURLProtocol.headers?(request))!
         client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
         client?.urlProtocol(self, didLoad: data)
         client?.urlProtocolDidFinishLoading(self)
@@ -181,19 +184,88 @@ struct GitHubAccountAuthTests {
         #expect(result.sources.flatMap(\.members) == ["hubot", "monalisa", "steipete"])
     }
 
-    @Test func organizationFailureFailsWholeRoster() async {
+    /// A transient failure on one organization must not drop its members: the sync fails and the
+    /// last complete list stays.
+    @Test func organizationServerErrorFailsWholeRoster() async {
+        AccountMockURLProtocol.headers = nil
         AccountMockURLProtocol.handler = { request in
             switch request.url!.path {
             case "/user": return (200, data(#"{"login":"octocat"}"#))
             case "/user/orgs": return (200, data(#"[{"login":"acme"}]"#))
             case "/user/following": return (200, Data("[]".utf8))
-            default: return (403, Data())
+            default: return (500, Data())
             }
         }
         do {
             _ = try await GitHubAccountClient(token: "fixture", session: mockSession()).roster()
-            Issue.record("Inaccessible organization must not silently remove members")
+            Issue.record("A transient organization failure must not silently remove members")
         } catch {}
+    }
+
+    /// GitHub also answers 403 when you're rate limited. That's temporary, not a restriction.
+    @Test func rateLimitedOrganizationFailsWholeRoster() async {
+        AccountMockURLProtocol.headers = { request in
+            request.url!.path == "/orgs/acme/members" ? ["x-ratelimit-remaining": "0"] : nil
+        }
+        defer { AccountMockURLProtocol.headers = nil }
+        AccountMockURLProtocol.handler = { request in
+            switch request.url!.path {
+            case "/user": return (200, data(#"{"login":"octocat"}"#))
+            case "/user/orgs": return (200, data(#"[{"login":"acme"}]"#))
+            case "/user/following": return (200, Data("[]".utf8))
+            default: return (403, data(#"{"message":"API rate limit exceeded"}"#))
+            }
+        }
+        do {
+            _ = try await GitHubAccountClient(token: "fixture", session: mockSession()).roster()
+            Issue.record("A rate-limited organization must fail the sync, not drop its members")
+        } catch let error as GitHubAccountClient.RequestError {
+            #expect(error.errorDescription == GitHubAccountClient.RequestError.response(429).errorDescription)
+        } catch {
+            Issue.record("Unexpected error \(error)")
+        }
+    }
+
+    /// An organization that restricts third-party app access (or enforces SAML single sign-on)
+    /// answers 403 every time. It's left out and named, and you, the people you follow, and the
+    /// other organizations still sync.
+    @Test func restrictedOrganizationIsLeftOutAndNamed() async throws {
+        AccountMockURLProtocol.headers = nil
+        AccountMockURLProtocol.handler = { request in
+            switch request.url!.path {
+            case "/user": return (200, data(#"{"login":"Octocat"}"#))
+            case "/user/orgs": return (200, data(#"[{"login":"acme"},{"login":"globex"}]"#))
+            case "/orgs/acme/members":
+                return (403, data(#"{"message":"Although you appear to have the correct authorization credentials, the `acme` organization has enabled OAuth App access restrictions"}"#))
+            case "/orgs/globex/members": return (200, data(#"[{"login":"monalisa"}]"#))
+            case "/user/following": return (200, data(#"[{"login":"steipete"}]"#))
+            default: return (404, Data())
+            }
+        }
+        let result = try await GitHubAccountClient(token: "fixture", session: mockSession()).roster()
+        #expect(result.owner == "octocat")
+        #expect(result.sources.map(\.id) == ["org:globex", "following"])
+        #expect(result.restrictedOrganizations == ["acme"])
+        #expect(result.usernames(in: .all) == ["octocat", "monalisa", "steipete"])
+    }
+
+    @Test func restrictedNoticeNamesTheOrganizationsLeftOut() {
+        func snapshot(_ restricted: [String]?) -> GitHubRosterSnapshot {
+            GitHubRosterSnapshot(owner: "octocat", sources: [], updatedAt: .now, restrictedOrganizations: restricted)
+        }
+        #expect(snapshot(nil).restrictedNotice == nil)
+        #expect(snapshot([]).restrictedNotice == nil)
+        #expect(snapshot(["acme"]).restrictedNotice?.hasPrefix("acme isn’t on your board: it limits") == true)
+        #expect(snapshot(["acme", "globex", "initech"]).restrictedNotice?
+            .hasPrefix("acme, globex and initech aren’t on your board: they limit") == true)
+    }
+
+    /// Snapshots saved before restricted organizations were recorded still load.
+    @Test func savedSnapshotWithoutRestrictedOrganizationsStillLoads() throws {
+        let json = #"{"owner":"octocat","sources":[{"id":"following","title":"People you follow","members":["hubot"]}],"updatedAt":0}"#
+        let snapshot = try JSONDecoder().decode(GitHubRosterSnapshot.self, from: Data(json.utf8))
+        #expect(snapshot.owner == "octocat")
+        #expect(snapshot.restrictedOrganizations == nil)
     }
 
     @Test func replacingRosterDeduplicatesPreservesIDsAndCountsAndRemovesDepartures() throws {

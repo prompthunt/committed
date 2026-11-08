@@ -21,6 +21,9 @@ struct RosterStatusView: View {
                 }
             } else if let snapshot = roster.snapshot {
                 Text("Synced \(snapshot.updatedAt, style: .relative) ago")
+                if let notice = snapshot.restrictedNotice {
+                    Text(notice)
+                }
             } else {
                 Text("Your people will sync from GitHub automatically.")
             }
