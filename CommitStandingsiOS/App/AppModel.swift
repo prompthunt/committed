@@ -30,6 +30,9 @@ final class AppModel {
     /// Live rank in the Dynamic Island and on the Lock Screen.
     let liveRank: LiveRankController
     private let backgroundTime: any BackgroundTimeProviding
+    /// The Home Screen and Lock Screen widgets' snapshot.
+    private let widgets: WidgetPublisher
+    private let now: @Sendable () -> Date
     private var didRefreshIdentity = false
 
     var store: StandingsStore { services.store }
@@ -37,8 +40,8 @@ final class AppModel {
     var auth: AuthModel { services.auth }
     var roster: GitHubRoster { services.roster }
 
-    /// The Live rank defaults never show an activity, for tests and previews. The app passes
-    /// ActivityKit and saved preferences.
+    /// The Live rank defaults never show an activity, and the widget default writes nothing, for
+    /// tests and previews. The app passes ActivityKit, saved preferences, and the App Group.
     init(
         services: CommittedServices,
         backgroundTime: any BackgroundTimeProviding,
@@ -46,10 +49,13 @@ final class AppModel {
         liveRankPreferences: any LiveRankPreferenceStoring = InMemoryLiveRankPreferences(),
         liveRankRelay: any LiveRankRegistrar = NoLiveRankRelay(),
         avatars: any AvatarPrefetching = NoAvatarPrefetching(),
+        widgets: WidgetPublisher = WidgetPublisher(save: { _ in }, reload: {}),
         now: @escaping @Sendable () -> Date = { Date() }
     ) {
         self.services = services
         self.backgroundTime = backgroundTime
+        self.widgets = widgets
+        self.now = now
         let refresh = services.refresh
         let auth = services.auth
         let liveRank = LiveRankController(
@@ -65,13 +71,28 @@ final class AppModel {
         // Every refresh also brings Live rank's Window up to date and then updates the activity.
         // Avatars for the board are saved first: Live rank can't load images, so it reads them
         // from the App Group (`AvatarCache`) when it renders.
+        // The widgets show Live rank's Window, so it stays fresh even with Live rank off.
         let store = services.store
-        refresh.additionalWindows = { liveRank.windowsToRefresh }
-        refresh.didRefresh = { _ in
+        refresh.additionalWindows = {
+            auth.isSignedIn ? liveRank.windowsToRefresh + [liveRank.window] : liveRank.windowsToRefresh
+        }
+        refresh.didRefresh = { [weak self] _ in
             await avatars.prefetch(store.visibleCompetitors.map(\.username))
             await liveRank.sync()
+            self?.publishWidgets()
         }
-        services.onDisconnect = { liveRank.disconnected() }
+        services.onDisconnect = { [weak self] in
+            liveRank.disconnected()
+            self?.publishWidgets()
+        }
+    }
+
+    /// Write the widgets' snapshot for the board as it stands: nothing when disconnected.
+    func publishWidgets() {
+        let refresh = services.refresh
+        widgets.publish(auth.isSignedIn
+            ? WidgetSnapshot.board(store, window: liveRank.window, rankDelta: { refresh.rankDelta(for: $0) }, now: now())
+            : nil)
     }
 
     /// Connect GitHub screen versus the board, from the shared onboarding rule.
@@ -87,6 +108,9 @@ final class AppModel {
         refresh.resumeTimer()
         // Ends strays from an earlier launch, and restarts Live rank if iOS ended it.
         await liveRank.enteredForeground()
+        // Saved numbers reach the widgets now, before any refresh (and after an update from a
+        // build without widgets).
+        publishWidgets()
         await liveRank.retryRelay()
         guard auth.isSignedIn else { return }
         if !didRefreshIdentity {
@@ -154,16 +178,19 @@ final class AppModel {
 
     func setLiveRankWindow(_ window: ContributionWindow) async {
         await liveRank.setWindow(window)
+        publishWidgets()
         await refreshLiveRankIfStale()
     }
 
-    /// Hiding or showing someone updates Live rank right away while the app is open.
+    /// Hiding or showing someone updates Live rank and the widgets right away while the app is open.
     func visibilityDidChange() async {
         await liveRank.sync()
+        publishWidgets()
     }
 
+    /// Live rank's Window, when Live rank or the widgets need it fetched.
     private var liveRankNeedsRefresh: Bool {
-        liveRank.windowsToRefresh.contains { refresh.needsRefresh(for: $0) }
+        (liveRank.windowsToRefresh + [liveRank.window]).contains { refresh.needsRefresh(for: $0) }
     }
 
     /// A Window Live rank hasn't loaded yet is fetched now (the refresh then updates Live rank).

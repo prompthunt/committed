@@ -1,10 +1,11 @@
 import SwiftUI
 import WidgetKit
 
-/// The Live rank extension holds only the Live Activity; Committed has no Home Screen widgets.
+/// The Live rank extension: the Live Activity, and Committed's Home Screen and Lock Screen widgets.
 @main
 struct LiveRankWidgetBundle: WidgetBundle {
     var body: some Widget {
         LiveRankLiveActivity()
+        CommittedWidget()
     }
 }
