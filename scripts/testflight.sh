@@ -37,7 +37,10 @@ if [[ -n "$(git status --porcelain)" ]]; then
   exit 1
 fi
 BRANCH="$(git branch --show-current)"
-[[ "${BRANCH}" == "main" ]] || echo "warning: uploading from '${BRANCH}', not main." >&2
+# A worktree can't check out main while another one has it, so main's commit detached counts too.
+if [[ "${BRANCH}" != "main" && "$(git rev-parse HEAD)" != "$(git rev-parse origin/main 2>/dev/null)" ]]; then
+  echo "warning: uploading $(git rev-parse --short HEAD) from '${BRANCH:-a detached HEAD}', not main." >&2
+fi
 
 NOTES="${1:-$(git log -1 --format=%s)}"
 
@@ -96,6 +99,21 @@ xcodebuild -exportArchive -archivePath "${OUT_DIR}/Committed.xcarchive" \
   -exportOptionsPlist "${OUT_DIR}/ExportOptions.plist" -exportPath "${OUT_DIR}/export" \
   "${AUTH[@]}" > "${OUT_DIR}/export.log" 2>&1 \
   || { grep -iE "error" "${OUT_DIR}/export.log" | tail -20 >&2; exit 1; }
+
+# App Store Connect lists an upload only after a few minutes, and `asc publish --wait` waits for
+# processing of a build it can already find, so wait for it to appear first.
+echo "==> Waiting for App Store Connect to list build ${BUILD}"
+deadline=$((SECONDS + 1800))
+until asc builds list --app "${APP_ID}" --paginate --output json 2>/dev/null | python3 -I -c '
+import json, sys
+sys.exit(0 if any(b["attributes"].get("version") == sys.argv[1] for b in json.load(sys.stdin).get("data", [])) else 1)' "${BUILD}"; do
+  if (( SECONDS >= deadline )); then
+    echo "error: build ${BUILD} didn't appear within 30 minutes. Distribute it later with:" >&2
+    echo "  asc publish testflight --app ${APP_ID} --build-number ${BUILD} --group '${BETA_GROUPS}' --wait --submit --confirm" >&2
+    exit 1
+  fi
+  sleep 30
+done
 
 echo "==> Waiting for processing, then adding to ${BETA_GROUPS} and submitting for beta review"
 asc publish testflight --app "${APP_ID}" --build-number "${BUILD}" \
