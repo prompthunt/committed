@@ -28,11 +28,18 @@ enum BoardShareStyle: String, CaseIterable, Identifiable, Sendable {
     }
 
     /// The widget's size in points on the biggest iPhones, where its layout has the most room.
-    var widgetSize: CGSize {
+    /// The board grows past the Home Screen's height to fit its rows (`rows`, counting you), with no
+    /// empty space under them.
+    func widgetSize(rows: Int, dividesSelf: Bool) -> CGSize {
         switch self {
-        case .board: CGSize(width: 364, height: 382)
-        case .race: CGSize(width: 364, height: 170)
-        case .rank, .list: CGSize(width: 170, height: 170)
+        case .board:
+            // Header and margins, then each row at its height plus the 8 pt between rows, and the
+            // rule over your row when you're further down. Measured from renders at the fixed
+            // Dynamic Type size the card uses.
+            let height = 56 + CGFloat(rows) * 38.2 - 8 + (dividesSelf ? 13 : 0)
+            return CGSize(width: 364, height: max(height, 170))
+        case .race: return CGSize(width: 364, height: 170)
+        case .rank, .list: return CGSize(width: 170, height: 170)
         }
     }
 }
@@ -70,10 +77,22 @@ enum BoardShareFormat: String, CaseIterable, Identifiable, Sendable {
     /// The most room the widget may take, in points, before it's scaled to fit.
     fileprivate var widgetRoom: CGSize {
         switch self {
-        case .square: CGSize(width: 460, height: 410)
+        case .square: CGSize(width: 460, height: 380)
         case .story: CGSize(width: 476, height: 540)
         }
     }
+
+    /// How many people the Board style shows, counting you: the large widget's six would leave a
+    /// share image half empty.
+    var boardRows: Int {
+        switch self {
+        case .square: 8
+        case .story: 10
+        }
+    }
+
+    /// The most rows any format shows: how many the board snapshot for sharing carries.
+    static let maxBoardRows = allCases.map(\.boardRows).max() ?? WidgetSnapshot.topCount
 }
 
 /// The share image: a widget on the board's squares, with Committed's name under it, and on a story
@@ -88,9 +107,17 @@ struct BoardShareCard: View {
         ZStack {
             Color.ink
             BoardShareSquareField(brightness: format == .story ? 1 : 0.55)
-            // The squares fade out under the footer, so it reads.
-            LinearGradient(colors: [Color.ink.opacity(0), Color.ink.opacity(0.92)], startPoint: .top, endPoint: .bottom)
-                .frame(height: format == .story ? 220 : 120)
+            if format == .story {
+                // The squares fade out behind the headline, so it reads.
+                LinearGradient(colors: [Color.ink.opacity(0.94), Color.ink.opacity(0.8), Color.ink.opacity(0)],
+                               startPoint: .top, endPoint: .bottom)
+                    .frame(height: 440)
+                    .frame(maxHeight: .infinity, alignment: .top)
+            }
+            // The squares fade out under the timestamp and the footer, so they read.
+            LinearGradient(colors: [Color.ink.opacity(0), Color.ink.opacity(0.85), Color.ink.opacity(0.95)],
+                           startPoint: .top, endPoint: .bottom)
+                .frame(height: format == .story ? 300 : 170)
                 .frame(maxHeight: .infinity, alignment: .bottom)
             VStack(spacing: 0) {
                 if format == .story {
@@ -100,7 +127,9 @@ struct BoardShareCard: View {
                 } else {
                     Spacer(minLength: 0)
                 }
-                BoardShareWidget(snapshot: snapshot, style: style, room: format.widgetRoom)
+                BoardShareWidget(snapshot: snapshot, style: style, format: format)
+                BoardShareTimestamp(date: snapshot.state.updatedDate)
+                    .padding(.top, 14)
                 Spacer(minLength: 0)
                 BoardShareFooter(peopleCount: snapshot.state.competitorCount)
                     .padding(.bottom, format == .story ? 72 : 26)
@@ -122,18 +151,29 @@ struct BoardShareCard: View {
     static func headline(_ window: ContributionWindow) -> String {
         "Who shipped more \(BoardShareHeadline.when(window))"
     }
+
+    /// When the numbers are from, as the image prints it ("As of Nov 8, 2026, 3:42 PM").
+    static func timestamp(_ date: Date, locale: Locale = .current, timeZone: TimeZone = .current) -> String {
+        var style = Date.FormatStyle.dateTime.month(.abbreviated).day().year().hour().minute()
+        style.locale = locale
+        style.timeZone = timeZone
+        return "As of \(date.formatted(style))"
+    }
 }
 
-/// The widget itself, at its own size and in its own frame, scaled up to fill `room`.
+/// The widget itself, at its own size and in its own frame, scaled up to fill the format's room.
 private struct BoardShareWidget: View {
     let snapshot: WidgetSnapshot
     let style: BoardShareStyle
-    let room: CGSize
+    let format: BoardShareFormat
 
     var body: some View {
-        let size = style.widgetSize
+        let shown = style == .board ? snapshot.sharing(rows: format.boardRows) : snapshot
+        let size = style.widgetSize(rows: shown.top.count + (shown.selfIsInTop ? 0 : 1),
+                                    dividesSelf: !shown.selfIsInTop && shown.selfRow != nil)
+        let room = format.widgetRoom
         let scale = min(room.width / size.width, room.height / size.height)
-        content
+        content(shown)
             // The system's widget content margin, which the rows bleed into.
             .padding(16)
             .frame(width: size.width, height: size.height)
@@ -143,7 +183,7 @@ private struct BoardShareWidget: View {
             .frame(width: size.width * scale, height: size.height * scale)
     }
 
-    @ViewBuilder private var content: some View {
+    @ViewBuilder private func content(_ snapshot: WidgetSnapshot) -> some View {
         switch style {
         case .board: CommittedWidgetLarge(snapshot: snapshot)
         case .race: CommittedWidgetMedium(snapshot: snapshot)
@@ -158,7 +198,8 @@ private struct BoardShareHeadline: View {
     let window: ContributionWindow
 
     var body: some View {
-        Text("Who shipped more \(Text(Self.when(window)).foregroundStyle(Color.lime))")
+        // The Window on its own line, so the headline never breaks mid-phrase.
+        Text("Who shipped more\n\(Text(Self.when(window)).foregroundStyle(Color.lime))")
             .font(CommittedType.display(54, relativeTo: .largeTitle))
             .displayTracking(54)
             .foregroundStyle(.white)
@@ -173,6 +214,31 @@ private struct BoardShareHeadline: View {
         case .weekly: "this week?"
         case .monthly: "this month?"
         }
+    }
+}
+
+/// When the numbers are from, under the widget, so an old screenshot reads as old.
+private struct BoardShareTimestamp: View {
+    let date: Date
+
+    var body: some View {
+        Text(BoardShareCard.timestamp(date))
+            .font(.system(size: 14, weight: .medium, design: .monospaced))
+            .tracking(0.8)
+            .textCase(.uppercase)
+            .foregroundStyle(Color.muted)
+            .lineLimit(1)
+    }
+}
+
+extension WidgetSnapshot {
+    /// The board cut to `rows` people counting you: the leaders when you're among them, otherwise
+    /// one fewer leader, and the large widget adds you below its rule.
+    func sharing(rows: Int) -> WidgetSnapshot {
+        var copy = self
+        let leaders = Array(top.prefix(rows))
+        copy.top = leaders.contains(where: \.isSelf) || selfRow == nil ? leaders : Array(top.prefix(max(rows - 1, 0)))
+        return copy
     }
 }
 
@@ -274,7 +340,7 @@ struct BoardShareSheet: View {
     let snapshot: WidgetSnapshot
     @State private var style: BoardShareStyle = .board
     @State private var format: BoardShareFormat
-    @State private var rendered: Rendered?
+    @State private var sharing: SharedFile?
     @Environment(\.dismiss) private var dismiss
 
     init(snapshot: WidgetSnapshot, initialFormat: BoardShareFormat = .square) {
@@ -282,9 +348,9 @@ struct BoardShareSheet: View {
         _format = State(initialValue: initialFormat)
     }
 
-    private struct Rendered {
+    private struct SharedFile: Identifiable {
         let url: URL
-        let preview: Image
+        var id: URL { url }
     }
 
     var body: some View {
@@ -314,20 +380,11 @@ struct BoardShareSheet: View {
                 .pickerStyle(.segmented)
                 .padding(.horizontal, 24)
 
-                Group {
-                    if let rendered {
-                        ShareLink(
-                            item: rendered.url,
-                            preview: SharePreview("Committed board", image: rendered.preview)
-                        ) {
-                            Label("Share", systemImage: "square.and.arrow.up")
-                                .frame(maxWidth: .infinity)
-                        }
-                    } else {
-                        Label("Share", systemImage: "square.and.arrow.up")
-                            .frame(maxWidth: .infinity)
-                            .opacity(0.5)
-                    }
+                Button {
+                    sharing = (try? BoardShareRenderer.file(snapshot, style: style, format: format)).map(SharedFile.init)
+                } label: {
+                    Label("Share", systemImage: "square.and.arrow.up")
+                        .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(LimeButtonStyle())
                 .padding(.horizontal, 24)
@@ -342,19 +399,24 @@ struct BoardShareSheet: View {
                 }
             }
         }
-        .task(id: "\(style.rawValue)-\(format.rawValue)") { render() }
+        // The image alone: no title or caption rides along into the post or message.
+        .sheet(item: $sharing) { file in
+            BoardShareActivity(url: file.url)
+                .presentationDetents([.medium, .large])
+                .ignoresSafeArea()
+        }
+    }
+}
+
+/// The system share sheet with only the PNG.
+private struct BoardShareActivity: UIViewControllerRepresentable {
+    let url: URL
+
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        UIActivityViewController(activityItems: [url], applicationActivities: nil)
     }
 
-    /// Renders the selected image ahead of the tap, so the share sheet opens at once.
-    private func render() {
-        guard let url = try? BoardShareRenderer.file(snapshot, style: style, format: format),
-              let image = UIImage(contentsOfFile: url.path)
-        else {
-            rendered = nil
-            return
-        }
-        rendered = Rendered(url: url, preview: Image(uiImage: image))
-    }
+    func updateUIViewController(_ controller: UIActivityViewController, context: Context) {}
 }
 
 /// One page of the carousel: the card itself, scaled to fit the page.

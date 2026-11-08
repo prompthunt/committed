@@ -5,17 +5,17 @@
   "screenshots": [
     {
       "file": "board-square.png",
-      "caption": "Square: the large Board widget, you fourth of 27 over 30 days",
+      "caption": "Square: Board grown to 8 people, you sixth today, with the timestamp",
       "capture": {
-        "sourceCommit": "9e298ac0b92efa088c6260d433ec9364cfc101ca",
+        "sourceCommit": "f84f761417efe11574eafdf969e38bc2fba1368e",
         "fixture": true
       }
     },
     {
       "file": "board-story.png",
-      "caption": "Story: the Board widget under \"Who shipped more this month?\"",
+      "caption": "Story: Board with 10 people under a readable headline",
       "capture": {
-        "sourceCommit": "9e298ac0b92efa088c6260d433ec9364cfc101ca",
+        "sourceCommit": "f84f761417efe11574eafdf969e38bc2fba1368e",
         "fixture": true
       }
     },
@@ -71,7 +71,7 @@
       "file": "sheet-square.png",
       "caption": "Share sheet with Square selected",
       "capture": {
-        "sourceCommit": "9e298ac0b92efa088c6260d433ec9364cfc101ca",
+        "sourceCommit": "f84f761417efe11574eafdf969e38bc2fba1368e",
         "fixture": true
       }
     },
@@ -79,7 +79,7 @@
       "file": "sheet-story.png",
       "caption": "Share sheet with Story selected",
       "capture": {
-        "sourceCommit": "9e298ac0b92efa088c6260d433ec9364cfc101ca",
+        "sourceCommit": "f84f761417efe11574eafdf969e38bc2fba1368e",
         "fixture": true
       }
     },
@@ -88,6 +88,22 @@
       "caption": "Board with the new share button (iPhone Duo's side bar holds the toolbar)",
       "capture": {
         "sourceCommit": "9e298ac0b92efa088c6260d433ec9364cfc101ca",
+        "fixture": true
+      }
+    },
+    {
+      "file": "board-far-square.png",
+      "caption": "Square: you fourteenth over 30 days, pinned below the rule after 7 leaders",
+      "capture": {
+        "sourceCommit": "f84f761417efe11574eafdf969e38bc2fba1368e",
+        "fixture": true
+      }
+    },
+    {
+      "file": "board-far-story.png",
+      "caption": "Story: you fourteenth, pinned below 9 leaders",
+      "capture": {
+        "sourceCommit": "f84f761417efe11574eafdf969e38bc2fba1368e",
         "fixture": true
       }
     }
