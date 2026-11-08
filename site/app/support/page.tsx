@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Bullets, ContactEmail, ReadingPage, Section } from "@/components/SiteChrome";
+import { Bullets, ReadingPage, Section } from "@/components/SiteChrome";
 import { ISSUES_URL, SECURITY_REPORT_URL } from "@/lib/site";
 
 const title = "Support — Committed";
@@ -22,7 +22,6 @@ export default function Support() {
     >
       <Section id="contact" title="Contact">
         <Bullets>
-          <li>Email: <ContactEmail /></li>
           <li>Report a bug or ask a question: <a href={ISSUES_URL}>GitHub Issues</a></li>
           <li>Security issues: <a href={SECURITY_REPORT_URL}>report privately on GitHub</a></li>
         </Bullets>

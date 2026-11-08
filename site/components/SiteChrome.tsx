@@ -3,7 +3,6 @@ import { Glyph } from "@/components/Glyph";
 import { AnalyticsLink } from "@/components/AnalyticsLink";
 import { DownloadOptions } from "@/components/DownloadOptions";
 import { RELEASES_URL, SOURCE_URL } from "@/lib/board";
-import { CONTACT_EMAIL } from "@/lib/site";
 
 /** The header every page shares: the wordmark home, release notes, and the source link. */
 export function SiteHeader() {
@@ -76,13 +75,4 @@ export function Section({ id, title, children }: { id: string; title: string; ch
 /** A bulleted list in a section. */
 export function Bullets({ children }: { children: ReactNode }) {
   return <ul className="list-disc space-y-2.5 pl-5 marker:text-lime">{children}</ul>;
-}
-
-/**
- * The contact address, or a visible placeholder until one exists. The repo has no
- * contact address yet, so this never renders a made-up mailto link.
- */
-export function ContactEmail() {
-  if (CONTACT_EMAIL) return <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>;
-  return <mark className="rounded bg-lime/15 px-1.5 py-0.5 font-mono text-[0.9em] text-lime">[contact email needed]</mark>;
 }
