@@ -1,0 +1,10 @@
+{
+  "device": "iPhone Duo Simulator",
+  "os": "iOS 27.1",
+  "notes": "Renders of the small widget views (CommittedWidget.swift) through ImageRenderer in a throwaway, uncommitted test bundle compiling the widget extension's sources, from fixture snapshots. StandBy images lay two small widgets scaled 2.05x side by side on black in an 852x393 pt landscape frame, as StandBy does; they are not StandBy captures (no Simulator.app on this Mac, and the Simulator can't enter StandBy).",
+  "screenshots": [
+    { "file": "standby.png", "caption": "StandBy: the rank card beside the new Board list, you third", "capture": { "sourceCommit": "12f4da14400d814405c1c9bd6ef104adff3a19a0", "fixture": true } },
+    { "file": "standby-race.png", "caption": "StandBy: Board list with you ninth (top two, the person ahead, you) beside an out-of-date Board", "capture": { "sourceCommit": "12f4da14400d814405c1c9bd6ef104adff3a19a0", "fixture": true } },
+    { "file": "board-home.png", "caption": "Board widget on its Home Screen card: leaders, your race, out of date, alone", "capture": { "sourceCommit": "12f4da14400d814405c1c9bd6ef104adff3a19a0", "fixture": true } }
+  ]
+}
