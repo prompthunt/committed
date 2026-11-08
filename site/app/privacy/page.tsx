@@ -35,7 +35,7 @@ export default function Privacy() {
           <li><strong>Connect GitHub</strong> gives Committed read-only access to your profile, who you follow, and your organizations (<code>read:user read:org</code>). It never asks for repository access or reads your code.</li>
           <li>The token is stored in the iPhone’s or Mac’s Keychain, or in Windows Credential Manager. <strong>Disconnect GitHub</strong> deletes it.</li>
           <li>GitHub API calls go straight from your device to GitHub. Contributions come from each person’s public GitHub contribution page, which the apps read anonymously.</li>
-          <li>Your people list, Contributions, and the people you hide are saved on your device. They aren’t synced anywhere.</li>
+          <li>Your people list, Contributions, and the people you hide are saved on your device. They aren’t synced between your devices.</li>
           <li>Leaderboard Notifications are created on your device.</li>
           <li>The apps contain no analytics or crash reporting.</li>
         </Bullets>
