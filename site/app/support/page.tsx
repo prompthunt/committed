@@ -35,7 +35,7 @@ export default function Support() {
 
         <h3>Why is a friend’s count low?</h3>
         <p>Private contributions count only once that person turns them on in GitHub. Until then, private work stays off their public graph, so Committed can’t count it.</p>
-        <p>To turn them on: on GitHub, click your profile picture, then <strong>Your profile</strong>. Above the green squares, open <strong>Contribution settings</strong> and check <strong>Private contributions</strong>. Everyone does this for their own account. Others see only the counts, not which private repos they came from.</p>
+        <p>To turn them on, open GitHub, click your profile picture, then <strong>Your profile</strong>. Above the green squares, open <strong>Contribution settings</strong> and check <strong>Private contributions</strong>. Everyone does this for their own account. Others see only the counts, not which private repos they came from.</p>
 
         <h3>What does Live rank send to the Committed relay?</h3>
         <p>Live rank keeps your rank in the Dynamic Island and on the Lock Screen. To keep it current while the app is closed, the Committed relay receives your GitHub username, the usernames on your board, Live rank’s Window, your time zone, and the tokens that update Live rank on your iPhone.</p>
