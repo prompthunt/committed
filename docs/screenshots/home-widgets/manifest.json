@@ -1,0 +1,22 @@
+{
+  "device": "iPhone Duo Simulator",
+  "os": "iOS 27.1",
+  "notes": "Renders of the widget views (CommittedWidget.swift) through ImageRenderer in a throwaway, uncommitted test bundle that compiles the widget extension's sources, at iPhone widget sizes with WidgetKit's 16 pt content margins, from fixture snapshots. Not Home Screen captures: no Simulator.app on this Mac to place widgets. Lock Screen accessories are drawn in white; on device they take the Lock Screen's tint.",
+  "screenshots": [
+    {
+      "file": "small-medium.png",
+      "caption": "Small (also CarPlay and StandBy): racing, out of date, alone, not connected. Medium: racing, alone",
+      "capture": { "sourceCommit": "f9f641572c0e0da026f15b2034b88a848690a22f", "fixture": true }
+    },
+    {
+      "file": "large.png",
+      "caption": "Large: top six with you third; you ninth below a rule; out of date",
+      "capture": { "sourceCommit": "f9f641572c0e0da026f15b2034b88a848690a22f", "fixture": true }
+    },
+    {
+      "file": "lock-screen.png",
+      "caption": "Lock Screen: rectangular (current and out of date), inline, circular",
+      "capture": { "sourceCommit": "f9f641572c0e0da026f15b2034b88a848690a22f", "fixture": true }
+    }
+  ]
+}
