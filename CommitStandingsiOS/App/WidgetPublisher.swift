@@ -42,13 +42,15 @@ final class WidgetPublisher {
 
 // App only: the extension can't rank, so it never builds a snapshot.
 extension WidgetSnapshot {
-    /// The snapshot for the visible board, ranked as the Board ranks it.
+    /// The snapshot for the visible board, ranked as the Board ranks it, with the first `rows`
+    /// people (the large widget's six; the share images take more).
     @MainActor
     static func board(
         _ store: StandingsStore,
         window: ContributionWindow,
         rankDelta: (String) -> Int?,
-        now: Date
+        now: Date,
+        rows: Int = topCount
     ) -> WidgetSnapshot? {
         guard let me = store.selfCompetitor?.username else { return nil }
         let state = LiveRankState.board(store, window: window, rankDelta: rankDelta, now: now)
@@ -58,7 +60,7 @@ extension WidgetSnapshot {
             visible.contains(login) && standing.lastUpdated != .distantPast
         }
         let ranked = Ranking.order(competitors: competitors, standings: standings, window: window)
-        let top = ranked.prefix(topCount).map { entry in
+        let top = ranked.prefix(rows).map { entry in
             let login = entry.competitor.username
             let standing = standings[login]
             return Row(

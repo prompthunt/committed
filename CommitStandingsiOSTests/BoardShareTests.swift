@@ -25,9 +25,33 @@ struct BoardShareTests {
 
     @Test func fileIsAPNGNamedForWhatItShows() throws {
         let url = try BoardShareRenderer.file(Self.board, style: .board, format: .story)
-        #expect(url.lastPathComponent == "Committed-30-days-board-story.png")
+        #expect(url.lastPathComponent == "Committed-Today-board-story.png")
         let data = try Data(contentsOf: url)
         #expect(data.starts(with: [0x89, 0x50, 0x4E, 0x47]))
+    }
+
+    @Test func boardShowsMorePeopleThanTheWidget() {
+        #expect(BoardShareFormat.square.boardRows == 8)
+        #expect(BoardShareFormat.story.boardRows == 10)
+        #expect(BoardShareFormat.maxBoardRows == 10)
+        // You're sixth: the leaders, you among them.
+        let square = Self.board.sharing(rows: 8)
+        #expect(square.top.map(\.rank) == Array(1...8))
+        #expect(square.selfIsInTop)
+    }
+
+    @Test func youStayOnTheImageWhenFurtherDown() {
+        // You're 14th: seven leaders, then the large widget adds you below its rule.
+        let square = Self.farDown.sharing(rows: 8)
+        #expect(square.top.map(\.rank) == Array(1...7))
+        #expect(!square.selfIsInTop)
+        #expect(square.selfRow?.rank == 14)
+    }
+
+    @Test func timestampSaysWhenTheNumbersAreFrom() {
+        let date = Date(timeIntervalSince1970: 1_794_172_920) // 2026-11-08 21:22 UTC
+        let text = BoardShareCard.timestamp(date, locale: Locale(identifier: "en_US"), timeZone: TimeZone(identifier: "America/Los_Angeles")!)
+        #expect(text == "As of Nov 8, 2026 at 1:22\u{202F}PM" || text == "As of Nov 8, 2026, 1:22\u{202F}PM")
     }
 
     @Test func storyHeadlineFollowsTheWindow() {
@@ -59,6 +83,13 @@ struct BoardShareTests {
         try await save(window, name: "share-board-button")
     }
 
+    @Test(.enabled(if: ProcessInfo.processInfo.environment["RENDER_DIR"] != nil), arguments: BoardShareFormat.allCases)
+    func boardFarDown(format: BoardShareFormat) throws {
+        let directory = try #require(renderDirectory)
+        let image = try #require(BoardShareRenderer.image(Self.farDown, style: .board, format: format))
+        try #require(image.pngData()).write(to: directory.appendingPathComponent("share-board-far-\(format.rawValue).png"))
+    }
+
     private func makeWindow(_ controller: UIViewController) throws -> UIWindow {
         let scene = try #require(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first)
         let window = UIWindow(windowScene: scene)
@@ -83,24 +114,36 @@ struct BoardShareTests {
         window.isHidden = true
     }
 
-    /// Thirty days, you fourth of 27, and the leaders' counts far apart, as a real board has them.
-    static let board = WidgetSnapshot(
-        selfLogin: "you",
-        state: LiveRankState(
-            window: ContributionWindow.monthly.rawValue, rank: 4, competitorCount: 27, contributions: 6_581,
-            above: .init(login: "alex", contributions: 8_666, movementToday: 0),
-            below: .init(login: "sam-rivera", contributions: 3_246, movementToday: 0),
-            movementToday: 0, updatedAt: Int(Date().timeIntervalSince1970)
-        ),
-        top: [
-            .init(rank: 1, login: "maya-chen", contributions: 28_265, movement: 0, isSelf: false),
-            .init(rank: 2, login: "devon", contributions: 9_308, movement: 0, isSelf: false),
-            .init(rank: 3, login: "alex", contributions: 8_666, movement: 0, isSelf: false),
-            .init(rank: 4, login: "you", contributions: 6_581, movement: 0, isSelf: true),
-            .init(rank: 5, login: "sam-rivera", contributions: 3_246, movement: 0, isSelf: false),
-            .init(rank: 6, login: "riley", contributions: 2_643, movement: 0, isSelf: false),
-        ]
-    )
+    /// Today, you sixth of 27, as a real board has it: ten rows for the share's taller board.
+    static let board = snapshot(selfRank: 6, window: .daily)
+
+    /// Thirty days, you fourteenth of 27: below every format's rows.
+    static let farDown = snapshot(selfRank: 14, window: .monthly)
+
+    private static func snapshot(selfRank: Int, window: ContributionWindow) -> WidgetSnapshot {
+        let logins = ["maya-chen", "devon", "alex", "priya-s", "sam-rivera", "jordan-a", "lee-park", "riley",
+                      "casey", "morgan", "taylor-k", "jamie", "drew", "quinn", "avery"]
+        let scale = window == .daily ? 1 : 30
+        var rows: [WidgetSnapshot.Row] = []
+        var people = logins
+        people.insert("you", at: selfRank - 1)
+        for (index, login) in people.prefix(BoardShareFormat.maxBoardRows).enumerated() {
+            let count = max(0, (380 - index * 24) * scale)
+            rows.append(.init(rank: index + 1, login: login, contributions: count,
+                              movement: window == .daily && index == 2 ? 1 : 0, isSelf: login == "you"))
+        }
+        let mine = max(0, (380 - (selfRank - 1) * 24) * scale)
+        return WidgetSnapshot(
+            selfLogin: "you",
+            state: LiveRankState(
+                window: window.rawValue, rank: selfRank, competitorCount: 27, contributions: mine,
+                above: .init(login: people[selfRank - 2], contributions: mine + 24 * scale, movementToday: 0),
+                below: .init(login: people[selfRank], contributions: max(0, mine - 24 * scale), movementToday: 0),
+                movementToday: 0, updatedAt: 1_794_172_920
+            ),
+            top: rows
+        )
+    }
 }
 
 @MainActor

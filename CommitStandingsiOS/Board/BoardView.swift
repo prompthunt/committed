@@ -51,7 +51,8 @@ struct BoardView: View {
                     Button("Share board", systemImage: "square.and.arrow.up") {
                         sharing = WidgetSnapshot.board(
                             store, window: store.selectedWindow,
-                            rankDelta: { refresh.rankDelta(for: $0) }, now: .now
+                            rankDelta: { refresh.rankDelta(for: $0) }, now: .now,
+                            rows: BoardShareFormat.maxBoardRows
                         ).map(BoardShareRequest.init)
                     }
                     .disabled(!store.hasSelf)
