@@ -29,7 +29,7 @@ struct StandingRow: View {
                     .font(competitor.isSelf ? style.selfNameFont : style.nameFont)
                     .lineLimit(dynamicTypeSize.isAccessibilitySize ? 2 : 1)
                     .truncationMode(.middle)
-                if competitor.isSelf {
+                if competitor.isSelf, style.showsSelfBadge {
                     Text("you")
                         .font(style.badgeFont)
                         .padding(.horizontal, 5)
@@ -42,7 +42,8 @@ struct StandingRow: View {
             HStack(spacing: 4) {
                 rankDeltaIndicator
                 contributionsLabel
-                    .frame(minWidth: 40, alignment: .trailing)
+                    .fixedSize(horizontal: style.keepsCountWhole, vertical: false)
+                    .frame(minWidth: style.countMinWidth, alignment: .trailing)
             }
             contributionSquare
         }
@@ -121,6 +122,8 @@ struct StandingRow: View {
             } else {
                 Color.clear.frame(width: 16)
             }
+        case .hidden:
+            EmptyView()
         }
     }
 

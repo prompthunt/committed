@@ -7,5 +7,6 @@ struct LiveRankWidgetBundle: WidgetBundle {
     var body: some Widget {
         LiveRankLiveActivity()
         CommittedWidget()
+        CommittedBoardWidget()
     }
 }

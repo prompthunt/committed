@@ -13,7 +13,9 @@ final class WidgetPublisher {
     /// The defaults write to the App Group and reload through `WidgetCenter`; tests pass their own.
     init(
         save: @escaping @MainActor (WidgetSnapshot?) -> Void = WidgetPublisher.saveToAppGroup,
-        reload: @escaping @MainActor () -> Void = { WidgetCenter.shared.reloadTimelines(ofKind: WidgetSnapshot.widgetKind) }
+        reload: @escaping @MainActor () -> Void = {
+            for kind in WidgetSnapshot.kinds { WidgetCenter.shared.reloadTimelines(ofKind: kind) }
+        }
     ) {
         self.save = save
         self.reload = reload

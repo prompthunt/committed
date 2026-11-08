@@ -26,8 +26,11 @@ struct WidgetSnapshot: Codable, Equatable, Sendable {
     /// Rows the large widget has room for.
     static let topCount = 6
 
-    /// The widgets' kind: the app reloads it, the extension declares it.
+    /// The widgets' kinds: the app reloads them, the extension declares them. The rank card
+    /// (every size), and the small Board list made for StandBy.
     static let widgetKind = "CommittedBoard"
+    static let boardListKind = "CommittedBoardList"
+    static let kinds = [widgetKind, boardListKind]
 
     /// Your row, when your count has loaded.
     var selfRow: Row? {
@@ -38,6 +41,24 @@ struct WidgetSnapshot: Codable, Equatable, Sendable {
 
     /// Whether you're among `top`.
     var selfIsInTop: Bool { top.contains(where: \.isSelf) }
+
+    /// The board in `count` rows, for the small Board widget (StandBy shows only small widgets):
+    /// the leaders when you're among them, otherwise the first few, the person just ahead of you,
+    /// and you, so your race is always on screen.
+    func boardRows(count: Int = 4) -> [Row] {
+        guard count > 0 else { return [] }
+        let leaders = Array(top.prefix(count))
+        guard let me = selfRow, !leaders.contains(where: \.isSelf) else { return leaders }
+        var rows = Array(top.prefix(max(count - 2, 0)))
+        if let above = state.above, me.rank - 1 > (rows.last?.rank ?? 0) {
+            rows.append(Row(rank: me.rank - 1, login: above.login, contributions: above.contributions,
+                            movement: above.movementToday, isSelf: false))
+        } else if rows.count < count - 1, let next = top.dropFirst(rows.count).first {
+            rows.append(next)
+        }
+        rows.append(me)
+        return rows
+    }
 }
 
 // MARK: - Storage
