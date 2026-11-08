@@ -13,9 +13,10 @@ import UIKit
 /// and `-RelayDisclosureAccepted` starts with the Committed relay disclosure already accepted (for
 /// builds with `COMMITTED_RELAY_URL`; without it, a relay build shows the disclosure sheet).
 ///
-/// Everything above the data layer is real: `CommittedServices`, `RefreshCoordinator`, `Ranking`,
-/// and every view. Counts move between the first two refreshes so Today shows movement chevrons.
-/// One person always fails to load, to show the missing-data placeholder.
+/// The data is the Sample board's (`SampleServices`); everything above it is real:
+/// `CommittedServices`, `RefreshCoordinator`, `Ranking`, and every view. Counts move between the
+/// first two refreshes so Today shows movement chevrons. One person always fails to load, to show
+/// the missing-data placeholder.
 @MainActor
 enum ScreenshotFixture {
     static let launchArgument = "-ScreenshotFixture"
@@ -91,7 +92,7 @@ enum ScreenshotFixture {
         let avatars = GeneratedAvatars(cache: cache)
         // Saved before the first frame, so the board shows them from the start, not only after
         // a refresh re-renders its rows.
-        for login in ["sam-rivera", "maya-chen", "priya-s", "devon-k", "lee-park", "jordan-a"] {
+        for login in SampleServices.people + [SampleServices.failingCompetitor] {
             cache.store(GeneratedAvatars.identicon(for: login), for: login)
         }
         return avatars
@@ -132,32 +133,20 @@ enum ScreenshotFixture {
         }
     }
 
+    /// The Sample board's services (`SampleServices`) with the fixture's extras: one person who
+    /// always fails to load, `-ScreenshotRestrictedOrg <name>` and `-ScreenshotHide <login>`. It
+    /// loads at once, refreshing twice so Today shows movement chevrons.
+    ///
     /// `extraPeople` adds that many followed people (`guest-01`, …) below everyone else, for a
     /// board long enough to scroll on the open iPhone Duo display (used by the #46 render tests).
-    static func services(extraPeople: Int = 0) -> CommittedServices {
-        // Keep GitHub requests offline. Network avatars are off too (`loadsGitHubAvatars`), so no
-        // real account's avatar appears for these made-up usernames; `avatars()` saves generated
-        // ones instead.
-        let config = URLSessionConfiguration.ephemeral
-        config.protocolClasses = [OfflineProtocol.self]
-        let session = URLSession(configuration: config)
-        let guests = (0..<extraPeople).map { String(format: "guest-%02d", $0 + 1) }
+    static func services(extraPeople: Int = 0, failingCompetitor: Bool = true) -> CommittedServices {
         // `-ScreenshotRestrictedOrg <name>`: an organization that won't list its members for
         // Committed, as People shows it.
-        let restricted = value(after: "-ScreenshotRestrictedOrg").map { [$0] }
-        let services = CommittedServices(
-            store: StandingsStore(persistence: InMemoryCompetitorPersistence()),
-            credentials: InMemoryGitHubCredentialStore(token: "fixture"),
-            contributions: FixtureContributions(),
-            accountFactory: { GitHubAccountClient(token: $0, session: session) },
-            fetchRoster: { _ in
-                GitHubRosterSnapshot(owner: "sam-rivera", sources: [
-                    GitHubRosterSource(id: "following", title: "Following",
-                                       members: ["maya-chen", "devon-k"] + guests),
-                    GitHubRosterSource(id: "org", title: "Acme", members: ["priya-s", "lee-park", "jordan-a"]),
-                ], updatedAt: Date().addingTimeInterval(-240), restrictedOrganizations: restricted)
-            }
-        )
+        let services = SampleServices.make(SampleServices.Options(
+            extraPeople: extraPeople,
+            includesFailingCompetitor: failingCompetitor,
+            restrictedOrganizations: value(after: "-ScreenshotRestrictedOrg").map { [$0] }
+        ))
         let hide = value(after: "-ScreenshotHide")
         Task {
             await services.auth.refreshIdentity()
@@ -170,47 +159,6 @@ enum ScreenshotFixture {
             await services.refresh.refreshAll(reason: .timer)
         }
         return services
-    }
-
-    /// Round 1 sets today's baseline; later rounds have sam-rivera passing devon-k. Guests have
-    /// fewer Contributions than anyone else.
-    private actor FixtureContributions: ContributionsFetching {
-        private var rounds: [String: Int] = [:]
-
-        func standingCounts(for username: String, window: ContributionWindow, asOf reference: Date)
-            async -> Result<StandingCounts, ContributionsError> {
-            let round = rounds[username, default: 0]
-            rounds[username] = round + 1
-            let counts: [String: [ContributionWindow: Int]] = [
-                "maya-chen": [.daily: 12, .weekly: 61, .monthly: 240],
-                "priya-s": [.daily: 9, .weekly: 44, .monthly: 198],
-                "sam-rivera": [.daily: round == 0 ? 5 : 7, .weekly: 38, .monthly: 171],
-                "devon-k": [.daily: 6, .weekly: 52, .monthly: 160],
-                "lee-park": [.daily: 0, .weekly: 11, .monthly: 57],
-            ]
-            if username.hasPrefix("guest-"), let number = Int(username.dropFirst(6)) {
-                return .success(StandingCounts(contributions: max(0, 40 - number)))
-            }
-            guard let count = counts[username]?[window] else { return .failure(.network("offline")) }
-            return .success(StandingCounts(contributions: count))
-        }
-    }
-
-    /// Answers `/user` with a fixed profile and fails everything else as if offline.
-    private final class OfflineProtocol: URLProtocol {
-        override class func canInit(with request: URLRequest) -> Bool { true }
-        override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
-        override func startLoading() {
-            guard request.url?.host == "api.github.com", request.url?.path == "/user" else {
-                client?.urlProtocol(self, didFailWithError: URLError(.notConnectedToInternet)); return
-            }
-            let body = Data(#"{"login":"sam-rivera","name":"Sam Rivera"}"#.utf8)
-            let response = HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!
-            client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
-            client?.urlProtocol(self, didLoad: body)
-            client?.urlProtocolDidFinishLoading(self)
-        }
-        override func stopLoading() {}
     }
 }
 #endif
