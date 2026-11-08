@@ -19,6 +19,15 @@ struct StandingRowStyle {
     /// Your count's color. nil = the row's text color (the Mac).
     var selfCountColor: Color? = nil
     var avatarSize: CGFloat = 26
+    /// The count column's minimum width, so counts line up down the list. A small widget, too
+    /// narrow to spare it, sets 0.
+    var countMinWidth: CGFloat = 40
+    /// Keep the count whole on one line, letting the name truncate first. A narrow row (a small
+    /// widget) sets it; the board's rows have the room.
+    var keepsCountWhole: Bool = false
+    /// The "you" badge beside your name. A small widget drops it; your row's highlight still
+    /// marks you.
+    var showsSelfBadge: Bool = true
     var spacing: CGFloat = 10
     var horizontalPadding: CGFloat = 8
     var verticalPadding: CGFloat = 7
@@ -46,6 +55,8 @@ struct StandingRowStyle {
         /// The same glyph, tinted by `SquareRamp` level with these colors: index 0 is no
         /// contributions, the last is the leader's quartile (GitHub-style levels).
         case shadedSymbol([Color])
+        /// No square: a row too narrow to spare it (a small widget).
+        case hidden
     }
 
     /// The Mac popover's row.

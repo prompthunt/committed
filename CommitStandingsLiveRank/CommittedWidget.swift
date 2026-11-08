@@ -24,6 +24,30 @@ struct CommittedWidget: Widget {
     }
 }
 
+/// The board as a list in a small widget, the size StandBy shows (and, on iPhone Duo, the outer
+/// screen folded into a tent): the leaders, or the first few and your race, in the board's own
+/// rows. Its own widget, so the rank card stays the glanceable one for CarPlay.
+struct CommittedBoardWidget: Widget {
+    var body: some WidgetConfiguration {
+        StaticConfiguration(kind: WidgetSnapshot.boardListKind, provider: CommittedWidgetProvider()) { entry in
+            Group {
+                if let snapshot = entry.snapshot {
+                    CommittedWidgetBoardSmall(snapshot: snapshot)
+                } else {
+                    CommittedWidgetConnect()
+                }
+            }
+            .environment(\.liveRankIsStale, entry.isStale)
+            .environment(\.colorScheme, .dark)
+            .containerBackground(for: .widget) { Color.ink }
+            .widgetURL(entry.snapshot?.state.boardURL ?? DeepLink.board(window: nil).url)
+        }
+        .configurationDisplayName("Committed Board")
+        .description("The board as a list: the leaders, or your race with the person ahead. Made for StandBy.")
+        .supportedFamilies([.systemSmall])
+    }
+}
+
 // MARK: - Timeline
 
 struct CommittedWidgetEntry: TimelineEntry {
@@ -252,6 +276,76 @@ struct CommittedWidgetLarge: View {
             Spacer(minLength: 0)
         }
         .dynamicTypeSize(...DynamicTypeSize.xLarge)
+    }
+}
+
+/// Small Board: the header, then four of the board's rows. StandBy scales the small widget up to
+/// half a landscape screen, so four rows read from across a room.
+struct CommittedWidgetBoardSmall: View {
+    let snapshot: WidgetSnapshot
+    @Environment(\.liveRankIsStale) private var isStale
+
+    var body: some View {
+        let state = snapshot.state
+        let window = state.contributionWindow ?? .daily
+        let rows = snapshot.boardRows()
+        let busiest = (snapshot.top + rows).compactMap(\.contributions).max() ?? 0
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: 6) {
+                WidgetHeader(state: state)
+                Spacer(minLength: 4)
+                if isStale {
+                    Image(systemName: "clock.badge.exclamationmark")
+                        .font(.caption2)
+                        .foregroundStyle(Color.warning)
+                        .accessibilityLabel("Out of date")
+                }
+            }
+            if rows.isEmpty {
+                Spacer(minLength: 0)
+                Text(state.emptyStateLine ?? "Your board is loading")
+                    .font(.footnote)
+                    .foregroundStyle(Color.soft)
+            } else {
+                VStack(spacing: 2) {
+                    ForEach(rows, id: \.rank) { row in
+                        WidgetBoardRow(row: row, window: window, updated: state.updatedDate, busiest: busiest)
+                    }
+                }
+                .padding(.horizontal, -6)
+                .foregroundStyle(isStale ? Color.soft : Color.white)
+                .environment(\.standingRowStyle, .widgetBoard(stale: isStale))
+                .environment(\.avatarFallbackStyle, .committed)
+                .environment(\.loadsGitHubAvatars, false)
+            }
+            Spacer(minLength: 0)
+        }
+        .dynamicTypeSize(...DynamicTypeSize.large)
+    }
+}
+
+extension StandingRowStyle {
+    /// Live rank's row, cut to a small widget's width: smaller type and avatar, counts kept whole
+    /// with no column minimum, no squares glyph, and no "you" badge (your row's highlight marks
+    /// you). Names truncate first.
+    static func widgetBoard(stale: Bool) -> StandingRowStyle {
+        var style = StandingRowStyle.liveRank(stale: stale)
+        style.rankFont = CommittedType.numeral(11, relativeTo: .caption2)
+        style.rankWidthScale = 0.85
+        style.nameFont = .caption.weight(.medium)
+        style.selfNameFont = .caption.weight(.bold)
+        style.countFont = CommittedType.numeral(13, relativeTo: .caption)
+        style.selfCountFont = CommittedType.display(13, relativeTo: .caption)
+        style.avatarSize = 16
+        style.spacing = 5
+        style.horizontalPadding = 6
+        style.verticalPadding = 3
+        style.countMinWidth = 0
+        style.keepsCountWhole = true
+        style.showsSelfBadge = false
+        style.squares = .hidden
+        style.cornerRadius = 8
+        return style
     }
 }
 

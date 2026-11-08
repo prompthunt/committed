@@ -140,6 +140,50 @@ struct WidgetSnapshotTests {
         #expect(snapshot.selfRow == .init(rank: 9, login: "you", contributions: 12, movement: 1, isSelf: true))
     }
 
+    // MARK: Board list (StandBy)
+
+    @Test func theBoardListShowsTheLeadersWhenYoureAmongThem() {
+        let rows = WidgetSnapshot.sample().boardRows()
+        #expect(rows.map(\.rank) == [1, 2, 3, 4])
+        #expect(rows.filter(\.isSelf).map(\.rank) == [3])
+    }
+
+    @Test func furtherDownTheBoardListShowsYourRace() {
+        var snapshot = WidgetSnapshot.sample()
+        snapshot.top = (1...6).map { .init(rank: $0, login: "p\($0)", contributions: 40 - $0, movement: 0, isSelf: false) }
+        snapshot.state.rank = 9
+        snapshot.state.contributions = 12
+        snapshot.state.above = .init(login: "taylor", contributions: 13, movementToday: 0)
+
+        let rows = snapshot.boardRows()
+
+        #expect(rows.map(\.login) == ["p1", "p2", "taylor", "you"])
+        #expect(rows.map(\.rank) == [1, 2, 8, 9])
+    }
+
+    @Test func justBelowTheLeadersTheListDoesNotRepeatAnyone() {
+        var snapshot = WidgetSnapshot.sample()
+        snapshot.top = (1...6).map { .init(rank: $0, login: "p\($0)", contributions: 40 - $0, movement: 0, isSelf: $0 == 5) }
+        snapshot.selfLogin = "p5"
+        snapshot.state.rank = 5
+        snapshot.state.contributions = 35
+        snapshot.state.above = .init(login: "p4", contributions: 36, movementToday: 0)
+
+        let rows = snapshot.boardRows()
+
+        #expect(rows.map(\.rank) == [1, 2, 4, 5])
+        #expect(Set(rows.map(\.login)).count == rows.count)
+    }
+
+    @Test func withoutYourCountTheListIsTheLeaders() {
+        var snapshot = WidgetSnapshot.sample()
+        snapshot.top = (1...6).map { .init(rank: $0, login: "p\($0)", contributions: 40 - $0, movement: 0, isSelf: false) }
+        snapshot.state.rank = nil
+        snapshot.state.contributions = nil
+
+        #expect(snapshot.boardRows().map(\.rank) == [1, 2, 3, 4])
+    }
+
     @Test func noRowForYouWithoutYourCount() {
         var snapshot = WidgetSnapshot.sample()
         snapshot.state.contributions = nil
