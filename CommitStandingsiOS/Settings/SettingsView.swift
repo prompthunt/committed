@@ -7,6 +7,8 @@ import SwiftUI
 /// Still a grouped `Form` (settings-shaped content stays native), set on the ink page with the
 /// site's tile rows and hairlines.
 struct SettingsView: View {
+    @Environment(AppModel.self) private var model
+
     var body: some View {
         NavigationStack {
             Form {
@@ -14,10 +16,13 @@ struct SettingsView: View {
                     .listRowBackground(Color.clear)
                     .listRowInsets(EdgeInsets(top: 4, leading: 4, bottom: 4, trailing: 4))
                 Group {
+                    // On the Sample board, Connect GitHub and Leave Sample Board come first: they're
+                    // what someone trying it out is looking for.
+                    if model.mode == .sampleBoard { GitHubAccountSection() }
                     LiveRankSection()
                     LeaderboardNotificationsSection()
                     AboutCommittedSection()
-                    GitHubAccountSection()
+                    if model.mode != .sampleBoard { GitHubAccountSection() }
                 }
                 .listRowBackground(Color.tile)
                 .listRowSeparatorTint(.hairline)

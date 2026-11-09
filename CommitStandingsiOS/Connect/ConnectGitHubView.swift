@@ -99,6 +99,13 @@ struct ConnectGitHubView: View {
             }
             .buttonStyle(LimeButtonStyle())
             .padding(.top, 8)
+            // Look around first: the real app on built-in sample data, nothing sent anywhere.
+            Button {
+                Task { await model.startSampleBoard() }
+            } label: {
+                Text("Try a sample board")
+            }
+            .buttonStyle(TileButtonStyle())
             Text("Read-only access to your profile, who you follow, and your organizations. Committed never sees your code.")
                 .font(.footnote)
                 // Soft, not muted: the field can reach this far down.

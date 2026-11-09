@@ -41,6 +41,8 @@ struct BoardView: View {
             .coordinateSpace(.named(Self.arrangementSpace))
             .onGeometryChange(for: CGRect.self) { $0.frame(in: .local) } action: { arrangementFrame = $0 }
             .arrangementViewStyle(.split.axes(.horizontal))
+            // Above both panes, so it shows whether or not the summary has a pane of its own.
+            .sampleBoardBanner()
             .navigationTitle("Board")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
