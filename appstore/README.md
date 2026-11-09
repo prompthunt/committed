@@ -47,4 +47,26 @@ limits and the glossary before anything reaches App Store Connect.
 
 The script never runs `asc web` (an Apple ID sign-in). If Apple ever refuses a step through the
 API, such as first-time availability, the script prints the command or App Store Connect page
-to use and exits with status 2. The App Privacy label works only that way; see spec #65.
+to use and exits with status 2.
+
+## App Privacy label
+
+`privacy.json` is the published App Privacy label, in `asc web privacy` format. Apple only
+accepts it through an Apple ID web session, so it's applied by hand, not by the script:
+
+```bash
+asc web privacy plan    --app 6831797452 --file appstore/privacy.json   # read-only diff
+asc web privacy apply   --app 6831797452 --file appstore/privacy.json --allow-deletes --confirm
+asc web privacy publish --app 6831797452 --confirm
+```
+
+What it declares, all linked to the user, used for App Functionality, and not used for tracking:
+
+| Category | What it covers |
+|---|---|
+| User ID | The GitHub username and the usernames on the board, sent to the Committed relay for Live rank |
+| Device ID | The APNs push tokens and the relay's random installation ID |
+| Other Data | The time zone sent to the relay with Live rank's Window (Apple has no time zone category) |
+
+No crash data, analytics or advertising data is collected. If that changes, update this file,
+the label and the [privacy policy](https://gitcommitted.app/privacy) together.
