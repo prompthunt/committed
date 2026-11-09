@@ -4,6 +4,10 @@ import UIKit
 /// Connect GitHub with the same device flow as the Mac. The code shows large with Copy and Open
 /// GitHub buttons; nothing opens Safari on its own, so the code is visible before the hand-off.
 /// Polling keeps going while the user is in Safari (see `AppModel.connectGitHub`).
+///
+/// Started from the Sample board, it covers the Sample board instead of replacing it: a spinner
+/// until the code arrives, then the code, and after a decline or an expired code the reason with
+/// Try Again. Cancel returns to the Sample board.
 struct ConnectGitHubView: View {
     @Environment(AppModel.self) private var model
     @Environment(AuthModel.self) private var auth
@@ -20,7 +24,11 @@ struct ConnectGitHubView: View {
                     case .connecting(let userCode, let verificationURL):
                         connecting(userCode: userCode, verificationURL: verificationURL)
                     default:
-                        signedOut
+                        if model.mode == .sampleBoard {
+                            overSampleBoard
+                        } else {
+                            signedOut
+                        }
                     }
                     if let error = auth.errorMessage {
                         Label(error, systemImage: "exclamationmark.triangle.fill")
@@ -59,6 +67,11 @@ struct ConnectGitHubView: View {
                     .accessibilityElement(children: .ignore)
                     .accessibilityLabel("Committed")
                     .accessibilityAddTraits(.isHeader)
+                }
+                if model.mode == .sampleBoard {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("Cancel") { model.closeConnectOverSampleBoard() }
+                    }
                 }
             }
         }
@@ -99,11 +112,54 @@ struct ConnectGitHubView: View {
             }
             .buttonStyle(LimeButtonStyle())
             .padding(.top, 8)
+            // Look around first: the real app on built-in sample data, nothing sent anywhere.
+            Button {
+                Task { await model.startSampleBoard() }
+            } label: {
+                Text("Try a sample board")
+            }
+            .buttonStyle(TileButtonStyle())
+            // Not while GitHub is being asked for a code.
+            .disabled(model.isConnecting)
             Text("Read-only access to your profile, who you follow, and your organizations. Committed never sees your code.")
                 .font(.footnote)
                 // Soft, not muted: the field can reach this far down.
                 .foregroundStyle(Color.soft)
                 .multilineTextAlignment(.center)
+        }
+    }
+
+    /// Over the Sample board, before the code arrives or after Connect GitHub failed (the reason
+    /// shows below).
+    @ViewBuilder
+    private var overSampleBoard: some View {
+        if model.isConnecting {
+            HStack(spacing: 8) {
+                ProgressView().tint(.lime)
+                Text("Asking GitHub for a code…")
+                    .font(.subheadline)
+                    .foregroundStyle(Color.soft)
+            }
+            .accessibilityElement(children: .combine)
+            .padding(.top, 40)
+        } else {
+            VStack(spacing: 18) {
+                Text("Connect GitHub")
+                    .font(CommittedType.display(30, relativeTo: .title))
+                    .displayTracking(30)
+                    .multilineTextAlignment(.center)
+                    .accessibilityAddTraits(.isHeader)
+                Button {
+                    Task { await model.connectGitHub() }
+                } label: {
+                    Text("Try Again")
+                }
+                .buttonStyle(LimeButtonStyle())
+                Text("Cancel returns to the sample board.")
+                    .font(.footnote)
+                    .foregroundStyle(Color.soft)
+                    .multilineTextAlignment(.center)
+            }
         }
     }
 

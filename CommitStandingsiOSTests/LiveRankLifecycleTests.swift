@@ -18,6 +18,7 @@ final class FakeLiveRankActivities: LiveRankActivities {
     private(set) var running: [LiveRankActivity] = []
     private(set) var log: [String] = []
     private(set) var startedPushUpdates: [LiveRankPushUpdates] = []
+    private(set) var startedAttributes: [LiveRankAttributes] = []
     var startError: (any Error)?
     /// Fails only push-token requests, like a build without the Push Notifications entitlement.
     var tokenStartError: (any Error)?
@@ -43,6 +44,7 @@ final class FakeLiveRankActivities: LiveRankActivities {
         let activity = LiveRankActivity(id: "a\(next)", selfLogin: attributes.selfLogin, state: state)
         running.append(activity)
         startedPushUpdates.append(pushUpdates)
+        startedAttributes.append(attributes)
         log.append("start \(activity.id) \(state.window)")
         return activity
     }

@@ -3,5 +3,5 @@ import type { MetadataRoute } from "next";
 export const dynamic = "force-static";
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  return [{ url: "https://gitcommitted.app" }];
+  return ["", "/privacy", "/support"].map((path) => ({ url: `https://gitcommitted.app${path}` }));
 }

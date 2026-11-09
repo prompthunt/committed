@@ -1,0 +1,32 @@
+{
+  "device": "iPhone Duo Simulator (test host)",
+  "os": "iOS 27.1",
+  "notes": "Renders, not runtime captures: ImageRenderer at 3x in SampleBoardSurfaceRenderTests (committed, RENDER_DIR-gated) of the real widget and Live rank views, fed what AppModel published on the Sample board (the WidgetPublisher snapshot and the Live rank activity state, through a fake ActivityKit), at 6.9-inch iPhone widget sizes with WidgetKit's 16 pt margins. Backdrops are plain gradients, not a Lock Screen or Home Screen: the headless Simulator can't show a Live Activity or place widgets from the command line. Lock Screen accessories are drawn in white; on device they take the Lock Screen's tint.",
+  "screenshots": [
+    {
+      "file": "live-rank-lock-screen.png",
+      "caption": "Live rank Lock Screen card on the Sample board: first load (#4, 1 to pass devon-k), then after pull to refresh (#3 with a +1 chevron, 2 to pass priya-s)",
+      "capture": { "sourceCommit": "c29fad90b2dcdec5c7c4f2df46d31792931071f3", "fixture": true }
+    },
+    {
+      "file": "home-screen-widgets.png",
+      "caption": "Home Screen widgets on the Sample board after pull to refresh: small rank card and Committed Board (top row), medium, large",
+      "capture": { "sourceCommit": "c29fad90b2dcdec5c7c4f2df46d31792931071f3", "fixture": true }
+    },
+    {
+      "file": "lock-screen-widgets.png",
+      "caption": "Lock Screen widgets on the Sample board: inline, rectangular (#3 · 7 today) and circular (#3)",
+      "capture": { "sourceCommit": "c29fad90b2dcdec5c7c4f2df46d31792931071f3", "fixture": true }
+    },
+    {
+      "file": "board-widget.png",
+      "caption": "Committed Board widget (small, made for StandBy) on the Sample board: first load with you fourth, then after Sam passes Devon",
+      "capture": { "sourceCommit": "c29fad90b2dcdec5c7c4f2df46d31792931071f3", "fixture": true }
+    },
+    {
+      "file": "widgets-after-leaving.png",
+      "caption": "After Leave Sample Board the widget snapshot is nil: the rank card and Board widget ask to connect GitHub; the Lock Screen rectangular and circular fall back",
+      "capture": { "sourceCommit": "c29fad90b2dcdec5c7c4f2df46d31792931071f3", "fixture": true }
+    }
+  ]
+}

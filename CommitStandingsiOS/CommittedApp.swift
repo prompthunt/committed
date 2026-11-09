@@ -36,12 +36,15 @@ struct CommittedApp: App {
         }
         #endif
         let services = CommittedServices.live()
-        // A unit-test host never shows a Live Activity or touches saved Live rank settings.
+        // A unit-test host never shows a Live Activity or touches saved Live rank settings, and
+        // never reopens a saved Sample board.
         guard !CommittedServices.isRunningTests else {
             return AppModel(services: services, backgroundTime: UIApplicationBackgroundTime())
         }
-        return AppModel(
+        let model = AppModel(
             services: services,
+            // Reopening the app returns to the Sample board.
+            defaults: .standard,
             backgroundTime: UIApplicationBackgroundTime(),
             liveRankActivities: ActivityKitLiveRankActivities(),
             liveRankPreferences: UserDefaultsLiveRankPreferences(),
@@ -49,6 +52,11 @@ struct CommittedApp: App {
             avatars: GitHubAvatarPrefetcher.live(),
             widgets: WidgetPublisher()
         )
+        #if DEBUG
+        if let tab = ScreenshotFixture.requestedTab { model.selectedTab = tab }
+        if ScreenshotFixture.startsConnect { Task { await model.connectGitHub() } }
+        #endif
+        return model
     }
 
     /// Keeps ActivityKit's token observers alive for the app's lifetime.
@@ -74,14 +82,13 @@ struct CommittedApp: App {
 
     var body: some Scene {
         WindowGroup {
+            // `RootView` injects the graph on screen (store, refresh, auth, roster, notifications),
+            // since the Sample board swaps it.
             RootView()
                 .environment(model)
-                .environment(model.store)
-                .environment(model.refresh)
-                .environment(model.auth)
-                .environment(model.roster)
-                .environment(model.services.notifications)
-                .environment(\.loadsGitHubAvatars, CommittedApp.loadsGitHubAvatars)
+                // The Sample board's people are made up (some may be real GitHub users), and
+                // nothing on it leaves the phone: initials only.
+                .environment(\.loadsGitHubAvatars, CommittedApp.loadsGitHubAvatars && model.mode != .sampleBoard)
         }
         .backgroundTask(.appRefresh(BackgroundRefresh.identifier)) { [model] in
             await model.backgroundRefresh()

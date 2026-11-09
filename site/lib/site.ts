@@ -3,6 +3,11 @@
 export const SITE_URL = "https://gitcommitted.app";
 export const WINDOWS_DOWNLOAD_AVAILABLE = process.env.NEXT_PUBLIC_WINDOWS_DOWNLOAD_AVAILABLE === "true";
 
+/** Contact goes through GitHub: Issues for questions and bugs, private advisories for security. */
+export const ISSUES_URL = "https://github.com/prompthunt/committed/issues";
+export const SECURITY_REPORT_URL = "https://github.com/prompthunt/committed/security/advisories/new";
+export const PRIVACY_EFFECTIVE_DATE = "November 8, 2026";
+
 export const TITLE = "Committed — A GitHub leaderboard for Mac and Windows";
 export const DESCRIPTION =
   "A free, open-source GitHub leaderboard for your Mac’s menu bar or Windows tray. Compare contributions with friends and teammates, and get alerts when ranks change.";

@@ -16,7 +16,6 @@ struct BoardView: View {
     @State private var arrangementFrame: CGRect?
     @State private var leaderboardFrame: CGRect?
     @State private var summaryFrame: CGRect?
-    @Environment(RefreshCoordinator.self) private var refresh
     /// The board being shared, frozen when Share is tapped so a refresh can't change the image
     /// under the carousel.
     @State private var sharing: BoardShareRequest?
@@ -41,6 +40,8 @@ struct BoardView: View {
             .coordinateSpace(.named(Self.arrangementSpace))
             .onGeometryChange(for: CGRect.self) { $0.frame(in: .local) } action: { arrangementFrame = $0 }
             .arrangementViewStyle(.split.axes(.horizontal))
+            // Above both panes, so it shows whether or not the summary has a pane of its own.
+            .sampleBoardBanner()
             .navigationTitle("Board")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -49,11 +50,7 @@ struct BoardView: View {
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Share board", systemImage: "square.and.arrow.up") {
-                        sharing = WidgetSnapshot.board(
-                            store, window: store.selectedWindow,
-                            rankDelta: { refresh.rankDelta(for: $0) }, now: .now,
-                            rows: BoardShareFormat.maxBoardRows
-                        ).map(BoardShareRequest.init)
+                        sharing = model.boardToShare().map(BoardShareRequest.init)
                     }
                     .disabled(!store.hasSelf)
                 }

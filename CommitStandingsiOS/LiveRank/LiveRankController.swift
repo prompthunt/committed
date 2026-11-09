@@ -36,6 +36,8 @@ final class LiveRankController {
     private let isSignedIn: @MainActor () -> Bool
     private let rankDelta: @MainActor (String) -> Int?
     private let now: @Sendable () -> Date
+    /// The Sample board's Live rank: its activity tells the extension to show initials only.
+    private let isSampleBoard: Bool
     private var preferences: LiveRankPreferences
     private var isForeground = false
     private var isSyncing = false
@@ -50,8 +52,10 @@ final class LiveRankController {
         preferences: any LiveRankPreferenceStoring,
         isSignedIn: @escaping @MainActor () -> Bool,
         rankDelta: @escaping @MainActor (String) -> Int?,
-        now: @escaping @Sendable () -> Date
+        now: @escaping @Sendable () -> Date,
+        isSampleBoard: Bool = false
     ) {
+        self.isSampleBoard = isSampleBoard
         self.store = store
         self.activities = activities
         self.relay = relay
@@ -207,7 +211,7 @@ final class LiveRankController {
             status = .waiting
             return
         }
-        let attributes = LiveRankAttributes(selfLogin: me)
+        let attributes = LiveRankAttributes(selfLogin: me, isSampleBoard: isSampleBoard ? true : nil)
         do {
             _ = try activities.start(attributes, state: state, pushUpdates: relay.pushUpdates)
             status = .live

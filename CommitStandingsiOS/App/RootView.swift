@@ -29,8 +29,11 @@ struct RootView: View {
         .tint(.lime)
         .background(Color.ink)
         .preferredColorScheme(.dark)
-        .fullScreenCover(isPresented: .constant(model.needsConnect)) {
+        // Also over the Sample board while Connect GitHub runs from it (the banner or Settings).
+        .fullScreenCover(isPresented: .constant(model.needsConnect || model.isShowingConnectOverSampleBoard)) {
+            // Always the real account's sign-in: the Sample board's own is offline.
             ConnectGitHubView()
+                .environment(model.connectAuth)
         }
         // What the Committed relay receives, before Live rank first turns on (only with a relay).
         .sheet(isPresented: $model.isShowingLiveRankDisclosure) {
@@ -38,6 +41,15 @@ struct RootView: View {
         }
         .onOpenURL { model.open($0) }
         // Last, so the Connect cover and the disclosure sheet get them too.
+        // The graph on screen changes when the Sample board starts or ends, so its objects are
+        // injected here from the model, tracking the switch (the app's scene injects only the model).
+        .environment(model.store)
+        .environment(model.refresh)
+        .environment(model.auth)
+        .environment(model.roster)
+        .environment(model.services.notifications)
+        // The Sample board's made-up people show initials, never a saved real avatar.
+        .environment(\.savedAvatars, model.savedAvatars)
         .environment(\.avatarFallbackStyle, .committed)
         .environment(interactions)
         .background { InteractionClockInstaller(clock: interactions) }
