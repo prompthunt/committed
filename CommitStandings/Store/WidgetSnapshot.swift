@@ -22,6 +22,10 @@ struct WidgetSnapshot: Codable, Equatable, Sendable {
     var state: LiveRankState
     /// The leaders, in board order, at most `topCount`. You're in it only if you place there.
     var top: [Row]
+    /// True for the Sample board. Its people are made up, so the widgets show initials for them,
+    /// never an avatar saved for a real account with the same login. nil (left out) for a real
+    /// board, so a snapshot from before this field reads as one.
+    var isSampleBoard: Bool? = nil
 
     /// Rows the large widget has room for.
     static let topCount = 6
@@ -31,6 +35,9 @@ struct WidgetSnapshot: Codable, Equatable, Sendable {
     static let widgetKind = "CommittedBoard"
     static let boardListKind = "CommittedBoardList"
     static let kinds = [widgetKind, boardListKind]
+
+    /// Saved avatars for the widgets' rows: none on the Sample board (initials only).
+    var savedAvatars: AvatarCache? { isSampleBoard == true ? nil : .shared }
 
     /// Your row, when your count has loaded.
     var selfRow: Row? {

@@ -54,6 +54,7 @@ struct CommittedApp: App {
         )
         #if DEBUG
         if let tab = ScreenshotFixture.requestedTab { model.selectedTab = tab }
+        if ScreenshotFixture.startsConnect { Task { await model.connectGitHub() } }
         #endif
         return model
     }
@@ -81,13 +82,10 @@ struct CommittedApp: App {
 
     var body: some Scene {
         WindowGroup {
+            // `RootView` injects the graph on screen (store, refresh, auth, roster, notifications),
+            // since the Sample board swaps it.
             RootView()
                 .environment(model)
-                .environment(model.store)
-                .environment(model.refresh)
-                .environment(model.auth)
-                .environment(model.roster)
-                .environment(model.services.notifications)
                 // The Sample board's people are made up (some may be real GitHub users), and
                 // nothing on it leaves the phone: initials only.
                 .environment(\.loadsGitHubAvatars, CommittedApp.loadsGitHubAvatars && model.mode != .sampleBoard)

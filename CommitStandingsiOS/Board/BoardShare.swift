@@ -144,6 +144,8 @@ struct BoardShareCard: View {
         .environment(\.dynamicTypeSize, .large)
         .environment(\.avatarFallbackStyle, .committed)
         .environment(\.loadsGitHubAvatars, false)
+        // The Sample board's made-up people: initials, never a saved real avatar.
+        .environment(\.savedAvatars, snapshot.savedAvatars)
         .environment(\.liveRankIsStale, false)
     }
 
