@@ -167,6 +167,25 @@ Single-context. The glossary currently lives in `PRODUCT.md` → Glossary. See `
 
 Starting, finishing or recovering simulator tests or interactive sessions? Use [simulator-resource-hygiene](.agents/skills/simulator-resource-hygiene/SKILL.md) before any simulator tooling.
 
+### Xcode plugin (Apple)
+
+Addison's Mac has Apple's official Xcode plugin for Claude Code, `xcode-integration`. It was
+exported from Xcode 27 with `xcrun agent plugin path --plugin-format claude` and installed at
+user scope on 2026-11-09, so it isn't in this repo and other machines may not have it. It
+provides:
+
+- **The `xcode` MCP server** (`xcrun mcpbridge`).
+- **The `device-interaction` skill:** build and run on a simulator or device, then tap, read
+  the UI hierarchy and take screenshots. Use it for interactive UI checks and UI evidence that
+  `simctl` can't reach, such as tapping through a flow. It's a subagent skill: start one
+  session, give it to one subagent, and end the session when done.
+- **Other skills:** `swiftui-specialist`, `swiftui-whats-new-27`, `app-intents-specialist`,
+  the accessibility specialists (Dynamic Type, VoiceOver, contrast), `modernize-tests`
+  (moving to Swift Testing) and `translation`.
+
+It doesn't replace this repo's rules. Device sessions on a simulator still run inside the
+`apple-session` lease, on the shared iPhone Duo by exact UDID, and never create devices.
+
 ### Windows app
 
 Building Committed for Windows on a PC (spec #21)? Start with `docs/agents/windows-setup.md`.
