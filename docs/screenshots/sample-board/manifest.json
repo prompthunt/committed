@@ -1,11 +1,55 @@
 {
   "device": "iPhone Duo Simulator",
   "os": "iOS 27.1",
-  "notes": "Runtime captures (xcrun simctl io screenshot) of a Debug build on the persistent iPhone Duo (closed), on the Sample board's built-in sample data. The Sample board screens open through its saved mode, as on a relaunch, via the launch argument -sampleBoard.v1 YES (and -ScreenshotTab for the tab); Connect used -sampleBoard.v1 NO. Avatars are local identicons left in the simulator's App Group cache by earlier fixture runs; nothing is fetched over the network.",
+  "notes": "Runtime captures (xcrun simctl io screenshot) of a Debug build on the persistent iPhone Duo (closed), on the Sample board's built-in sample data. The Sample board screens open through its saved mode, as on a relaunch, via the launch argument -sampleBoard.v1 YES (and -ScreenshotTab for the tab); Connect used -sampleBoard.v1 NO. Avatars are local identicons left in the simulator's App Group cache by earlier fixture runs; nothing is fetched over the network. Review fixes (connect-over-sample-board.png, people-initials.png): captured at the later sourceCommit; the Sample board no longer reads the App Group avatar cache, so its people show initials. connect-over-sample-board.png used the Debug launch argument -ScreenshotConnect (starts Connect GitHub as a tap would); its code is a real, unapproved GitHub device code that expired unused.",
   "screenshots": [
-    { "file": "connect.png", "caption": "Connect GitHub with the new Try a sample board button under it", "capture": { "sourceCommit": "710d6edd198396cdad70253f9fdb4af0039f34e5", "fixture": true } },
-    { "file": "board.png", "caption": "Board on the Sample board with the Sample board · Connect GitHub banner", "capture": { "sourceCommit": "710d6edd198396cdad70253f9fdb4af0039f34e5", "fixture": true } },
-    { "file": "people.png", "caption": "People on the Sample board with the banner", "capture": { "sourceCommit": "710d6edd198396cdad70253f9fdb4af0039f34e5", "fixture": true } },
-    { "file": "settings.png", "caption": "Settings on the Sample board: Connect GitHub and Leave Sample Board first, in place of Disconnect GitHub", "capture": { "sourceCommit": "710d6edd198396cdad70253f9fdb4af0039f34e5", "fixture": true } }
+    {
+      "file": "connect.png",
+      "caption": "Connect GitHub with the new Try a sample board button under it",
+      "capture": {
+        "sourceCommit": "710d6edd198396cdad70253f9fdb4af0039f34e5",
+        "fixture": true
+      }
+    },
+    {
+      "file": "board.png",
+      "caption": "Board on the Sample board with the Sample board · Connect GitHub banner",
+      "capture": {
+        "sourceCommit": "710d6edd198396cdad70253f9fdb4af0039f34e5",
+        "fixture": true
+      }
+    },
+    {
+      "file": "people.png",
+      "caption": "People on the Sample board with the banner",
+      "capture": {
+        "sourceCommit": "710d6edd198396cdad70253f9fdb4af0039f34e5",
+        "fixture": true
+      }
+    },
+    {
+      "file": "settings.png",
+      "caption": "Settings on the Sample board: Connect GitHub and Leave Sample Board first, in place of Disconnect GitHub",
+      "capture": {
+        "sourceCommit": "710d6edd198396cdad70253f9fdb4af0039f34e5",
+        "fixture": true
+      }
+    },
+    {
+      "file": "connect-over-sample-board.png",
+      "caption": "Connect GitHub started on the Sample board: GitHub's code covers the Sample board, with Cancel to return to it (the Sample board stays underneath until a successful connect)",
+      "capture": {
+        "sourceCommit": "6455e9c8f8fa1cc5663734fe65a4019a0bc00bc8",
+        "fixture": true
+      }
+    },
+    {
+      "file": "people-initials.png",
+      "caption": "People on the Sample board after the avatar fix: initials only, no saved avatars from the App Group cache",
+      "capture": {
+        "sourceCommit": "6455e9c8f8fa1cc5663734fe65a4019a0bc00bc8",
+        "fixture": true
+      }
+    }
   ]
 }
