@@ -19,6 +19,8 @@ struct LiveRankLiveActivity: Widget {
         ActivityConfiguration(for: LiveRankAttributes.self) { context in
             LiveRankActivityContent(state: context.state, selfLogin: context.attributes.selfLogin)
                 .liveRankStale(context.isStale)
+                // The Sample board's made-up people show initials, never a saved avatar.
+                .environment(\.savedAvatars, context.attributes.savedAvatars)
                 .widgetURL(context.state.boardURL)
         } dynamicIsland: { context in
             let state = context.state
@@ -49,6 +51,7 @@ struct LiveRankLiveActivity: Widget {
                     VStack(alignment: .leading, spacing: 4) {
                         if state.hasLadder {
                             LiveRankRows(state: state, selfLogin: context.attributes.selfLogin)
+                                .environment(\.savedAvatars, context.attributes.savedAvatars)
                         } else if state.competitorCount <= 1, let line = state.emptyStateLine {
                             Text(line).font(.subheadline).foregroundStyle(Color.soft)
                         }

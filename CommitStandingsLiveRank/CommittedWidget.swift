@@ -13,6 +13,8 @@ struct CommittedWidget: Widget {
         StaticConfiguration(kind: WidgetSnapshot.widgetKind, provider: CommittedWidgetProvider()) { entry in
             CommittedWidgetView(entry: entry)
                 .environment(\.liveRankIsStale, entry.isStale)
+                // The Sample board's made-up people show initials, never a saved avatar.
+                .environment(\.savedAvatars, entry.snapshot?.savedAvatars)
                 .widgetURL(entry.snapshot?.state.boardURL ?? DeepLink.board(window: nil).url)
         }
         .configurationDisplayName("Committed")
@@ -38,6 +40,7 @@ struct CommittedBoardWidget: Widget {
                 }
             }
             .environment(\.liveRankIsStale, entry.isStale)
+            .environment(\.savedAvatars, entry.snapshot?.savedAvatars)
             .environment(\.colorScheme, .dark)
             .containerBackground(for: .widget) { Color.ink }
             .widgetURL(entry.snapshot?.state.boardURL ?? DeepLink.board(window: nil).url)

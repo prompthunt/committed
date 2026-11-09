@@ -49,17 +49,18 @@ final class AuthModel {
     }
 
     /// Run the full device-flow sign-in: request a code, expose it for the UI, poll for
-    /// the token, persist it, fetch the identity, and notify the caller.
+    /// the token, persist it, fetch the identity, and notify the caller. Cancelling the task
+    /// that runs it stops it with no error message.
     func signIn() async {
         errorMessage = nil
         switch await auth.requestDeviceCode() {
         case .failure(let error):
-            errorMessage = "Couldn’t connect to GitHub: \(message(for: error))"
+            errorMessage = Task.isCancelled ? nil : "Couldn’t connect to GitHub: \(message(for: error))"
         case .success(let code):
             phase = .connecting(userCode: code.userCode, verificationURL: code.verificationUri)
             switch await auth.pollForToken(deviceCode: code.deviceCode, interval: code.interval, expiresIn: code.expiresIn) {
             case .failure(let error):
-                errorMessage = message(for: error)
+                errorMessage = Task.isCancelled ? nil : message(for: error)
                 phase = .signedOut
             case .success(let token):
                 credentials.save(token)

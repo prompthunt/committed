@@ -16,7 +16,7 @@ struct AvatarView: View {
 
     var body: some View {
         #if os(iOS)
-        if usesSavedCopy, let saved = AvatarCache.shared.image(for: username) {
+        if usesSavedCopy, let saved = savedAvatars?.image(for: username) {
             Image(uiImage: saved)
                 .resizable()
                 .scaledToFill()
@@ -33,6 +33,7 @@ struct AvatarView: View {
 
     #if os(iOS)
     @Environment(\.displayScale) private var displayScale
+    @Environment(\.savedAvatars) private var savedAvatars
 
     /// The small saved copy is sharp up to Live rank's size. Bigger avatars load from the network
     /// when they can, and use the saved copy only where there's no network (Live rank, fixtures).
@@ -104,3 +105,11 @@ extension EnvironmentValues {
     /// avatar; rows show colored initials instead.
     @Entry var loadsGitHubAvatars = true
 }
+
+#if os(iOS)
+extension EnvironmentValues {
+    /// Where saved avatars are read from first: the App Group's `AvatarCache`, or nil for none.
+    /// The Sample board sets nil, since a made-up login can match a real person's saved face.
+    @Entry var savedAvatars: AvatarCache? = .shared
+}
+#endif

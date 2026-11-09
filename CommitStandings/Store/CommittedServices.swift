@@ -19,8 +19,16 @@ final class CommittedServices {
         set { hooks.onDisconnect = newValue }
     }
 
+    /// Extra work the moment Connect GitHub succeeds, before the board's first refresh. The iPhone
+    /// replaces the Sample board here; the Mac sets nothing.
+    var onSignedIn: @MainActor () async -> Void {
+        get { hooks.onSignedIn }
+        set { hooks.onSignedIn = newValue }
+    }
+
     @MainActor private final class Hooks {
         var onDisconnect: @MainActor () -> Void = {}
+        var onSignedIn: @MainActor () async -> Void = {}
     }
 
     private let hooks: Hooks
@@ -61,7 +69,10 @@ final class CommittedServices {
             credentials: credentials,
             auth: gitHubAuth,
             accountFactory: accountFactory,
-            onSignedIn: { _ in await refresh.refreshAll(reason: .manual) },
+            onSignedIn: { _ in
+                await hooks.onSignedIn()
+                await refresh.refreshAll(reason: .manual)
+            },
             onSignedOut: { refresh.invalidate(); roster.disconnect(); hooks.onDisconnect() }
         )
     }

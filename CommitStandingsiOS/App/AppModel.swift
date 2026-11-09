@@ -54,6 +54,19 @@ final class AppModel {
     private let widgets: WidgetPublisher
     private let now: @Sendable () -> Date
     private var didRefreshIdentity = false
+    /// Where the real board's avatars are saved, for the app, Live rank and the widgets.
+    private let avatarCache: AvatarCache
+    /// Whether the app is in front, so a Connect GitHub that succeeds in the background (approved
+    /// in Safari) doesn't try to start Live rank there.
+    private var isActive = false
+    /// Connect GitHub's device flow is running. Nothing starts or leaves the Sample board, and no
+    /// second Connect GitHub starts, until it ends.
+    private(set) var isConnecting = false
+    private var connectTask: Task<Void, Never>?
+    /// Why a Connect GitHub started on the Sample board didn't connect (declined, expired, or a
+    /// network error). The Sample board stays underneath; Connect GitHub shows this with Try Again
+    /// until Cancel. A cancelled Connect GitHub sets nothing.
+    var sampleBoardConnectError: String?
 
     var store: StandingsStore { services.store }
     var refresh: RefreshCoordinator { services.refresh }
@@ -77,8 +90,10 @@ final class AppModel {
         liveRankRelay: any LiveRankRegistrar = NoLiveRankRelay(),
         avatars: any AvatarPrefetching = NoAvatarPrefetching(),
         widgets: WidgetPublisher = WidgetPublisher(save: { _ in }, reload: {}),
+        avatarCache: AvatarCache = .shared,
         now: @escaping @Sendable () -> Date = { Date() }
     ) {
+        self.avatarCache = avatarCache
         self.realServices = services
         self.makeSampleServices = sampleServices
         self.defaults = defaults
@@ -94,6 +109,9 @@ final class AppModel {
         self.services = services
         self.liveRank = realLiveRank
         wire(services, liveRank: realLiveRank, avatars: avatars)
+        // A successful Connect GitHub replaces the Sample board before the real board's first
+        // refresh, so that refresh and its Live rank run on screen, as after any Connect GitHub.
+        services.onSignedIn = { [weak self] in await self?.realAccountConnected() }
 
         // A relaunch returns to the Sample board, unless a real account is connected.
         if defaults?.bool(forKey: Self.sampleBoardKey) == true {
@@ -110,7 +128,8 @@ final class AppModel {
         activities: any LiveRankActivities,
         relay: any LiveRankRegistrar,
         preferences: any LiveRankPreferenceStoring,
-        now: @escaping @Sendable () -> Date
+        now: @escaping @Sendable () -> Date,
+        isSampleBoard: Bool = false
     ) -> LiveRankController {
         let refresh = services.refresh
         let auth = services.auth
@@ -121,7 +140,8 @@ final class AppModel {
             preferences: preferences,
             isSignedIn: { auth.isSignedIn },
             rankDelta: { refresh.rankDelta(for: $0) },
-            now: now
+            now: now,
+            isSampleBoard: isSampleBoard
         )
     }
 
@@ -159,7 +179,7 @@ final class AppModel {
     /// Try a sample board, from Connect GitHub: the real app on built-in sample data, with nothing
     /// sent over the network. Remembered until it's left or replaced by Connect GitHub.
     func startSampleBoard() async {
-        guard mode == .notConnected else { return }
+        guard mode == .notConnected, !isConnecting else { return }
         defaults?.set(true, forKey: Self.sampleBoardKey)
         selectedTab = .board
         showSampleBoard()
@@ -173,7 +193,7 @@ final class AppModel {
         let sample = makeSampleServices()
         let sampleLiveRank = Self.makeLiveRank(
             for: sample, activities: liveRankActivities, relay: NoLiveRankRelay(),
-            preferences: InMemoryLiveRankPreferences(), now: now
+            preferences: InMemoryLiveRankPreferences(), now: now, isSampleBoard: true
         )
         wire(sample, liveRank: sampleLiveRank, avatars: NoAvatarPrefetching())
         realServices.refresh.pauseTimer()
@@ -183,9 +203,22 @@ final class AppModel {
     }
 
     /// Leave Sample Board: ends its Live rank, resets the widgets, forgets every sample person and
-    /// hide, and returns to Connect GitHub.
+    /// hide, and returns to Connect GitHub. Not while Connect GitHub is running.
     func leaveSampleBoard() async {
+        guard mode == .sampleBoard, !isConnecting else { return }
+        // Someone just tapped, so the app is open.
+        await endSampleBoard(inForeground: true)
+    }
+
+    /// Connect GitHub succeeded: the real board replaces the Sample board, if it's showing.
+    private func realAccountConnected() async {
         guard mode == .sampleBoard else { return }
+        await endSampleBoard(inForeground: isActive)
+    }
+
+    /// Takes the Sample board down and puts the real graph on screen: Connect GitHub when it isn't
+    /// connected, or the real board loading right after Connect GitHub.
+    private func endSampleBoard(inForeground: Bool) async {
         let sample = services
         let sampleLiveRank = liveRank
         defaults?.removeObject(forKey: Self.sampleBoardKey)
@@ -196,21 +229,35 @@ final class AppModel {
         liveRank = realLiveRank
         didRefreshIdentity = false
         liveRankDisclosureRequested = false
+        sampleBoardConnectError = nil
         selectedTab = .board
         realServices.refresh.resumeTimer()
         publishWidgets()
         await sampleLiveRank.idle()
-        // The app is open (someone just tapped), so the real Live rank can start once connected,
-        // even after a launch that went straight to the Sample board.
-        await realLiveRank.enteredForeground()
+        // The real Live rank missed the scene's changes while the Sample board was up. In front,
+        // it can start once connected, even after a launch that went straight to the Sample board.
+        if inForeground {
+            await realLiveRank.enteredForeground()
+        } else {
+            realLiveRank.enteredBackground()
+        }
     }
 
-    /// Write the widgets' snapshot for the board as it stands: nothing when disconnected.
+    /// Write the widgets' snapshot for the board as it stands: nothing when disconnected. The
+    /// Sample board's is marked, so the widgets show initials for its made-up people.
     func publishWidgets() {
         let refresh = services.refresh
-        widgets.publish(auth.isSignedIn
+        var snapshot = auth.isSignedIn
             ? WidgetSnapshot.board(store, window: liveRank.window, rankDelta: { refresh.rankDelta(for: $0) }, now: now())
-            : nil)
+            : nil
+        if mode == .sampleBoard { snapshot?.isSampleBoard = true }
+        widgets.publish(snapshot)
+    }
+
+    /// Saved avatars for the board, read before the network: none on the Sample board, whose
+    /// made-up logins could match a real person's saved face. Its people show initials.
+    var savedAvatars: AvatarCache? {
+        mode == .sampleBoard ? nil : avatarCache
     }
 
     /// Connect GitHub screen versus the board, from the shared onboarding rule.
@@ -223,6 +270,7 @@ final class AppModel {
     /// Becoming active resumes the 5-minute timer and refreshes only when the data is stale
     /// (older than about 2 minutes), so opening the app doesn't flash "updating" every time.
     func sceneDidBecomeActive() async {
+        isActive = true
         refresh.resumeTimer()
         // Ends strays from an earlier launch, and restarts Live rank if iOS ended it.
         await liveRank.enteredForeground()
@@ -243,6 +291,7 @@ final class AppModel {
 
     /// The timer pauses in the background; iOS would suspend it anyway.
     func sceneDidEnterBackground() {
+        isActive = false
         refresh.pauseTimer()
         liveRank.enteredBackground()
     }
@@ -340,14 +389,57 @@ final class AppModel {
     /// hand-off. If iOS suspends the app anyway, polling resumes on return, and a code that
     /// expired meanwhile is reported then.
     ///
-    /// From the Sample board, it's left first: Connect GitHub shows over the real graph, and the
-    /// real board loads with no sample person or hide. A declined or expired code stays on Connect
-    /// GitHub, where Try a sample board is one tap away.
+    /// It always connects the real account. From the Sample board, the code shows over it and the
+    /// Sample board stays up underneath: only success replaces it (with no sample person or hide
+    /// left), before the real board's first refresh. A declined or expired code returns to it with
+    /// `sampleBoardConnectError`; Cancel returns to it with nothing.
     func connectGitHub() async {
+        guard !isConnecting else { return }
+        // The real account's sign-in, whatever graph is on screen, taken before anything suspends.
+        let auth = realServices.auth
+        let fromSampleBoard = mode == .sampleBoard
+        isConnecting = true
+        sampleBoardConnectError = nil
         let token = backgroundTime.begin("Connect GitHub")
-        defer { backgroundTime.end(token) }
-        await leaveSampleBoard()
-        await auth.signIn()
+        defer {
+            backgroundTime.end(token)
+            connectTask = nil
+            isConnecting = false
+        }
+        // Its own task, so Cancel can stop the device flow wherever Connect GitHub was started.
+        let signIn = Task { await auth.signIn() }
+        connectTask = signIn
+        await signIn.value
+        if fromSampleBoard, !auth.isSignedIn {
+            sampleBoardConnectError = auth.errorMessage
+        }
+    }
+
+    /// Stop Connect GitHub: no error, and the screen it started from stays (the Sample board, or
+    /// Connect GitHub).
+    func cancelConnect() {
+        connectTask?.cancel()
+    }
+
+    /// The account Connect GitHub signs in, and whose code it shows: always the real one.
+    var connectAuth: AuthModel { realServices.auth }
+
+    /// Connect GitHub was started on the Sample board and is still running: its code shows over the
+    /// Sample board, wherever it was started.
+    var isConnectingFromSampleBoard: Bool {
+        isConnecting && mode == .sampleBoard
+    }
+
+    /// Connect GitHub covers the Sample board: while it runs, and after it fails, with the reason
+    /// and Try Again. Cancel (`closeConnectOverSampleBoard`) uncovers the Sample board.
+    var isShowingConnectOverSampleBoard: Bool {
+        mode == .sampleBoard && (isConnecting || sampleBoardConnectError != nil)
+    }
+
+    /// Cancel over the Sample board: stops a running Connect GitHub, or dismisses a failed one.
+    func closeConnectOverSampleBoard() {
+        cancelConnect()
+        sampleBoardConnectError = nil
     }
 
     // MARK: - Deep links

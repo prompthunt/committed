@@ -17,6 +17,11 @@ struct SampleBoardTests {
     /// This test's own UserDefaults, standing in for `.standard` across "launches".
     let defaults: UserDefaults
     let realContributions = FakeContributions(["me": 3, "ada": 5])
+    let backgroundTime = FakeBackgroundTime()
+    /// Where the real board's avatars are saved for Live rank and the widgets (the App Group's
+    /// `AvatarCache` in the app).
+    let avatarCache = AvatarCache(directory: FileManager.default.temporaryDirectory
+        .appending(path: "SampleBoardTests-\(UUID().uuidString)", directoryHint: .isDirectory))
 
     init() {
         defaults = UserDefaults(suiteName: "SampleBoardTests-\(UUID().uuidString)")!
@@ -26,7 +31,13 @@ struct SampleBoardTests {
 
     /// One launch of the app: a real, not-yet-connected graph (Keychain-like token in memory) whose
     /// hidden people persist in `defaults`, like the shipping app's.
-    private func launch(token: String? = nil, gitHub: URLProtocol.Type = ApprovingGitHubProtocol.self) -> AppModel {
+    /// `gate` holds each device-flow poll until it opens (or the connect is cancelled), so a test
+    /// can act while Connect GitHub is in flight with its code showing.
+    private func launch(
+        token: String? = nil,
+        gitHub: URLProtocol.Type = ApprovingGitHubProtocol.self,
+        gate: PollGate? = nil
+    ) -> AppModel {
         let session: URLSession = {
             let config = URLSessionConfiguration.ephemeral
             config.protocolClasses = [gitHub]
@@ -41,7 +52,8 @@ struct SampleBoardTests {
             ),
             credentials: InMemoryGitHubCredentialStore(token: token),
             contributions: realContributions,
-            gitHubAuth: GitHubAuth(clientID: "test", session: session, sleep: { _ in }, now: { clock.now }),
+            gitHubAuth: GitHubAuth(clientID: "test", session: session,
+                                   sleep: { _ in await gate?.wait() }, now: { clock.now }),
             accountFactory: { GitHubAccountClient(token: $0, session: session) },
             fetchRoster: { _ in
                 rosterCalls.count += 1
@@ -56,13 +68,24 @@ struct SampleBoardTests {
             services: services,
             sampleServices: { [clock] in SampleServices.make(now: { clock.now }) },
             defaults: defaults,
-            backgroundTime: FakeBackgroundTime(),
+            backgroundTime: backgroundTime,
             liveRankActivities: activities,
             liveRankPreferences: preferences,
             liveRankRelay: relay,
             widgets: widgets.publisher,
+            avatarCache: avatarCache,
             now: { [clock] in clock.now }
         )
+    }
+
+    private let sampleBoard = ["maya-chen", "priya-s", "devon-k", "sam-rivera", "lee-park"]
+
+    /// Waits (up to 5 s) for something an in-flight task will do.
+    private func waitUntil(_ condition: () -> Bool) async throws {
+        for _ in 0..<500 where !condition() {
+            try await Task.sleep(for: .milliseconds(10))
+        }
+        try #require(condition())
     }
 
     private func board(_ model: AppModel, _ window: ContributionWindow = .daily) -> [String] {
@@ -134,20 +157,124 @@ struct SampleBoardTests {
         #expect(launch(token: "gho_new").mode == .connected)
     }
 
-    @Test func aDeclinedConnectFromTheSampleBoardStaysOnConnectGitHub() async {
+    @Test func theCodeShowsOverTheSampleBoardAndCancelReturnsToIt() async throws {
+        let gate = PollGate()
+        defer { gate.open() }
+        let model = launch(gate: gate)
+        await model.startSampleBoard()
+        model.store.setHidden(true, username: "lee-park")
+        model.selectedTab = .people
+
+        let connecting = Task { await model.connectGitHub() }
+        try await waitUntil { model.connectAuth.phase != .signedOut }
+
+        // GitHub's code shows over the Sample board, which stays up underneath.
+        #expect(model.connectAuth.phase == .connecting(userCode: "ABCD-1234", verificationURL: "https://github.com/login/device"))
+        #expect(model.isConnectingFromSampleBoard)
+        #expect(model.isShowingConnectOverSampleBoard)
+        #expect(model.mode == .sampleBoard)
+        #expect(!model.needsConnect)
+        #expect(board(model) == ["maya-chen", "priya-s", "devon-k", "sam-rivera"])
+
+        model.closeConnectOverSampleBoard() // Cancel
+        await connecting.value
+
+        #expect(!model.isConnectingFromSampleBoard)
+        #expect(!model.isShowingConnectOverSampleBoard)
+        #expect(model.mode == .sampleBoard)
+        #expect(model.selectedTab == .people)
+        #expect(board(model) == ["maya-chen", "priya-s", "devon-k", "sam-rivera"])
+        // Cancelling isn't an error.
+        #expect(model.connectAuth.errorMessage == nil)
+        #expect(model.sampleBoardConnectError == nil)
+        #expect(activities.running.map(\.selfLogin) == ["sam-rivera"])
+        #expect(widgets.last?.selfLogin == "sam-rivera")
+        #expect(launch().mode == .sampleBoard)
+    }
+
+    @Test func aDeclinedConnectFromTheSampleBoardStaysOnTheSampleBoard() async {
         let model = launch(gitHub: DecliningGitHubProtocol.self)
         await model.startSampleBoard()
         model.selectedTab = .settings
 
         await model.connectGitHub()
 
+        #expect(model.mode == .sampleBoard)
+        #expect(!model.needsConnect)
+        #expect(!model.isConnectingFromSampleBoard)
+        #expect(model.sampleBoardConnectError == "The GitHub connection was declined.")
+        // The reason shows over the Sample board, with Try Again; Cancel uncovers it.
+        #expect(model.isShowingConnectOverSampleBoard)
+        model.closeConnectOverSampleBoard()
+        #expect(!model.isShowingConnectOverSampleBoard)
+        #expect(model.sampleBoardConnectError == nil)
+        #expect(model.selectedTab == .settings)
+        #expect(board(model) == sampleBoard)
+        #expect(activities.running.map(\.selfLogin) == ["sam-rivera"])
+        #expect(widgets.last?.selfLogin == "sam-rivera")
+        #expect(launch().mode == .sampleBoard)
+    }
+
+    @Test func theSampleBoardCantStartOrEndWhileConnectGitHubIsInFlight() async throws {
+        let gate = PollGate()
+        defer { gate.open() }
+        let model = launch(gate: gate)
+
+        let connecting = Task { await model.connectGitHub() }
+        try await waitUntil { model.connectAuth.phase != .signedOut }
+
+        // A tap on Try a sample board, or a second Connect GitHub, while the code shows.
+        await model.startSampleBoard()
         #expect(model.mode == .notConnected)
-        #expect(model.needsConnect)
-        #expect(model.auth.errorMessage == "The GitHub connection was declined.")
-        #expect(model.selectedTab == .board)
-        #expect(model.store.competitors.isEmpty)
-        #expect(widgets.published.last == .some(nil))
-        #expect(launch().mode == .notConnected)
+        await model.connectGitHub()
+
+        gate.open()
+        await connecting.value
+
+        // Connected on the real account, with one device flow.
+        #expect(model.mode == .connected)
+        #expect(board(model) == ["ada", "me"])
+        #expect(backgroundTime.log == ["begin Connect GitHub", "end 1"])
+        #expect(launch(token: "gho_new").mode == .connected)
+    }
+
+    @Test func leavingIsIgnoredWhileConnectingFromTheSampleBoard() async throws {
+        let gate = PollGate()
+        defer { gate.open() }
+        let model = launch(gate: gate)
+        await model.startSampleBoard()
+
+        let connecting = Task { await model.connectGitHub() }
+        try await waitUntil { model.connectAuth.phase != .signedOut }
+        await model.leaveSampleBoard()
+        #expect(model.mode == .sampleBoard)
+
+        gate.open()
+        await connecting.value
+
+        #expect(model.mode == .connected)
+        #expect(board(model) == ["ada", "me"])
+    }
+
+    // MARK: Avatars
+
+    @Test func theSampleBoardNeverShowsSavedAvatars() async throws {
+        let model = launch()
+        #expect(model.savedAvatars?.directory == avatarCache.directory)
+
+        await model.startSampleBoard()
+
+        // Initials only: the app, Live rank and the widgets never read the saved avatars, which
+        // may hold a real person's face for a sample login.
+        #expect(model.savedAvatars == nil)
+        #expect(widgets.last?.isSampleBoard == true)
+        #expect(activities.startedAttributes.map(\.isSampleBoard) == [true])
+
+        await model.connectGitHub()
+
+        #expect(model.savedAvatars?.directory == avatarCache.directory)
+        #expect(widgets.last?.selfLogin == "me")
+        #expect(widgets.last?.isSampleBoard == nil)
     }
 
     // MARK: Live rank and the widgets (#68)
@@ -264,6 +391,7 @@ struct SampleBoardTests {
         #expect(registered == [LiveRankConfiguration(selfLogin: "me", competitors: ["me", "ada"], window: .daily)])
         #expect(activities.running.map(\.selfLogin) == ["me"])
         #expect(activities.startedPushUpdates == [.none, .token])
+        #expect(activities.startedAttributes.map(\.isSampleBoard) == [true, nil])
         #expect(preferences.load() == LiveRankPreferences(isEnabled: true, window: .daily, relayDisclosureAccepted: true))
     }
 
@@ -327,4 +455,19 @@ private final class DecliningGitHubProtocol: URLProtocol {
         client?.urlProtocolDidFinishLoading(self)
     }
     override func stopLoading() {}
+}
+
+/// Holds each device-flow poll until opened. A cancelled connect gets through too, as it does
+/// through the real `Task.sleep`.
+final class PollGate: @unchecked Sendable {
+    private let lock = NSLock()
+    private var isOpen = false
+
+    func open() { lock.withLock { isOpen = true } }
+
+    func wait() async {
+        while !lock.withLock({ isOpen }) && !Task.isCancelled {
+            try? await Task.sleep(for: .milliseconds(5))
+        }
+    }
 }
