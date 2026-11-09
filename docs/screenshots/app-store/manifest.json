@@ -5,7 +5,7 @@
   "screenshots": [
     {
       "file": "01-board.png",
-      "caption": "Who shipped more today? Friends ranked by GitHub contributions. (Board on the Sample board after one pull to refresh: Sam Rivera #3 of 5 with a +1 chevron)",
+      "caption": "Who shipped more today? Friends ranked by GitHub Contributions. (Board on the Sample board after one pull to refresh: Ari Linden #3 of 5 with a +1 chevron)",
       "capture": {
         "sourceCommit": "ecbaa9cbac5a1eef959c715ea7f7a22526236d7d",
         "fixture": true

@@ -29,7 +29,7 @@ struct AvatarColorTests {
     @Test func letterInitialsSkipDigits() {
         #expect(AvatarColor.letterInitials(for: "guest-08") == "GU")
         #expect(AvatarColor.letterInitials(for: "guest-10") == "GU")
-        #expect(AvatarColor.letterInitials(for: "maya-chen") == "MC")
+        #expect(AvatarColor.letterInitials(for: "ines-volk") == "IV")
         #expect(AvatarColor.letterInitials(for: "r2d2") == "RD")
         #expect(AvatarColor.letterInitials(for: "42") == "4")
     }

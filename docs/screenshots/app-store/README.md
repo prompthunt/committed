@@ -5,7 +5,7 @@ The five 6.9" iPhone frames (1320 × 2868 px) on the App Store listing for Commi
 
 | File | Caption |
 |---|---|
-| `01-board.png` | Who shipped more today? Friends ranked by GitHub contributions. |
+| `01-board.png` | Who shipped more today? Friends ranked by GitHub Contributions. |
 | `02-live-rank.png` | Your rank on the Lock Screen. See who's ahead and how many to pass. |
 | `03-widgets.png` | The board on your Home Screen. Your rank and the leaders at a glance. |
 | `04-share-board.png` | Share the board as an image. A square post or a story. |

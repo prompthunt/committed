@@ -5,7 +5,7 @@
   "screenshots": [
     {
       "file": "live-rank-lock-screen.png",
-      "caption": "Live rank Lock Screen card on the Sample board: first load (#4, 1 to pass devon-k), then after pull to refresh (#3 with a +1 chevron, 2 to pass priya-s)",
+      "caption": "Live rank Lock Screen card on the Sample board: first load (#4, 1 to pass ezra-q), then after pull to refresh (#3 with a +1 chevron, 2 to pass odile-m)",
       "capture": { "sourceCommit": "c29fad90b2dcdec5c7c4f2df46d31792931071f3", "fixture": true }
     },
     {
@@ -20,7 +20,7 @@
     },
     {
       "file": "board-widget.png",
-      "caption": "Committed Board widget (small, made for StandBy) on the Sample board: first load with you fourth, then after Sam passes Devon",
+      "caption": "Committed Board widget (small, made for StandBy) on the Sample board: first load with you fourth, then after Ari passes Ezra",
       "capture": { "sourceCommit": "c29fad90b2dcdec5c7c4f2df46d31792931071f3", "fixture": true }
     },
     {

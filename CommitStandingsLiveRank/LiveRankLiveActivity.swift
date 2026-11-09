@@ -485,8 +485,8 @@ enum LiveRankText {
 extension LiveRankState {
     static let previewMiddle = LiveRankState(
         window: "daily", rank: 3, competitorCount: 6, contributions: 7,
-        above: .init(login: "priya-s", contributions: 9, movementToday: 0),
-        below: .init(login: "devon-k", contributions: 6, movementToday: -1),
+        above: .init(login: "odile-m", contributions: 9, movementToday: 0),
+        below: .init(login: "ezra-q", contributions: 6, movementToday: -1),
         movementToday: 1, updatedAt: Int(Date().timeIntervalSince1970) - 240
     )
     static let previewNoRivals = LiveRankState(
@@ -499,7 +499,7 @@ extension LiveRankState {
     )
 }
 
-#Preview("Lock Screen", as: .content, using: LiveRankAttributes(selfLogin: "sam-rivera")) {
+#Preview("Lock Screen", as: .content, using: LiveRankAttributes(selfLogin: "ari-linden")) {
     LiveRankLiveActivity()
 } contentStates: {
     LiveRankState.previewMiddle
@@ -507,20 +507,20 @@ extension LiveRankState {
     LiveRankState.previewNoData
 }
 
-#Preview("Expanded", as: .dynamicIsland(.expanded), using: LiveRankAttributes(selfLogin: "sam-rivera")) {
+#Preview("Expanded", as: .dynamicIsland(.expanded), using: LiveRankAttributes(selfLogin: "ari-linden")) {
     LiveRankLiveActivity()
 } contentStates: {
     LiveRankState.previewMiddle
 }
 
-#Preview("Compact", as: .dynamicIsland(.compact), using: LiveRankAttributes(selfLogin: "sam-rivera")) {
+#Preview("Compact", as: .dynamicIsland(.compact), using: LiveRankAttributes(selfLogin: "ari-linden")) {
     LiveRankLiveActivity()
 } contentStates: {
     LiveRankState.previewMiddle
     LiveRankState.previewNoRivals
 }
 
-#Preview("Minimal", as: .dynamicIsland(.minimal), using: LiveRankAttributes(selfLogin: "sam-rivera")) {
+#Preview("Minimal", as: .dynamicIsland(.minimal), using: LiveRankAttributes(selfLogin: "ari-linden")) {
     LiveRankLiveActivity()
 } contentStates: {
     LiveRankState.previewMiddle

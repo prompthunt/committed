@@ -16,7 +16,7 @@ struct BoardSummary: Equatable {
     let contributions: Int?
     /// Places moved since the start of today (+ up, − down); Today only, nil when unmoved.
     let movementToday: Int?
-    /// "2 to pass priya-s", Live rank's line: the gap to the person directly above you. nil in
+    /// "2 to pass odile-m", Live rank's line: the gap to the person directly above you. nil in
     /// first place, or when either count hasn't loaded.
     let passLine: String?
     let window: ContributionWindow

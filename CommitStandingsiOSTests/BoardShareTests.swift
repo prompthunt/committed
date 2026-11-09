@@ -121,7 +121,7 @@ struct BoardShareTests {
     static let farDown = snapshot(selfRank: 14, window: .monthly)
 
     private static func snapshot(selfRank: Int, window: ContributionWindow) -> WidgetSnapshot {
-        let logins = ["maya-chen", "devon", "alex", "priya-s", "sam-rivera", "jordan-a", "lee-park", "riley",
+        let logins = ["ines-volk", "devon", "alex", "odile-m", "ari-linden", "niko-vane", "bram-ott", "riley",
                       "casey", "morgan", "taylor-k", "jamie", "drew", "quinn", "avery"]
         let scale = window == .daily ? 1 : 30
         var rows: [WidgetSnapshot.Row] = []
