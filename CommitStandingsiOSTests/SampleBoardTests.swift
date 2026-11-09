@@ -11,6 +11,8 @@ struct SampleBoardTests {
     let rosterCalls = RosterCalls()
     let activities = FakeLiveRankActivities()
     let relay = FakeLiveRankRelay()
+    /// The real board's saved Live rank settings, shared across "launches".
+    let preferences = InMemoryLiveRankPreferences()
     let widgets = RecordingWidgets()
     /// This test's own UserDefaults, standing in for `.standard` across "launches".
     let defaults: UserDefaults
@@ -56,6 +58,7 @@ struct SampleBoardTests {
             defaults: defaults,
             backgroundTime: FakeBackgroundTime(),
             liveRankActivities: activities,
+            liveRankPreferences: preferences,
             liveRankRelay: relay,
             widgets: widgets.publisher,
             now: { [clock] in clock.now }
@@ -145,6 +148,135 @@ struct SampleBoardTests {
         #expect(model.store.competitors.isEmpty)
         #expect(widgets.published.last == .some(nil))
         #expect(launch().mode == .notConnected)
+    }
+
+    // MARK: Live rank and the widgets (#68)
+
+    private var registered: [LiveRankConfiguration] { relay.configurations.compactMap { $0 } }
+
+    @Test func liveRankStartsOnThePhoneOnlyEvenWithARelayConfigured() async throws {
+        let model = launch()
+
+        await model.startSampleBoard()
+
+        #expect(activities.running.map(\.selfLogin) == ["sam-rivera"])
+        let state = try #require(activities.states.first)
+        #expect(state.rank == 4)
+        #expect(state.above?.login == "devon-k")
+        #expect(model.liveRank.status == .live)
+        #expect(model.liveRank.isEnabled)
+        #expect(!model.liveRank.isRelayConfigured)
+        #expect(activities.startedPushUpdates == [.none])
+        #expect(registered.isEmpty)
+        #expect(relay.retries == 0)
+        #expect(!model.isShowingLiveRankDisclosure)
+    }
+
+    @Test func theLiveRankSwitchOnTheSampleBoardNeverAsksForTheRelayDisclosure() async {
+        let model = launch()
+        await model.startSampleBoard()
+
+        await model.liveRankSwitchChanged(false)
+        #expect(activities.running.isEmpty)
+        #expect(model.liveRank.status == .off)
+
+        await model.liveRankSwitchChanged(true)
+        #expect(!model.isShowingLiveRankDisclosure)
+        #expect(activities.running.map(\.selfLogin) == ["sam-rivera"])
+        #expect(activities.startedPushUpdates == [.none, .none])
+
+        await model.setLiveRankWindow(.weekly)
+        #expect(activities.states.map(\.window) == ["weekly"])
+        #expect(widgets.last?.state.window == "weekly")
+
+        #expect(registered.isEmpty)
+        // The Sample board's switch and Window are its own: the real board's settings are untouched.
+        #expect(preferences.load() == LiveRankPreferences())
+    }
+
+    @Test func theWidgetsShowTheSampleBoard() async throws {
+        let model = launch()
+        await model.startSampleBoard()
+
+        // What the widget extension reads back from the App Group.
+        let file = FileManager.default.temporaryDirectory.appendingPathComponent("widget-\(UUID().uuidString).json")
+        defer { try? FileManager.default.removeItem(at: file) }
+        try #require(widgets.last).save(to: file)
+        let snapshot = try #require(WidgetSnapshot.load(from: file))
+
+        #expect(snapshot.selfLogin == "sam-rivera")
+        #expect(snapshot.state.window == "daily")
+        #expect(snapshot.state.competitorCount == 5)
+        #expect(snapshot.top.map(\.login) == ["maya-chen", "priya-s", "devon-k", "sam-rivera", "lee-park"])
+        // Home Screen: small and medium read the state; large reads the rows.
+        #expect(snapshot.state.rank == 4)
+        #expect(snapshot.state.contributions == 5)
+        #expect(snapshot.state.passLine == "1 to pass devon-k")
+        // Lock Screen accessories.
+        #expect(CommittedWidgetText.headline(snapshot.state) == "#4 · 5 today")
+        #expect(CommittedWidgetText.inline(snapshot.state) == "#4 · 1 to pass devon-k")
+        // The Committed Board widget.
+        #expect(snapshot.boardRows().map(\.login) == ["maya-chen", "priya-s", "devon-k", "sam-rivera"])
+
+        // Pull to refresh: Sam passes Devon, and the widgets follow.
+        await model.pullToRefresh()
+        let moved = try #require(widgets.last)
+        #expect(moved.state.rank == 3)
+        #expect(moved.state.movementToday == 1)
+        #expect(moved.state.passLine == "2 to pass priya-s")
+        #expect(moved.boardRows().map(\.login) == ["maya-chen", "priya-s", "sam-rivera", "devon-k"])
+        #expect(moved.boardRows().map(\.movement) == [0, 0, 1, -1])
+    }
+
+    @Test func leavingEndsLiveRankAndResetsTheWidgets() async throws {
+        let model = launch()
+        await model.startSampleBoard()
+        let started = try #require(activities.running.first?.id)
+        #expect(widgets.last?.selfLogin == "sam-rivera")
+
+        await model.leaveSampleBoard()
+
+        #expect(activities.running.isEmpty)
+        #expect(activities.log.contains("end \(started)"))
+        #expect(model.liveRank.status != .live)
+        // nil is what turns every widget into "Connect GitHub".
+        #expect(widgets.published.last == .some(nil))
+        #expect(registered.isEmpty)
+    }
+
+    @Test func connectingFromTheSampleBoardRegistersWithTheRelayAfterTheDisclosure() async {
+        let model = launch()
+        await model.startSampleBoard()
+
+        await model.connectGitHub()
+
+        // As a normal Connect GitHub: the board loads, and Live rank waits for the disclosure.
+        #expect(model.mode == .connected)
+        #expect(model.isShowingLiveRankDisclosure)
+        #expect(model.liveRank.isRelayConfigured)
+        #expect(activities.running.isEmpty)
+        #expect(registered.isEmpty)
+        #expect(widgets.last?.selfLogin == "me")
+
+        await model.acceptLiveRankDisclosure()
+
+        #expect(!model.isShowingLiveRankDisclosure)
+        #expect(registered == [LiveRankConfiguration(selfLogin: "me", competitors: ["me", "ada"], window: .daily)])
+        #expect(activities.running.map(\.selfLogin) == ["me"])
+        #expect(activities.startedPushUpdates == [.none, .token])
+        #expect(preferences.load() == LiveRankPreferences(isEnabled: true, window: .daily, relayDisclosureAccepted: true))
+    }
+
+    @Test func turningLiveRankOffOnTheSampleBoardStillOffersTheDisclosureAfterConnecting() async {
+        let model = launch()
+        await model.startSampleBoard()
+        await model.liveRankSwitchChanged(false)
+
+        await model.connectGitHub()
+
+        #expect(model.mode == .connected)
+        #expect(model.isShowingLiveRankDisclosure)
+        #expect(registered.isEmpty)
     }
 
     // MARK: Nothing leaves the device
