@@ -38,6 +38,13 @@ struct RootView: View {
         }
         .onOpenURL { model.open($0) }
         // Last, so the Connect cover and the disclosure sheet get them too.
+        // The graph on screen changes when the Sample board starts or ends, so its objects are
+        // injected here from the model rather than relying only on the app's scene.
+        .environment(model.store)
+        .environment(model.refresh)
+        .environment(model.auth)
+        .environment(model.roster)
+        .environment(model.services.notifications)
         .environment(\.avatarFallbackStyle, .committed)
         .environment(interactions)
         .background { InteractionClockInstaller(clock: interactions) }
