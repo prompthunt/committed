@@ -14,6 +14,12 @@ and other interaction states.
 - Include before/after states when a baseline is available, plus each important
   changed interaction state. Every screenshot is a runtime capture; a missing
   baseline is reported as missing.
+- Two exceptions may use labelled renders instead: surfaces the headless Simulator
+  can't draw (Live Activities, the Dynamic Island, widgets on the Home Screen or Lock
+  Screen) and App Store marketing frames. Render the real views with `ImageRenderer`
+  or a `UIWindow` in a committed test, fed real app state (what `AppModel` publishes),
+  not hand-built values. Say "render, not runtime capture" in the manifest's `notes`
+  and in the PR comment's labels.
 - Wait for transitions, avatars and images to settle unless the loading state is the
   subject. Inspect each capture for clipping, missing content, wrong states and
   unreadable text, in light and dark appearance when the change affects color.
