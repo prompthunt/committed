@@ -1,9 +1,10 @@
 import SwiftUI
 
-// The system-size widget views, shared by the widget extension and the iPhone app: the app renders
-// them as the board's share images (`BoardShareCard`), so a shared board looks exactly like the
-// widget. Nothing here may depend on WidgetKit's timeline; the widgets in `CommittedWidget.swift`
-// wrap these in their configurations.
+// The widget views, shared by the widget extension and the iPhone app: the app renders the system
+// sizes as the board's share images (`BoardShareCard`), so a shared board looks exactly like the
+// widget, and its tests render every size, Lock Screen accessories included. Nothing here may
+// depend on WidgetKit's timeline; the widgets in `CommittedWidget.swift` wrap these in their
+// configurations.
 
 /// The trophy and the Window ("TODAY"), heading every system size.
 private struct WidgetHeader: View {
@@ -291,5 +292,70 @@ enum CommittedWidgetText {
     static func inline(_ state: LiveRankState) -> String {
         if let rank = state.rank, let line = state.passLine { return "#\(rank) · \(line)" }
         return headline(state)
+    }
+}
+
+// MARK: - Lock Screen
+
+/// "#3 · 42 today" over the gap to pass. Rendered in the Lock Screen's tint, so no color carries
+/// meaning.
+struct CommittedWidgetRectangular: View {
+    let snapshot: WidgetSnapshot?
+    @Environment(\.liveRankIsStale) private var isStale
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 1) {
+            if let state = snapshot?.state {
+                Text(CommittedWidgetText.headline(state))
+                    .font(.headline)
+                    .widgetAccentable()
+                if isStale {
+                    Label { CommittedWidgetText.age(state) } icon: {
+                        Image(systemName: "clock.badge.exclamationmark")
+                    }
+                    .font(.caption)
+                } else if let line = state.passLine ?? state.emptyStateLine {
+                    Text(line).font(.caption)
+                }
+            } else {
+                Text("Committed").font(.headline).widgetAccentable()
+                Text("Connect GitHub to see your rank").font(.caption)
+            }
+        }
+        .lineLimit(1)
+        .minimumScaleFactor(0.8)
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+/// One line above the clock: your rank and count, or the gap to pass.
+struct CommittedWidgetInline: View {
+    let snapshot: WidgetSnapshot?
+
+    var body: some View {
+        if let state = snapshot?.state {
+            Label(CommittedWidgetText.inline(state), systemImage: "trophy.fill")
+        } else {
+            Label("Committed", systemImage: "trophy.fill")
+        }
+    }
+}
+
+/// The trophy over your rank.
+struct CommittedWidgetCircular: View {
+    let snapshot: WidgetSnapshot?
+
+    var body: some View {
+        VStack(spacing: 0) {
+            Image(systemName: "trophy.fill")
+                .font(.caption)
+                .widgetAccentable()
+            Text(snapshot?.state.rank.map { "#\($0)" } ?? "–")
+                .font(.title3.weight(.bold))
+                .monospacedDigit()
+                .minimumScaleFactor(0.6)
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(snapshot.map { LiveRankText.rankAccessibility($0.state) } ?? "Committed")
     }
 }
