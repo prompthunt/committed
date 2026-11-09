@@ -1,0 +1,47 @@
+{
+  "device": "rendered at iPhone 6.9\" (440×956 pt, 3x)",
+  "os": "iOS 27.1 (iPhone Duo Simulator test host)",
+  "notes": "App Store frames, 1320×2868 px. Renders, not runtime captures: AppStoreScreenshotTests (scripts/ios_check.py ios with TEST_RUNNER_RENDER_DIR) draws each frame from Sample board data. Board, Share board and People are the real app hosted in a 440×956 pt UIWindow (6.9\" safe areas, bars at the bottom) on SampleServices as the app's graph, so the Sample board banner is omitted; Live rank and the widgets are the real views fed what AppModel published on the Sample board. The status bar, Dynamic Island, Lock Screen and Home Screen are drawn. Avatars are initials; nothing is fetched. See README.md to regenerate and upload.",
+  "screenshots": [
+    {
+      "file": "01-board.png",
+      "caption": "Who shipped more today? Friends ranked by GitHub contributions. (Board on the Sample board after one pull to refresh: Sam Rivera #3 of 5 with a +1 chevron)",
+      "capture": {
+        "sourceCommit": "d3ee272e2060ed79691b3344ac2f71a09e596ec0",
+        "fixture": true
+      }
+    },
+    {
+      "file": "02-live-rank.png",
+      "caption": "Your rank on the Lock Screen. See who's ahead and how many to pass. (Live rank's Lock Screen card and the Lock Screen widgets on a drawn Lock Screen)",
+      "capture": {
+        "sourceCommit": "d3ee272e2060ed79691b3344ac2f71a09e596ec0",
+        "fixture": true
+      }
+    },
+    {
+      "file": "03-widgets.png",
+      "caption": "The board on your Home Screen. Your rank and the leaders at a glance. (Small rank card, Committed Board, medium and large widgets on a drawn Home Screen)",
+      "capture": {
+        "sourceCommit": "d3ee272e2060ed79691b3344ac2f71a09e596ec0",
+        "fixture": true
+      }
+    },
+    {
+      "file": "04-share-board.png",
+      "caption": "Share the board as an image. A square post or a story. (Share board sheet over the Board, Story format, Board style)",
+      "capture": {
+        "sourceCommit": "d3ee272e2060ed79691b3344ac2f71a09e596ec0",
+        "fixture": true
+      }
+    },
+    {
+      "file": "05-people.png",
+      "caption": "Choose who's on your board. From who you follow and your organizations. (People on the Sample board: All / Following / Organizations, synced 4 min ago)",
+      "capture": {
+        "sourceCommit": "d3ee272e2060ed79691b3344ac2f71a09e596ec0",
+        "fixture": true
+      }
+    }
+  ]
+}
