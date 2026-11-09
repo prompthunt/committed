@@ -7,7 +7,7 @@
       "file": "01-board.png",
       "caption": "Who shipped more today? Friends ranked by GitHub Contributions. (Board on the Sample board after one pull to refresh: Ari Linden #3 of 5 with a +1 chevron)",
       "capture": {
-        "sourceCommit": "ecbaa9cbac5a1eef959c715ea7f7a22526236d7d",
+        "sourceCommit": "1815b736ce75d5f4bc93e5cbd9b1b6e5ae9b532b",
         "fixture": true
       }
     },
@@ -15,7 +15,7 @@
       "file": "02-live-rank.png",
       "caption": "Your rank on the Lock Screen. See who's ahead and how many to pass. (Live rank's Lock Screen card and the Lock Screen widgets on a drawn Lock Screen)",
       "capture": {
-        "sourceCommit": "ecbaa9cbac5a1eef959c715ea7f7a22526236d7d",
+        "sourceCommit": "1815b736ce75d5f4bc93e5cbd9b1b6e5ae9b532b",
         "fixture": true
       }
     },
@@ -23,7 +23,7 @@
       "file": "03-widgets.png",
       "caption": "The board on your Home Screen. Your rank and the leaders at a glance. (Small rank card, Committed Board, medium and large widgets on a drawn Home Screen)",
       "capture": {
-        "sourceCommit": "ecbaa9cbac5a1eef959c715ea7f7a22526236d7d",
+        "sourceCommit": "1815b736ce75d5f4bc93e5cbd9b1b6e5ae9b532b",
         "fixture": true
       }
     },
@@ -31,7 +31,7 @@
       "file": "04-share-board.png",
       "caption": "Share the board as an image. A square post or a story. (Share board sheet over the Board, Story format, Board style)",
       "capture": {
-        "sourceCommit": "ecbaa9cbac5a1eef959c715ea7f7a22526236d7d",
+        "sourceCommit": "1815b736ce75d5f4bc93e5cbd9b1b6e5ae9b532b",
         "fixture": true
       }
     },
@@ -39,7 +39,7 @@
       "file": "05-people.png",
       "caption": "Choose who's on your board. From who you follow and your organizations. (People on the Sample board: All / Following / Organizations, synced 4 min ago)",
       "capture": {
-        "sourceCommit": "ecbaa9cbac5a1eef959c715ea7f7a22526236d7d",
+        "sourceCommit": "1815b736ce75d5f4bc93e5cbd9b1b6e5ae9b532b",
         "fixture": true
       }
     }

@@ -6,27 +6,42 @@
     {
       "file": "live-rank-lock-screen.png",
       "caption": "Live rank Lock Screen card on the Sample board: first load (#4, 1 to pass ezra-q), then after pull to refresh (#3 with a +1 chevron, 2 to pass odile-m)",
-      "capture": { "sourceCommit": "c29fad90b2dcdec5c7c4f2df46d31792931071f3", "fixture": true }
+      "capture": {
+        "sourceCommit": "1815b736ce75d5f4bc93e5cbd9b1b6e5ae9b532b",
+        "fixture": true
+      }
     },
     {
       "file": "home-screen-widgets.png",
       "caption": "Home Screen widgets on the Sample board after pull to refresh: small rank card and Committed Board (top row), medium, large",
-      "capture": { "sourceCommit": "c29fad90b2dcdec5c7c4f2df46d31792931071f3", "fixture": true }
+      "capture": {
+        "sourceCommit": "1815b736ce75d5f4bc93e5cbd9b1b6e5ae9b532b",
+        "fixture": true
+      }
     },
     {
       "file": "lock-screen-widgets.png",
       "caption": "Lock Screen widgets on the Sample board: inline, rectangular (#3 · 7 today) and circular (#3)",
-      "capture": { "sourceCommit": "c29fad90b2dcdec5c7c4f2df46d31792931071f3", "fixture": true }
+      "capture": {
+        "sourceCommit": "1815b736ce75d5f4bc93e5cbd9b1b6e5ae9b532b",
+        "fixture": true
+      }
     },
     {
       "file": "board-widget.png",
       "caption": "Committed Board widget (small, made for StandBy) on the Sample board: first load with you fourth, then after Ari passes Ezra",
-      "capture": { "sourceCommit": "c29fad90b2dcdec5c7c4f2df46d31792931071f3", "fixture": true }
+      "capture": {
+        "sourceCommit": "1815b736ce75d5f4bc93e5cbd9b1b6e5ae9b532b",
+        "fixture": true
+      }
     },
     {
       "file": "widgets-after-leaving.png",
       "caption": "After Leave Sample Board the widget snapshot is nil: the rank card and Board widget ask to connect GitHub; the Lock Screen rectangular and circular fall back",
-      "capture": { "sourceCommit": "c29fad90b2dcdec5c7c4f2df46d31792931071f3", "fixture": true }
+      "capture": {
+        "sourceCommit": "1815b736ce75d5f4bc93e5cbd9b1b6e5ae9b532b",
+        "fixture": true
+      }
     }
   ]
 }

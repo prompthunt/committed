@@ -1,7 +1,7 @@
 {
   "device": "iPhone Duo Simulator",
   "os": "iOS 27.1",
-  "notes": "Runtime captures (xcrun simctl io screenshot) of a Debug build on the persistent iPhone Duo (closed), on the Sample board's built-in sample data. The Sample board screens open through its saved mode, as on a relaunch, via the launch argument -sampleBoard.v1 YES (and -ScreenshotTab for the tab); Connect used -sampleBoard.v1 NO. Avatars are local identicons left in the simulator's App Group cache by earlier fixture runs; nothing is fetched over the network. Review fixes (connect-over-sample-board.png, people-initials.png): captured at the later sourceCommit; the Sample board no longer reads the App Group avatar cache, so its people show initials. connect-over-sample-board.png used the Debug launch argument -ScreenshotConnect (starts Connect GitHub as a tap would); its code is a real, unapproved GitHub device code that expired unused.",
+  "notes": "Runtime captures (xcrun simctl io screenshot) of a Debug build on the persistent iPhone Duo (closed), on the Sample board's built-in sample data. The Sample board screens open through its saved mode, as on a relaunch, via the launch argument -sampleBoard.v1 YES (and -ScreenshotTab for the tab); Connect used -sampleBoard.v1 NO. connect-over-sample-board.png used the Debug launch argument -ScreenshotConnect (starts Connect GitHub as a tap would); its code is a real, unapproved GitHub device code that expired unused. board.png, people.png and people-initials.png were recaptured at the later sourceCommit after the sample people became made-up GitHub handles (people.png and people-initials.png are the same capture); the Sample board doesn't read the App Group avatar cache, so its people show initials, and nothing is fetched over the network.",
   "screenshots": [
     {
       "file": "connect.png",
@@ -15,7 +15,7 @@
       "file": "board.png",
       "caption": "Board on the Sample board with the Sample board · Connect GitHub banner",
       "capture": {
-        "sourceCommit": "710d6edd198396cdad70253f9fdb4af0039f34e5",
+        "sourceCommit": "1815b736ce75d5f4bc93e5cbd9b1b6e5ae9b532b",
         "fixture": true
       }
     },
@@ -23,7 +23,7 @@
       "file": "people.png",
       "caption": "People on the Sample board with the banner",
       "capture": {
-        "sourceCommit": "710d6edd198396cdad70253f9fdb4af0039f34e5",
+        "sourceCommit": "1815b736ce75d5f4bc93e5cbd9b1b6e5ae9b532b",
         "fixture": true
       }
     },
@@ -47,7 +47,7 @@
       "file": "people-initials.png",
       "caption": "People on the Sample board after the avatar fix: initials only, no saved avatars from the App Group cache",
       "capture": {
-        "sourceCommit": "6455e9c8f8fa1cc5663734fe65a4019a0bc00bc8",
+        "sourceCommit": "1815b736ce75d5f4bc93e5cbd9b1b6e5ae9b532b",
         "fixture": true
       }
     }
