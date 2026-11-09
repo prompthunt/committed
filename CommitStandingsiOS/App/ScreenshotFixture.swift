@@ -36,6 +36,13 @@ enum ScreenshotFixture {
         }
     }
 
+    /// `-ScreenshotConnect`: start Connect GitHub on launch, as a tap would, so captures can show
+    /// its code (for example over the Sample board). Honored on any Debug launch. It asks GitHub
+    /// for a real device code; nothing connects unless someone approves it.
+    static var startsConnect: Bool {
+        ProcessInfo.processInfo.arguments.contains("-ScreenshotConnect")
+    }
+
     /// Live rank settings for the fixture, in memory: never chosen, or accepted and on with
     /// `-RelayDisclosureAccepted`.
     static func liveRankPreferences() -> InMemoryLiveRankPreferences {

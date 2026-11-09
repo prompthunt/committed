@@ -54,6 +54,7 @@ struct CommittedApp: App {
         )
         #if DEBUG
         if let tab = ScreenshotFixture.requestedTab { model.selectedTab = tab }
+        if ScreenshotFixture.startsConnect { Task { await model.connectGitHub() } }
         #endif
         return model
     }
