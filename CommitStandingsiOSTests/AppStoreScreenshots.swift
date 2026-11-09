@@ -1,5 +1,7 @@
+import ImageIO
 import SwiftUI
 import UIKit
+import UniformTypeIdentifiers
 @testable import CommitStandingsiOS
 
 // The App Store screenshots (#71): five 6.9" iPhone frames, 440 × 956 pt at 3x (1320 × 2868 px).
@@ -129,10 +131,33 @@ enum AppStoreScreenshots {
         return try frames.map { frame, screen, shown in
             AppStoreFrameImage(
                 frame: frame,
-                png: try SurfaceRenderer.png(AppStoreFrameView(frame: frame) { screen }),
+                png: try opaquePNG(AppStoreFrameView(frame: frame) { screen }),
                 people: shown
             )
         }
+    }
+
+    /// App Store Connect refuses screenshots with an alpha channel, so the frame is flattened onto
+    /// an RGB bitmap with no alpha and written with ImageIO (`UIImage.pngData()` keeps RGBA).
+    private static func opaquePNG(_ view: some View) throws -> Data {
+        let renderer = ImageRenderer(content: view)
+        renderer.scale = 3
+        renderer.isOpaque = true
+        guard let image = renderer.cgImage,
+              let space = CGColorSpace(name: CGColorSpace.sRGB),
+              let context = CGContext(
+                  data: nil, width: image.width, height: image.height, bitsPerComponent: 8, bytesPerRow: 0,
+                  space: space, bitmapInfo: CGImageAlphaInfo.noneSkipLast.rawValue
+              )
+        else { throw SurfaceRenderError.noImage }
+        context.draw(image, in: CGRect(x: 0, y: 0, width: image.width, height: image.height))
+        let data = NSMutableData()
+        guard let flattened = context.makeImage(),
+              let destination = CGImageDestinationCreateWithData(data, UTType.png.identifier as CFString, 1, nil)
+        else { throw SurfaceRenderError.noImage }
+        CGImageDestinationAddImage(destination, flattened, nil)
+        guard CGImageDestinationFinalize(destination) else { throw SurfaceRenderError.noImage }
+        return data as Data
     }
 
     private static func shown(in state: LiveRankState, selfLogin: String) -> Set<String> {

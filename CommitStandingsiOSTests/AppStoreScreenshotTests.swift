@@ -30,6 +30,8 @@ struct AppStoreScreenshotTests {
         for frame in frames {
             let image = try #require(UIImage(data: frame.png)?.cgImage, "\(frame.name) isn't a PNG")
             #expect(image.width == 1320 && image.height == 2868, "\(frame.name) is \(image.width) × \(image.height)")
+            // App Store Connect takes no alpha channel.
+            #expect([.none, .noneSkipFirst, .noneSkipLast].contains(image.alphaInfo), "\(frame.name) has an alpha channel")
             #expect(!frame.people.isEmpty, "\(frame.name) shows nobody")
             #expect(frame.people.isSubset(of: Self.samplePeople), "\(frame.name) shows \(frame.people.subtracting(Self.samplePeople))")
         }
