@@ -254,6 +254,18 @@ final class AppModel {
         widgets.publish(snapshot)
     }
 
+    /// The board for Share board, with as many people as its images take. The Sample board's is
+    /// marked, so its image shows initials for the made-up people.
+    func boardToShare() -> WidgetSnapshot? {
+        let refresh = services.refresh
+        var snapshot = WidgetSnapshot.board(
+            store, window: store.selectedWindow, rankDelta: { refresh.rankDelta(for: $0) }, now: now(),
+            rows: BoardShareFormat.maxBoardRows
+        )
+        if mode == .sampleBoard { snapshot?.isSampleBoard = true }
+        return snapshot
+    }
+
     /// Saved avatars for the board, read before the network: none on the Sample board, whose
     /// made-up logins could match a real person's saved face. Its people show initials.
     var savedAvatars: AvatarCache? {

@@ -269,12 +269,17 @@ struct SampleBoardTests {
         #expect(model.savedAvatars == nil)
         #expect(widgets.last?.isSampleBoard == true)
         #expect(activities.startedAttributes.map(\.isSampleBoard) == [true])
+        // Share board's image too.
+        let shared = try #require(model.boardToShare())
+        #expect(shared.isSampleBoard == true)
+        #expect(shared.savedAvatars == nil)
 
         await model.connectGitHub()
 
         #expect(model.savedAvatars?.directory == avatarCache.directory)
         #expect(widgets.last?.selfLogin == "me")
         #expect(widgets.last?.isSampleBoard == nil)
+        #expect(try #require(model.boardToShare()).isSampleBoard == nil)
     }
 
     // MARK: Live rank and the widgets (#68)

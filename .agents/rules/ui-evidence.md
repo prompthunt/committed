@@ -75,7 +75,7 @@ and other interaction states.
 Commit screenshot evidence worth keeping, with short capture notes, under
 `docs/screenshots/<change>/`. Build output and temporary captures stay out of git.
 
-For each new committed runtime screenshot, add an entry to
+For each new committed runtime screenshot or labelled render, add an entry to
 `docs/screenshots/<change>/manifest.json`:
 
 ```json
