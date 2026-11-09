@@ -6,7 +6,7 @@ import Foundation
 /// and the App Store screenshots (the Debug `-ScreenshotFixture`) show the app as it works.
 ///
 /// - No GitHub API: the contributions client, People and the device flow are local. The
-///   identity call (`/user`) is answered in process as Sam Rivera; anything else fails as if
+///   identity call (`/user`) is answered in process as Ari Linden; anything else fails as if
 ///   offline.
 /// - No relay and no avatars: those belong to `AppModel`, which must pair sample services with
 ///   `NoLiveRankRelay` and network avatars off (`loadsGitHubAvatars`).
@@ -14,20 +14,22 @@ import Foundation
 ///   live in memory. Leaderboard Notifications keep their real on/off setting.
 ///
 /// `make` is inert: the board loads when something refreshes it (`AppModel.sceneDidBecomeActive`,
-/// pull to refresh). Today moves between the first two fetches: Sam Rivera passes Devon K.
+/// pull to refresh). Today moves between the first two fetches: Ari Linden passes Ezra Q.
 @MainActor
 enum SampleServices {
     /// "You" on the Sample board.
-    nonisolated static let owner = "sam-rivera"
-    nonisolated static let ownerName = "Sam Rivera"
+    nonisolated static let owner = "ari-linden"
+    nonisolated static let ownerName = "Ari Linden"
     /// Everyone on the Sample board, you included, in board order on Today before it moves.
-    nonisolated static let people = ["maya-chen", "priya-s", "devon-k", owner, "lee-park"]
+    nonisolated static let people = ["ines-volk", "odile-m", "ezra-q", owner, "bram-ott"]
     /// Listed in People but never loads, to show the missing-data placeholder. Screenshot fixture
     /// only; off on the Sample board.
-    nonisolated static let failingCompetitor = "jordan-a"
+    nonisolated static let failingCompetitor = "niko-vane"
+    /// The prefix of `Options.extraPeople`: `sample-pal-01`, `sample-pal-02`, …
+    nonisolated static let extraPersonPrefix = "sample-pal-"
 
     struct Options {
-        /// That many more followed people (`guest-01`, …) below everyone else, for a board long
+        /// That many more followed people (`sample-pal-01`, …) below everyone else, for a board long
         /// enough to scroll.
         var extraPeople = 0
         /// Adds `failingCompetitor` to the Acme organization.
@@ -41,8 +43,8 @@ enum SampleServices {
         let config = URLSessionConfiguration.ephemeral
         config.protocolClasses = [OfflineGitHub.self]
         let session = URLSession(configuration: config)
-        let guests = (0..<options.extraPeople).map { String(format: "guest-%02d", $0 + 1) }
-        let organization = ["priya-s", "lee-park"] + (options.includesFailingCompetitor ? [failingCompetitor] : [])
+        let extras = (0..<options.extraPeople).map { extraPersonPrefix + String(format: "%02d", $0 + 1) }
+        let organization = ["odile-m", "bram-ott"] + (options.includesFailingCompetitor ? [failingCompetitor] : [])
         let restricted = options.restrictedOrganizations
         return CommittedServices(
             store: StandingsStore(persistence: InMemoryCompetitorPersistence()),
@@ -53,7 +55,7 @@ enum SampleServices {
             accountFactory: { GitHubAccountClient(token: $0, session: session) },
             fetchRoster: { _ in
                 GitHubRosterSnapshot(owner: owner, sources: [
-                    GitHubRosterSource(id: "following", title: "Following", members: ["maya-chen", "devon-k"] + guests),
+                    GitHubRosterSource(id: "following", title: "Following", members: ["ines-volk", "ezra-q"] + extras),
                     GitHubRosterSource(id: "org", title: "Acme", members: organization),
                 ], updatedAt: now().addingTimeInterval(-240), restrictedOrganizations: restricted)
             },
@@ -62,7 +64,7 @@ enum SampleServices {
     }
 
     /// Fixed Contributions per Window. Each person's first fetch sets today's baseline; from the
-    /// second on, Sam Rivera has 7 today and passes Devon K. Guests have fewer than anyone else.
+    /// second on, Ari Linden has 7 today and passes Ezra Q. Extra people count down from 39.
     private actor SampleContributions: ContributionsFetching {
         private var rounds: [String: Int] = [:]
 
@@ -71,13 +73,14 @@ enum SampleServices {
             let round = rounds[username, default: 0]
             rounds[username] = round + 1
             let counts: [String: [ContributionWindow: Int]] = [
-                "maya-chen": [.daily: 12, .weekly: 61, .monthly: 240],
-                "priya-s": [.daily: 9, .weekly: 44, .monthly: 198],
-                "sam-rivera": [.daily: round == 0 ? 5 : 7, .weekly: 38, .monthly: 171],
-                "devon-k": [.daily: 6, .weekly: 52, .monthly: 160],
-                "lee-park": [.daily: 0, .weekly: 11, .monthly: 57],
+                "ines-volk": [.daily: 12, .weekly: 61, .monthly: 240],
+                "odile-m": [.daily: 9, .weekly: 44, .monthly: 198],
+                "ari-linden": [.daily: round == 0 ? 5 : 7, .weekly: 38, .monthly: 171],
+                "ezra-q": [.daily: 6, .weekly: 52, .monthly: 160],
+                "bram-ott": [.daily: 0, .weekly: 11, .monthly: 57],
             ]
-            if username.hasPrefix("guest-"), let number = Int(username.dropFirst(6)) {
+            if username.hasPrefix(SampleServices.extraPersonPrefix),
+               let number = Int(username.dropFirst(SampleServices.extraPersonPrefix.count)) {
                 return .success(StandingCounts(contributions: max(0, 40 - number)))
             }
             guard let count = counts[username]?[window] else { return .failure(.network("offline")) }

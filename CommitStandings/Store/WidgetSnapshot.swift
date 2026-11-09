@@ -99,24 +99,25 @@ extension WidgetSnapshot {
 
 extension WidgetSnapshot {
     /// The widget gallery and the redacted placeholder. A fresh install shows this shape, never an
-    /// empty box.
+    /// empty box. Its people are the Sample board's made-up GitHub logins (none is a real account),
+    /// with `ari-linden` as you.
     static func sample(now: Date = Date()) -> WidgetSnapshot {
         let updatedAt = Int(now.timeIntervalSince1970)
         return WidgetSnapshot(
-            selfLogin: "you",
+            selfLogin: "ari-linden",
             state: LiveRankState(
                 window: ContributionWindow.daily.rawValue, rank: 3, competitorCount: 8, contributions: 12,
-                above: .init(login: "alex", contributions: 15, movementToday: 1),
-                below: .init(login: "sam-rivera", contributions: 9, movementToday: -1),
+                above: .init(login: "odile-m", contributions: 15, movementToday: 1),
+                below: .init(login: "ezra-q", contributions: 9, movementToday: -1),
                 movementToday: 1, updatedAt: updatedAt
             ),
             top: [
-                Row(rank: 1, login: "jordan", contributions: 21, movement: 0, isSelf: false),
-                Row(rank: 2, login: "alex", contributions: 15, movement: 1, isSelf: false),
-                Row(rank: 3, login: "you", contributions: 12, movement: 1, isSelf: true),
-                Row(rank: 4, login: "sam-rivera", contributions: 9, movement: -1, isSelf: false),
-                Row(rank: 5, login: "riley", contributions: 6, movement: 0, isSelf: false),
-                Row(rank: 6, login: "casey", contributions: 4, movement: -1, isSelf: false),
+                Row(rank: 1, login: "ines-volk", contributions: 21, movement: 0, isSelf: false),
+                Row(rank: 2, login: "odile-m", contributions: 15, movement: 1, isSelf: false),
+                Row(rank: 3, login: "ari-linden", contributions: 12, movement: 1, isSelf: true),
+                Row(rank: 4, login: "ezra-q", contributions: 9, movement: -1, isSelf: false),
+                Row(rank: 5, login: "bram-ott", contributions: 6, movement: 0, isSelf: false),
+                Row(rank: 6, login: "niko-vane", contributions: 4, movement: -1, isSelf: false),
             ]
         )
     }

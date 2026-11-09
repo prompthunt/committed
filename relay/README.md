@@ -242,7 +242,7 @@ minutes, so the cycle won't refetch). Use today's date in the registration's tim
 
 ```bash
 npx wrangler d1 execute committed-relay --local --command \
-  "INSERT OR REPLACE INTO contribution_cache VALUES ('sam-rivera', strftime('%s','now'), strftime('%s','now'), '{\"2026-11-04\": 10}', NULL)"
+  "INSERT OR REPLACE INTO contribution_cache VALUES ('ari-linden', strftime('%s','now'), strftime('%s','now'), '{\"2026-11-04\": 10}', NULL)"
 curl "localhost:8787/__scheduled?cron=*/5+*+*+*+*"
 ```
 

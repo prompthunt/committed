@@ -26,7 +26,7 @@ struct SampleBoardSurfaces {
     let selfLogin: String
 
     /// Starts the Sample board on a not-connected app, then (by default) pulls to refresh once, so
-    /// Sam Rivera has just passed Devon K: #3 with a +1 chevron. `refreshed: false` keeps the first
+    /// Ari Linden has just passed Ezra Q: #3 with a +1 chevron. `refreshed: false` keeps the first
     /// load (#4). The clock is real, so "updated" ages read "now".
     static func load(refreshed: Bool = true) async throws -> SampleBoardSurfaces {
         let activities = FakeLiveRankActivities()

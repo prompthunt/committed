@@ -7,7 +7,7 @@
       "file": "board-square.png",
       "caption": "Square: Board grown to 8 people, you sixth today, with the timestamp",
       "capture": {
-        "sourceCommit": "f84f761417efe11574eafdf969e38bc2fba1368e",
+        "sourceCommit": "1815b736ce75d5f4bc93e5cbd9b1b6e5ae9b532b",
         "fixture": true
       }
     },
@@ -15,7 +15,7 @@
       "file": "board-story.png",
       "caption": "Story: Board with 10 people under a readable headline",
       "capture": {
-        "sourceCommit": "f84f761417efe11574eafdf969e38bc2fba1368e",
+        "sourceCommit": "1815b736ce75d5f4bc93e5cbd9b1b6e5ae9b532b",
         "fixture": true
       }
     },
@@ -23,7 +23,7 @@
       "file": "race-square.png",
       "caption": "Square: Your race (medium widget)",
       "capture": {
-        "sourceCommit": "9e298ac0b92efa088c6260d433ec9364cfc101ca",
+        "sourceCommit": "1815b736ce75d5f4bc93e5cbd9b1b6e5ae9b532b",
         "fixture": true
       }
     },
@@ -31,7 +31,7 @@
       "file": "race-story.png",
       "caption": "Story: Your race",
       "capture": {
-        "sourceCommit": "9e298ac0b92efa088c6260d433ec9364cfc101ca",
+        "sourceCommit": "1815b736ce75d5f4bc93e5cbd9b1b6e5ae9b532b",
         "fixture": true
       }
     },
@@ -39,7 +39,7 @@
       "file": "rank-square.png",
       "caption": "Square: Rank (small widget)",
       "capture": {
-        "sourceCommit": "9e298ac0b92efa088c6260d433ec9364cfc101ca",
+        "sourceCommit": "1815b736ce75d5f4bc93e5cbd9b1b6e5ae9b532b",
         "fixture": true
       }
     },
@@ -47,7 +47,7 @@
       "file": "rank-story.png",
       "caption": "Story: Rank",
       "capture": {
-        "sourceCommit": "9e298ac0b92efa088c6260d433ec9364cfc101ca",
+        "sourceCommit": "1815b736ce75d5f4bc93e5cbd9b1b6e5ae9b532b",
         "fixture": true
       }
     },
@@ -55,7 +55,7 @@
       "file": "list-square.png",
       "caption": "Square: Top 4 (Committed Board widget)",
       "capture": {
-        "sourceCommit": "9e298ac0b92efa088c6260d433ec9364cfc101ca",
+        "sourceCommit": "1815b736ce75d5f4bc93e5cbd9b1b6e5ae9b532b",
         "fixture": true
       }
     },
@@ -63,7 +63,7 @@
       "file": "list-story.png",
       "caption": "Story: Top 4",
       "capture": {
-        "sourceCommit": "9e298ac0b92efa088c6260d433ec9364cfc101ca",
+        "sourceCommit": "1815b736ce75d5f4bc93e5cbd9b1b6e5ae9b532b",
         "fixture": true
       }
     },
@@ -71,7 +71,7 @@
       "file": "sheet-square.png",
       "caption": "Share sheet with Square selected",
       "capture": {
-        "sourceCommit": "f84f761417efe11574eafdf969e38bc2fba1368e",
+        "sourceCommit": "1815b736ce75d5f4bc93e5cbd9b1b6e5ae9b532b",
         "fixture": true
       }
     },
@@ -79,7 +79,7 @@
       "file": "sheet-story.png",
       "caption": "Share sheet with Story selected",
       "capture": {
-        "sourceCommit": "f84f761417efe11574eafdf969e38bc2fba1368e",
+        "sourceCommit": "1815b736ce75d5f4bc93e5cbd9b1b6e5ae9b532b",
         "fixture": true
       }
     },
@@ -87,7 +87,7 @@
       "file": "board-button.png",
       "caption": "Board with the new share button (iPhone Duo's side bar holds the toolbar)",
       "capture": {
-        "sourceCommit": "9e298ac0b92efa088c6260d433ec9364cfc101ca",
+        "sourceCommit": "1815b736ce75d5f4bc93e5cbd9b1b6e5ae9b532b",
         "fixture": true
       }
     },
@@ -95,7 +95,7 @@
       "file": "board-far-square.png",
       "caption": "Square: you fourteenth over 30 days, pinned below the rule after 7 leaders",
       "capture": {
-        "sourceCommit": "f84f761417efe11574eafdf969e38bc2fba1368e",
+        "sourceCommit": "1815b736ce75d5f4bc93e5cbd9b1b6e5ae9b532b",
         "fixture": true
       }
     },
@@ -103,7 +103,7 @@
       "file": "board-far-story.png",
       "caption": "Story: you fourteenth, pinned below 9 leaders",
       "capture": {
-        "sourceCommit": "f84f761417efe11574eafdf969e38bc2fba1368e",
+        "sourceCommit": "1815b736ce75d5f4bc93e5cbd9b1b6e5ae9b532b",
         "fixture": true
       }
     }

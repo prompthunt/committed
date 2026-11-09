@@ -60,7 +60,7 @@ enum AppStoreFrame: Int, CaseIterable {
 
     var deck: String {
         switch self {
-        case .board: "Friends ranked by GitHub contributions."
+        case .board: "Friends ranked by GitHub Contributions."
         case .liveRank: "See who's ahead and how many to pass."
         case .widgets: "Your rank and the leaders at a glance."
         case .shareBoard: "A square post or a story."
@@ -89,8 +89,8 @@ enum AppStoreScreenshots {
 
     /// Renders the five frames in order.
     static func render() async throws -> [AppStoreFrameImage] {
-        // The app on the Sample board's services, pulled to refresh once: Sam Rivera has just
-        // passed Devon K, #3 with a +1 chevron, as Live rank and the widgets show below.
+        // The app on the Sample board's services, pulled to refresh once: Ari Linden has just
+        // passed Ezra Q, #3 with a +1 chevron, as Live rank and the widgets show below.
         let model = AppModel(services: SampleServices.make(), backgroundTime: StillBackgroundTime())
         await model.sceneDidBecomeActive()
         await model.pullToRefresh()
@@ -116,7 +116,7 @@ enum AppStoreScreenshots {
         let share = try await window.capture(presenting: BoardShareSheet(snapshot: shared, initialFormat: .story))
 
         // One person hidden, so People shows both the hide and the show control.
-        model.store.setHidden(true, username: "lee-park")
+        model.store.setHidden(true, username: "bram-ott")
         model.selectedTab = .people
         let peopleScreen = try await window.capture()
         let peoplePeople = Set(model.store.competitors.map(\.username))

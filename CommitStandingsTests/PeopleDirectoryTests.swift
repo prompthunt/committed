@@ -7,13 +7,13 @@ import Foundation
 @MainActor
 struct PeopleDirectoryTests {
     private let snapshot = GitHubRosterSnapshot(owner: "sam", sources: [
-        GitHubRosterSource(id: "following", title: "Following", members: ["Maya-Chen", "devon"]),
+        GitHubRosterSource(id: "following", title: "Following", members: ["Ines-Volk", "devon"]),
         GitHubRosterSource(id: "org", title: "Acme", members: ["priya", "devon", "lee"]),
     ], updatedAt: Date(timeIntervalSince1970: 0))
 
     private func store() -> StandingsStore {
         let store = StandingsStore(persistence: InMemoryCompetitorPersistence())
-        store.replaceRoster(owner: "sam", members: ["maya-chen", "devon", "priya", "lee"])
+        store.replaceRoster(owner: "sam", members: ["ines-volk", "devon", "priya", "lee"])
         return store
     }
 
@@ -23,13 +23,13 @@ struct PeopleDirectoryTests {
         let store = store()
         store.setHidden(true, username: "lee")
         let people = PeopleDirectory.people(in: store.competitors, roster: snapshot, source: .all, search: "")
-        #expect(names(people) == ["devon", "lee", "maya-chen", "priya", "sam"])
+        #expect(names(people) == ["devon", "ines-volk", "lee", "priya", "sam"])
     }
 
     @Test func followingAndOrganizationsListOnlyThatSource() {
         let store = store()
         #expect(names(PeopleDirectory.people(in: store.competitors, roster: snapshot, source: .following, search: ""))
-            == ["devon", "maya-chen"])
+            == ["devon", "ines-volk"])
         #expect(names(PeopleDirectory.people(in: store.competitors, roster: snapshot, source: .organizations, search: ""))
             == ["devon", "lee", "priya"])
     }
@@ -43,8 +43,8 @@ struct PeopleDirectoryTests {
 
     @Test func searchIgnoresCaseSurroundingSpacesAndALeadingAt() {
         let store = store()
-        #expect(names(PeopleDirectory.people(in: store.competitors, roster: snapshot, source: .all, search: "  @MAYA ")) == ["maya-chen"])
-        #expect(names(PeopleDirectory.people(in: store.competitors, roster: snapshot, source: .all, search: "e")) == ["devon", "lee", "maya-chen"])
+        #expect(names(PeopleDirectory.people(in: store.competitors, roster: snapshot, source: .all, search: "  @INES ")) == ["ines-volk"])
+        #expect(names(PeopleDirectory.people(in: store.competitors, roster: snapshot, source: .all, search: "e")) == ["devon", "ines-volk", "lee"])
         #expect(PeopleDirectory.people(in: store.competitors, roster: snapshot, source: .all, search: "   ").count == 5)
     }
 

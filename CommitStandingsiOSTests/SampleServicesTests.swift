@@ -79,17 +79,17 @@ struct SampleServicesTests {
         let model = makeModel()
         #expect(!model.needsConnect)
         await model.sceneDidBecomeActive()
-        #expect(model.auth.displayName == "Sam Rivera")
-        #expect(model.store.selfCompetitor?.username == "sam-rivera")
-        #expect(board(model, .daily) == ["maya-chen", "priya-s", "devon-k", "sam-rivera", "lee-park"])
+        #expect(model.auth.displayName == "Ari Linden")
+        #expect(model.store.selfCompetitor?.username == "ari-linden")
+        #expect(board(model, .daily) == ["ines-volk", "odile-m", "ezra-q", "ari-linden", "bram-ott"])
 
         model.store.selectedWindow = .weekly
         await model.windowDidChange()
-        #expect(board(model, .weekly) == ["maya-chen", "devon-k", "priya-s", "sam-rivera", "lee-park"])
+        #expect(board(model, .weekly) == ["ines-volk", "ezra-q", "odile-m", "ari-linden", "bram-ott"])
 
         model.store.selectedWindow = .monthly
         await model.windowDidChange()
-        #expect(board(model, .monthly) == ["maya-chen", "priya-s", "sam-rivera", "devon-k", "lee-park"])
+        #expect(board(model, .monthly) == ["ines-volk", "odile-m", "ari-linden", "ezra-q", "bram-ott"])
 
         #expect(GitHubTrafficRecorder.unexpectedRequests.isEmpty)
     }
@@ -97,10 +97,10 @@ struct SampleServicesTests {
     @Test func pullToRefreshMovesToday() async {
         let model = makeModel()
         await model.sceneDidBecomeActive()
-        #expect(board(model, .daily) == ["maya-chen", "priya-s", "devon-k", "sam-rivera", "lee-park"])
+        #expect(board(model, .daily) == ["ines-volk", "odile-m", "ezra-q", "ari-linden", "bram-ott"])
         await model.pullToRefresh()
-        #expect(board(model, .daily) == ["maya-chen", "priya-s", "sam-rivera", "devon-k", "lee-park"])
-        #expect(model.refresh.rankDelta(for: "sam-rivera") != nil) // the movement chevron
+        #expect(board(model, .daily) == ["ines-volk", "odile-m", "ari-linden", "ezra-q", "bram-ott"])
+        #expect(model.refresh.rankDelta(for: "ari-linden") != nil) // the movement chevron
     }
 
     @Test func peopleSyncedFourMinutesAgo() async {
@@ -109,10 +109,30 @@ struct SampleServicesTests {
         #expect(model.roster.snapshot?.updatedAt == clock.now.addingTimeInterval(-240))
     }
 
+    /// The Sample board and the App Store screenshots show these logins with made-up counts, so
+    /// none may be a real GitHub account. Each was checked to not exist on GitHub
+    /// (`gh api users/<login>` returned 404) on 2026-11-09, as was `sample-pal-01` …
+    /// `sample-pal-40`. Changing a name means checking the new one the same way first.
+    @Test func samplePeopleAreMadeUpGitHubLogins() {
+        #expect(SampleServices.owner == "ari-linden")
+        #expect(SampleServices.ownerName == "Ari Linden")
+        #expect(SampleServices.people == ["ines-volk", "odile-m", "ezra-q", "ari-linden", "bram-ott"])
+        #expect(SampleServices.failingCompetitor == "niko-vane")
+        #expect(SampleServices.extraPersonPrefix == "sample-pal-")
+    }
+
+    @Test func extraPeopleAreMadeUpTooAndLoad() async {
+        let model = makeModel(.init(extraPeople: 2))
+        await model.sceneDidBecomeActive()
+        #expect(Set(board(model, .daily)) == Set(SampleServices.people + ["sample-pal-01", "sample-pal-02"]))
+        #expect(model.store.standing(for: "sample-pal-01", window: .daily)?.contributions == 39)
+        #expect(model.store.standing(for: "sample-pal-02", window: .daily)?.contributions == 38)
+    }
+
     @Test func theFailingCompetitorIsAFixtureOption() async {
         let model = makeModel(.init(includesFailingCompetitor: true))
         await model.sceneDidBecomeActive()
-        #expect(board(model, .daily).contains("jordan-a"))
-        #expect(model.store.standing(for: "jordan-a", window: .daily)?.state == .failed("offline"))
+        #expect(board(model, .daily).contains("niko-vane"))
+        #expect(model.store.standing(for: "niko-vane", window: .daily)?.state == .failed("offline"))
     }
 }

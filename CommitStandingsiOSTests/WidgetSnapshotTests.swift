@@ -137,7 +137,7 @@ struct WidgetSnapshotTests {
         snapshot.state.contributions = 12
 
         #expect(!snapshot.selfIsInTop)
-        #expect(snapshot.selfRow == .init(rank: 9, login: "you", contributions: 12, movement: 1, isSelf: true))
+        #expect(snapshot.selfRow == .init(rank: 9, login: "ari-linden", contributions: 12, movement: 1, isSelf: true))
     }
 
     // MARK: Board list (StandBy)
@@ -157,7 +157,7 @@ struct WidgetSnapshotTests {
 
         let rows = snapshot.boardRows()
 
-        #expect(rows.map(\.login) == ["p1", "p2", "taylor", "you"])
+        #expect(rows.map(\.login) == ["p1", "p2", "taylor", "ari-linden"])
         #expect(rows.map(\.rank) == [1, 2, 8, 9])
     }
 
@@ -208,5 +208,14 @@ struct WidgetSnapshotTests {
         #expect(sample.top.count == WidgetSnapshot.topCount)
         #expect(sample.selfIsInTop)
         #expect(sample.state.passLine != nil)
+    }
+
+    /// The placeholder ships in the widget gallery, so it names only made-up GitHub logins: the
+    /// Sample board's, each checked to not exist on GitHub on 2026-11-09 (see `SampleServicesTests`).
+    @Test func theSampleNamesOnlyMadeUpGitHubLogins() {
+        let sample = WidgetSnapshot.sample()
+        let shown = Set([sample.selfLogin] + sample.top.map(\.login)
+            + [sample.state.above?.login, sample.state.below?.login].compactMap { $0 })
+        #expect(shown == ["ines-volk", "odile-m", "ari-linden", "ezra-q", "bram-ott", "niko-vane"])
     }
 }

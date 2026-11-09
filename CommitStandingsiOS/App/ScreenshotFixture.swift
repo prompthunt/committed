@@ -144,7 +144,7 @@ enum ScreenshotFixture {
     /// always fails to load, `-ScreenshotRestrictedOrg <name>` and `-ScreenshotHide <login>`. It
     /// loads at once, refreshing twice so Today shows movement chevrons.
     ///
-    /// `extraPeople` adds that many followed people (`guest-01`, …) below everyone else, for a
+    /// `extraPeople` adds that many followed people (`sample-pal-01`, …) below everyone else, for a
     /// board long enough to scroll on the open iPhone Duo display (used by the #46 render tests).
     static func services(extraPeople: Int = 0, failingCompetitor: Bool = true) -> CommittedServices {
         // `-ScreenshotRestrictedOrg <name>`: an organization that won't list its members for

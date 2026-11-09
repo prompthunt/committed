@@ -15,7 +15,7 @@ import UIKit
 struct AppStoreScreenshotTests {
     /// Everyone the Sample board shows. Written out, not read from `SampleServices`, so a change to
     /// the sample people (or real people slipping in) fails here.
-    private static let samplePeople: Set<String> = ["maya-chen", "priya-s", "devon-k", "sam-rivera", "lee-park"]
+    private static let samplePeople: Set<String> = ["ines-volk", "odile-m", "ezra-q", "ari-linden", "bram-ott"]
 
     @Test func fiveFramesAtTheSixPointNineInchSizeFromTheSampleBoard() async throws {
         GitHubTrafficRecorder.start()

@@ -22,14 +22,14 @@ struct StandingRowRenderTests {
             Standing(username: username, contributions: contributions, window: .daily, lastUpdated: updated, state: state)
         }
         let board = VStack(spacing: 2) {
-            StandingRow(rank: 1, competitor: Competitor(username: "maya-chen", isSelf: false),
-                        standing: standing("maya-chen", 12), window: .daily, maxContributions: 12, rankDelta: 2)
-            StandingRow(rank: 2, competitor: Competitor(username: "sam-rivera", isSelf: true),
-                        standing: standing("sam-rivera", 7), window: .daily, maxContributions: 12, rankDelta: 1)
-            StandingRow(rank: 3, competitor: Competitor(username: "devon-k", isSelf: false),
-                        standing: standing("devon-k", 3), window: .daily, maxContributions: 12, rankDelta: -1)
-            StandingRow(rank: 4, competitor: Competitor(username: "jordan-a", isSelf: false),
-                        standing: Standing(username: "jordan-a", contributions: 0, window: .daily,
+            StandingRow(rank: 1, competitor: Competitor(username: "ines-volk", isSelf: false),
+                        standing: standing("ines-volk", 12), window: .daily, maxContributions: 12, rankDelta: 2)
+            StandingRow(rank: 2, competitor: Competitor(username: "ari-linden", isSelf: true),
+                        standing: standing("ari-linden", 7), window: .daily, maxContributions: 12, rankDelta: 1)
+            StandingRow(rank: 3, competitor: Competitor(username: "ezra-q", isSelf: false),
+                        standing: standing("ezra-q", 3), window: .daily, maxContributions: 12, rankDelta: -1)
+            StandingRow(rank: 4, competitor: Competitor(username: "niko-vane", isSelf: false),
+                        standing: Standing(username: "niko-vane", contributions: 0, window: .daily,
                                            lastUpdated: .distantPast, state: .failed("offline")),
                         window: .daily, maxContributions: 12)
             StandingRow(rank: 12, competitor: Competitor(username: "a-very-long-github-username-here", isSelf: false),

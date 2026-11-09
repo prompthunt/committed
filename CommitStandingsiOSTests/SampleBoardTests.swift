@@ -78,7 +78,7 @@ struct SampleBoardTests {
         )
     }
 
-    private let sampleBoard = ["maya-chen", "priya-s", "devon-k", "sam-rivera", "lee-park"]
+    private let sampleBoard = ["ines-volk", "odile-m", "ezra-q", "ari-linden", "bram-ott"]
 
     /// Waits (up to 5 s) for something an in-flight task will do.
     private func waitUntil(_ condition: () -> Bool) async throws {
@@ -105,10 +105,10 @@ struct SampleBoardTests {
 
         #expect(model.mode == .sampleBoard)
         #expect(!model.needsConnect)
-        #expect(board(model) == ["maya-chen", "priya-s", "devon-k", "sam-rivera", "lee-park"])
+        #expect(board(model) == ["ines-volk", "odile-m", "ezra-q", "ari-linden", "bram-ott"])
         let snapshot = try #require(widgets.last)
-        #expect(snapshot.selfLogin == "sam-rivera")
-        #expect(snapshot.top.map(\.login) == ["maya-chen", "priya-s", "devon-k", "sam-rivera", "lee-park"])
+        #expect(snapshot.selfLogin == "ari-linden")
+        #expect(snapshot.top.map(\.login) == ["ines-volk", "odile-m", "ezra-q", "ari-linden", "bram-ott"])
     }
 
     @Test func theSampleBoardSurvivesARelaunch() async {
@@ -118,7 +118,7 @@ struct SampleBoardTests {
         #expect(relaunched.mode == .sampleBoard)
         #expect(!relaunched.needsConnect)
         await relaunched.sceneDidBecomeActive()
-        #expect(board(relaunched) == ["maya-chen", "priya-s", "devon-k", "sam-rivera", "lee-park"])
+        #expect(board(relaunched) == ["ines-volk", "odile-m", "ezra-q", "ari-linden", "bram-ott"])
     }
 
     // MARK: Leaving
@@ -143,7 +143,7 @@ struct SampleBoardTests {
     @Test func connectingFromTheSampleBoardLeavesNoSampleState() async {
         let model = launch()
         await model.startSampleBoard()
-        model.store.setHidden(true, username: "lee-park")
+        model.store.setHidden(true, username: "bram-ott")
         await model.visibilityDidChange()
 
         await model.connectGitHub()
@@ -162,7 +162,7 @@ struct SampleBoardTests {
         defer { gate.open() }
         let model = launch(gate: gate)
         await model.startSampleBoard()
-        model.store.setHidden(true, username: "lee-park")
+        model.store.setHidden(true, username: "bram-ott")
         model.selectedTab = .people
 
         let connecting = Task { await model.connectGitHub() }
@@ -174,7 +174,7 @@ struct SampleBoardTests {
         #expect(model.isShowingConnectOverSampleBoard)
         #expect(model.mode == .sampleBoard)
         #expect(!model.needsConnect)
-        #expect(board(model) == ["maya-chen", "priya-s", "devon-k", "sam-rivera"])
+        #expect(board(model) == ["ines-volk", "odile-m", "ezra-q", "ari-linden"])
 
         model.closeConnectOverSampleBoard() // Cancel
         await connecting.value
@@ -183,12 +183,12 @@ struct SampleBoardTests {
         #expect(!model.isShowingConnectOverSampleBoard)
         #expect(model.mode == .sampleBoard)
         #expect(model.selectedTab == .people)
-        #expect(board(model) == ["maya-chen", "priya-s", "devon-k", "sam-rivera"])
+        #expect(board(model) == ["ines-volk", "odile-m", "ezra-q", "ari-linden"])
         // Cancelling isn't an error.
         #expect(model.connectAuth.errorMessage == nil)
         #expect(model.sampleBoardConnectError == nil)
-        #expect(activities.running.map(\.selfLogin) == ["sam-rivera"])
-        #expect(widgets.last?.selfLogin == "sam-rivera")
+        #expect(activities.running.map(\.selfLogin) == ["ari-linden"])
+        #expect(widgets.last?.selfLogin == "ari-linden")
         #expect(launch().mode == .sampleBoard)
     }
 
@@ -210,8 +210,8 @@ struct SampleBoardTests {
         #expect(model.sampleBoardConnectError == nil)
         #expect(model.selectedTab == .settings)
         #expect(board(model) == sampleBoard)
-        #expect(activities.running.map(\.selfLogin) == ["sam-rivera"])
-        #expect(widgets.last?.selfLogin == "sam-rivera")
+        #expect(activities.running.map(\.selfLogin) == ["ari-linden"])
+        #expect(widgets.last?.selfLogin == "ari-linden")
         #expect(launch().mode == .sampleBoard)
     }
 
@@ -291,10 +291,10 @@ struct SampleBoardTests {
 
         await model.startSampleBoard()
 
-        #expect(activities.running.map(\.selfLogin) == ["sam-rivera"])
+        #expect(activities.running.map(\.selfLogin) == ["ari-linden"])
         let state = try #require(activities.states.first)
         #expect(state.rank == 4)
-        #expect(state.above?.login == "devon-k")
+        #expect(state.above?.login == "ezra-q")
         #expect(model.liveRank.status == .live)
         #expect(model.liveRank.isEnabled)
         #expect(!model.liveRank.isRelayConfigured)
@@ -314,7 +314,7 @@ struct SampleBoardTests {
 
         await model.liveRankSwitchChanged(true)
         #expect(!model.isShowingLiveRankDisclosure)
-        #expect(activities.running.map(\.selfLogin) == ["sam-rivera"])
+        #expect(activities.running.map(\.selfLogin) == ["ari-linden"])
         #expect(activities.startedPushUpdates == [.none, .none])
 
         await model.setLiveRankWindow(.weekly)
@@ -336,27 +336,27 @@ struct SampleBoardTests {
         try #require(widgets.last).save(to: file)
         let snapshot = try #require(WidgetSnapshot.load(from: file))
 
-        #expect(snapshot.selfLogin == "sam-rivera")
+        #expect(snapshot.selfLogin == "ari-linden")
         #expect(snapshot.state.window == "daily")
         #expect(snapshot.state.competitorCount == 5)
-        #expect(snapshot.top.map(\.login) == ["maya-chen", "priya-s", "devon-k", "sam-rivera", "lee-park"])
+        #expect(snapshot.top.map(\.login) == ["ines-volk", "odile-m", "ezra-q", "ari-linden", "bram-ott"])
         // Home Screen: small and medium read the state; large reads the rows.
         #expect(snapshot.state.rank == 4)
         #expect(snapshot.state.contributions == 5)
-        #expect(snapshot.state.passLine == "1 to pass devon-k")
+        #expect(snapshot.state.passLine == "1 to pass ezra-q")
         // Lock Screen accessories.
         #expect(CommittedWidgetText.headline(snapshot.state) == "#4 · 5 today")
-        #expect(CommittedWidgetText.inline(snapshot.state) == "#4 · 1 to pass devon-k")
+        #expect(CommittedWidgetText.inline(snapshot.state) == "#4 · 1 to pass ezra-q")
         // The Committed Board widget.
-        #expect(snapshot.boardRows().map(\.login) == ["maya-chen", "priya-s", "devon-k", "sam-rivera"])
+        #expect(snapshot.boardRows().map(\.login) == ["ines-volk", "odile-m", "ezra-q", "ari-linden"])
 
-        // Pull to refresh: Sam passes Devon, and the widgets follow.
+        // Pull to refresh: Ari passes Ezra, and the widgets follow.
         await model.pullToRefresh()
         let moved = try #require(widgets.last)
         #expect(moved.state.rank == 3)
         #expect(moved.state.movementToday == 1)
-        #expect(moved.state.passLine == "2 to pass priya-s")
-        #expect(moved.boardRows().map(\.login) == ["maya-chen", "priya-s", "sam-rivera", "devon-k"])
+        #expect(moved.state.passLine == "2 to pass odile-m")
+        #expect(moved.boardRows().map(\.login) == ["ines-volk", "odile-m", "ari-linden", "ezra-q"])
         #expect(moved.boardRows().map(\.movement) == [0, 0, 1, -1])
     }
 
@@ -364,7 +364,7 @@ struct SampleBoardTests {
         let model = launch()
         await model.startSampleBoard()
         let started = try #require(activities.running.first?.id)
-        #expect(widgets.last?.selfLogin == "sam-rivera")
+        #expect(widgets.last?.selfLogin == "ari-linden")
 
         await model.leaveSampleBoard()
 
@@ -426,7 +426,7 @@ struct SampleBoardTests {
         await model.pullToRefresh()
         model.store.selectedWindow = .weekly
         await model.windowDidChange()
-        model.store.setHidden(true, username: "devon-k")
+        model.store.setHidden(true, username: "ezra-q")
         await model.visibilityDidChange()
         await model.setLiveRankWindow(.monthly)
         model.sceneDidEnterBackground()
@@ -434,7 +434,7 @@ struct SampleBoardTests {
         await model.sceneDidBecomeActive()
 
         #expect(model.mode == .sampleBoard)
-        #expect(board(model) == ["maya-chen", "priya-s", "sam-rivera", "lee-park"])
+        #expect(board(model) == ["ines-volk", "odile-m", "ari-linden", "bram-ott"])
         #expect(await realContributions.total() == 0)
         #expect(rosterCalls.count == 0)
         // Live rank runs on the phone only: never registered with the relay, no push token asked.
