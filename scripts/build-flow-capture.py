@@ -82,6 +82,7 @@ app_file.write_text(r'''import SwiftUI
             .environment(store).environment(refresh).environment(auth).environment(roster).environment(notifications)
             .preferredColorScheme(.light)
             .task { await roster.refresh() }
+            .task { await writeWindowPNGIfAsked() }
         }
         .windowResizability(.contentSize)
         .commands {
@@ -106,6 +107,18 @@ private struct CaptureCounts: ContributionsFetching {
         let history = captureHistory(username, asOf: reference)
         return .success(StandingCounts(contributions: history.total(for: window, asOf: reference), history: history))
     }
+}
+
+/// `COMMITTED_CAPTURE_PNG=<path>`: after the board settles, the host draws its own window into
+/// that PNG, for captures where the shell has no Screen Recording permission for `screencapture`.
+@MainActor private func writeWindowPNGIfAsked() async {
+    guard let path = ProcessInfo.processInfo.environment["COMMITTED_CAPTURE_PNG"] else { return }
+    try? await Task.sleep(for: .seconds(6))
+    guard let window = NSApp.windows.first(where: { $0.isVisible && $0.title.hasPrefix("Committed") }),
+          let view = window.contentView?.superview ?? window.contentView,
+          let rep = view.bitmapImageRepForCachingDisplay(in: view.bounds) else { return }
+    view.cacheDisplay(in: view.bounds, to: rep)
+    try? rep.representation(using: .png, properties: [:])?.write(to: URL(fileURLWithPath: path))
 }
 
 /// A made-up year of days: a fixed count a day, a streak of the listed length (nothing the day

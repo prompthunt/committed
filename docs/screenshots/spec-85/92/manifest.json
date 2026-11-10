@@ -1,0 +1,19 @@
+{
+  "device": "iPhone Duo Simulator",
+  "os": "iOS 27.1",
+  "notes": "Runtime captures for #92 (streaks on the Board and in your summary). iphone-board.png: xcrun simctl io screenshot (--display=1) of a Debug build on the persistent iPhone Duo (closed), launched with -ScreenshotFixture -ScreenshotTab board: the Sample board's made-up calendars, refreshed twice so Today moves. mac-board.png: scripts/build-flow-capture.py's fixture host (Board surface, light), drawn by the host itself into a PNG via COMMITTED_CAPTURE_PNG (NSView cacheDisplay) because the capturing shell has no Screen Recording permission for screencapture; its people are the fixture's GitHub handles with made-up counts and calendars. Both apps were built from sourceCommit; the host's PNG hook was added to the capture script in the following commit. No before capture: earlier Sample board evidence (docs/screenshots/sample-board/board.png) shows the same board without streaks.",
+  "screenshots": [
+    {
+      "file": "iphone-board.png",
+      "caption": "iPhone Board: your summary reads 🔥 14 beside today's movement; rows show 🔥 47, 🔥 365+ (a streak past GitHub's calendar), 🔥 14 and 🔥 3; bram-ott (nothing yesterday or today) shows none",
+      "capture": { "sourceCommit": "50653afb286c7fb8ff796104d41d8d8d91e0530c", "fixture": true }
+    },
+    {
+      "file": "mac-board.png",
+      "caption": "Mac popover: your summary card shows 🔥 14 under your handle; rows show 🔥 14, 🔥 6, 🔥 365+ and 🔥 2; defunkt (no streak) shows none",
+      "device": "MacBook Pro (fixture host)",
+      "os": "macOS 27.0.1",
+      "capture": { "sourceCommit": "50653afb286c7fb8ff796104d41d8d8d91e0530c", "fixture": true }
+    }
+  ]
+}
