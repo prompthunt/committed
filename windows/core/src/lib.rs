@@ -1,5 +1,6 @@
 //! The public board boundary; platform adapters live in the desktop crate.
 mod auth;
+pub mod history;
 mod movement;
 mod parser;
 mod refresh;
@@ -330,6 +331,19 @@ impl BoardCore {
         self.persist(&state)
     }
 }
+/// The board's order, the same rule as Swift's `Ranking.order` and the relay's `order`:
+/// contributions descending, someone with no count last (below a real 0), ties in `competitors`
+/// order (you are first, so you win ties), ranks from 1. Checked against
+/// `fixtures/ranking-conformance.json` by `tests/conformance.rs`.
+pub fn order(competitors: &[String], counts: &BTreeMap<String, u32>) -> Vec<(String, usize)> {
+    let mut ordered: Vec<&String> = competitors.iter().collect();
+    ordered.sort_by_key(|login| std::cmp::Reverse(counts.get(*login)));
+    ordered
+        .into_iter()
+        .enumerate()
+        .map(|(index, login)| (login.clone(), index + 1))
+        .collect()
+}
 fn ranked_rows(state: &State, window: Window, today: NaiveDate, now: i64) -> Vec<Row> {
     let mut rows: Vec<_> = state
         .saved
@@ -341,7 +355,7 @@ fn ranked_rows(state: &State, window: Window, today: NaiveDate, now: i64) -> Vec
             Row {
                 person: person.clone(),
                 rank: 0,
-                contributions: snapshot.map(|s| parser::sum(&s.days, window.days(), today)),
+                contributions: snapshot.map(|s| history::total(&s.days, window, today)),
                 is_you: state.saved.owner.as_ref() == Some(&person.login),
                 movement: 0,
                 status: if state.failed.contains_key(&person.login) {
@@ -360,9 +374,15 @@ fn ranked_rows(state: &State, window: Window, today: NaiveDate, now: i64) -> Vec
             }
         })
         .collect();
-    rows.sort_by_key(|row| std::cmp::Reverse(row.contributions));
-    for (index, row) in rows.iter_mut().enumerate() {
-        row.rank = index + 1;
+    let logins: Vec<String> = rows.iter().map(|row| row.person.login.clone()).collect();
+    let counts: BTreeMap<String, u32> = rows
+        .iter()
+        .filter_map(|row| Some((row.person.login.clone(), row.contributions?)))
+        .collect();
+    let ranks: BTreeMap<String, usize> = order(&logins, &counts).into_iter().collect();
+    rows.sort_by_key(|row| ranks[&row.person.login]);
+    for row in rows.iter_mut() {
+        row.rank = ranks[&row.person.login];
         if window == Window::Today
             && row.contributions.is_some()
             && !state.failed.contains_key(&row.person.login)

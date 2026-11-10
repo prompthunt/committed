@@ -44,7 +44,8 @@ struct WidgetRefresh: Sendable {
     }
 
     /// Everyone's count for `window`, at most `concurrency` at a time, within `budget`. Anyone who
-    /// failed or didn't answer in time is left out.
+    /// failed or didn't answer in time is left out. Each count is worked out from that person's
+    /// calendar by `ContributionHistory`, in the client, the same as the app's Refresh.
     private func fetch(_ people: [String], window: ContributionWindow, now: Date) async -> [String: Int] {
         let deadline = Date().addingTimeInterval(Self.budget)
         let fetcher = fetcher

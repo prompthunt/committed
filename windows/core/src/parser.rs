@@ -1,4 +1,4 @@
-use chrono::{Duration, NaiveDate};
+use chrono::NaiveDate;
 use scraper::{Html, Selector};
 use std::collections::BTreeMap;
 
@@ -50,9 +50,4 @@ pub fn parse(html: &str) -> Result<BTreeMap<NaiveDate, u32>, String> {
     } else {
         Ok(days)
     }
-}
-pub fn sum(days: &BTreeMap<NaiveDate, u32>, length: i64, today: NaiveDate) -> u32 {
-    days.range((today - Duration::days(length - 1))..=today)
-        .map(|(_, count)| count)
-        .sum()
 }

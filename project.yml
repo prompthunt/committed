@@ -78,6 +78,7 @@ targets:
       - path: CommitStandings/Models
       - path: CommitStandings/Services/ContributionsClient.swift
       - path: CommitStandings/Services/ContributionsParser.swift
+      - path: CommitStandings/Services/ContributionHistory.swift
       - path: CommitStandings/Services/GitHubAccountClient.swift
       - path: CommitStandings/Services/GitHubAuth.swift
       - path: CommitStandings/Services/GitHubConfig.swift
@@ -143,6 +144,7 @@ targets:
       - path: CommitStandings/Store/LiveRankDerivation.swift
       - path: CommitStandings/Services/ContributionsClient.swift
       - path: CommitStandings/Services/ContributionsParser.swift
+      - path: CommitStandings/Services/ContributionHistory.swift
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.addisonk.CommitStandings.iOS.LiveRank

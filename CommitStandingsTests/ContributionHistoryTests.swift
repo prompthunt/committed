@@ -1,0 +1,101 @@
+import Testing
+import Foundation
+@testable import CommitStandings
+
+/// `ContributionHistory`: one person's daily counts and the time zone they were read in. Window
+/// totals come from it alone, as of an injected date in its own time zone, never the machine's.
+/// The Windows core runs the same cases in `windows/core/tests/history.rs`.
+struct ContributionHistoryTests {
+
+    /// A calendar spanning a year end, a 28-day February, a US DST weekend and a leap day.
+    static let calendar: [String: Int] = [
+        "2025-12-31": 4,
+        "2026-01-01": 1,
+        "2026-01-31": 7,
+        "2026-02-01": 2,
+        "2026-02-28": 3,
+        "2026-03-01": 5,
+        "2026-03-07": 10,
+        "2026-03-08": 20, // US DST starts
+        "2026-03-09": 40,
+        "2026-05-21": 100, // outside 7 days of 05-28
+        "2026-05-22": 1,
+        "2026-05-23": 2,
+        "2026-05-24": 3,
+        "2026-05-25": 4,
+        "2026-05-26": 5,
+        "2026-05-27": 6,
+        "2026-05-28": 7,
+        "2026-05-29": 100, // after today: never counted
+        "2028-02-29": 9, // leap day
+        "2028-03-01": 1,
+    ]
+
+    struct Case: CustomTestStringConvertible, Sendable {
+        let name: String
+        let window: ContributionWindow
+        /// Local wall-clock time in `zone`.
+        let local: (Int, Int, Int, Int, Int)
+        let zone: String
+        let expected: Int
+        var testDescription: String { name }
+    }
+
+    static let cases: [Case] = [
+        Case(name: "today only", window: .daily, local: (2026, 5, 28, 12, 0), zone: "UTC", expected: 7),
+        Case(name: "today with nothing yet is 0", window: .daily, local: (2026, 5, 30, 9, 0), zone: "UTC", expected: 0),
+        Case(name: "7 days inclusive, future ignored", window: .weekly, local: (2026, 5, 28, 12, 0), zone: "UTC", expected: 28),
+        Case(name: "30 days spans the month end", window: .monthly, local: (2026, 5, 28, 12, 0), zone: "UTC", expected: 128),
+        Case(name: "a minute before midnight is still today", window: .daily, local: (2026, 5, 28, 23, 59), zone: "America/Los_Angeles", expected: 7),
+        Case(name: "midnight starts the next day", window: .daily, local: (2026, 5, 29, 0, 0), zone: "America/Los_Angeles", expected: 100),
+        Case(name: "new year's day: today", window: .daily, local: (2026, 1, 1, 8, 0), zone: "Asia/Tokyo", expected: 1),
+        Case(name: "new year's day: 7 days reaches back into December", window: .weekly, local: (2026, 1, 1, 8, 0), zone: "Asia/Tokyo", expected: 5),
+        Case(name: "Jan 31 to Feb 1: 7 days", window: .weekly, local: (2026, 2, 1, 12, 0), zone: "Europe/Berlin", expected: 9),
+        Case(name: "Mar 1 after a 28-day February: 7 days", window: .weekly, local: (2026, 3, 1, 12, 0), zone: "UTC", expected: 8),
+        Case(name: "Mar 1 after a 28-day February: 30 days reaches Jan 31", window: .monthly, local: (2026, 3, 1, 12, 0), zone: "UTC", expected: 17),
+        Case(name: "late on the DST day", window: .daily, local: (2026, 3, 8, 23, 30), zone: "America/Los_Angeles", expected: 20),
+        Case(name: "just after midnight following the DST day", window: .weekly, local: (2026, 3, 9, 0, 30), zone: "America/Los_Angeles", expected: 70),
+        Case(name: "leap day", window: .daily, local: (2028, 2, 29, 12, 0), zone: "Australia/Adelaide", expected: 9),
+        Case(name: "7 days across a leap day", window: .weekly, local: (2028, 3, 1, 12, 0), zone: "UTC", expected: 10),
+    ]
+
+    @Test(arguments: cases)
+    func windowTotal(_ c: Case) throws {
+        let zone = try #require(TimeZone(identifier: c.zone))
+        let history = ContributionHistory(days: Self.calendar, timeZone: zone)
+        let asOf = try Self.instant(c.local, in: zone)
+        #expect(history.total(for: c.window, asOf: asOf) == c.expected)
+    }
+
+    /// The same instant is a different day in Tokyo and Los Angeles: each history uses the zone
+    /// it was read in, so Today differs.
+    @Test func sameInstantIsADifferentDayInEachHistorysOwnTimeZone() throws {
+        let instant = try Self.instant((2026, 5, 28, 15, 30), in: TimeZone(identifier: "UTC")!)
+        let tokyo = ContributionHistory(days: Self.calendar, timeZone: TimeZone(identifier: "Asia/Tokyo")!)
+        let losAngeles = ContributionHistory(days: Self.calendar, timeZone: TimeZone(identifier: "America/Los_Angeles")!)
+        #expect(tokyo.total(for: .daily, asOf: instant) == 100)
+        #expect(losAngeles.total(for: .daily, asOf: instant) == 7)
+    }
+
+    @Test func aCalendarShorterThanTheWindowSumsWhatItHas() {
+        let utc = TimeZone(identifier: "UTC")!
+        let short = ContributionHistory(days: ["2026-05-27": 2, "2026-05-28": 3], timeZone: utc)
+        let asOf = Date(timeIntervalSince1970: 1_779_969_600) // 2026-05-28 12:00 UTC
+        #expect(short.total(for: .monthly, asOf: asOf) == 5)
+        #expect(ContributionHistory(days: [:], timeZone: utc).total(for: .weekly, asOf: asOf) == 0)
+    }
+
+    @Test func roundTripsThroughJSONWithItsTimeZone() throws {
+        let history = ContributionHistory(days: ["2026-05-28": 7], timeZone: TimeZone(identifier: "Asia/Tokyo")!)
+        let decoded = try JSONDecoder().decode(ContributionHistory.self, from: JSONEncoder().encode(history))
+        #expect(decoded == history)
+        #expect(decoded.timeZone.identifier == "Asia/Tokyo")
+    }
+
+    static func instant(_ local: (Int, Int, Int, Int, Int), in zone: TimeZone) throws -> Date {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = zone
+        let components = DateComponents(year: local.0, month: local.1, day: local.2, hour: local.3, minute: local.4)
+        return try #require(calendar.date(from: components))
+    }
+}

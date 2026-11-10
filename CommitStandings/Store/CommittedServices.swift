@@ -99,7 +99,8 @@ final class CommittedServices {
         return CommittedServices(
             store: StandingsStore(
                 snapshotPersistence: UserDefaultsStandingsSnapshotPersistence(),
-                hiddenPeoplePersistence: UserDefaultsHiddenPeoplePersistence()
+                hiddenPeoplePersistence: UserDefaultsHiddenPeoplePersistence(),
+                historyPersistence: FileContributionHistoryPersistence.live() ?? InMemoryContributionHistoryPersistence()
             ),
             credentials: KeychainGitHubCredentialStore(),
             rosterPersistence: UserDefaultsGitHubRosterPersistence(),

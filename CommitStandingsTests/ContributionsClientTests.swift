@@ -32,33 +32,42 @@ struct ContributionsClientTests {
     private func makeClient() -> ContributionsClient {
         let config = URLSessionConfiguration.ephemeral
         config.protocolClasses = [MockURLProtocol.self]
-        return ContributionsClient(session: URLSession(configuration: config))
+        return ContributionsClient(session: URLSession(configuration: config), timeZone: { Self.zone })
     }
+
+    /// The client reads in an injected zone, so these tests don't depend on the machine's.
+    private static let zone = TimeZone(identifier: "America/Los_Angeles")!
 
     private func data(_ s: String) -> Data { Data(s.utf8) }
 
     private let reference = Date(timeIntervalSince1970: 1_717_000_000) // fixed for deterministic windows
 
-    /// `reference`'s day, formatted the way the parser normalizes `data-date` (same calendar
-    /// + current timezone). A legacy `data-count` cell on this date lands in the daily window.
-    private var referenceDay: String {
-        let cal = ContributionsParser.contributionCalendar()
-        let fmt = DateFormatter()
-        fmt.calendar = cal
-        fmt.timeZone = cal.timeZone
-        fmt.locale = Locale(identifier: "en_US_POSIX")
-        fmt.dateFormat = "yyyy-MM-dd"
-        return fmt.string(from: cal.startOfDay(for: reference))
-    }
+    /// `reference`'s day in Los Angeles (2024-05-29 09:26 PDT). A legacy `data-count` cell on
+    /// this date lands in the daily window.
+    private let referenceDay = "2024-05-29"
 
     private func contributionsHTML(count: Int) -> Data {
         data(#"<table><td data-date="\#(referenceDay)" data-count="\#(count)"></td></table>"#)
     }
 
-    @Test func standingCounts_success_returnsSummedContributions() async {
+    @Test func standingCounts_success_returnsSummedContributions() async throws {
         MockURLProtocol.handler = { _ in (200, self.contributionsHTML(count: 5)) }
         let result = await makeClient().standingCounts(for: "addisonk", window: .daily, asOf: reference)
-        #expect(result == .success(StandingCounts(contributions: 5)))
+        #expect(try result.get().contributions == 5)
+    }
+
+    /// One page carries the whole calendar: the result keeps every parsed day and the zone it was
+    /// read in, and the Window total is worked out from them.
+    @Test func standingCounts_success_carriesTheDaysAndTheirTimeZone() async throws {
+        MockURLProtocol.handler = { _ in
+            (200, self.data(#"<td data-date="2024-05-22" data-count="100"></td><td data-date="2024-05-24" data-count="2"></td><td data-date="2024-05-29" data-count="3"></td>"#))
+        }
+        let counts = try await makeClient().standingCounts(for: "addisonk", window: .weekly, asOf: reference).get()
+        let history = try #require(counts.history)
+        #expect(history.days == ["2024-05-22": 100, "2024-05-24": 2, "2024-05-29": 3])
+        #expect(history.timeZone == Self.zone)
+        #expect(counts.contributions == 5)
+        #expect(history.total(for: .weekly, asOf: reference) == 5)
     }
 
     @Test func standingCounts_userNotFound_returnsFailure() async {

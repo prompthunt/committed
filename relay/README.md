@@ -147,8 +147,9 @@ APNs auth is an ES256 JWT signed with WebCrypto from the `.p8` key and cached fo
 
 ## Conformance fixture
 
-`../fixtures/ranking-conformance.json` is shared with the Mac test target, so the Swift
-ordering and this port can't drift.
+`../fixtures/ranking-conformance.json` is shared with the Mac test target and the Windows core
+(`windows/core/tests/conformance.rs`, which checks `order` only: Windows has no Live rank), so
+the Swift ordering, this port and the Windows board can't drift.
 
 ```json
 {

@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "about": "Shared ranking conformance cases. Consumed by CommitStandingsTests/RankingConformanceTests.swift (Ranking.order) and relay/test/ranking.test.ts (Ranking port + LiveRankState). Expected values are worked by hand from the rules in CommitStandings/Store/Ranking.swift: contributions descending, a missing standing (or one for a different window) sorts last below a real 0, ties keep competitor order, ranks start at 1. LiveRankState's movementToday, yours and each neighbor's, is that login's rankDeltas entry on daily, else 0. See relay/README.md#conformance-fixture.",
+  "about": "Shared ranking conformance cases. Consumed by CommitStandingsTests/RankingConformanceTests.swift (Ranking.order), relay/test/ranking.test.ts (Ranking port + LiveRankState) and windows/core/tests/conformance.rs (order only; Windows has no Live rank). Expected values are worked by hand from the rules in CommitStandings/Store/Ranking.swift: contributions descending, a missing standing (or one for a different window) sorts last below a real 0, ties keep competitor order, ranks start at 1. LiveRankState's movementToday, yours and each neighbor's, is that login's rankDeltas entry on daily, else 0. See relay/README.md#conformance-fixture.",
   "cases": [
     {
       "name": "descending by contributions, self in the middle",

@@ -110,6 +110,22 @@ struct WidgetRefreshTests {
         #expect(writes.first == shown)
     }
 
+    /// Through the real client: each person's one page carries their calendar, and the widget's
+    /// Window total is worked out from those days by `ContributionHistory`, as on the Board.
+    @Test func eachPersonsWindowComesFromTheirCalendar() async throws {
+        let now = saved.addingTimeInterval(15 * 60) // 2033-05-18 03:48 UTC
+        let config = URLSessionConfiguration.ephemeral
+        config.protocolClasses = [CalendarPages.self]
+        let client = ContributionsClient(session: URLSession(configuration: config), timeZone: { TimeZone(identifier: "UTC")! })
+        let box = SnapshotBox(appSnapshot(window: .weekly))
+        let refresh = WidgetRefresh(fetcher: client, load: { box.value }, save: { box.write($0) })
+
+        let shown = try #require(await refresh.current(now: now, calendar: utc))
+
+        #expect(shown.board?.map(\.login) == ["bo", "me", "ada"])
+        #expect(shown.board?.map(\.contributions) == [9, 8, 5])
+    }
+
     @Test func freshNumbersFromTheAppAreShownWithoutFetching() async {
         let now = saved.addingTimeInterval(4 * 60)
         let (shown, writes, fetcher) = await refresh(appSnapshot(), counts: ["me": 7], at: now)
@@ -176,4 +192,24 @@ private final class SnapshotBox: @unchecked Sendable {
             writes.append(snapshot)
         }
     }
+}
+
+/// github.com's contribution pages for the people in `appSnapshot`, one calendar each.
+private final class CalendarPages: URLProtocol {
+    static let pages: [String: String] = [
+        // 7 days as of 2033-05-18 is 05-12...05-18.
+        "/users/me/contributions": #"<td data-date="2033-05-11" data-count="50"></td><td data-date="2033-05-17" data-count="4"></td><td data-date="2033-05-18" data-count="4"></td>"#,
+        "/users/ada/contributions": #"<td data-date="2033-05-12" data-count="3"></td><td data-date="2033-05-18" data-count="2"></td>"#,
+        "/users/bo/contributions": #"<td data-date="2033-05-15" data-count="9"></td><td data-date="2033-05-19" data-count="100"></td>"#,
+    ]
+    override class func canInit(with request: URLRequest) -> Bool { true }
+    override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
+    override func startLoading() {
+        let body = request.url.flatMap { Self.pages[$0.path] }
+        let response = HTTPURLResponse(url: request.url!, statusCode: body == nil ? 404 : 200, httpVersion: nil, headerFields: nil)!
+        client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
+        client?.urlProtocol(self, didLoad: Data((body ?? "").utf8))
+        client?.urlProtocolDidFinishLoading(self)
+    }
+    override func stopLoading() {}
 }

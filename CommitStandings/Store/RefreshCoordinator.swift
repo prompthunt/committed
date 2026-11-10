@@ -120,7 +120,7 @@ final class RefreshCoordinator {
         lastReason = reason
         let reference = now()
         let extras = staleAdditionalWindows(excluding: window)
-        await fetch(usernames, window: window, reference: reference)
+        let histories = await fetch(usernames, window: window, reference: reference)
         guard !Task.isCancelled, generation == requestGeneration else { return }
 
         if baselineVisibilityRevision != store.visibilityRevision {
@@ -134,7 +134,16 @@ final class RefreshCoordinator {
         updateDailyRankDeltas(window: window, reference: reference)
 
         for extra in extras {
-            await fetch(usernames, window: extra, reference: reference)
+            // Every Window comes from the same page: work it out from the days just fetched, and
+            // fetch only for anyone whose page didn't carry them.
+            for username in usernames {
+                guard let history = histories[username] else { continue }
+                applyDerived(history, username: username, window: extra, reference: reference)
+            }
+            let missing = usernames.filter { histories[$0] == nil }
+            if !missing.isEmpty {
+                await fetch(missing, window: extra, reference: reference)
+            }
             guard !Task.isCancelled, generation == requestGeneration else { return }
             updateDailyRankDeltas(window: extra, reference: reference)
         }
@@ -152,8 +161,11 @@ final class RefreshCoordinator {
     }
 
     /// Fetch `window`'s counts for `usernames` (six at a time) and apply them, keeping prior good
-    /// numbers on failure. Results that arrive after a sign-out are dropped.
-    private func fetch(_ usernames: [String], window: ContributionWindow, reference: Date) async {
+    /// numbers on failure. Results that arrive after a sign-out are dropped. Returns the daily
+    /// counts that came back, which the store also keeps (once for the whole batch).
+    @discardableResult
+    private func fetch(_ usernames: [String], window: ContributionWindow, reference: Date) async
+        -> [String: ContributionHistory] {
         let requestGeneration = generation
         // Snapshot prior good standings *before* markLoading flips state to
         // .loading. Without this, a competitor whose last successful counts were
@@ -190,8 +202,12 @@ final class RefreshCoordinator {
             return collected
         }
 
-        guard !Task.isCancelled, generation == requestGeneration else { return }
+        guard !Task.isCancelled, generation == requestGeneration else { return [:] }
+        var histories: [String: ContributionHistory] = [:]
         for (username, result) in results {
+            if case .success(let counts) = result, let history = counts.history {
+                histories[username] = history
+            }
             applyResult(
                 result,
                 username: username,
@@ -200,6 +216,19 @@ final class RefreshCoordinator {
                 prior: priorStandings[username]
             )
         }
+        store.updateHistories(histories)
+        return histories
+    }
+
+    /// `window`'s count worked out from days already fetched in this refresh: no page needed.
+    private func applyDerived(_ history: ContributionHistory, username: String, window: ContributionWindow, reference: Date) {
+        applyResult(
+            .success(StandingCounts(contributions: history.total(for: window, asOf: reference), history: history)),
+            username: username,
+            window: window,
+            reference: reference,
+            prior: nil
+        )
     }
 
     /// The signed-in user (or anyone's) placement change since the start of today, or nil when the
@@ -298,12 +327,22 @@ final class RefreshCoordinator {
             } ?? true
         }
         let reference = now()
+        var fetched: ContributionHistory?
         for window in windows {
+            // One page: later Windows come from the days the first one brought back.
+            if let fetched {
+                applyDerived(fetched, username: username, window: window, reference: reference)
+                continue
+            }
             let prior = store.standing(for: username, window: window)
             store.markLoading(username: username, window: window)
             let result = await client.standingCounts(for: username, window: window, asOf: reference)
             guard !Task.isCancelled, generation == requestGeneration, !store.isHidden(username) else { return }
             applyResult(result, username: username, window: window, reference: reference, prior: prior)
+            if case .success(let counts) = result, let history = counts.history {
+                fetched = history
+                store.updateHistories([username: history])
+            }
         }
         lastReason = reason
         await didRefresh(reason)

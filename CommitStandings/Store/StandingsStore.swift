@@ -35,12 +35,15 @@ extension Error {
 final class StandingsStore {
     private(set) var competitors: [Competitor]
     private(set) var standings: [String: Standing] = [:]
+    /// Each Competitor's daily counts, by username. Missing means "no history yet".
+    private(set) var histories: [String: ContributionHistory] = [:]
     private(set) var lastUpdated: Date?
     var selectedWindow: ContributionWindow = .daily
     private(set) var visibilityRevision = 0
 
     private let persistence: CompetitorPersistence
     private let snapshotPersistence: StandingsSnapshotPersistence
+    private let historyPersistence: any ContributionHistoryPersistence
     private let hiddenPeoplePersistence: any HiddenPeoplePersistence
     private var hiddenByAccount: [String: Set<String>]
 
@@ -49,10 +52,12 @@ final class StandingsStore {
         // Durable snapshot is opt-in (production passes a UserDefaults-backed instance);
         // defaults to in-memory so test suites and previews stay isolated.
         snapshotPersistence: StandingsSnapshotPersistence = InMemoryStandingsSnapshotPersistence(),
-        hiddenPeoplePersistence: any HiddenPeoplePersistence = InMemoryHiddenPeoplePersistence()
+        hiddenPeoplePersistence: any HiddenPeoplePersistence = InMemoryHiddenPeoplePersistence(),
+        historyPersistence: any ContributionHistoryPersistence = InMemoryContributionHistoryPersistence()
     ) {
         self.persistence = persistence
         self.snapshotPersistence = snapshotPersistence
+        self.historyPersistence = historyPersistence
         self.hiddenPeoplePersistence = hiddenPeoplePersistence
         self.hiddenByAccount = hiddenPeoplePersistence.load()
         self.competitors = persistence.load()
@@ -64,6 +69,7 @@ final class StandingsStore {
             snapshot.state = .loaded
             standings[key(snapshot.username, snapshot.window)] = snapshot
         }
+        histories = historyPersistence.load().filter { known.contains($0.key) }
     }
 
     /// Wipe all local state — competitors (including self) and cached standings — and
@@ -73,8 +79,10 @@ final class StandingsStore {
         competitors = []
         standings = [:]
         lastUpdated = nil
+        histories = [:]
         persist()
         snapshotPersistence.save([])
+        historyPersistence.save([:])
     }
 
     var selfCompetitor: Competitor? {
@@ -131,6 +139,10 @@ final class StandingsStore {
         standings = standings.filter { known.contains($0.value.username) }
         persist()
         persistSnapshot()
+        if histories.keys.contains(where: { !known.contains($0) }) {
+            histories = histories.filter { known.contains($0.key) }
+            historyPersistence.save(histories)
+        }
     }
 
     // MARK: - Mutations
@@ -229,6 +241,23 @@ final class StandingsStore {
         for window in ContributionWindow.allCases {
             standings.removeValue(forKey: key(username, window))
         }
+        if histories.removeValue(forKey: username) != nil {
+            historyPersistence.save(histories)
+        }
+    }
+
+    /// A person's daily counts from their last successful fetch, or nil: no history yet.
+    func history(for username: String) -> ContributionHistory? {
+        histories[username]
+    }
+
+    /// Keep freshly fetched daily counts for people still on the board, saved once per batch.
+    func updateHistories(_ updates: [String: ContributionHistory]) {
+        let known = Set(competitors.map(\.username))
+        let kept = updates.filter { known.contains($0.key) }
+        guard !kept.isEmpty else { return }
+        histories.merge(kept) { _, new in new }
+        historyPersistence.save(histories)
     }
 
     func updateStanding(_ standing: Standing) {

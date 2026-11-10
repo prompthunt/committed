@@ -35,12 +35,15 @@ struct Standing: Identifiable, Equatable, Codable {
     }
 }
 
-/// Result of fetching a competitor's standing — just the contributions count.
+/// Result of fetching a competitor's standing: the Window's contributions count and, from the
+/// real client, the daily counts it was worked out from. Stubs may leave `history` nil.
 struct StandingCounts: Equatable, Sendable {
     var contributions: Int
+    var history: ContributionHistory?
 
-    init(contributions: Int) {
+    init(contributions: Int, history: ContributionHistory? = nil) {
         self.contributions = contributions
+        self.history = history
     }
 }
 

@@ -555,3 +555,99 @@ struct RefreshCompanionTests {
         #expect(store.standing(for: "alice", window: .daily)?.contributions == 1)
     }
 }
+
+/// Returns each person's whole calendar, as the real client does, and records which Window each
+/// page was fetched for. The Window total is worked out from the days.
+actor CalendarFetcher: ContributionsFetching {
+    private var histories: [String: ContributionHistory]
+    private(set) var fetched: [ContributionWindow: [String]] = [:]
+
+    init(_ histories: [String: ContributionHistory]) { self.histories = histories }
+
+    func set(_ history: ContributionHistory?, for login: String) { histories[login] = history }
+    func calls(_ window: ContributionWindow) -> [String] { fetched[window] ?? [] }
+    var pages: Int { fetched.values.map(\.count).reduce(0, +) }
+
+    func standingCounts(for username: String, window: ContributionWindow, asOf reference: Date)
+        async -> Result<StandingCounts, ContributionsError> {
+        fetched[window, default: []].append(username)
+        guard let history = histories[username] else { return .failure(.network("offline")) }
+        return .success(StandingCounts(contributions: history.total(for: window, asOf: reference), history: history))
+    }
+}
+
+/// A Refresh keeps each person's days, and works out every Window from one page per person.
+@MainActor
+struct RefreshDailyCountsTests {
+    private let clock = MutableClock(Date(timeIntervalSince1970: 1_779_969_600)) // 2026-05-28 12:00 UTC
+    private static let utc = TimeZone(identifier: "UTC")!
+    private let me = ContributionHistory(days: ["2026-05-22": 4, "2026-05-28": 1], timeZone: utc)
+    private let alice = ContributionHistory(days: ["2026-05-27": 6, "2026-05-28": 2], timeZone: utc)
+
+    private func makeStore() -> StandingsStore {
+        let store = StandingsStore(persistence: InMemoryCompetitorPersistence())
+        store.replaceRoster(owner: "me", members: ["alice"])
+        return store
+    }
+
+    @Test func aRefreshKeepsEachPersonsDays() async {
+        let store = makeStore()
+        let clock = clock
+        let refresh = RefreshCoordinator(store: store, client: CalendarFetcher(["me": me, "alice": alice]),
+                                         interval: 99999, now: { clock.date })
+
+        await refresh.refreshAll(reason: .manual)
+
+        #expect(store.history(for: "me") == me)
+        #expect(store.history(for: "alice") == alice)
+        #expect(store.standing(for: "alice", window: .daily)?.contributions == 2)
+    }
+
+    @Test func aFailedFetchKeepsTheLastDays() async {
+        let store = makeStore()
+        let fetcher = CalendarFetcher(["me": me, "alice": alice])
+        let clock = clock
+        let refresh = RefreshCoordinator(store: store, client: fetcher, interval: 99999, now: { clock.date })
+        await refresh.refreshAll(reason: .manual)
+
+        await fetcher.set(nil, for: "alice")
+        clock.date = clock.date.addingTimeInterval(600)
+        await refresh.refreshAll(reason: .timer)
+
+        #expect(store.history(for: "alice") == alice)
+    }
+
+    /// Live rank's Window on iPhone comes from the same page as the board's: one page per person
+    /// per Refresh, and the numbers match what a separate fetch would have given.
+    @Test func anotherWindowComesFromTheSameDaysWithoutAnotherPage() async {
+        let store = makeStore()
+        let fetcher = CalendarFetcher(["me": me, "alice": alice])
+        let clock = clock
+        let refresh = RefreshCoordinator(store: store, client: fetcher, interval: 99999, now: { clock.date })
+        refresh.additionalWindows = { [.weekly, .monthly] }
+
+        await refresh.refreshAll(reason: .manual)
+
+        #expect(await fetcher.pages == 2)
+        #expect(await fetcher.calls(.weekly).isEmpty)
+        #expect(store.standing(for: "me", window: .daily)?.contributions == 1)
+        #expect(store.standing(for: "me", window: .weekly)?.contributions == 5)
+        #expect(store.standing(for: "alice", window: .weekly)?.contributions == 8)
+        #expect(store.standing(for: "alice", window: .monthly)?.contributions == 8)
+        #expect(store.standing(for: "alice", window: .weekly)?.state == .loaded)
+    }
+
+    @Test func showingSomeoneFetchesOnePageForEveryWindow() async {
+        let store = makeStore()
+        let fetcher = CalendarFetcher(["me": me, "alice": alice])
+        let clock = clock
+        let refresh = RefreshCoordinator(store: store, client: fetcher, interval: 99999, now: { clock.date })
+        refresh.additionalWindows = { [.weekly] }
+
+        await refresh.refreshOne(username: "alice", reason: .visibilityChanged)
+
+        #expect(await fetcher.pages == 1)
+        #expect(store.history(for: "alice") == alice)
+        #expect(store.standing(for: "alice", window: .weekly)?.contributions == 8)
+    }
+}
