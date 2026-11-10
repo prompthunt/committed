@@ -22,6 +22,8 @@
 
   var doc = document;
   var root = doc.documentElement;
+  /** In another screen's frame the page is transparent, so the host's tile color shows through. */
+  var embedded = window.self !== window.top;
   var rowsEl = byId("rows");
   var countEl = byId("count");
 
@@ -451,7 +453,7 @@
     var stacked = height > width * 1.2;
     unit = stacked ? Math.min(width / 20, height / 28) : Math.min(width / 36, height / 15);
     root.style.fontSize = unit + "px";
-    root.className = stacked ? "stacked" : "";
+    root.className = (stacked ? "stacked" : "") + (embedded ? " embedded" : "");
     if (board) renderRows(false);
   }
 

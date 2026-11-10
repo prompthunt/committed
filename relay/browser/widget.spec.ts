@@ -308,3 +308,30 @@ for (const [name, width, height] of [
     await screenshot(page, `fill-${name}-${width}x${height}`);
   });
 }
+
+test("on its own the page paints Committed's ink background", async ({ page }) => {
+  await open(page, { status: 200, body: board() });
+  await expect(rank(page)).toHaveText("#3");
+  const bg = await page.evaluate(() => getComputedStyle(document.body).backgroundColor);
+  expect(bg).toBe("rgb(5, 5, 5)");
+});
+
+test("embedded in another screen's frame, the page is transparent so the host's tile shows through", async ({ page }) => {
+  const HOST = "https://host.test/";
+  await page.route(HOST, (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "text/html",
+      body: `<!doctype html><body style="margin:0;background:#141416"><iframe id="w" src="${WIDGET_URL}" style="border:0;width:1280px;height:1080px"></iframe></body>`,
+    })
+  );
+  await open(page, { status: 200, body: board() }, HOST);
+  const frame = page.frameLocator("#w");
+  await expect(frame.getByTestId("rank")).toHaveText("#3");
+  const widget = page.frames().find((f) => f.url().startsWith(ORIGIN))!;
+  const bgs = await widget.evaluate(() => [
+    getComputedStyle(document.documentElement).backgroundColor,
+    getComputedStyle(document.body).backgroundColor,
+  ]);
+  expect(bgs).toEqual(["rgba(0, 0, 0, 0)", "rgba(0, 0, 0, 0)"]);
+});
