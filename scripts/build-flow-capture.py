@@ -83,6 +83,7 @@ app_file.write_text(r'''import SwiftUI
             .environment(store).environment(refresh).environment(auth).environment(roster).environment(notifications)
             .preferredColorScheme(.light)
             .task { await roster.refresh() }
+            .task { await snapshotIfRequested() }
         }
         .windowResizability(.contentSize)
         .commands {
@@ -100,6 +101,18 @@ app_file.write_text(r'''import SwiftUI
         Window("How contributions are counted", id: ExplainerWindow.id) { ContributionsExplainerView() }
             .windowResizability(.contentSize)
     }
+}
+
+/// `-CaptureSnapshot <file.png>`: after the board settles, the host writes its own window's
+/// contents to that PNG and quits, for captures where the shell can't record the screen.
+@MainActor private func snapshotIfRequested() async {
+    guard let path = UserDefaults.standard.string(forKey: "CaptureSnapshot") else { return }
+    try? await Task.sleep(for: .seconds(4))
+    guard let view = NSApp.windows.first(where: \.isVisible)?.contentView?.superview,
+          let rep = view.bitmapImageRepForCachingDisplay(in: view.bounds) else { return }
+    view.cacheDisplay(in: view.bounds, to: rep)
+    try? rep.representation(using: .png, properties: [:])?.write(to: URL(fileURLWithPath: path))
+    NSApp.terminate(nil)
 }
 
 /// Made-up counts grow with the Window, so 30 days reads bigger than This month or Today.
