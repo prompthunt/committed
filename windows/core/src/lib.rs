@@ -110,6 +110,9 @@ pub struct Row {
     pub person: Person,
     pub rank: usize,
     pub contributions: Option<u32>,
+    /// Consecutive days with a contribution, alive through today (`history::current_streak`).
+    /// `None` when this person's calendar hasn't loaded, never 0 for missing data.
+    pub streak: Option<u32>,
     pub is_you: bool,
     pub movement: i32,
     pub status: String,
@@ -356,6 +359,7 @@ fn ranked_rows(state: &State, window: Window, today: NaiveDate, now: i64) -> Vec
                 person: person.clone(),
                 rank: 0,
                 contributions: snapshot.map(|s| history::total(&s.days, window, today)),
+                streak: snapshot.map(|s| history::current_streak(&s.days, today)),
                 is_you: state.saved.owner.as_ref() == Some(&person.login),
                 movement: 0,
                 status: if state.failed.contains_key(&person.login) {

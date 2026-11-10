@@ -9,6 +9,8 @@ export interface Person {
 export interface Row extends Person {
   rank: number;
   contributions: number | null;
+  /** Consecutive days with a contribution, alive through today; null before the calendar loads. */
+  streak: number | null;
   is_you: boolean;
   movement: number;
   status: "loaded" | "loading" | "cached" | "failed" | "missing";

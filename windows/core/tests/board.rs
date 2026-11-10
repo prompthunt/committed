@@ -278,6 +278,51 @@ async fn comma_counts_and_parse_failure_do_not_become_zero_activity() {
     );
 }
 
+/// `<td>` cells for a calendar: one per `(day, count)`, days as offsets back from 2026-05-28.
+fn calendar(cells: &[(i64, u32)]) -> String {
+    let today = chrono::NaiveDate::from_ymd_opt(2026, 5, 28).unwrap();
+    cells
+        .iter()
+        .map(|(back, count)| {
+            let day = today - chrono::Duration::days(*back);
+            format!(r#"<td data-date="{day}" data-count="{count}"></td>"#)
+        })
+        .collect()
+}
+
+#[tokio::test]
+async fn rows_carry_each_streak_from_the_saved_calendar_and_none_without_data() {
+    let f = Fixture::new();
+    f.connect().await;
+    f.response(
+        "https://api.github.com/user/following?per_page=100&page=1",
+        r#"[{"login":"friend"},{"login":"offline"}]"#,
+    );
+    // You: nothing yet today, 12 days in a row before that. Friend: 3 days, today included.
+    let mine: Vec<(i64, u32)> = std::iter::once((0, 0))
+        .chain((1..=12).map(|back| (back, 2)))
+        .chain(std::iter::once((13, 0)))
+        .collect();
+    f.contributions("octocat", &calendar(&mine));
+    f.contributions("friend", &calendar(&[(0, 5), (1, 1), (2, 4), (3, 0)]));
+    // `offline`'s page never loads.
+    f.core.refresh(RefreshReason::Manual).await.unwrap();
+    for window in [Window::Today, Window::Week, Window::Month] {
+        let board = f.core.board(window);
+        let streak = |login: &str| {
+            board
+                .rows
+                .iter()
+                .find(|row| row.person.login == login)
+                .unwrap()
+                .streak
+        };
+        assert_eq!(streak("octocat"), Some(12), "alive through today");
+        assert_eq!(streak("friend"), Some(3));
+        assert_eq!(streak("offline"), None, "no data is no streak, never 0");
+    }
+}
+
 #[tokio::test]
 async fn device_flow_honors_poll_interval_and_connects_without_exposing_token() {
     let f = Fixture::new();

@@ -295,6 +295,15 @@ small {
   font-size: 14px;
   font-weight: 600;
 }
+.streak {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.standing .streak {
+  flex-shrink: 0;
+  color: var(--muted);
+  font-size: 12px;
+}
 .contribution-squares {
   width: 12px;
   height: 12px;

@@ -32,6 +32,14 @@ const escape = (value: unknown) =>
 const name = (p: Person) => p.name?.trim() || p.login;
 const count = (value: number | null) =>
   value === null ? "—" : value.toLocaleString();
+// A streak shows from 2 days. GitHub's calendar covers about a year, so above 365 it reads
+// "365+": the run may have started before the calendar does.
+function streakText(streak: number | null | undefined) {
+  if (streak == null || streak < 2) return null;
+  return streak > 365 ? "365+" : String(streak);
+}
+const streakSpoken = (text: string) =>
+  text.endsWith("+") ? `${text} day streak` : `${text}-day streak`;
 const age = (timestamp: number | null) =>
   timestamp === null
     ? "Not refreshed yet"
@@ -176,6 +184,7 @@ export async function start(
         );
     } else {
       const me = board.rows.find((row) => row.is_you);
+      const myStreak = me ? streakText(me.streak) : null;
       const refreshing = board.refreshing;
       const first = !board.rows.some((r) => r.contributions !== null);
       const maxContributions = Math.max(
@@ -183,19 +192,20 @@ export async function start(
         ...board.rows.map((row) => row.contributions ?? 0),
       );
       replace(`<header><h1>${brandMark} Committed</h1>${menu(board)}</header><div class="board-content">
-        ${me ? `<section class="summary">${avatar(me)}<div><strong>${escape(name(me))}</strong><small>@${escape(me.login)} · you</small></div><div class="summary-count">${count(me.contributions)}<small>Contributions</small></div></section>` : "<p>Connect GitHub to load your board.</p>"}
+        ${me ? `<section class="summary">${avatar(me)}<div><strong>${escape(name(me))}</strong><small>@${escape(me.login)} · you${myStreak ? ` · <span class="streak" role="img" aria-label="${streakSpoken(myStreak)}">🔥 ${myStreak}</span>` : ""}</small></div><div class="summary-count">${count(me.contributions)}<small>Contributions</small></div></section>` : "<p>Connect GitHub to load your board.</p>"}
         <div class="windows" role="radiogroup" aria-label="Time range">${windows.map(([value, label]) => `<button role="radio" aria-checked="${selected === value}" tabindex="${selected === value ? 0 : -1}" data-window="${value}" data-focus="window-${value}">${label}</button>`).join("")}</div>
         <p class="status">${windows.find((w) => w[0] === selected)![1]} · ${refreshing ? (first ? "Fetching the first set of standings" : "Updating Contributions…") : board.error ? "Refresh finished with errors." : age(board.last_updated)}</p>
         <div class="tracking"><small>Tracking ${board.rows.length} people</small><button data-action="people">People…</button></div>
         <ol class="standings ${refreshing && !first ? "refreshing" : ""}" aria-label="Leaderboard" aria-busy="${refreshing}">${board.rows
           .map((row) => {
-            const spoken = `Rank ${row.rank}, ${name(row)}, ${row.contributions === null ? "Contributions unavailable" : `${row.contributions} Contributions`}${row.is_you ? ", you" : ""}`;
+            const streak = streakText(row.streak);
+            const spoken = `Rank ${row.rank}, ${name(row)}, ${row.contributions === null ? "Contributions unavailable" : `${row.contributions} Contributions`}${streak ? `, ${streakSpoken(streak)}` : ""}${row.is_you ? ", you" : ""}`;
             const shade = Math.min(
               1,
               (row.contributions ?? 0) / maxContributions,
             );
             const squareColor = `rgb(${Math.round(156 - 110 * shade)}, ${Math.round(232 - 71 * shade)}, ${Math.round(168 - 102 * shade)})`;
-            return `<li class="${row.is_you ? "you" : ""}"><button class="standing" data-profile="${escape(row.login)}" data-focus="row-${escape(row.login)}" aria-label="${escape(spoken)}"><span class="rank">#${row.rank}</span>${avatar(row)}<span class="identity"><strong title="${escape(name(row))}">${escape(row.login)}${row.is_you ? ' <span class="badge">you</span>' : ""}</strong>${row.status === "failed" ? "<small>Refresh failed</small>" : ""}</span>${selected === "today" && row.movement ? `<span class="movement ${row.movement > 0 ? "up" : "down"}" aria-label="Moved ${row.movement > 0 ? "up" : "down"} ${Math.abs(row.movement)}">${row.movement > 0 ? "↑" : "↓"}${Math.abs(row.movement)}</span>` : ""}<strong class="contributions">${count(row.contributions)}</strong><svg class="contribution-squares" viewBox="0 0 12 12" fill="${squareColor}" aria-hidden="true" ${row.contributions === null ? 'style="visibility:hidden"' : ""}><path d="M0 0h5v5H0zM7 0h5v5H7zM0 7h5v5H0zM7 7h5v5H7z" /></svg></button></li>`;
+            return `<li class="${row.is_you ? "you" : ""}"><button class="standing" data-profile="${escape(row.login)}" data-focus="row-${escape(row.login)}" aria-label="${escape(spoken)}"><span class="rank">#${row.rank}</span>${avatar(row)}<span class="identity"><strong title="${escape(name(row))}">${escape(row.login)}${row.is_you ? ' <span class="badge">you</span>' : ""}</strong>${row.status === "failed" ? "<small>Refresh failed</small>" : ""}</span>${selected === "today" && row.movement ? `<span class="movement ${row.movement > 0 ? "up" : "down"}" aria-label="Moved ${row.movement > 0 ? "up" : "down"} ${Math.abs(row.movement)}">${row.movement > 0 ? "↑" : "↓"}${Math.abs(row.movement)}</span>` : ""}${streak ? `<span class="streak" aria-hidden="true">🔥 ${streak}</span>` : ""}<strong class="contributions">${count(row.contributions)}</strong><svg class="contribution-squares" viewBox="0 0 12 12" fill="${squareColor}" aria-hidden="true" ${row.contributions === null ? 'style="visibility:hidden"' : ""}><path d="M0 0h5v5H0zM7 0h5v5H7zM0 7h5v5H0zM7 7h5v5H7z" /></svg></button></li>`;
           })
           .join("")}</ol>
         ${first && !refreshing ? '<p class="muted">Fetching the first set of standings. Use Refresh to retry if GitHub is unavailable.</p>' : ""}
