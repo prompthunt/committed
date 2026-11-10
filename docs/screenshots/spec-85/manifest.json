@@ -1,0 +1,38 @@
+{
+  "notes": "Spec #85 UI evidence. Captures live in <ticket>/ folders; each entry carries its own device, OS and notes, because the tickets use different surfaces.",
+  "screenshots": [
+    {
+      "file": "93/board-today-light.png",
+      "caption": "#93 Windows board, Today, light: 🔥 streaks on rows beside the count and in your summary; 1-day and no-data rows show none",
+      "capture": {
+        "device": "Chromium (in-app browser) on macOS, mocked Tauri IPC, 380×620 board at 2x",
+        "os": "macOS 27.0",
+        "sourceCommit": "9f5667f953baca676019c78324e02db76e5e2c53",
+        "fixture": true
+      },
+      "notes": "Windows board, not WebView2 on Windows: the real app UI (windows/src/app.ts and style.css) served by vite and fed the Sample board through windows/fixture.html (mocked Tauri IPC, data in windows/src/sample-board.ts). macOS system fonts instead of Segoe UI; no window chrome or tray. Streak cases on show: 365+ (ines-volk, a 371-day run), 23, 12 (you, also in the summary), 2 (ezra-q), 1 (bram-ott, hidden), and no data (niko-vane, failed: no streak). No before capture: the fixture page is new in this change, so there is no baseline board to compare. Recipe: cd windows && npm run dev, open http://127.0.0.1:1420/fixture.html?view=board, resize to 380×620."
+    },
+    {
+      "file": "93/board-today-dark.png",
+      "caption": "#93 Windows board, Today, dark: same streaks, readable on the dark surface and on your highlighted row",
+      "capture": {
+        "device": "Chromium (in-app browser) on macOS, mocked Tauri IPC, 380×620 board at 2x",
+        "os": "macOS 27.0",
+        "sourceCommit": "9f5667f953baca676019c78324e02db76e5e2c53",
+        "fixture": true
+      },
+      "notes": "Windows board, not WebView2 on Windows: the real app UI (windows/src/app.ts and style.css) served by vite and fed the Sample board through windows/fixture.html (mocked Tauri IPC, data in windows/src/sample-board.ts). macOS system fonts instead of Segoe UI; no window chrome or tray. Streak cases on show: 365+ (ines-volk, a 371-day run), 23, 12 (you, also in the summary), 2 (ezra-q), 1 (bram-ott, hidden), and no data (niko-vane, failed: no streak). No before capture: the fixture page is new in this change, so there is no baseline board to compare. Recipe: cd windows && npm run dev, open http://127.0.0.1:1420/fixture.html?view=board, resize to 380×620."
+    },
+    {
+      "file": "93/board-30-days-light.png",
+      "caption": "#93 Windows board, 30 days, light: streaks don't depend on the Window; three-digit counts still fit beside 🔥 365+",
+      "capture": {
+        "device": "Chromium (in-app browser) on macOS, mocked Tauri IPC, 380×620 board at 2x",
+        "os": "macOS 27.0",
+        "sourceCommit": "9f5667f953baca676019c78324e02db76e5e2c53",
+        "fixture": true
+      },
+      "notes": "Windows board, not WebView2 on Windows: the real app UI (windows/src/app.ts and style.css) served by vite and fed the Sample board through windows/fixture.html (mocked Tauri IPC, data in windows/src/sample-board.ts). macOS system fonts instead of Segoe UI; no window chrome or tray. Streak cases on show: 365+ (ines-volk, a 371-day run), 23, 12 (you, also in the summary), 2 (ezra-q), 1 (bram-ott, hidden), and no data (niko-vane, failed: no streak). No before capture: the fixture page is new in this change, so there is no baseline board to compare. Recipe: cd windows && npm run dev, open http://127.0.0.1:1420/fixture.html?view=board, resize to 380×620."
+    }
+  ]
+}
