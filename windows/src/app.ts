@@ -19,8 +19,11 @@ const appIcon = new URL(
 const windows: [Window, string][] = [
   ["today", "Today"],
   ["week", "7 days"],
-  ["month", "30 days"],
+  ["monthly", "30 days"],
+  ["month", "This month"],
 ];
+// Windows whose rows show movement since the first refresh of the day (the core sets the rest to 0).
+const movementWindows: Window[] = ["today", "month"];
 const escape = (value: unknown) =>
   String(value ?? "").replace(
     /[&<>"']/g,
@@ -32,6 +35,14 @@ const escape = (value: unknown) =>
 const name = (p: Person) => p.name?.trim() || p.login;
 const count = (value: number | null) =>
   value === null ? "—" : value.toLocaleString();
+// A streak shows from 2 days. GitHub's calendar covers about a year, so above 365 it reads
+// "365+": the run may have started before the calendar does.
+function streakText(streak: number | null | undefined) {
+  if (streak == null || streak < 2) return null;
+  return streak > 365 ? "365+" : String(streak);
+}
+const streakSpoken = (text: string) =>
+  text.endsWith("+") ? `${text} day streak` : `${text}-day streak`;
 const age = (timestamp: number | null) =>
   timestamp === null
     ? "Not refreshed yet"
@@ -155,7 +166,7 @@ export async function start(
     }
     if (view === "about") {
       replace(
-        `<article class="about"><img class="app-icon" src="${appIcon}" alt="" /><h1>Committed</h1><p>A friendly GitHub leaderboard, one click from your tray.</p><p class="muted">Version ${escape(desktop.version)}</p><h2>What counts?</h2><p>Contributions are the green squares on each person’s public GitHub contribution graph. Today, 7 days, and 30 days include today in your local time zone.</p><h2>Private contributions</h2><p>Private activity counts only when that person enables <strong>Contribution settings → Private contributions</strong> on their GitHub profile.</p><p>Connecting requests read-only profile and organization access. Committed never requests repository access. Your token stays in Windows Credential Manager.</p><button data-action="contributions">Open GitHub profile settings</button>${alert()}</article>`,
+        `<article class="about"><img class="app-icon" src="${appIcon}" alt="" /><h1>Committed</h1><p>A friendly GitHub leaderboard, one click from your tray.</p><p class="muted">Version ${escape(desktop.version)}</p><h2>What counts?</h2><p>Contributions are the green squares on each person’s public GitHub contribution graph. Today, 7 days and 30 days include today in your local time zone. This month counts from the 1st of your local calendar month and starts again at zero on the next 1st.</p><h2>Private contributions</h2><p>Private activity counts only when that person enables <strong>Contribution settings → Private contributions</strong> on their GitHub profile.</p><p>Connecting requests read-only profile and organization access. Committed never requests repository access. Your token stays in Windows Credential Manager.</p><button data-action="contributions">Open GitHub profile settings</button>${alert()}</article>`,
       );
     } else if (view === "people") {
       const people = await invoke<PersonVisibility[]>("list_people", {
@@ -176,6 +187,7 @@ export async function start(
         );
     } else {
       const me = board.rows.find((row) => row.is_you);
+      const myStreak = me ? streakText(me.streak) : null;
       const refreshing = board.refreshing;
       const first = !board.rows.some((r) => r.contributions !== null);
       const maxContributions = Math.max(
@@ -183,19 +195,20 @@ export async function start(
         ...board.rows.map((row) => row.contributions ?? 0),
       );
       replace(`<header><h1>${brandMark} Committed</h1>${menu(board)}</header><div class="board-content">
-        ${me ? `<section class="summary">${avatar(me)}<div><strong>${escape(name(me))}</strong><small>@${escape(me.login)} · you</small></div><div class="summary-count">${count(me.contributions)}<small>Contributions</small></div></section>` : "<p>Connect GitHub to load your board.</p>"}
+        ${me ? `<section class="summary">${avatar(me)}<div><strong>${escape(name(me))}</strong><small>@${escape(me.login)} · you${myStreak ? ` · <span class="streak" role="img" aria-label="${streakSpoken(myStreak)}">🔥 ${myStreak}</span>` : ""}</small></div><div class="summary-count">${count(me.contributions)}<small>Contributions</small></div></section>` : "<p>Connect GitHub to load your board.</p>"}
         <div class="windows" role="radiogroup" aria-label="Time range">${windows.map(([value, label]) => `<button role="radio" aria-checked="${selected === value}" tabindex="${selected === value ? 0 : -1}" data-window="${value}" data-focus="window-${value}">${label}</button>`).join("")}</div>
-        <p class="status">${windows.find((w) => w[0] === selected)![1]} · ${refreshing ? (first ? "Fetching the first set of standings" : "Updating Contributions…") : board.error ? "Refresh finished with errors." : age(board.last_updated)}</p>
+        <p class="status">${windows.find((w) => w[0] === selected)![1]}${selected === "month" ? ` · Day ${board.day_of_month} of ${board.days_in_month}` : ""} · ${refreshing ? (first ? "Fetching the first set of standings" : "Updating Contributions…") : board.error ? "Refresh finished with errors." : age(board.last_updated)}</p>
         <div class="tracking"><small>Tracking ${board.rows.length} people</small><button data-action="people">People…</button></div>
         <ol class="standings ${refreshing && !first ? "refreshing" : ""}" aria-label="Leaderboard" aria-busy="${refreshing}">${board.rows
           .map((row) => {
-            const spoken = `Rank ${row.rank}, ${name(row)}, ${row.contributions === null ? "Contributions unavailable" : `${row.contributions} Contributions`}${row.is_you ? ", you" : ""}`;
+            const streak = streakText(row.streak);
+            const spoken = `Rank ${row.rank}, ${name(row)}, ${row.contributions === null ? "Contributions unavailable" : `${row.contributions} Contributions`}${streak ? `, ${streakSpoken(streak)}` : ""}${row.is_you ? ", you" : ""}`;
             const shade = Math.min(
               1,
               (row.contributions ?? 0) / maxContributions,
             );
             const squareColor = `rgb(${Math.round(156 - 110 * shade)}, ${Math.round(232 - 71 * shade)}, ${Math.round(168 - 102 * shade)})`;
-            return `<li class="${row.is_you ? "you" : ""}"><button class="standing" data-profile="${escape(row.login)}" data-focus="row-${escape(row.login)}" aria-label="${escape(spoken)}"><span class="rank">#${row.rank}</span>${avatar(row)}<span class="identity"><strong title="${escape(name(row))}">${escape(row.login)}${row.is_you ? ' <span class="badge">you</span>' : ""}</strong>${row.status === "failed" ? "<small>Refresh failed</small>" : ""}</span>${selected === "today" && row.movement ? `<span class="movement ${row.movement > 0 ? "up" : "down"}" aria-label="Moved ${row.movement > 0 ? "up" : "down"} ${Math.abs(row.movement)}">${row.movement > 0 ? "↑" : "↓"}${Math.abs(row.movement)}</span>` : ""}<strong class="contributions">${count(row.contributions)}</strong><svg class="contribution-squares" viewBox="0 0 12 12" fill="${squareColor}" aria-hidden="true" ${row.contributions === null ? 'style="visibility:hidden"' : ""}><path d="M0 0h5v5H0zM7 0h5v5H7zM0 7h5v5H0zM7 7h5v5H7z" /></svg></button></li>`;
+            return `<li class="${row.is_you ? "you" : ""}"><button class="standing" data-profile="${escape(row.login)}" data-focus="row-${escape(row.login)}" aria-label="${escape(spoken)}"><span class="rank">#${row.rank}</span>${avatar(row)}<span class="identity"><strong title="${escape(name(row))}">${escape(row.login)}${row.is_you ? ' <span class="badge">you</span>' : ""}</strong>${row.status === "failed" ? "<small>Refresh failed</small>" : ""}</span>${movementWindows.includes(selected) && row.movement ? `<span class="movement ${row.movement > 0 ? "up" : "down"}" aria-label="Moved ${row.movement > 0 ? "up" : "down"} ${Math.abs(row.movement)}">${row.movement > 0 ? "↑" : "↓"}${Math.abs(row.movement)}</span>` : ""}${streak ? `<span class="streak" aria-hidden="true">🔥 ${streak}</span>` : ""}<strong class="contributions">${count(row.contributions)}</strong><svg class="contribution-squares" viewBox="0 0 12 12" fill="${squareColor}" aria-hidden="true" ${row.contributions === null ? 'style="visibility:hidden"' : ""}><path d="M0 0h5v5H0zM7 0h5v5H7zM0 7h5v5H0zM7 7h5v5H7z" /></svg></button></li>`;
           })
           .join("")}</ol>
         ${first && !refreshing ? '<p class="muted">Fetching the first set of standings. Use Refresh to retry if GitHub is unavailable.</p>' : ""}
@@ -358,8 +371,9 @@ export async function start(
         event.key === "Home"
           ? 0
           : event.key === "End"
-            ? 2
-            : (index + (event.key === "ArrowRight" ? 1 : 2)) % 3;
+            ? windows.length - 1
+            : (index + (event.key === "ArrowRight" ? 1 : windows.length - 1)) %
+              windows.length;
       root
         .querySelector<HTMLButtonElement>(`[data-window="${windows[next][0]}"]`)
         ?.click();

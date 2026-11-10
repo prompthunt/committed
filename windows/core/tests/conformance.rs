@@ -39,8 +39,9 @@ struct Placed {
     rank: usize,
 }
 
-/// The fixture uses Swift's Window raw values. Windows' own `Window` serializes differently (its
-/// 30-day Window is `"month"`), so the strings are checked here rather than deserialized into it.
+/// The fixture uses Swift's Window raw values. Windows' `Window` shares `"monthly"` (30 days) and
+/// `"month"` (This month) but still calls Today and 7 days `"today"` and `"week"`, so the strings
+/// are checked here rather than deserialized into it.
 fn known_window(raw: &str) -> bool {
     matches!(raw, "daily" | "weekly" | "monthly")
 }
