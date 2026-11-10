@@ -88,6 +88,61 @@
         "fixture": true
       },
       "notes": "Windows board (#96) captured as Chromium on macOS with mocked Tauri IPC: windows/ served by vite, start(root, 'board') driven through @tauri-apps/api/mocks with fixture rows (five made-up logins, letter avatars). Not WebView2 on Windows: fonts are macOS system fonts, there's no window chrome or tray. Board window at its default 380×620 CSS px unless noted (340 px is tauri.conf's minWidth). The before capture is origin/spec-85-streaks-month-person (999a565) with the same fixture."
+    },
+    {
+      "file": "95/iphone-this-month.png",
+      "caption": "#95 iPhone Board on This month: fourth segment, summary heading 04 · This month · Day 10 of 30, movement chevrons (Ari up 1 past Ezra)",
+      "capture": {
+        "device": "iPhone Duo Simulator (persistent, primary display)",
+        "os": "iOS 27.1",
+        "sourceCommit": "ded160894d3a735d1f4b5993f4392389a60dc4a7",
+        "fixture": true
+      },
+      "notes": "#95 This month. iPhone: runtime captures (xcrun simctl io screenshot --display=primary) of a Debug build on the persistent iPhone Duo, launched with -ScreenshotFixture -ScreenshotWindow month|daily -dismissedPrivateContribTip YES (Sample board data; the fixture refreshes twice, so both Windows show movement). Mac: the scripts/build-flow-capture.py fixture host, launched with -CaptureWindow month|daily -CaptureSnapshot <file> (the host writes its own window's contents; this shell has no Screen Recording permission). The share story is a render, not runtime capture: BoardShareTests.thisMonthStoryFromTheSampleBoard renders the real BoardShareRenderer from AppModel.boardToShare() on the Sample board, on a disposable iPhone Duo via scripts/ios_check.py ios. No before captures: the three-segment baseline was not recaptured. All captured on 2026-11-10 (Day 10 of 30)."
+    },
+    {
+      "file": "95/iphone-today.png",
+      "caption": "#95 iPhone Board on Today with the four-segment Window switch",
+      "capture": {
+        "device": "iPhone Duo Simulator (persistent, primary display)",
+        "os": "iOS 27.1",
+        "sourceCommit": "ded160894d3a735d1f4b5993f4392389a60dc4a7",
+        "fixture": true
+      },
+      "notes": "#95 This month. iPhone: runtime captures (xcrun simctl io screenshot --display=primary) of a Debug build on the persistent iPhone Duo, launched with -ScreenshotFixture -ScreenshotWindow month|daily -dismissedPrivateContribTip YES (Sample board data; the fixture refreshes twice, so both Windows show movement). Mac: the scripts/build-flow-capture.py fixture host, launched with -CaptureWindow month|daily -CaptureSnapshot <file> (the host writes its own window's contents; this shell has no Screen Recording permission). The share story is a render, not runtime capture: BoardShareTests.thisMonthStoryFromTheSampleBoard renders the real BoardShareRenderer from AppModel.boardToShare() on the Sample board, on a disposable iPhone Duo via scripts/ios_check.py ios. No before captures: the three-segment baseline was not recaptured. All captured on 2026-11-10 (Day 10 of 30)."
+    },
+    {
+      "file": "95/mac-this-month.png",
+      "caption": "#95 Mac popover on This month: four segments fit the 340 pt popover, Day 10 of 30 under your count",
+      "capture": {
+        "device": "MacBook Pro (fixture host)",
+        "os": "macOS 27.0.1",
+        "sourceCommit": "ded160894d3a735d1f4b5993f4392389a60dc4a7",
+        "fixture": true
+      },
+      "notes": "#95 This month. iPhone: runtime captures (xcrun simctl io screenshot --display=primary) of a Debug build on the persistent iPhone Duo, launched with -ScreenshotFixture -ScreenshotWindow month|daily -dismissedPrivateContribTip YES (Sample board data; the fixture refreshes twice, so both Windows show movement). Mac: the scripts/build-flow-capture.py fixture host, launched with -CaptureWindow month|daily -CaptureSnapshot <file> (the host writes its own window's contents; this shell has no Screen Recording permission). The share story is a render, not runtime capture: BoardShareTests.thisMonthStoryFromTheSampleBoard renders the real BoardShareRenderer from AppModel.boardToShare() on the Sample board, on a disposable iPhone Duo via scripts/ios_check.py ios. No before captures: the three-segment baseline was not recaptured. All captured on 2026-11-10 (Day 10 of 30)."
+    },
+    {
+      "file": "95/mac-today.png",
+      "caption": "#95 Mac popover on Today with the four-segment Window switch",
+      "capture": {
+        "device": "MacBook Pro (fixture host)",
+        "os": "macOS 27.0.1",
+        "sourceCommit": "ded160894d3a735d1f4b5993f4392389a60dc4a7",
+        "fixture": true
+      },
+      "notes": "#95 This month. iPhone: runtime captures (xcrun simctl io screenshot --display=primary) of a Debug build on the persistent iPhone Duo, launched with -ScreenshotFixture -ScreenshotWindow month|daily -dismissedPrivateContribTip YES (Sample board data; the fixture refreshes twice, so both Windows show movement). Mac: the scripts/build-flow-capture.py fixture host, launched with -CaptureWindow month|daily -CaptureSnapshot <file> (the host writes its own window's contents; this shell has no Screen Recording permission). The share story is a render, not runtime capture: BoardShareTests.thisMonthStoryFromTheSampleBoard renders the real BoardShareRenderer from AppModel.boardToShare() on the Sample board, on a disposable iPhone Duo via scripts/ios_check.py ios. No before captures: the three-segment baseline was not recaptured. All captured on 2026-11-10 (Day 10 of 30)."
+    },
+    {
+      "file": "95/share-this-month-story.png",
+      "caption": "#95 Share board story on This month: Who shipped more this month? (render, not runtime capture)",
+      "capture": {
+        "device": "iPhone Duo Simulator (disposable, scripts/ios_check.py ios)",
+        "os": "iOS 27.1",
+        "sourceCommit": "ded160894d3a735d1f4b5993f4392389a60dc4a7",
+        "fixture": true
+      },
+      "notes": "#95 This month. iPhone: runtime captures (xcrun simctl io screenshot --display=primary) of a Debug build on the persistent iPhone Duo, launched with -ScreenshotFixture -ScreenshotWindow month|daily -dismissedPrivateContribTip YES (Sample board data; the fixture refreshes twice, so both Windows show movement). Mac: the scripts/build-flow-capture.py fixture host, launched with -CaptureWindow month|daily -CaptureSnapshot <file> (the host writes its own window's contents; this shell has no Screen Recording permission). The share story is a render, not runtime capture: BoardShareTests.thisMonthStoryFromTheSampleBoard renders the real BoardShareRenderer from AppModel.boardToShare() on the Sample board, on a disposable iPhone Duo via scripts/ios_check.py ios. No before captures: the three-segment baseline was not recaptured. All captured on 2026-11-10 (Day 10 of 30)."
     }
   ]
 }
