@@ -1,22 +1,25 @@
 use super::*;
 
+/// The Windows whose rows show movement since the first refresh of the day.
+const MOVEMENT_WINDOWS: [Window; 2] = [Window::Today, Window::ThisMonth];
+
 pub(crate) fn finish_refresh(state: &mut State, today: NaiveDate, now: i64) -> Vec<Notification> {
-    let daily = ranked_rows(state, Window::Today, today, now);
-    if state.baseline.as_ref().is_none_or(|(day, _)| *day != today)
-        && daily
+    for window in MOVEMENT_WINDOWS {
+        if state
+            .baselines
+            .get(&window)
+            .is_some_and(|(day, _)| *day == today)
+        {
+            continue;
+        }
+        let ranks: BTreeMap<String, usize> = ranked_rows(state, window, today, now)
             .iter()
-            .any(|r| r.contributions.is_some() && !state.failed.contains_key(&r.person.login))
-    {
-        state.baseline = Some((
-            today,
-            daily
-                .iter()
-                .filter(|r| {
-                    r.contributions.is_some() && !state.failed.contains_key(&r.person.login)
-                })
-                .map(|r| (r.person.login.clone(), r.rank))
-                .collect(),
-        ));
+            .filter(|r| r.contributions.is_some() && !state.failed.contains_key(&r.person.login))
+            .map(|r| (r.person.login.clone(), r.rank))
+            .collect();
+        if !ranks.is_empty() {
+            state.baselines.insert(window, (today, ranks));
+        }
     }
     let window = state.selected;
     let current: BTreeMap<_, _> = ranked_rows(state, window, today, now)
