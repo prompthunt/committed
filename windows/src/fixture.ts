@@ -17,8 +17,15 @@ mockIPC(
   (command, args) => {
     const payload = (args ?? {}) as Record<string, unknown>;
     switch (command) {
-      case "get_board":
-        return sampleBoard(payload.window as Window, now);
+      case "get_board": {
+        // Ages read against the real clock, so keep them a few minutes old on any `date`.
+        const real = Math.floor(Date.now() / 1000);
+        return {
+          ...sampleBoard(payload.window as Window, now),
+          last_updated: real - 120,
+          people_updated: real - 600,
+        };
+      }
       case "get_settings":
         return {
           notifications: true,
