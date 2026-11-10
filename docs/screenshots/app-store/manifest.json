@@ -1,45 +1,53 @@
 {
-  "device": "rendered at iPhone 6.9\" (440×956 pt, 3x)",
-  "os": "iOS 27.1 (iPhone Duo Simulator test host)",
-  "notes": "App Store frames, 1320×2868 px. Renders, not runtime captures: AppStoreScreenshotTests (scripts/ios_check.py ios with TEST_RUNNER_RENDER_DIR) draws each frame from Sample board data. Board, Share board and People are the real app hosted in a 440×956 pt UIWindow (6.9\" safe areas, bars at the bottom) on SampleServices as the app's graph, so the Sample board banner is omitted; Live rank and the widgets are the real views fed what AppModel published on the Sample board. The status bar, Dynamic Island, Lock Screen and Home Screen are drawn. Avatars are initials; nothing is fetched. See README.md to regenerate and upload.",
+  "device": "6.9\" iPhone frames, 1320×2868 px; the Duo screen is an iPhone Duo Simulator capture (2853×2007, inner display open)",
+  "os": "iOS 27.1 (iPhone Duo Simulator)",
+  "notes": "App Store marketing frames made in the screenshot editor (appstore/screenshots, app-store-screenshots.json) and exported with its Export bundle (scripts/export.mjs). Five iPhone screens are renders, not runtime captures: AppStoreScreenshotTests draws them from Sample board data (the real app in a 440×956 pt window, and the real Live Activity and widget views on a drawn Lock Screen and Home Screen). The iPhone Duo screen is a runtime capture of the Debug app on the iPhone Duo Simulator, opened in Device Hub, launched with -ScreenshotFixture -ScreenshotHide niko-vane -dismissedPrivateContribTip YES so it shows the same five sample people. Avatars are initials; nothing is fetched. See README.md to regenerate and upload.",
   "screenshots": [
     {
       "file": "01-board.png",
-      "caption": "Who shipped more today? Friends ranked by GitHub Contributions. (Board on the Sample board after one pull to refresh: Ari Linden #3 of 5 with a +1 chevron)",
+      "caption": "Who shipped more today? (Board on the Sample board after one pull to refresh: Ari Linden #3 of 5 with a +1 chevron; render)",
       "capture": {
-        "sourceCommit": "1815b736ce75d5f4bc93e5cbd9b1b6e5ae9b532b",
+        "sourceCommit": "0f84d50532a4036856408cb31b828b60e430160e",
         "fixture": true
       }
     },
     {
       "file": "02-live-rank.png",
-      "caption": "Your rank on the Lock Screen. See who's ahead and how many to pass. (Live rank's Lock Screen card and the Lock Screen widgets on a drawn Lock Screen)",
+      "caption": "Your rank on the Lock Screen. (Live rank's Lock Screen card and the Lock Screen widgets on a drawn Lock Screen; render)",
       "capture": {
-        "sourceCommit": "1815b736ce75d5f4bc93e5cbd9b1b6e5ae9b532b",
+        "sourceCommit": "0f84d50532a4036856408cb31b828b60e430160e",
         "fixture": true
       }
     },
     {
       "file": "03-widgets.png",
-      "caption": "The board on your Home Screen. Your rank and the leaders at a glance. (Small rank card, Committed Board, medium and large widgets on a drawn Home Screen)",
+      "caption": "The board on your Home Screen. (Small rank card, Committed Board, medium and large widgets on a drawn Home Screen, lime background; render)",
       "capture": {
-        "sourceCommit": "1815b736ce75d5f4bc93e5cbd9b1b6e5ae9b532b",
+        "sourceCommit": "0f84d50532a4036856408cb31b828b60e430160e",
         "fixture": true
       }
     },
     {
-      "file": "04-share-board.png",
-      "caption": "Share the board as an image. A square post or a story. (Share board sheet over the Board, Story format, Board style)",
+      "file": "04-iphone-duo.png",
+      "caption": "Open it up. See it all. (The Board open on iPhone Duo: the leaderboard and your summary in two panes; runtime capture from the iPhone Duo Simulator, in Apple's Duo bezel)",
       "capture": {
-        "sourceCommit": "1815b736ce75d5f4bc93e5cbd9b1b6e5ae9b532b",
+        "sourceCommit": "0f84d50532a4036856408cb31b828b60e430160e",
         "fixture": true
       }
     },
     {
-      "file": "05-people.png",
-      "caption": "Choose who's on your board. From who you follow and your organizations. (People on the Sample board: All / Following / Organizations, synced 4 min ago)",
+      "file": "05-share-board.png",
+      "caption": "Share the board as an image. (Share board sheet over the Board, Story format, Board style; render)",
       "capture": {
-        "sourceCommit": "1815b736ce75d5f4bc93e5cbd9b1b6e5ae9b532b",
+        "sourceCommit": "0f84d50532a4036856408cb31b828b60e430160e",
+        "fixture": true
+      }
+    },
+    {
+      "file": "06-people.png",
+      "caption": "Choose who's on your board. (People on the Sample board: All / Following / Organizations; render)",
+      "capture": {
+        "sourceCommit": "0f84d50532a4036856408cb31b828b60e430160e",
         "fixture": true
       }
     }
