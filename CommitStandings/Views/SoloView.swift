@@ -56,6 +56,15 @@ struct HeroCard: View {
                         .tracking(8 * 0.14)
                         .textCase(.uppercase)
                         .foregroundStyle(.secondary)
+                    // This month: "Day 10 of 30", so you know how much race is left.
+                    if let day = store.selectedWindow.dayOfMonth(asOf: Date()) {
+                        Text(day)
+                            .font(.system(size: 8, weight: .medium, design: .monospaced))
+                            .tracking(8 * 0.14)
+                            .textCase(.uppercase)
+                            .foregroundStyle(.tint)
+                            .padding(.top, 2)
+                    }
                 }
             }
             .padding(14)
@@ -68,7 +77,8 @@ struct HeroCard: View {
             .accessibilityElement(children: .ignore)
             .accessibilityLabel(Self.accessibilityLabel(
                 username: me.username, contributions: value(for: standing),
-                window: store.selectedWindow, streak: streak))
+                window: store.selectedWindow, dayOfMonth: store.selectedWindow.dayOfMonth(asOf: Date()),
+                streak: streak))
         }
     }
 
@@ -84,12 +94,13 @@ struct HeroCard: View {
 
     /// One sentence for the card. The streak is read only beside a loaded count.
     static func accessibilityLabel(username: String, contributions: Int?, window: ContributionWindow,
-                                   streak: Int?) -> String {
+                                   dayOfMonth: String? = nil, streak: Int?) -> String {
         guard let contributions else {
             return "@\(username), no contributions data yet"
         }
         let streak = StreakLabel.spoken(streak).map { ", " + $0 } ?? ""
-        return "@\(username), \(contributions) contributions for \(window.accessibilityDescription)\(streak)"
+        let day = dayOfMonth.map { ", \($0.lowercased())" } ?? ""
+        return "@\(username), \(contributions) contributions for \(window.accessibilityDescription)\(day)\(streak)"
     }
 }
 

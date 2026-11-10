@@ -54,6 +54,10 @@ app_file.write_text(r'''import SwiftUI
                     window: window, lastUpdated: now, state: .loaded))
             }
         }
+        // `-CaptureWindow month` opens the board on that Window (a ContributionWindow raw value).
+        if let window = UserDefaults.standard.string(forKey: "CaptureWindow").flatMap(ContributionWindow.init(rawValue:)) {
+            s.selectedWindow = window
+        }
         let sources = GitHubRosterSnapshot(owner: "octocat", sources: [
             GitHubRosterSource(id: "org:github", title: "github", members: ["octocat", "hubot", "monalisa"]),
             GitHubRosterSource(id: "following", title: "People you follow", members: s.rivals.filter { $0.username != "monalisa" }.map(\.username))
@@ -82,7 +86,7 @@ app_file.write_text(r'''import SwiftUI
             .environment(store).environment(refresh).environment(auth).environment(roster).environment(notifications)
             .preferredColorScheme(.light)
             .task { await roster.refresh() }
-            .task { await writeWindowPNGIfAsked() }
+            .task { await snapshotIfRequested() }
         }
         .windowResizability(.contentSize)
         .commands {
@@ -102,23 +106,23 @@ app_file.write_text(r'''import SwiftUI
     }
 }
 
+/// `-CaptureSnapshot <file.png>`: after the board settles, the host writes its own window's
+/// contents to that PNG and quits, for captures where the shell can't record the screen.
+@MainActor private func snapshotIfRequested() async {
+    guard let path = UserDefaults.standard.string(forKey: "CaptureSnapshot") else { return }
+    try? await Task.sleep(for: .seconds(4))
+    guard let view = NSApp.windows.first(where: \.isVisible)?.contentView?.superview,
+          let rep = view.bitmapImageRepForCachingDisplay(in: view.bounds) else { return }
+    view.cacheDisplay(in: view.bounds, to: rep)
+    try? rep.representation(using: .png, properties: [:])?.write(to: URL(fileURLWithPath: path))
+    NSApp.terminate(nil)
+}
+
 private struct CaptureCounts: ContributionsFetching {
     func standingCounts(for username: String, window: ContributionWindow, asOf reference: Date) async -> Result<StandingCounts, ContributionsError> {
         let history = captureHistory(username, asOf: reference)
         return .success(StandingCounts(contributions: history.total(for: window, asOf: reference), history: history))
     }
-}
-
-/// `COMMITTED_CAPTURE_PNG=<path>`: after the board settles, the host draws its own window into
-/// that PNG, for captures where the shell has no Screen Recording permission for `screencapture`.
-@MainActor private func writeWindowPNGIfAsked() async {
-    guard let path = ProcessInfo.processInfo.environment["COMMITTED_CAPTURE_PNG"] else { return }
-    try? await Task.sleep(for: .seconds(6))
-    guard let window = NSApp.windows.first(where: { $0.isVisible && $0.title.hasPrefix("Committed") }),
-          let view = window.contentView?.superview ?? window.contentView,
-          let rep = view.bitmapImageRepForCachingDisplay(in: view.bounds) else { return }
-    view.cacheDisplay(in: view.bounds, to: rep)
-    try? rep.representation(using: .png, properties: [:])?.write(to: URL(fileURLWithPath: path))
 }
 
 /// A made-up year of days: a fixed count a day, a streak of the listed length (nothing the day

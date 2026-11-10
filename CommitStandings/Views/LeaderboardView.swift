@@ -65,11 +65,10 @@ struct LeaderboardView: View {
         )
     }
 
-    /// Placement movement since the start of the day — only meaningful (and only shown) on the
-    /// Today board; the 7/30-day positions barely move hour to hour.
+    /// Placement movement since the start of the day — only shown on Today and This month; the
+    /// trailing 7/30-day positions barely move hour to hour.
     private func rankDelta(for username: String) -> Int? {
-        guard store.selectedWindow == .daily else { return nil }
-        return refresh.rankDelta(for: username)
+        refresh.rankDelta(for: username, in: store.selectedWindow)
     }
 
     /// Shown once, on the very first sync, in place of a board full of spinners.

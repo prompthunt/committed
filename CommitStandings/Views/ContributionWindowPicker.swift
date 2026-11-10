@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// The Today / 7 days / 30 days Window switch, shared by the Mac popover and the iPhone board.
+/// The Today / 7 days / 30 days / This month Window switch, shared by the Mac popover and the iPhone board.
 struct ContributionWindowPicker: View {
     @Environment(StandingsStore.self) private var store
 

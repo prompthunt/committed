@@ -6,7 +6,7 @@ mod parser;
 mod refresh;
 use async_trait::async_trait;
 pub use auth::{ConnectStatus, DevicePrompt};
-use chrono::NaiveDate;
+use chrono::{Datelike, NaiveDate};
 pub use refresh::{PeopleFilter, PersonVisibility, RefreshReason};
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
@@ -42,22 +42,20 @@ pub trait Notifier: Send + Sync {
     fn post(&self, notification: Notification);
 }
 
+/// A board's time range. `Monthly` (30 days) and `ThisMonth` serialize as Swift's and the relay's
+/// raw values, `"monthly"` and `"month"`, so every platform means the same thing by each string.
 #[derive(Clone, Copy, Debug, Default, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
 #[serde(rename_all = "camelCase")]
 pub enum Window {
     #[default]
     Today,
     Week,
-    Month,
-}
-impl Window {
-    fn days(self) -> i64 {
-        match self {
-            Self::Today => 1,
-            Self::Week => 7,
-            Self::Month => 30,
-        }
-    }
+    /// The last 30 days, including today.
+    #[serde(rename = "monthly")]
+    Monthly,
+    /// The local calendar month to date: from the 1st through today, starting again on the 1st.
+    #[serde(rename = "month")]
+    ThisMonth,
 }
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Person {
@@ -110,6 +108,9 @@ pub struct Row {
     pub person: Person,
     pub rank: usize,
     pub contributions: Option<u32>,
+    /// Consecutive days with a contribution, alive through today (`history::current_streak`).
+    /// `None` when this person's calendar hasn't loaded, never 0 for missing data.
+    pub streak: Option<u32>,
     pub is_you: bool,
     pub movement: i32,
     pub status: String,
@@ -124,6 +125,10 @@ pub struct Board {
     pub error: Option<String>,
     pub people_updated: Option<i64>,
     pub people_error: Option<String>,
+    /// Today's day of the local month and how many days the month has: This month's
+    /// "Day 10 of 30".
+    pub day_of_month: u32,
+    pub days_in_month: u32,
 }
 #[derive(Clone, Default, Serialize, Deserialize)]
 struct Snapshot {
@@ -179,7 +184,9 @@ struct State {
     people_attempt: Option<i64>,
     failed: BTreeMap<String, String>,
     selected: Window,
-    baseline: Option<(NaiveDate, BTreeMap<String, usize>)>,
+    /// Ranks at the first refresh of the day, for the Windows that show movement (Today and
+    /// This month), so each one's chevrons compare its own ranks.
+    baselines: BTreeMap<Window, (NaiveDate, BTreeMap<String, usize>)>,
     previous: BTreeMap<Window, (NaiveDate, BTreeMap<String, u32>)>,
 }
 pub struct BoardCore {
@@ -236,6 +243,8 @@ impl BoardCore {
             error: state.error.clone(),
             people_updated: state.saved.people_updated,
             people_error: state.people_error.clone(),
+            day_of_month: today.day(),
+            days_in_month: history::days_in_month(today),
         }
     }
     pub fn select_window(&self, window: Window) {
@@ -307,7 +316,7 @@ impl BoardCore {
         }
         state.generation += 1;
         state.refreshing = false;
-        state.baseline = None;
+        state.baselines.clear();
         state.previous.clear();
         self.persist(&state)
     }
@@ -326,7 +335,7 @@ impl BoardCore {
         state.people_attempt = None;
         state.saved.people_updated = None;
         state.failed.clear();
-        state.baseline = None;
+        state.baselines.clear();
         state.previous.clear();
         self.persist(&state)
     }
@@ -356,6 +365,7 @@ fn ranked_rows(state: &State, window: Window, today: NaiveDate, now: i64) -> Vec
                 person: person.clone(),
                 rank: 0,
                 contributions: snapshot.map(|s| history::total(&s.days, window, today)),
+                streak: snapshot.map(|s| history::current_streak(&s.days, today)),
                 is_you: state.saved.owner.as_ref() == Some(&person.login),
                 movement: 0,
                 status: if state.failed.contains_key(&person.login) {
@@ -383,13 +393,10 @@ fn ranked_rows(state: &State, window: Window, today: NaiveDate, now: i64) -> Vec
     rows.sort_by_key(|row| ranks[&row.person.login]);
     for row in rows.iter_mut() {
         row.rank = ranks[&row.person.login];
-        if window == Window::Today
-            && row.contributions.is_some()
-            && !state.failed.contains_key(&row.person.login)
-        {
+        if row.contributions.is_some() && !state.failed.contains_key(&row.person.login) {
             row.movement = state
-                .baseline
-                .as_ref()
+                .baselines
+                .get(&window)
                 .filter(|(day, _)| *day == today)
                 .and_then(|(_, ranks)| ranks.get(&row.person.login))
                 .map(|rank| *rank as i32 - row.rank as i32)

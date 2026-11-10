@@ -85,6 +85,92 @@ struct ContributionHistoryTests {
         #expect(ContributionHistory(days: [:], timeZone: utc).total(for: .weekly, asOf: asOf) == 0)
     }
 
+    // MARK: This month
+
+    /// 31-, 30-, 28- and 29-day months, each one's 1st, and a US DST weekend.
+    static let months: [String: Int] = [
+        "2025-12-31": 4,
+        "2026-01-01": 1,
+        "2026-01-31": 7,
+        "2026-02-01": 2,
+        "2026-02-28": 3,
+        "2026-03-01": 5,
+        "2026-03-08": 20, // US DST starts
+        "2026-03-09": 40,
+        "2026-03-31": 8,
+        "2026-04-01": 3,
+        "2026-04-30": 6,
+        "2026-05-01": 50,
+        "2028-02-01": 1,
+        "2028-02-29": 9, // leap day
+        "2028-03-01": 1,
+    ]
+
+    static let monthCases: [Case] = [
+        Case(name: "the 1st counts only the 1st", window: .month, local: (2026, 4, 1, 12, 0), zone: "UTC", expected: 3),
+        Case(name: "later days in the month never count", window: .month, local: (2026, 3, 8, 12, 0), zone: "UTC", expected: 25),
+        Case(name: "31-day month, last day, not December's", window: .month, local: (2026, 1, 31, 20, 0), zone: "Asia/Tokyo", expected: 8),
+        Case(name: "28-day February, last day", window: .month, local: (2026, 2, 28, 12, 0), zone: "Europe/Berlin", expected: 5),
+        Case(name: "29-day February in a leap year", window: .month, local: (2028, 2, 29, 12, 0), zone: "Australia/Adelaide", expected: 10),
+        Case(name: "the 1st after a leap day", window: .month, local: (2028, 3, 1, 12, 0), zone: "UTC", expected: 1),
+        Case(name: "30-day month, a minute before midnight", window: .month, local: (2026, 4, 30, 23, 59), zone: "America/Los_Angeles", expected: 9),
+        Case(name: "midnight on the 1st resets to zero plus the 1st", window: .month, local: (2026, 5, 1, 0, 0), zone: "America/Los_Angeles", expected: 50),
+        Case(name: "the month across a DST change", window: .month, local: (2026, 3, 9, 0, 30), zone: "America/Los_Angeles", expected: 65),
+    ]
+
+    @Test(arguments: monthCases)
+    func thisMonthTotal(_ c: Case) throws {
+        let zone = try #require(TimeZone(identifier: c.zone))
+        let history = ContributionHistory(days: Self.months, timeZone: zone)
+        #expect(history.total(for: c.window, asOf: try Self.instant(c.local, in: zone)) == c.expected)
+    }
+
+    /// 03:00 UTC on February 1 is still January 31 in Los Angeles: This month is January there and
+    /// February in Tokyo.
+    @Test func thisMonthIsTheMonthInTheHistorysOwnTimeZone() throws {
+        let instant = try Self.instant((2026, 2, 1, 3, 0), in: TimeZone(identifier: "UTC")!)
+        let losAngeles = ContributionHistory(days: Self.months, timeZone: TimeZone(identifier: "America/Los_Angeles")!)
+        let tokyo = ContributionHistory(days: Self.months, timeZone: TimeZone(identifier: "Asia/Tokyo")!)
+        #expect(losAngeles.total(for: .month, asOf: instant) == 8)
+        #expect(tokyo.total(for: .month, asOf: instant) == 2)
+    }
+
+    struct DayCase: CustomTestStringConvertible, Sendable {
+        let local: (Int, Int, Int, Int, Int)
+        let zone: String
+        let expected: String
+        var testDescription: String { expected }
+    }
+
+    /// "Day 10 of 30" beside This month: the day of the local month and how many days it has.
+    @Test(arguments: [
+        DayCase(local: (2026, 11, 10, 9, 0), zone: "UTC", expected: "Day 10 of 30"),
+        DayCase(local: (2026, 2, 1, 0, 0), zone: "Europe/Berlin", expected: "Day 1 of 28"),
+        DayCase(local: (2028, 2, 29, 12, 0), zone: "Australia/Adelaide", expected: "Day 29 of 29"),
+        DayCase(local: (2026, 1, 31, 23, 59), zone: "Asia/Tokyo", expected: "Day 31 of 31"),
+        DayCase(local: (2026, 11, 30, 19, 0), zone: "America/Los_Angeles", expected: "Day 30 of 30"),
+    ])
+    func thisMonthSaysWhichDayItIs(_ c: DayCase) throws {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = try #require(TimeZone(identifier: c.zone))
+        let asOf = try Self.instant(c.local, in: calendar.timeZone)
+        #expect(ContributionWindow.month.dayOfMonth(asOf: asOf, calendar: calendar) == c.expected)
+    }
+
+    @Test func onlyThisMonthSaysWhichDayItIs() {
+        for window in [ContributionWindow.daily, .weekly, .monthly] {
+            #expect(window.dayOfMonth(asOf: Date(timeIntervalSince1970: 1_794_000_000), calendar: .current) == nil)
+        }
+    }
+
+    @Test func thirtyDaysKeepsItsSavedRawValueAndThisMonthHasItsOwn() {
+        #expect(ContributionWindow(rawValue: "monthly") == .monthly)
+        #expect(ContributionWindow.monthly.shortTitle == "30 days")
+        #expect(ContributionWindow(rawValue: "month") == .month)
+        #expect(ContributionWindow.month.shortTitle == "This month")
+        #expect(ContributionWindow.allCases == [.daily, .weekly, .monthly, .month])
+    }
+
     @Test func roundTripsThroughJSONWithItsTimeZone() throws {
         let history = ContributionHistory(days: ["2026-05-28": 7], timeZone: TimeZone(identifier: "Asia/Tokyo")!)
         let decoded = try JSONDecoder().decode(ContributionHistory.self, from: JSONEncoder().encode(history))

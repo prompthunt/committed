@@ -248,7 +248,7 @@ final class AppModel {
     func publishWidgets() {
         let refresh = services.refresh
         var snapshot = auth.isSignedIn
-            ? WidgetSnapshot.board(store, window: liveRank.window, rankDelta: { refresh.rankDelta(for: $0) }, now: now())
+            ? WidgetSnapshot.board(store, window: liveRank.window, rankDelta: { [window = liveRank.window] in refresh.rankDelta(for: $0, in: window) }, now: now())
             : nil
         if mode == .sampleBoard { snapshot?.isSampleBoard = true }
         widgets.publish(snapshot)
@@ -259,7 +259,7 @@ final class AppModel {
     func boardToShare() -> WidgetSnapshot? {
         let refresh = services.refresh
         var snapshot = WidgetSnapshot.board(
-            store, window: store.selectedWindow, rankDelta: { refresh.rankDelta(for: $0) }, now: now(),
+            store, window: store.selectedWindow, rankDelta: { [window = store.selectedWindow] in refresh.rankDelta(for: $0, in: window) }, now: now(),
             rows: BoardShareFormat.maxBoardRows
         )
         if mode == .sampleBoard { snapshot?.isSampleBoard = true }

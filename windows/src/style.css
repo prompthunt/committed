@@ -185,10 +185,12 @@ small {
   gap: 3px;
 }
 .windows button {
-  flex: 1;
+  /* Four Windows share the row by label width so "This month" stays on one line at 340 px. */
+  flex: 1 1 auto;
+  white-space: nowrap;
   border: 0;
   background: none;
-  padding: 7px 0;
+  padding: 7px 4px;
   min-height: 36px;
 }
 .windows [aria-checked="true"] {
@@ -294,6 +296,15 @@ small {
   font-variant-numeric: tabular-nums;
   font-size: 14px;
   font-weight: 600;
+}
+.streak {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.standing .streak {
+  flex-shrink: 0;
+  color: var(--muted);
+  font-size: 12px;
 }
 .contribution-squares {
   width: 12px;

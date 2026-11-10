@@ -8,7 +8,8 @@ import UIKit
 ///     xcrun simctl launch <udid> com.addisonk.CommitStandings.iOS -ScreenshotFixture
 ///
 /// Optional, after `-ScreenshotFixture`: `-ScreenshotTab people|settings` opens on that tab,
-/// `-ScreenshotHide <login>` hides that person before the first refresh (so Today still moves), and
+/// `-ScreenshotHide <login>` hides that person before the first refresh (so Today still moves),
+/// `-ScreenshotWindow <raw value>` opens the board on that Window (`month` for This month), and
 /// `-LiveRankPayload <file.json>` shows a Live Activity push payload's content state in Live rank,
 /// and `-RelayDisclosureAccepted` starts with the Committed relay disclosure already accepted (for
 /// builds with `COMMITTED_RELAY_URL`; without it, a relay build shows the disclosure sheet).
@@ -155,6 +156,11 @@ enum ScreenshotFixture {
             restrictedOrganizations: value(after: "-ScreenshotRestrictedOrg").map { [$0] }
         ))
         let hide = value(after: "-ScreenshotHide")
+        // `-ScreenshotWindow month`: the board opens on that Window (a raw value), so This month's
+        // first two refreshes move too.
+        if let window = value(after: "-ScreenshotWindow").flatMap(ContributionWindow.init(rawValue:)) {
+            services.store.selectedWindow = window
+        }
         Task {
             await services.auth.refreshIdentity()
             if let hide {

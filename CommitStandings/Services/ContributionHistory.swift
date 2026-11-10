@@ -3,8 +3,8 @@ import Foundation
 /// One Competitor's daily contribution counts, as GitHub's calendar gave them, and the time zone
 /// they were read in. Every Window total comes from here. It's pure: each function takes the date
 /// to answer for and uses this history's own calendar, never the clock or the machine's time zone.
-/// Later tickets add month totals and active days beside `total` and `currentStreak`; the
-/// Windows core has the same functions in `windows/core/src/history.rs`.
+/// Later tickets add active days beside `total`, `monthTotal` and `currentStreak`; the Windows
+/// core has the same functions in `windows/core/src/history.rs`.
 ///
 /// Days are GitHub's civil dates (`data-date="YYYY-MM-DD"`), kept as written. A day missing from
 /// the calendar is unknown, never a zero; a person with no history at all is "no history yet".
@@ -33,15 +33,39 @@ struct ContributionHistory: Codable, Equatable, Sendable {
         return calendar
     }
 
-    /// Contributions in `window` as of `reference`: today (in this history's time zone) and the
-    /// `window.dayCount - 1` days before it. Later days never count.
+    /// Contributions in `window` as of `reference`, over `days(in:asOf:)`. Later days never count.
     func total(for window: ContributionWindow, asOf reference: Date) -> Int {
+        let range = days(in: window, asOf: reference)
+        return total(from: range.lowerBound, through: range.upperBound)
+    }
+
+    /// The days `window` covers as of `reference`, in this history's time zone, as the start of
+    /// each first and last day: today and the 6 or 29 days before it for the trailing Windows, and
+    /// the 1st of the month through today for This month (so it resets on the 1st).
+    func days(in window: ContributionWindow, asOf reference: Date) -> ClosedRange<Date> {
         let calendar = calendar
         let today = calendar.startOfDay(for: reference)
+        let first: Date?
+        switch window {
+        case .daily: first = today
+        case .weekly: first = calendar.date(byAdding: .day, value: -6, to: today)
+        case .monthly: first = calendar.date(byAdding: .day, value: -29, to: today)
+        case .month: first = calendar.dateInterval(of: .month, for: today)?.start
+        }
+        return (first ?? today)...today
+    }
+
+    /// Contributions from the day containing `first` through the day containing `last`,
+    /// inclusive, in this history's time zone. Days the calendar doesn't have count as nothing.
+    func total(from first: Date, through last: Date) -> Int {
+        let calendar = calendar
+        let end = calendar.startOfDay(for: last)
+        var day = calendar.startOfDay(for: first)
         var total = 0
-        for offset in 0..<window.dayCount {
-            guard let day = calendar.date(byAdding: .day, value: -offset, to: today) else { continue }
+        while day <= end {
             total += days[Self.key(for: day, in: calendar)] ?? 0
+            guard let next = calendar.date(byAdding: .day, value: 1, to: day) else { break }
+            day = next
         }
         return total
     }

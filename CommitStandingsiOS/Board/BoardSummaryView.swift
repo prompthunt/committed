@@ -27,7 +27,7 @@ struct BoardSummaryView: View {
             standings: store.standings(for: store.selectedWindow),
             window: store.selectedWindow,
             displayName: auth.displayName,
-            rankDelta: { refresh.rankDelta(for: $0) },
+            rankDelta: { [window = store.selectedWindow] in refresh.rankDelta(for: $0, in: window) },
             streak: { refresh.streak(for: $0) },
             lastUpdated: store.lastUpdated
         )
@@ -56,7 +56,7 @@ struct BoardSummaryView: View {
             && summary.contributions != nil
 
         return VStack(alignment: .leading, spacing: 18) {
-            FolioRow(leading: Self.folio(summary.window), trailing: "Your rank")
+            FolioRow(leading: Self.folio(summary.window, day: summary.dayOfMonth), trailing: "Your rank")
             identity(summary, stacked: stacked)
             numbers(summary, stacked: stacked, pulsing: isRefreshingMine)
             footer(summary)
@@ -212,10 +212,11 @@ struct BoardSummaryView: View {
         return "Updated \(CoarseAge.text(since: lastUpdated, now: now))"
     }
 
-    /// "01 · TODAY": the Window's place in the switch, as the site numbers its cards.
-    static func folio(_ window: ContributionWindow) -> String {
+    /// "01 · TODAY": the Window's place in the switch, as the site numbers its cards. This month
+    /// adds which day it is: "04 · THIS MONTH · DAY 10 OF 30".
+    static func folio(_ window: ContributionWindow, day: String? = nil) -> String {
         let number = (ContributionWindow.allCases.firstIndex(of: window) ?? 0) + 1
-        return String(format: "%02d · %@", number, window.shortTitle)
+        return [String(format: "%02d · %@", number, window.shortTitle), day].compactMap { $0 }.joined(separator: " · ")
     }
 }
 

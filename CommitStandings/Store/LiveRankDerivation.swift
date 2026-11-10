@@ -9,7 +9,9 @@ extension LiveRankState {
     ///     lists you first (`StandingsStore.addSelf`/`replaceRoster`, the relay's `selfFirst`), so
     ///     `Ranking.order` gives you every tie, which `gapToPass` relies on.
     ///   - standings: counts by login. A missing entry, or one for another Window, is no data.
-    ///   - rankDeltas: today's movement by login (baseline − current); read only on Today.
+    ///   - rankDeltas: today's movement by login (baseline − current); read only on Windows that
+    ///     show it (`showsTodaysMovement`: Today and This month). The relay's port reads Today only
+    ///     until it ranks This month (#97).
     ///   - now: when the data was fetched. Becomes `updatedAt`, rounded down to whole seconds.
     static func derive(
         competitors: [Competitor],
@@ -23,7 +25,7 @@ extension LiveRankState {
             return standing.contributions
         }
         func movement(_ login: String) -> Int {
-            window == .daily ? rankDeltas[login] ?? 0 : 0
+            window.showsTodaysMovement ? rankDeltas[login] ?? 0 : 0
         }
         func neighbor(_ entry: Ranking.Entry?) -> Neighbor? {
             guard let login = entry?.competitor.username, let contributions = count(login) else { return nil }

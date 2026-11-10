@@ -62,7 +62,7 @@ async fn monthly_window_includes_today_and_prior_twenty_nine_days() {
         .timestamp();
     f.contributions("octocat", r#"<td data-date="2026-04-30" data-count="100"></td><td data-date="2026-05-01" data-count="1"></td><td data-date="2026-05-15" data-count="2"></td><td data-date="2026-05-30" data-count="3"></td><td data-date="2026-05-31" data-count="100"></td>"#);
     f.core.preview("octocat").await.unwrap();
-    assert_eq!(f.core.board(Window::Month).rows[0].contributions, Some(6));
+    assert_eq!(f.core.board(Window::Monthly).rows[0].contributions, Some(6));
 }
 
 #[tokio::test]
@@ -250,7 +250,10 @@ async fn public_board_sums_modern_tooltips_for_all_windows() {
     f.core.preview("octocat").await.unwrap();
     assert_eq!(f.core.board(Window::Today).rows[0].contributions, Some(12));
     assert_eq!(f.core.board(Window::Week).rows[0].contributions, Some(15));
-    assert_eq!(f.core.board(Window::Month).rows[0].contributions, Some(115));
+    assert_eq!(
+        f.core.board(Window::Monthly).rows[0].contributions,
+        Some(115)
+    );
 }
 
 #[tokio::test]
@@ -276,6 +279,56 @@ async fn comma_counts_and_parse_failure_do_not_become_zero_activity() {
         f.core.board(Window::Today).rows[0].contributions,
         Some(1234)
     );
+}
+
+/// `<td>` cells for a calendar: one per `(day, count)`, days as offsets back from 2026-05-28.
+fn calendar(cells: &[(i64, u32)]) -> String {
+    let today = chrono::NaiveDate::from_ymd_opt(2026, 5, 28).unwrap();
+    cells
+        .iter()
+        .map(|(back, count)| {
+            let day = today - chrono::Duration::days(*back);
+            format!(r#"<td data-date="{day}" data-count="{count}"></td>"#)
+        })
+        .collect()
+}
+
+#[tokio::test]
+async fn rows_carry_each_streak_from_the_saved_calendar_and_none_without_data() {
+    let f = Fixture::new();
+    f.connect().await;
+    f.response(
+        "https://api.github.com/user/following?per_page=100&page=1",
+        r#"[{"login":"friend"},{"login":"offline"}]"#,
+    );
+    // You: nothing yet today, 12 days in a row before that. Friend: 3 days, today included.
+    let mine: Vec<(i64, u32)> = std::iter::once((0, 0))
+        .chain((1..=12).map(|back| (back, 2)))
+        .chain(std::iter::once((13, 0)))
+        .collect();
+    f.contributions("octocat", &calendar(&mine));
+    f.contributions("friend", &calendar(&[(0, 5), (1, 1), (2, 4), (3, 0)]));
+    // `offline`'s page never loads.
+    f.core.refresh(RefreshReason::Manual).await.unwrap();
+    for window in [
+        Window::Today,
+        Window::Week,
+        Window::Monthly,
+        Window::ThisMonth,
+    ] {
+        let board = f.core.board(window);
+        let streak = |login: &str| {
+            board
+                .rows
+                .iter()
+                .find(|row| row.person.login == login)
+                .unwrap()
+                .streak
+        };
+        assert_eq!(streak("octocat"), Some(12), "alive through today");
+        assert_eq!(streak("friend"), Some(3));
+        assert_eq!(streak("offline"), None, "no data is no streak, never 0");
+    }
 }
 
 #[tokio::test]
@@ -735,4 +788,76 @@ async fn unavailable_people_do_not_prevent_movement_for_loaded_rows() {
     f.core.refresh(RefreshReason::Manual).await.unwrap();
     assert_eq!(f.core.board(Window::Today).rows[0].movement, 1);
     assert_eq!(f.core.board(Window::Today).rows[2].contributions, None);
+}
+
+fn noon(y: i32, m: u32, d: u32) -> i64 {
+    chrono::NaiveDate::from_ymd_opt(y, m, d)
+        .unwrap()
+        .and_hms_opt(12, 0, 0)
+        .unwrap()
+        .and_utc()
+        .timestamp()
+}
+
+#[tokio::test]
+async fn this_month_counts_from_the_first_and_starts_again_on_the_next_first() {
+    let f = Fixture::new();
+    *f.clock.0.lock().unwrap() = noon(2026, 5, 31);
+    f.contributions("octocat", r#"<td data-date="2026-04-30" data-count="100"></td><td data-date="2026-05-01" data-count="1"></td><td data-date="2026-05-31" data-count="2"></td><td data-date="2026-06-01" data-count="4"></td>"#);
+    f.core.preview("octocat").await.unwrap();
+    let board = f.core.board(Window::ThisMonth);
+    assert_eq!(board.rows[0].contributions, Some(3));
+    assert_eq!((board.day_of_month, board.days_in_month), (31, 31));
+    // 30 days from May 31 starts on May 2, so only May 31 counts there.
+    assert_eq!(f.core.board(Window::Monthly).rows[0].contributions, Some(2));
+
+    // On June 1, 30 days still reaches back into May; This month is just June 1.
+    *f.clock.0.lock().unwrap() = noon(2026, 6, 1);
+    let board = f.core.board(Window::ThisMonth);
+    assert_eq!(board.rows[0].contributions, Some(4));
+    assert_eq!((board.day_of_month, board.days_in_month), (1, 30));
+    assert_eq!(f.core.board(Window::Monthly).rows[0].contributions, Some(6));
+}
+
+#[tokio::test]
+async fn this_month_movement_compares_this_months_ranks_since_the_first_refresh_today() {
+    let f = Fixture::new();
+    f.connect().await;
+    f.response(
+        "https://api.github.com/user/following?per_page=100&page=1",
+        r#"[{"login":"alice"}]"#,
+    );
+    // Today alice leads 5–1, but this month octocat leads 51–5.
+    f.contributions(
+        "octocat",
+        r#"<td data-date="2026-05-01" data-count="50"></td><td data-date="2026-05-28" data-count="1"></td>"#,
+    );
+    f.count("alice", 5);
+    f.core.refresh(RefreshReason::Manual).await.unwrap();
+    let month = f.core.board(Window::ThisMonth);
+    assert_eq!(month.rows[0].person.login, "octocat");
+    assert!(month.rows.iter().all(|row| row.movement == 0));
+
+    // alice passes octocat for the month (60–51) but already led today.
+    f.count("alice", 60);
+    f.core.refresh(RefreshReason::Manual).await.unwrap();
+    let month = f.core.board(Window::ThisMonth);
+    let moves: Vec<_> = month
+        .rows
+        .iter()
+        .map(|row| (row.person.login.as_str(), row.movement))
+        .collect();
+    assert_eq!(moves, [("alice", 1), ("octocat", -1)]);
+    assert!(f
+        .core
+        .board(Window::Today)
+        .rows
+        .iter()
+        .all(|row| row.movement == 0));
+    assert!(f
+        .core
+        .board(Window::Week)
+        .rows
+        .iter()
+        .all(|row| row.movement == 0));
 }

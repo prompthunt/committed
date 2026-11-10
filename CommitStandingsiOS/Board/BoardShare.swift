@@ -216,7 +216,8 @@ private struct BoardShareHeadline: View {
         switch window {
         case .daily: "today?"
         case .weekly: "this week?"
-        case .monthly: "this month?"
+        case .monthly: "in 30 days?"
+        case .month: "this month?"
         }
     }
 }
