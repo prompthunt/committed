@@ -196,6 +196,8 @@ export async function start(
         );
     } else {
       const finals = board.final_standings ?? null;
+      // A day without Final standings forgets the choice, so the next 1st opens on them again.
+      if (!finals) showFinal = null;
       const final = finals !== null && showFinal !== false;
       const rows = final ? finals.rows : board.rows;
       const me = rows.find((row) => row.is_you);

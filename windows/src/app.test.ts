@@ -1,8 +1,10 @@
 // @vitest-environment jsdom
 import { afterEach, expect, test, vi } from "vitest";
 import { mockIPC, clearMocks } from "@tauri-apps/api/mocks";
+import { emit } from "@tauri-apps/api/event";
 import { start } from "./app";
 import { sampleBoard } from "./sample-board";
+import type { Window } from "./types";
 
 const board = {
   window: "today",
@@ -334,5 +336,45 @@ test("other days offer no Final standings", async () => {
   const dispose = await mount(sampleBoard("today", 1779969600));
   expect(document.querySelector('[data-action="final"]')).toBeNull();
   expect(document.querySelector(".medal")).toBeNull();
+  dispose();
+});
+test("each new 1st opens on Final standings again, even after picking a Window last month", async () => {
+  // The board's webview lives for weeks in the tray, so a Window picked on one 1st must not
+  // keep the next 1st's Final standings closed.
+  let now = firstOfNovember;
+  mockIPC(
+    (command, args) => {
+      if (command === "get_board")
+        return sampleBoard((args as { window: Window }).window, now);
+      if (command === "get_settings")
+        return {
+          notifications: false,
+          automatic_updates: true,
+          private_tip_dismissed: true,
+        };
+      if (command === "get_desktop_settings")
+        return { launch_at_login: false, version: "0.1.50" };
+      return null;
+    },
+    { shouldMockEvents: true },
+  );
+  document.body.innerHTML = '<main id="app"></main>';
+  const dispose = await start(document.querySelector("main")!, "board");
+  const pressed = () =>
+    document
+      .querySelector('[data-action="final"]')
+      ?.getAttribute("aria-pressed");
+  document.querySelector<HTMLButtonElement>('[data-window="week"]')!.click();
+  await vi.waitFor(() => expect(pressed()).toBe("false"));
+  // Nov 20: nothing to offer. Dec 1: the board opens on November's final again.
+  now = Date.UTC(2026, 10, 20, 12) / 1000;
+  await emit("board-changed");
+  await vi.waitFor(() => expect(pressed()).toBeUndefined());
+  now = Date.UTC(2026, 11, 1, 12) / 1000;
+  await emit("board-changed");
+  await vi.waitFor(() => expect(pressed()).toBe("true"));
+  expect(document.querySelector(".status")?.textContent).toContain(
+    "November final",
+  );
   dispose();
 });
