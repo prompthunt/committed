@@ -47,9 +47,13 @@ app_file.write_text(r'''import SwiftUI
         }
         for window in ContributionWindow.allCases {
             for (index, entry) in s.competitors.enumerated() {
-                s.updateStanding(Standing(username: entry.username, contributions: (s.competitors.count-index)*8*window.dayCount,
+                s.updateStanding(Standing(username: entry.username, contributions: (s.competitors.count-index)*8*captureScale(window),
                     window: window, lastUpdated: Date(), state: .loaded))
             }
+        }
+        // `-CaptureWindow month` opens the board on that Window (a ContributionWindow raw value).
+        if let window = UserDefaults.standard.string(forKey: "CaptureWindow").flatMap(ContributionWindow.init(rawValue:)) {
+            s.selectedWindow = window
         }
         let sources = GitHubRosterSnapshot(owner: "octocat", sources: [
             GitHubRosterSource(id: "org:github", title: "github", members: ["octocat", "hubot", "monalisa"]),
@@ -98,9 +102,19 @@ app_file.write_text(r'''import SwiftUI
     }
 }
 
+/// Made-up counts grow with the Window, so 30 days reads bigger than This month or Today.
+private func captureScale(_ window: ContributionWindow) -> Int {
+    switch window {
+    case .daily: 1
+    case .weekly: 7
+    case .monthly: 30
+    case .month: 10
+    }
+}
+
 private struct CaptureCounts: ContributionsFetching {
     func standingCounts(for username: String, window: ContributionWindow, asOf reference: Date) async -> Result<StandingCounts, ContributionsError> {
-        .success(StandingCounts(contributions: (["octocat":40,"hubot":32,"monalisa":24,"defunkt":16,"mojombo":8][username] ?? 4) * window.dayCount))
+        .success(StandingCounts(contributions: (["octocat":40,"hubot":32,"monalisa":24,"defunkt":16,"mojombo":8][username] ?? 4) * captureScale(window)))
     }
 }
 

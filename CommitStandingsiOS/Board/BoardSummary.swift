@@ -14,12 +14,15 @@ struct BoardSummary: Equatable {
     let competitorCount: Int
     /// Your Contributions for the Window, or nil before they've loaded (never a fake zero).
     let contributions: Int?
-    /// Places moved since the start of today (+ up, − down); Today only, nil when unmoved.
+    /// Places moved since the start of today (+ up, − down); Today and This month only, nil when
+    /// unmoved.
     let movementToday: Int?
     /// "2 to pass odile-m", Live rank's line: the gap to the person directly above you. nil in
     /// first place, or when either count hasn't loaded.
     let passLine: String?
     let window: ContributionWindow
+    /// "Day 10 of 30" on This month, nil on the other Windows.
+    let dayOfMonth: String?
     let lastUpdated: Date?
 
     static func make(
@@ -28,14 +31,16 @@ struct BoardSummary: Equatable {
         window: ContributionWindow,
         displayName: String?,
         rankDelta: (String) -> Int?,
-        lastUpdated: Date?
+        lastUpdated: Date?,
+        today: Date = Date(),
+        calendar: Calendar = .current
     ) -> BoardSummary? {
         guard let me = competitors.first(where: \.isSelf) else { return nil }
         // Live rank's derivation, from counts that have loaded (as `LiveRankState.board` does), so
         // the hero and Live rank never disagree about your rank, your count, or the gap.
         let loaded = standings.filter { $0.value.lastUpdated != .distantPast }
         var deltas: [String: Int] = [:]
-        if window == .daily { deltas[me.username] = rankDelta(me.username) }
+        if window.showsTodaysMovement { deltas[me.username] = rankDelta(me.username) }
         let live = LiveRankState.derive(competitors: competitors, standings: loaded, window: window,
                                         rankDeltas: deltas, now: lastUpdated ?? .distantPast)
         return BoardSummary(
@@ -47,6 +52,7 @@ struct BoardSummary: Equatable {
             movementToday: live.movementToday == 0 ? nil : live.movementToday,
             passLine: live.passLine,
             window: window,
+            dayOfMonth: window.dayOfMonth(asOf: today, calendar: calendar),
             lastUpdated: lastUpdated
         )
     }
@@ -60,6 +66,7 @@ struct BoardSummary: Equatable {
         } else {
             parts.append("contributions not loaded yet")
         }
+        if let dayOfMonth { parts.append(dayOfMonth.lowercased()) }
         if let movementToday {
             let places = movementToday.magnitude == 1 ? "place" : "places"
             parts.append("\(movementToday > 0 ? "up" : "down") \(movementToday.magnitude) \(places) today")

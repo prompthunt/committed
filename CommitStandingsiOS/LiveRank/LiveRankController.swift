@@ -63,7 +63,9 @@ final class LiveRankController {
         self.isSignedIn = isSignedIn
         self.rankDelta = rankDelta
         self.now = now
-        let saved = preferences.load()
+        var saved = preferences.load()
+        // A Window Live rank doesn't offer (This month, saved by a later build) falls back to Today.
+        if !ContributionWindow.liveRankChoices.contains(saved.window) { saved.window = .daily }
         self.preferences = saved
         let enabled = Self.isEnabled(saved, relayConfigured: relay.pushUpdates == .token)
         isEnabled = enabled
@@ -127,8 +129,9 @@ final class LiveRankController {
     }
 
     /// A different Window ends the current activity and starts one for the new Window.
+    /// Only `ContributionWindow.liveRankChoices`: anything else (This month, until #97) is ignored.
     func setWindow(_ newWindow: ContributionWindow) async {
-        guard newWindow != window else { return }
+        guard newWindow != window, ContributionWindow.liveRankChoices.contains(newWindow) else { return }
         preferences.window = newWindow
         window = newWindow
         preferenceStore.save(preferences)

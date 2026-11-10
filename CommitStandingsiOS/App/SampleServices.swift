@@ -14,7 +14,8 @@ import Foundation
 ///   live in memory. Leaderboard Notifications keep their real on/off setting.
 ///
 /// `make` is inert: the board loads when something refreshes it (`AppModel.sceneDidBecomeActive`,
-/// pull to refresh). Today moves between the first two fetches: Ari Linden passes Ezra Q.
+/// pull to refresh). Today and This month move between the first two fetches: Ari Linden passes
+/// Ezra Q.
 @MainActor
 enum SampleServices {
     /// "You" on the Sample board.
@@ -64,7 +65,8 @@ enum SampleServices {
     }
 
     /// Fixed Contributions per Window. Each person's first fetch sets today's baseline; from the
-    /// second on, Ari Linden has 7 today and passes Ezra Q. Extra people count down from 39.
+    /// second on, Ari Linden has 2 more today (and so this month) and passes Ezra Q on both. Extra
+    /// people count down from 39.
     private actor SampleContributions: ContributionsFetching {
         private var rounds: [String: Int] = [:]
 
@@ -73,11 +75,11 @@ enum SampleServices {
             let round = rounds[username, default: 0]
             rounds[username] = round + 1
             let counts: [String: [ContributionWindow: Int]] = [
-                "ines-volk": [.daily: 12, .weekly: 61, .monthly: 240],
-                "odile-m": [.daily: 9, .weekly: 44, .monthly: 198],
-                "ari-linden": [.daily: round == 0 ? 5 : 7, .weekly: 38, .monthly: 171],
-                "ezra-q": [.daily: 6, .weekly: 52, .monthly: 160],
-                "bram-ott": [.daily: 0, .weekly: 11, .monthly: 57],
+                "ines-volk": [.daily: 12, .weekly: 61, .monthly: 240, .month: 84],
+                "odile-m": [.daily: 9, .weekly: 44, .monthly: 198, .month: 66],
+                "ari-linden": [.daily: round == 0 ? 5 : 7, .weekly: 38, .monthly: 171, .month: round == 0 ? 55 : 57],
+                "ezra-q": [.daily: 6, .weekly: 52, .monthly: 160, .month: 56],
+                "bram-ott": [.daily: 0, .weekly: 11, .monthly: 57, .month: 19],
             ]
             if username.hasPrefix(SampleServices.extraPersonPrefix),
                let number = Int(username.dropFirst(SampleServices.extraPersonPrefix.count)) {

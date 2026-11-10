@@ -288,6 +288,26 @@ struct LiveRankLifecycleTests {
         #expect(preferences.load().window == .monthly)
     }
 
+    /// This month isn't offered for Live rank until the relay ranks it (#97): choosing it changes
+    /// nothing, and neither the activity nor the relay ever hears "month". A "month" saved by a
+    /// later build falls back to Today.
+    @Test func thisMonthIsNotOfferedForLiveRankYet() async {
+        #expect(!ContributionWindow.liveRankChoices.contains(.month))
+        let (model, _) = makeModel()
+        await model.sceneDidBecomeActive()
+
+        await model.setLiveRankWindow(.month)
+
+        #expect(model.liveRank.window == .daily)
+        #expect(activities.states.map(\.window) == ["daily"])
+        #expect(preferences.load().window == .daily)
+        #expect(!relay.configurations.contains { $0?.window == .month })
+
+        preferences.save(LiveRankPreferences(isEnabled: true, window: .month))
+        let (relaunched, _) = makeModel()
+        #expect(relaunched.liveRank.window == .daily)
+    }
+
     @Test func turningOffEndsItAndTurningOnStartsAgain() async {
         let (model, _) = makeModel()
         await model.sceneDidBecomeActive()

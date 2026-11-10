@@ -526,6 +526,52 @@ struct RefreshCompanionTests {
         #expect(refresh.rankDelta(for: "me") == 1)
     }
 
+    /// This month's chevrons measure the This month ranking against its own first ranking of the
+    /// day, not Today's: here you climb on This month while dropping on Today.
+    @Test func thisMonthHasItsOwnMovementSinceTheStartOfToday() async {
+        let store = makeStore()
+        store.selectedWindow = .month
+        let counts = WindowCounts([.month: ["me": 10, "alice": 20], .daily: ["me": 1, "alice": 0]])
+        let clock = clock
+        let refresh = RefreshCoordinator(store: store, client: MutableWindowFetcher(counts), interval: 99999,
+                                         now: { clock.date })
+        refresh.additionalWindows = { [.daily] }
+        await refresh.refreshAll(reason: .manual)
+        #expect(refresh.rankDelta(for: "me", in: .month) == nil)
+
+        counts.counts = [.month: ["me": 25, "alice": 20], .daily: ["me": 1, "alice": 3]]
+        clock.date = clock.date.addingTimeInterval(180)
+        await refresh.refreshAll(reason: .timer)
+
+        #expect(refresh.rankDelta(for: "me", in: .month) == 1)
+        #expect(refresh.rankDelta(for: "alice", in: .month) == -1)
+        #expect(refresh.rankDelta(for: "me", in: .daily) == -1)
+        #expect(refresh.rankDelta(for: "me", in: .monthly) == nil)
+    }
+
+    /// The first ranking of a new day, here the 1st of a new month, is the new baseline: last
+    /// month's climb doesn't carry into it.
+    @Test func thisMonthsMovementStartsAgainOnTheFirst() async throws {
+        let store = makeStore()
+        store.selectedWindow = .month
+        let lastDay = try #require(Calendar.current.date(from: DateComponents(year: 2026, month: 10, day: 31, hour: 12)))
+        let counts = WindowCounts([.month: ["me": 10, "alice": 20]])
+        let clock = MutableClock(lastDay)
+        let refresh = RefreshCoordinator(store: store, client: MutableWindowFetcher(counts), interval: 99999,
+                                         now: { clock.date })
+        await refresh.refreshAll(reason: .manual)
+        counts.counts = [.month: ["me": 25, "alice": 20]]
+        clock.date = lastDay.addingTimeInterval(180)
+        await refresh.refreshAll(reason: .timer)
+        #expect(refresh.rankDelta(for: "me", in: .month) == 1)
+
+        counts.counts = [.month: ["me": 0, "alice": 2]]
+        clock.date = try #require(Calendar.current.date(from: DateComponents(year: 2026, month: 11, day: 1, hour: 9)))
+        await refresh.refreshAll(reason: .timer)
+        #expect(refresh.rankDelta(for: "me", in: .month) == nil)
+        #expect(refresh.rankDelta(for: "alice", in: .month) == nil)
+    }
+
     @Test func didRefreshRunsAfterEveryRefresh() async {
         let store = makeStore()
         let fetcher = WindowFetcher([.daily: ["me": 3, "alice": 1]])
@@ -649,5 +695,31 @@ struct RefreshDailyCountsTests {
         #expect(await fetcher.pages == 1)
         #expect(store.history(for: "alice") == alice)
         #expect(store.standing(for: "alice", window: .weekly)?.contributions == 8)
+    }
+
+    /// This month on the board, read in Los Angeles: 03:00 UTC on March 1 is still February 28
+    /// there, so This month is February (28 days) until local midnight, then resets to the 1st.
+    @Test func thisMonthTotalsFollowTheLocalMonthAndResetOnTheFirst() async throws {
+        let losAngeles = try #require(TimeZone(identifier: "America/Los_Angeles"))
+        let days = ["2026-01-31": 50, "2026-02-01": 3, "2026-02-28": 4, "2026-03-01": 6]
+        let store = makeStore()
+        store.selectedWindow = .month
+        let clock = MutableClock(Date(timeIntervalSince1970: 1_772_334_000)) // 2026-03-01 03:00 UTC
+        let fetcher = CalendarFetcher([
+            "me": ContributionHistory(days: days, timeZone: losAngeles),
+            "alice": ContributionHistory(days: ["2026-02-28": 1, "2026-03-01": 9], timeZone: losAngeles),
+        ])
+        let refresh = RefreshCoordinator(store: store, client: fetcher, interval: 99999, now: { clock.date })
+        refresh.additionalWindows = { [.monthly] }
+
+        await refresh.refreshAll(reason: .manual)
+        #expect(store.standing(for: "me", window: .month)?.contributions == 7)
+        #expect(store.standing(for: "alice", window: .month)?.contributions == 1)
+        #expect(store.standing(for: "me", window: .monthly)?.contributions == 57) // 30 days unchanged
+
+        clock.date = Date(timeIntervalSince1970: 1_772_380_800) // 2026-03-01 08:00 PST
+        await refresh.refreshAll(reason: .timer)
+        #expect(store.standing(for: "me", window: .month)?.contributions == 6)
+        #expect(store.standing(for: "alice", window: .month)?.contributions == 9)
     }
 }

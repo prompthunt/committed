@@ -57,7 +57,9 @@ struct BoardShareTests {
     @Test func storyHeadlineFollowsTheWindow() {
         #expect(BoardShareCard.headline(.daily) == "Who shipped more today?")
         #expect(BoardShareCard.headline(.weekly) == "Who shipped more this week?")
-        #expect(BoardShareCard.headline(.monthly) == "Who shipped more this month?")
+        // 30 days is trailing, so only This month says "this month".
+        #expect(BoardShareCard.headline(.monthly) == "Who shipped more in 30 days?")
+        #expect(BoardShareCard.headline(.month) == "Who shipped more this month?")
     }
 
     /// The sheet as it opens from the Board, and the Board with its Share button, for the PR's

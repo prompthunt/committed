@@ -47,6 +47,15 @@ struct HeroCard: View {
                         .tracking(8 * 0.14)
                         .textCase(.uppercase)
                         .foregroundStyle(.secondary)
+                    // This month: "Day 10 of 30", so you know how much race is left.
+                    if let day = store.selectedWindow.dayOfMonth(asOf: Date()) {
+                        Text(day)
+                            .font(.system(size: 8, weight: .medium, design: .monospaced))
+                            .tracking(8 * 0.14)
+                            .textCase(.uppercase)
+                            .foregroundStyle(.tint)
+                            .padding(.top, 2)
+                    }
                 }
             }
             .padding(14)
@@ -76,7 +85,8 @@ struct HeroCard: View {
         guard let value = value(for: standing) else {
             return "\(who), no contributions data yet"
         }
-        return "\(who), \(value) contributions for \(store.selectedWindow.accessibilityDescription)"
+        let day = store.selectedWindow.dayOfMonth(asOf: Date()).map { ", \($0.lowercased())" } ?? ""
+        return "\(who), \(value) contributions for \(store.selectedWindow.accessibilityDescription)\(day)"
     }
 }
 
