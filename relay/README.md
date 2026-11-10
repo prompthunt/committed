@@ -108,6 +108,93 @@ registration. Returns `204`.
 - **Writes:** 30 per installation per 10 minutes; past that, `429`.
 - **Bodies:** 128 KB at most.
 
+## Board route
+
+Lets another screen, such as the office TV's Glance, read one installation's board without the
+installation secret (ticket #82).
+
+### `GET /v1/installations/{id}/board?window=daily`
+
+- **Auth:** `Authorization: Bearer <board read token>`. The installation secret is not accepted here,
+  and a board read token can't call the device API.
+- **`window`:** `daily` (the default), `weekly` or `monthly`.
+- **Reads only.** The board is computed from the cycle's `contribution_cache` and the installation's
+  competitors, time zone, login and today's movement baseline, using `src/board.ts`, the code
+  the cycle uses. A read never fetches from GitHub and never writes, so it can't disagree with
+  Live rank.
+- **Response** (`Cache-Control: private, max-age=60`): the Live rank summary fields, plus the full
+  visible board in board order.
+
+  ```json
+  {
+    "window": "daily", "login": "me", "rank": 2, "competitorCount": 3, "contributions": 5,
+    "above": { "login": "alice", "contributions": 9, "movementToday": 0 },
+    "below": { "login": "bob", "contributions": 1, "movementToday": 0 },
+    "movementToday": 0, "gapToPass": 4, "updatedAt": 1793804400,
+    "rows": [
+      { "rank": 1, "login": "alice", "contributions": 9, "movementToday": 0, "isSelf": false },
+      { "rank": 2, "login": "me", "contributions": 5, "movementToday": 0, "isSelf": true },
+      { "rank": 3, "login": "bob", "contributions": 1, "movementToday": 0, "isSelf": false }
+    ]
+  }
+  ```
+
+  - `rank`, `above`, `below` and `movementToday` follow the `LiveRankState` rules below: `rank`
+    is null with no rivals or no data for you.
+  - `gapToPass` is `max(above − yours, 1)`, null with nobody above (Swift `gapToPass`).
+  - A row's `contributions` is null when that login has no data yet.
+  - `updatedAt` (Unix seconds) is when your count was fetched, else the newest data on the board,
+    and null when nothing has data.
+- **Errors** are `{ "error": "<code>", "message": "<text>" }`:
+
+  | Status | `error` | When |
+  |---|---|---|
+  | 401 | `unauthorized` | Token missing, malformed (under 32 characters) or unknown |
+  | 403 | `revoked` | The token was revoked |
+  | 403 | `forbidden` | The token belongs to another installation |
+  | 404 | `not_found` | The installation is gone (Live rank turned off, GitHub disconnected) |
+  | 400 | `invalid_window` | `window` isn't `daily`, `weekly` or `monthly` |
+
+### Board read tokens
+
+The `board_tokens` table (`migrations/0002_board_tokens.sql`) stores each token's SHA-256 with
+its installation ID, an optional label, and created and revoked times. Deleting the installation
+deletes its tokens. For now tokens are minted by hand; a later iPhone setting can mint them
+through a route.
+
+**Mint** a token. Find the installation first; pick the production one that was updated most recently:
+
+```bash
+cd relay
+npx wrangler d1 execute committed-relay --remote --command \
+  "SELECT id, apns_environment, datetime(updated_at, 'unixepoch') AS updated FROM installations WHERE login = 'addisonk'"
+
+INSTALLATION=<id from above>
+TOKEN=$(openssl rand -hex 32)                                  # 64 characters; keep it, it's shown once
+HASH=$(printf %s "$TOKEN" | shasum -a 256 | cut -d' ' -f1)     # printf, not echo: no trailing newline
+npx wrangler d1 execute committed-relay --remote --command \
+  "INSERT INTO board_tokens (token_hash, installation_id, label, created_at) VALUES ('$HASH', '$INSTALLATION', 'Office Frame', unixepoch())"
+
+curl -H "Authorization: Bearer $TOKEN" \
+  "https://committed-relay.prompt-hunt.workers.dev/v1/installations/$INSTALLATION/board?window=daily"
+```
+
+Keep the token out of the repository. Only its hash is in D1, so a lost token can't be recovered:
+mint a new one.
+
+**List** an installation's tokens, and **revoke** one by label, or by hash if you still have the token:
+
+```bash
+npx wrangler d1 execute committed-relay --remote --command \
+  "SELECT label, datetime(created_at, 'unixepoch') AS created, datetime(revoked_at, 'unixepoch') AS revoked FROM board_tokens WHERE installation_id = '$INSTALLATION'"
+npx wrangler d1 execute committed-relay --remote --command \
+  "UPDATE board_tokens SET revoked_at = unixepoch() WHERE installation_id = '$INSTALLATION' AND label = 'Office Frame' AND revoked_at IS NULL"
+npx wrangler d1 execute committed-relay --remote --command \
+  "UPDATE board_tokens SET revoked_at = unixepoch() WHERE token_hash = '$HASH'"
+```
+
+A revoked token gets `403` from then on.
+
 ## What the cron run does
 
 `src/cycle.ts`, once every 5 minutes:

@@ -7,10 +7,10 @@ import {
   type ApnsPayload,
   type ApnsSender,
 } from "./apns";
+import { competitorsOf, dailyRanks, rankDeltas as deltasFrom, standingsFor, type LoginData } from "./board";
 import type { InstallationRow, Store } from "./db";
 import { deriveLiveRankState, type LiveRankState } from "./liveRank";
-import { localDate, parseDays, sum, type Days } from "./parser";
-import { order, selfFirst, type Standing } from "./ranking";
+import { localDate, parseDays, type Days } from "./parser";
 import type { GitHubFetch, Log } from "./relay";
 
 export interface CycleDeps {
@@ -28,11 +28,6 @@ export const ROTATE_AFTER_SECONDS = 7.5 * 60 * 60;
 /** Heartbeat when the last pushed state is within this long of its stale date. */
 export const HEARTBEAT_MARGIN_SECONDS = 5 * 60;
 const FETCH_CONCURRENCY = 6;
-
-interface LoginData {
-  days: Days;
-  fetchedAt: number;
-}
 
 /**
  * One cron run. For each installation: compute its `LiveRankState` from public contribution
@@ -68,19 +63,13 @@ async function runInstallation(
   // Today's movement: mirror RefreshCoordinator.updateDailyRankDeltas. The day's first run
   // captures the baseline (ranks of rows with data); later runs report baseline − current.
   const daily = standingsFor(competitors, data, "daily", today);
-  const dailyRanks: Record<string, number> = {};
-  for (const entry of order(competitors, daily, "daily")) {
-    if (daily[entry.login]) dailyRanks[entry.login] = entry.rank;
-  }
+  const ranksToday = dailyRanks(competitors, daily);
   let rankDeltas: Record<string, number> = {};
   if (row.baseline_date !== today || !row.baseline_ranks_json) {
     row.baseline_date = today;
-    row.baseline_ranks_json = JSON.stringify(dailyRanks);
+    row.baseline_ranks_json = JSON.stringify(ranksToday);
   } else {
-    const baseline = JSON.parse(row.baseline_ranks_json) as Record<string, number>;
-    for (const [login, rank] of Object.entries(dailyRanks)) {
-      if (baseline[login] !== undefined) rankDeltas[login] = baseline[login] - rank;
-    }
+    rankDeltas = deltasFrom(JSON.parse(row.baseline_ranks_json) as Record<string, number>, ranksToday);
   }
 
   const standings = row.window === "daily" ? daily : standingsFor(competitors, data, row.window, today);
@@ -169,25 +158,6 @@ async function send(
     deps.log("token_cleared", { id: row.id, token: which });
   }
   return false;
-}
-
-/** Rows saved before registration enforced it may list you later: rank them you-first too. */
-function competitorsOf(row: InstallationRow): string[] {
-  return selfFirst(row.login, JSON.parse(row.competitors_json) as string[]);
-}
-
-function standingsFor(
-  competitors: readonly string[],
-  data: Map<string, LoginData>,
-  window: Standing["window"],
-  today: string,
-): Record<string, Standing> {
-  const standings: Record<string, Standing> = {};
-  for (const login of competitors) {
-    const entry = data.get(login);
-    if (entry) standings[login] = { contributions: sum(entry.days, window, today), window };
-  }
-  return standings;
 }
 
 /** Days per login, from the shared 5-minute cache or a fresh anonymous fetch. */

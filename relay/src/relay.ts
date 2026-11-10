@@ -1,4 +1,5 @@
 import { endPayload, type ApnsEnvironment, type ApnsSender } from "./apns";
+import { competitorsOf, readBoard, type LoginData } from "./board";
 import { Store, type InstallationRow, type Registration } from "./db";
 import { runCycle } from "./cycle";
 import type { LiveRankState } from "./liveRank";
@@ -43,6 +44,9 @@ export function createRelay(deps: RelayDeps) {
   async function fetchHandler(request: Request): Promise<Response> {
     const url = new URL(request.url);
     if (url.pathname === "/" && request.method === "GET") return text(200, "Committed relay");
+
+    const boardMatch = url.pathname.match(/^\/v1\/installations\/([^/]+)\/board$/);
+    if (boardMatch) return boardHandler(request, url, boardMatch[1]!);
 
     const match = url.pathname.match(/^\/v1\/installations\/([^/]+)(\/activity)?$/);
     if (!match || !ID_PATTERN.test(match[1]!)) return json(404, { error: "not_found" });
@@ -91,6 +95,36 @@ export function createRelay(deps: RelayDeps) {
     await store.update(id, registration, resetBaseline, deps.now());
     log("installation_updated", { id, competitors: registration.competitors.length });
     return json(200, { ok: true });
+  }
+
+  /**
+   * `GET /v1/installations/{id}/board`: another screen reads one installation's board with a
+   * board read token. Computed from the cache the cycle keeps; it never fetches from GitHub and
+   * never writes. The installation is looked up before the token: deleting an installation
+   * deletes its tokens, and the screen still needs to tell "gone" (404) from "revoked".
+   */
+  async function boardHandler(request: Request, url: URL, id: string): Promise<Response> {
+    if (request.method !== "GET") return boardError(405, "method_not_allowed", "Use GET.");
+    const token = bearer(request);
+    if (!token) return boardError(401, "unauthorized", "A board read token is required.");
+    const row = ID_PATTERN.test(id) ? await store.get(id) : null;
+    if (!row) return boardError(404, "not_found", "This installation isn't registered. Live rank may be off.");
+    const record = await store.getBoardToken(await sha256Hex(token));
+    if (!record) return boardError(401, "unauthorized", "Unknown board read token.");
+    if (record.revoked_at !== null) return boardError(403, "revoked", "This board read token was revoked.");
+    if (record.installation_id !== id) return boardError(403, "forbidden", "This token is for another installation.");
+
+    const window = url.searchParams.get("window") ?? "daily";
+    if (!WINDOWS.includes(window as Window)) {
+      return boardError(400, "invalid_window", "window must be daily, weekly or monthly.");
+    }
+
+    const data = new Map<string, LoginData>();
+    for (const cached of await store.getCachedDays(competitorsOf(row))) {
+      data.set(cached.login, { days: JSON.parse(cached.days_json), fetchedAt: cached.fetched_at });
+    }
+    const board = readBoard(row, data, window as Window, deps.now());
+    return Response.json(board, { headers: { "cache-control": "private, max-age=60" } });
   }
 
   async function allowWrite(row: InstallationRow): Promise<boolean> {
@@ -232,6 +266,11 @@ async function sameHash(a: string, b: string): Promise<boolean> {
 
 function json(status: number, body: unknown): Response {
   return Response.json(body, { status });
+}
+
+/** The board route's one error shape. The device API keeps its older `{ error }` bodies. */
+function boardError(status: number, error: string, message: string): Response {
+  return Response.json({ error, message }, { status, headers: { "cache-control": "no-store" } });
 }
 
 function text(status: number, body: string): Response {

@@ -39,6 +39,14 @@ export interface CachedDays {
   days_json: string | null;
 }
 
+export interface BoardTokenRow {
+  token_hash: string;
+  installation_id: string;
+  label: string | null;
+  created_at: number;
+  revoked_at: number | null;
+}
+
 export class Store {
   constructor(private readonly db: D1Database) {}
 
@@ -139,5 +147,23 @@ export class Store {
       )
       .bind(login, now, error)
       .run();
+  }
+
+  /** Last good days for each login, whatever their age. Reads only: nothing is fetched. */
+  async getCachedDays(logins: readonly string[]): Promise<{ login: string; fetched_at: number; days_json: string }[]> {
+    const { results } = await this.db
+      .prepare(
+        `SELECT login, fetched_at, days_json FROM contribution_cache
+         WHERE login IN (SELECT value FROM json_each(?)) AND fetched_at IS NOT NULL AND days_json IS NOT NULL`,
+      )
+      .bind(JSON.stringify(logins))
+      .all<{ login: string; fetched_at: number; days_json: string }>();
+    return results;
+  }
+
+  // MARK: - Board read tokens (minted by hand for now; see README)
+
+  getBoardToken(tokenHash: string): Promise<BoardTokenRow | null> {
+    return this.db.prepare("SELECT * FROM board_tokens WHERE token_hash = ?").bind(tokenHash).first<BoardTokenRow>();
   }
 }
