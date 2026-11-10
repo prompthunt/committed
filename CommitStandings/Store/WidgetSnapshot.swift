@@ -2,7 +2,8 @@ import Foundation
 
 /// What Committed's Home Screen and Lock Screen widgets show: Live rank's state for its Window and
 /// the top of the board. The iPhone app writes it to the App Group after every refresh
-/// (`WidgetPublisher`); the widget extension only reads it, since it can't fetch or rank anything.
+/// (`WidgetPublisher`), with everyone on the board, so the widget extension can refetch their
+/// counts and re-rank on its own every 15 minutes (`WidgetRefresh`) and write the result back.
 /// Missing means not connected: the widgets then ask you to open Committed.
 struct WidgetSnapshot: Codable, Equatable, Sendable {
     /// One board row, ranked by `Ranking.order`.
@@ -26,9 +27,24 @@ struct WidgetSnapshot: Codable, Equatable, Sendable {
     /// never an avatar saved for a real account with the same login. nil (left out) for a real
     /// board, so a snapshot from before this field reads as one.
     var isSampleBoard: Bool? = nil
+    /// Everyone visible on the board, in board order (you first), which `Ranking.order` breaks
+    /// ties by. What the widgets refetch. nil from a build before widget refresh: those snapshots
+    /// show as written until the app saves a new one.
+    var people: [String]? = nil
+    /// Every visible person's row, ranked: the counts a refresh falls back on for anyone GitHub
+    /// didn't answer for, and today's movement, which a refresh carries on from.
+    var board: [Row]? = nil
 
     /// Rows the large widget has room for.
     static let topCount = 6
+
+    /// How long after its data a widget looks stale (colors stepped down, the age in amber). Longer
+    /// than Live rank's 20 minutes: widgets refresh every 15 minutes at best, and iOS's reload
+    /// budget can stretch that.
+    static let staleInterval: TimeInterval = 60 * 60
+
+    /// When the widgets show these numbers as stale.
+    var staleDate: Date { state.updatedDate.addingTimeInterval(Self.staleInterval) }
 
     /// The widgets' kinds: the app reloads them, the extension declares them. The rank card
     /// (every size), and the small Board list made for StandBy.
@@ -65,6 +81,50 @@ struct WidgetSnapshot: Codable, Equatable, Sendable {
         }
         rows.append(me)
         return rows
+    }
+}
+
+// MARK: - Refresh
+
+extension WidgetSnapshot {
+    /// The board re-ranked with new counts, as the app would rank it (`Ranking.order`, then
+    /// `LiveRankState.derive`), dated `now`. Anyone missing from `counts` keeps their last count,
+    /// except on Today after midnight, when yesterday's count would be wrong: they show no data.
+    /// Today's movement carries on from the saved board (the day's baseline is the saved movement
+    /// plus the saved rank) and starts again at 0 on a new day.
+    func refreshed(counts: [String: Int], now: Date, calendar: Calendar = .current) -> WidgetSnapshot {
+        guard let people, let window = state.contributionWindow else { return self }
+        let saved = Dictionary((board ?? top).map { ($0.login, $0) }, uniquingKeysWith: { first, _ in first })
+        let sameDay = calendar.isDate(state.updatedDate, inSameDayAs: now)
+        let keepsOldCounts = window != .daily || sameDay
+
+        var standings: [String: Standing] = [:]
+        for login in people {
+            guard let count = counts[login] ?? (keepsOldCounts ? saved[login]?.contributions : nil) else { continue }
+            standings[login] = Standing(username: login, contributions: count, window: window,
+                                        lastUpdated: now, state: .loaded)
+        }
+        let competitors = people.map { Competitor(username: $0, isSelf: $0 == selfLogin) }
+        let ranked = Ranking.order(competitors: competitors, standings: standings, window: window)
+
+        var deltas: [String: Int] = [:]
+        if window == .daily, sameDay {
+            for entry in ranked {
+                let login = entry.competitor.username
+                if let before = saved[login] { deltas[login] = before.movement + before.rank - entry.rank }
+            }
+        }
+        let rows = ranked.map { entry in
+            let login = entry.competitor.username
+            return Row(rank: entry.rank, login: login, contributions: standings[login]?.contributions,
+                       movement: deltas[login] ?? 0, isSelf: entry.competitor.isSelf)
+        }
+        var next = self
+        next.state = LiveRankState.derive(competitors: competitors, standings: standings, window: window,
+                                          rankDeltas: deltas, now: now)
+        next.top = Array(rows.prefix(Self.topCount))
+        next.board = rows
+        return next
     }
 }
 

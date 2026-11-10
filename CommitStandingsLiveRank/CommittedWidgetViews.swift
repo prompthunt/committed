@@ -5,56 +5,12 @@ import SwiftUI
 // widget, and its tests render every size, Lock Screen accessories included. Nothing here may
 // depend on WidgetKit's timeline; the widgets in `CommittedWidget.swift` wrap these in their
 // configurations.
+//
+// Every system size heads itself as Live rank does: the trophy and the Window ("Today") at 20 pt,
+// and how long ago the numbers were updated ("13 min, 36 sec") counting up at 12 pt on the right,
+// or, where a small widget has no room beside the Window, on its own line.
 
-/// The trophy and the Window ("TODAY"), heading every system size.
-private struct WidgetHeader: View {
-    let state: LiveRankState
-    @Environment(\.liveRankIsStale) private var isStale
-
-    var body: some View {
-        HStack(spacing: 6) {
-            TrophyMark(size: 16, color: isStale ? .limeDeep : .lime)
-            if let window = state.contributionWindow {
-                Text(window.shortTitle)
-                    .eyebrow()
-                    .foregroundStyle(isStale ? Color.warning : Color.soft)
-            }
-        }
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(state.contributionWindow.map { "Committed, \($0.accessibilityDescription)" } ?? "Committed")
-    }
-}
-
-/// The gap to pass, what it's waiting for, or (stale) how old the numbers are: one line.
-private struct WidgetStatusLine: View {
-    let state: LiveRankState
-    @Environment(\.liveRankIsStale) private var isStale
-
-    var body: some View {
-        Group {
-            if isStale {
-                HStack(spacing: 3) {
-                    Image(systemName: "clock.badge.exclamationmark").accessibilityHidden(true)
-                    CommittedWidgetText.age(state)
-                }
-                .foregroundStyle(Color.warning)
-                .accessibilityElement(children: .combine)
-            } else if state.hasLadder {
-                Text(state.passLine ?? "Leading the board")
-                    .fontWeight(.semibold)
-                    .foregroundStyle(Color.lime)
-            } else if let line = state.emptyStateLine {
-                Text(line).foregroundStyle(Color.soft)
-            }
-        }
-        .font(.footnote)
-        .monospacedDigit()
-        .lineLimit(1)
-        .minimumScaleFactor(0.8)
-    }
-}
-
-/// Small (also CarPlay and StandBy): the Window, your rank big, your count, then the gap to pass.
+/// Small (also CarPlay and StandBy): the Window, your rank big, your count, then the age.
 /// Read at a glance from the driver's seat, so no rows.
 struct CommittedWidgetSmall: View {
     let snapshot: WidgetSnapshot
@@ -63,7 +19,7 @@ struct CommittedWidgetSmall: View {
     var body: some View {
         let state = snapshot.state
         VStack(alignment: .leading, spacing: 2) {
-            WidgetHeader(state: state)
+            LiveRankWindowLabel(state: state, accessibilityName: "Committed")
             Spacer(minLength: 4)
             // With nobody else on the board there's no rank: your count takes its place.
             let ranked = state.rank != nil || state.competitorCount > 1
@@ -93,23 +49,32 @@ struct CommittedWidgetSmall: View {
     }
 }
 
-/// Medium: the header with the gap to pass, then the person above you, you, and the person below
-/// in the board's own rows, as Live rank's expanded island shows them.
+/// A small widget's last line: the age, or what the board is waiting for when there's no count.
+private struct WidgetStatusLine: View {
+    let state: LiveRankState
+
+    var body: some View {
+        if state.contributions == nil || state.competitorCount <= 1, let line = state.emptyStateLine {
+            Text(line)
+                .font(.footnote)
+                .foregroundStyle(Color.soft)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+        } else {
+            UpdateAge(date: state.updatedDate)
+        }
+    }
+}
+
+/// Medium: the header, then the person above you, you, and the person below in the board's own
+/// rows, as Live rank's expanded island shows them.
 struct CommittedWidgetMedium: View {
     let snapshot: WidgetSnapshot
-    @Environment(\.liveRankIsStale) private var isStale
 
     var body: some View {
         let state = snapshot.state
         VStack(alignment: .leading, spacing: 6) {
-            HStack {
-                WidgetHeader(state: state)
-                Spacer(minLength: 8)
-                // Without rows the body already says what it's waiting for.
-                if state.hasLadder || isStale {
-                    WidgetStatusLine(state: state)
-                }
-            }
+            LiveRankHeader(state: state, accessibilityName: "Committed")
             Spacer(minLength: 0)
             if state.hasLadder {
                 LiveRankRows(state: state, selfLogin: snapshot.selfLogin)
@@ -129,7 +94,8 @@ struct CommittedWidgetMedium: View {
     }
 }
 
-/// Large: the top of the board in its own rows, then you below a rule when you're further down.
+/// Large: the header, then the top of the board in its own rows, then you below a rule when
+/// you're further down.
 struct CommittedWidgetLarge: View {
     let snapshot: WidgetSnapshot
     @Environment(\.liveRankIsStale) private var isStale
@@ -140,11 +106,7 @@ struct CommittedWidgetLarge: View {
         let shown = snapshot.top + (snapshot.selfIsInTop ? [] : snapshot.selfRow.map { [$0] } ?? [])
         let busiest = shown.compactMap(\.contributions).max() ?? 0
         VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                WidgetHeader(state: state)
-                Spacer(minLength: 8)
-                WidgetStatusLine(state: state)
-            }
+            LiveRankHeader(state: state, accessibilityName: "Committed")
             VStack(spacing: 8) {
                 ForEach(snapshot.top, id: \.rank) { row in
                     WidgetBoardRow(row: row, window: window, updated: state.updatedDate, busiest: busiest)
@@ -165,8 +127,8 @@ struct CommittedWidgetLarge: View {
     }
 }
 
-/// Small Board: the header, then four of the board's rows. StandBy scales the small widget up to
-/// half a landscape screen, so four rows read from across a room.
+/// Small Board: the Window, four of the board's rows, then the age. StandBy scales the small
+/// widget up to half a landscape screen, so four rows read from across a room.
 struct CommittedWidgetBoardSmall: View {
     let snapshot: WidgetSnapshot
     @Environment(\.liveRankIsStale) private var isStale
@@ -177,16 +139,7 @@ struct CommittedWidgetBoardSmall: View {
         let rows = snapshot.boardRows()
         let busiest = (snapshot.top + rows).compactMap(\.contributions).max() ?? 0
         VStack(alignment: .leading, spacing: 4) {
-            HStack(spacing: 6) {
-                WidgetHeader(state: state)
-                Spacer(minLength: 4)
-                if isStale {
-                    Image(systemName: "clock.badge.exclamationmark")
-                        .font(.caption2)
-                        .foregroundStyle(Color.warning)
-                        .accessibilityLabel("Out of date")
-                }
-            }
+            LiveRankWindowLabel(state: state, accessibilityName: "Committed")
             if rows.isEmpty {
                 Spacer(minLength: 0)
                 Text(state.emptyStateLine ?? "Your board is loading")
@@ -205,6 +158,8 @@ struct CommittedWidgetBoardSmall: View {
                 .environment(\.loadsGitHubAvatars, false)
             }
             Spacer(minLength: 0)
+            UpdateAge(date: state.updatedDate)
+                .frame(maxWidth: .infinity, alignment: .trailing)
         }
         .dynamicTypeSize(...DynamicTypeSize.large)
     }
@@ -272,11 +227,6 @@ struct CommittedWidgetConnect: View {
 }
 
 enum CommittedWidgetText {
-    /// "45 minutes ago", counting on without a reload, as Live rank's footer does.
-    static func age(_ state: LiveRankState) -> Text {
-        Text(.currentDate, format: .reference(to: state.updatedDate, allowedFields: [.minute, .hour, .day], maxFieldCount: 1))
-    }
-
     /// "#3 · 42 today", or "42 today" without a rank, or the Window alone without a count.
     static func headline(_ state: LiveRankState) -> String {
         let window = state.contributionWindow?.shortTitle.lowercased() ?? ""
@@ -287,21 +237,14 @@ enum CommittedWidgetText {
         default: return state.contributionWindow?.shortTitle ?? "Committed"
         }
     }
-
-    /// The gap to pass when there is one, otherwise the headline.
-    static func inline(_ state: LiveRankState) -> String {
-        if let rank = state.rank, let line = state.passLine { return "#\(rank) · \(line)" }
-        return headline(state)
-    }
 }
 
 // MARK: - Lock Screen
 
-/// "#3 · 42 today" over the gap to pass. Rendered in the Lock Screen's tint, so no color carries
-/// meaning.
+/// "#3 · 42 today" over how long ago it was updated ("13 min, 36 sec", counting up). Rendered in
+/// the Lock Screen's tint, so no color carries meaning.
 struct CommittedWidgetRectangular: View {
     let snapshot: WidgetSnapshot?
-    @Environment(\.liveRankIsStale) private var isStale
 
     var body: some View {
         VStack(alignment: .leading, spacing: 1) {
@@ -309,13 +252,15 @@ struct CommittedWidgetRectangular: View {
                 Text(CommittedWidgetText.headline(state))
                     .font(.headline)
                     .widgetAccentable()
-                if isStale {
-                    Label { CommittedWidgetText.age(state) } icon: {
-                        Image(systemName: "clock.badge.exclamationmark")
+                if state.contributions == nil || state.competitorCount <= 1, let line = state.emptyStateLine {
+                    Text(line).font(.caption)
+                } else {
+                    Label { Text(state.updatedDate, style: .relative).monospacedDigit() } icon: {
+                        Image(systemName: "clock")
                     }
                     .font(.caption)
-                } else if let line = state.passLine ?? state.emptyStateLine {
-                    Text(line).font(.caption)
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel(Text("Updated \(Text(state.updatedDate, style: .relative)) ago"))
                 }
             } else {
                 Text("Committed").font(.headline).widgetAccentable()
@@ -328,13 +273,13 @@ struct CommittedWidgetRectangular: View {
     }
 }
 
-/// One line above the clock: your rank and count, or the gap to pass.
+/// One line above the clock: your rank and count.
 struct CommittedWidgetInline: View {
     let snapshot: WidgetSnapshot?
 
     var body: some View {
         if let state = snapshot?.state {
-            Label(CommittedWidgetText.inline(state), systemImage: "trophy.fill")
+            Label(CommittedWidgetText.headline(state), systemImage: "trophy.fill")
         } else {
             Label("Committed", systemImage: "trophy.fill")
         }

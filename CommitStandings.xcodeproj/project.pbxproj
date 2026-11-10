@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		056AD58860E83DF3C95BF7F0 /* WidgetRefresh.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6202CD8883133C82C88BC65F /* WidgetRefresh.swift */; };
 		06DF6C5CFB7501A8698EFC2F /* RelativeTimeFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = BCDF02E7632940AA9545EE06 /* RelativeTimeFormatter.swift */; };
 		07C88B09D0D50A44A722248A /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 3C64308148F4474677E3544E /* Assets.xcassets */; };
 		0892B9E6D6FBC92B94016A90 /* ContributionsExplainerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8EA8F45126F815A7800969F8 /* ContributionsExplainerView.swift */; };
@@ -45,6 +46,7 @@
 		427D65EB558830937069AA66 /* CommittedServices.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6B67DA147AA79BFA7435B025 /* CommittedServices.swift */; };
 		453DEF9F280A0A8B800C726F /* LeaderboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DB2F25FDB1394FDC092A7F8B /* LeaderboardView.swift */; };
 		470E7BAC0634179DA17451CD /* StandingRowRenderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E4235C3F328C5230A4C9E57 /* StandingRowRenderTests.swift */; };
+		4737159C4C60CCC28C9CA3AA /* ContributionsParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE0A524931662EF58DB043E6 /* ContributionsParser.swift */; };
 		4828F50A84FA84A6FA9CAA40 /* SignInView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 244D017B10D3447C59BBCE58 /* SignInView.swift */; };
 		4857B74596D3485A9963191D /* BoardControls.swift in Sources */ = {isa = PBXBuildFile; fileRef = 90D0543C200749819E1FE3E2 /* BoardControls.swift */; };
 		4899236B6608457F581E4D68 /* ContributionsParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE0A524931662EF58DB043E6 /* ContributionsParser.swift */; };
@@ -62,6 +64,7 @@
 		5F123171EC3EF1398BF9786C /* OnboardingFlow.swift in Sources */ = {isa = PBXBuildFile; fileRef = D11835AEBA0843F9E9D675BE /* OnboardingFlow.swift */; };
 		622551438719F6056F0E14BA /* ContributionsClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 90DF43E36794708D5DE09044 /* ContributionsClient.swift */; };
 		62BBEB634FEC2759C58C2611 /* ContributionWindowPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB984BFA2EC81E758FDE6559 /* ContributionWindowPicker.swift */; };
+		6360E9E220966CE190E0D233 /* ContributionsClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 90DF43E36794708D5DE09044 /* ContributionsClient.swift */; };
 		69395AC7A4CBF5AC78D89DED /* UpdatePromptState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B2B9D07A5A41395C59FC1D3 /* UpdatePromptState.swift */; };
 		69958B6473C6DD95B30518D5 /* GitHubAuthTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 359887BF93AA64D5EF9EC654 /* GitHubAuthTests.swift */; };
 		6A2C4840A42C64F4C1F7E228 /* NotificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1B215A09A572661D0932EFE0 /* NotificationService.swift */; };
@@ -75,6 +78,7 @@
 		84703AB10291059624AC8596 /* DeepLink.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0D91579108402981623D843 /* DeepLink.swift */; };
 		851A1EF58E57494BE1955E5A /* WidgetSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = 07C847D32565E1A367F30DD4 /* WidgetSnapshot.swift */; };
 		8526DCDE44E0DB284545225A /* GitHubConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 97B1C9E37DF68B21D1A5888B /* GitHubConfig.swift */; };
+		85758BC52D8231928BF5FFE8 /* LiveRankDerivation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 284070E7C171FF3A46332457 /* LiveRankDerivation.swift */; };
 		8A757784E5352821C5229F8E /* Standing.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D7951BB34A16E4847FB3A75 /* Standing.swift */; };
 		8B6B59534FC172BD8D6750E6 /* RefreshCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = ABC6DA1FB2CD9C804A5518A0 /* RefreshCoordinator.swift */; };
 		914F13EB6C67C76FBF2E6EE5 /* DeepLink.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0D91579108402981623D843 /* DeepLink.swift */; };
@@ -86,6 +90,7 @@
 		A207D059369BFA376E3A9536 /* LiveRankAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 034B0283256CD719632FBFBE /* LiveRankAttributes.swift */; };
 		A3675410FD8EC029FF38C4E8 /* NotificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1B215A09A572661D0932EFE0 /* NotificationService.swift */; };
 		A53B55B8E897F16C8D1ED918 /* GitHubCredentialStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4032F32750CF1C2CED529773 /* GitHubCredentialStoreTests.swift */; };
+		A5CFDF1C7AA003FF9D9A8341 /* WidgetRefresh.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6202CD8883133C82C88BC65F /* WidgetRefresh.swift */; };
 		A6BC9E4363F0C41EB32FA911 /* RosterStatusView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4338259CFDF799D3722D35BB /* RosterStatusView.swift */; };
 		A7216C18ECB3E9B6D6B93B4A /* LiveRankAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 034B0283256CD719632FBFBE /* LiveRankAttributes.swift */; };
 		A74694A89902AC300C807ED8 /* LiveRankState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C62F24CB54A093905756EA7 /* LiveRankState.swift */; };
@@ -101,6 +106,7 @@
 		B7D11B700B0246E99FE93E17 /* MacSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 925A59270BC94DE49E4F2898 /* MacSystem.swift */; };
 		BA58F61D65EBB87C58171158 /* GitHubAccountAuthTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD58C2584D572964D962D12E /* GitHubAccountAuthTests.swift */; };
 		BC7021E2AB61E35E06068726 /* StandingsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 898A1B0791B453A31529D80F /* StandingsStore.swift */; };
+		C17D03CDAABE4AA46C802826 /* Ranking.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BE6286655EE3892D7B537EF /* Ranking.swift */; };
 		C78AD49582EF32C9E85D1CC3 /* RankingConformanceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B34C0F5E8D8A2A28DB0D858 /* RankingConformanceTests.swift */; };
 		C98915AC4B6406E8E052D0FA /* LoginItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7192384D63DE5967A162AC30 /* LoginItem.swift */; };
 		CB4AF69B34234966E1E100A9 /* ContributionWindowPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB984BFA2EC81E758FDE6559 /* ContributionWindowPicker.swift */; };
@@ -203,6 +209,7 @@
 		4B3C587C1FCCF5F4B4F05B1C /* AvatarColor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AvatarColor.swift; sourceTree = "<group>"; };
 		5D3A8827A6F59B1732B402CB /* ContributionsParserTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContributionsParserTests.swift; sourceTree = "<group>"; };
 		6173DBBF5DA3F5CDD55612E9 /* CommitStandings.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = CommitStandings.entitlements; sourceTree = "<group>"; };
+		6202CD8883133C82C88BC65F /* WidgetRefresh.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WidgetRefresh.swift; sourceTree = "<group>"; };
 		677A5198E1F2064191B89865 /* ContributionsClientTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContributionsClientTests.swift; sourceTree = "<group>"; };
 		6897E162A39A7B93BAE6EE8E /* MenuBarLabel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarLabel.swift; sourceTree = "<group>"; };
 		69C38EE664A128783937CCDE /* AppUpdaterTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AppUpdaterTests.swift; sourceTree = "<group>"; };
@@ -261,25 +268,25 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		A1B2C3D4E5F60718293A4B5C /* Exceptions for "CommitStandingsLiveRank" folder in "CommitStandingsiOS" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				CommitStandingsLiveRank.entitlements,
+				CommittedWidget.swift,
+				"Fonts/InterTight-ExtraBold.ttf",
+				"Fonts/InterTight-Regular.ttf",
+				Fonts/OFL.txt,
+				Info.plist,
+				LiveRankWidgetBundle.swift,
+			);
+			target = 54EE225CD9A20D7FA7EBF259 /* CommitStandingsiOS */;
+		};
 		D03F7BFE567601F53A1AEDD1 /* Exceptions for "CommitStandingsLiveRank" folder in "CommitStandingsLiveRank" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
 			);
 			target = 14226DF7E216AD5608C1F8F8 /* CommitStandingsLiveRank */;
-		};
-		A1B2C3D4E5F60718293A4B5C /* Exceptions for "CommitStandingsLiveRank" folder in "CommitStandingsiOS" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				CommitStandingsLiveRank.entitlements,
-				CommittedWidget.swift,
-				Fonts/InterTight-ExtraBold.ttf,
-				Fonts/InterTight-Regular.ttf,
-				Fonts/OFL.txt,
-				Info.plist,
-				LiveRankWidgetBundle.swift,
-			);
-			target = 54EE225CD9A20D7FA7EBF259 /* CommitStandingsiOS */;
 		};
 		E3525B85AD0FE8460E714288 /* Exceptions for "CommitStandingsiOS" folder in "CommitStandingsiOS" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
@@ -457,6 +464,7 @@
 				034B0283256CD719632FBFBE /* LiveRankAttributes.swift */,
 				14D700EC17B9737E5660B89C /* PeopleDirectory.swift */,
 				07C847D32565E1A367F30DD4 /* WidgetSnapshot.swift */,
+				6202CD8883133C82C88BC65F /* WidgetRefresh.swift */,
 			);
 			path = Store;
 			sourceTree = "<group>";
@@ -757,6 +765,7 @@
 				E4072382362F41353C468E9F /* CommittedTheme.swift in Sources */,
 				2B9F5363ADFAA87FFDADC4AD /* AvatarCache.swift in Sources */,
 				0DF25FFF4C060317A3590F0A /* WidgetSnapshot.swift in Sources */,
+				056AD58860E83DF3C95BF7F0 /* WidgetRefresh.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -860,6 +869,11 @@
 				3E9600CDBCA81FA11A8617C7 /* AvatarColor.swift in Sources */,
 				0B352F8D38729B05B2E3BF43 /* Competitor.swift in Sources */,
 				851A1EF58E57494BE1955E5A /* WidgetSnapshot.swift in Sources */,
+				C17D03CDAABE4AA46C802826 /* Ranking.swift in Sources */,
+				85758BC52D8231928BF5FFE8 /* LiveRankDerivation.swift in Sources */,
+				6360E9E220966CE190E0D233 /* ContributionsClient.swift in Sources */,
+				4737159C4C60CCC28C9CA3AA /* ContributionsParser.swift in Sources */,
+				A5CFDF1C7AA003FF9D9A8341 /* WidgetRefresh.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
