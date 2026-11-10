@@ -76,6 +76,9 @@ enum AppStoreFrame: Int, CaseIterable {
 struct AppStoreFrameImage {
     let frame: AppStoreFrame
     let png: Data
+    /// The screen alone, full size with its status bar and no caption or phone: the source the
+    /// screenshot editor (`appstore/screenshots/`) frames itself.
+    let screen: Data
     /// Every GitHub login the frame shows.
     let people: Set<String>
 
@@ -132,6 +135,11 @@ enum AppStoreScreenshots {
             AppStoreFrameImage(
                 frame: frame,
                 png: try opaquePNG(AppStoreFrameView(frame: frame) { screen }),
+                screen: try opaquePNG(
+                    screen
+                        .frame(width: size.width, height: size.height)
+                        .environment(\.colorScheme, .dark)
+                ),
                 people: shown
             )
         }

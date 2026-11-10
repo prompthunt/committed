@@ -9,7 +9,8 @@ import UIKit
 ///
 /// Always runs, to keep the frames at the size App Store Connect takes and on sample data. With
 /// `RENDER_DIR` set (`TEST_RUNNER_RENDER_DIR=/path`), it also writes `01-board.png` …
-/// `05-people.png` there; `docs/screenshots/app-store/README.md` says how to publish them.
+/// `05-people.png` there, and each bare screen (status bar, no caption or phone) under `screens/`
+/// for the screenshot editor; `docs/screenshots/app-store/README.md` says how to publish them.
 @MainActor
 @Suite(.serialized)
 struct AppStoreScreenshotTests {
@@ -32,6 +33,8 @@ struct AppStoreScreenshotTests {
             #expect(image.width == 1320 && image.height == 2868, "\(frame.name) is \(image.width) × \(image.height)")
             // App Store Connect takes no alpha channel.
             #expect([.none, .noneSkipFirst, .noneSkipLast].contains(image.alphaInfo), "\(frame.name) has an alpha channel")
+            let screen = try #require(UIImage(data: frame.screen)?.cgImage, "\(frame.name)'s screen isn't a PNG")
+            #expect(screen.width == 1320 && screen.height == 2868, "\(frame.name)'s screen is \(screen.width) × \(screen.height)")
             #expect(!frame.people.isEmpty, "\(frame.name) shows nobody")
             #expect(frame.people.isSubset(of: Self.samplePeople), "\(frame.name) shows \(frame.people.subtracting(Self.samplePeople))")
         }
@@ -40,8 +43,11 @@ struct AppStoreScreenshotTests {
 
         if let directory = ProcessInfo.processInfo.environment["RENDER_DIR"].map(URL.init(fileURLWithPath:)) {
             try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+            let screens = directory.appendingPathComponent("screens")
+            try FileManager.default.createDirectory(at: screens, withIntermediateDirectories: true)
             for frame in frames {
                 try frame.png.write(to: directory.appendingPathComponent("\(frame.name).png"), options: .atomic)
+                try frame.screen.write(to: screens.appendingPathComponent("\(frame.name).png"), options: .atomic)
             }
         }
     }
