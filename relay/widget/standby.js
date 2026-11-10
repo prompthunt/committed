@@ -142,7 +142,7 @@
     byId("panes-card").className = ranked ? "card" : "card unranked";
     byId("rank").textContent = state.rank !== null ? "#" + state.rank : "–";
     setCount(state.contributions, animate);
-    byId("square").setAttribute("data-level", state.contributions > 0 ? "4" : "0");
+    byId("count-glyph").setAttribute("data-level", state.contributions > 0 ? "4" : "0");
 
     var status = byId("status");
     var line = emptyStateLine(state);

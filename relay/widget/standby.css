@@ -209,31 +209,38 @@ html.embedded body {
   letter-spacing: -0.04em;
 }
 
-/* Contribution square, empty to busiest: the site's --color-sq-0…3, then lime. */
-.square {
+/* Your count's 2×2 squares glyph, the rows' glyph at card size: lime once you have contributions. */
+.card-glyph {
+  position: relative;
   flex: 0 0 auto;
   display: block;
-  width: 1.15rem;
-  height: 1.15rem;
-  margin-left: 0.5rem;
-  border-radius: 0.25rem;
+  width: 1.6rem;
+  height: 1.6rem;
+  margin-left: 0.6rem;
+}
+
+.card-glyph i {
+  position: absolute;
+  width: 44%;
+  height: 44%;
+  border-radius: 22%;
   box-sizing: border-box;
   background: #14170f;
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.unranked .square {
-  width: 1.75rem;
-  height: 1.75rem;
-  border-radius: 0.38rem;
+.card-glyph i:nth-child(1) { left: 0; top: 0; }
+.card-glyph i:nth-child(2) { right: 0; top: 0; }
+.card-glyph i:nth-child(3) { left: 0; bottom: 0; }
+.card-glyph i:nth-child(4) { right: 0; bottom: 0; }
+
+.unranked .card-glyph {
+  width: 2.6rem;
+  height: 2.6rem;
+  margin-left: 0.8rem;
 }
 
-.square[data-level="3"] {
-  background: #6aa81a;
-  border-color: transparent;
-}
-
-.square[data-level="4"] {
+.card-glyph[data-level="4"] i {
   background: #c8ff2e;
   border-color: transparent;
 }
@@ -448,7 +455,7 @@ html.embedded body {
 [data-state="stale"] .count { color: #8bc41a; }
 [data-state="stale"] .status { color: #8bc41a; }
 [data-state="stale"] .status.quiet { color: #d6d9d0; }
-[data-state="stale"] .square[data-level="4"] { background: #6aa81a; }
+[data-state="stale"] .card-glyph[data-level="4"] i { background: #6aa81a; }
 [data-state="stale"] .row { color: #d6d9d0; }
 [data-state="stale"] .row[data-self="true"] {
   background: rgba(139, 196, 26, 0.08);

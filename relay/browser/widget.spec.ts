@@ -335,3 +335,21 @@ test("embedded in another screen's frame, the page is transparent so the host's 
   ]);
   expect(bgs).toEqual(["rgba(0, 0, 0, 0)", "rgba(0, 0, 0, 0)"]);
 });
+
+test("the rank card shows your count with the 2×2 squares glyph beside it", async ({ page }) => {
+  await open(page, { status: 200, body: board() });
+  await expect(count(page)).toHaveText("12");
+  const squares = page.getByTestId("count-glyph").locator("i");
+  await expect(squares).toHaveCount(4);
+  const countBox = (await count(page).boundingBox())!;
+  const boxes = await Promise.all([0, 1, 2, 3].map(async (i) => (await squares.nth(i).boundingBox())!));
+  // Two columns and two rows, all to the right of the count and within its height.
+  expect(new Set(boxes.map((b) => Math.round(b.x))).size).toBe(2);
+  expect(new Set(boxes.map((b) => Math.round(b.y))).size).toBe(2);
+  for (const b of boxes) {
+    expect(b.x).toBeGreaterThan(countBox.x + countBox.width);
+    expect(b.y).toBeGreaterThanOrEqual(countBox.y - 1);
+    expect(b.y + b.height).toBeLessThanOrEqual(countBox.y + countBox.height + 1);
+  }
+  await screenshot(page, "card-glyph");
+});
