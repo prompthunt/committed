@@ -39,6 +39,13 @@ export interface CachedDays {
   days_json: string | null;
 }
 
+/** A login's last good days in the contribution cache. */
+export interface CachedLoginDays {
+  login: string;
+  fetched_at: number;
+  days_json: string;
+}
+
 export interface BoardTokenRow {
   token_hash: string;
   installation_id: string;
@@ -150,14 +157,14 @@ export class Store {
   }
 
   /** Last good days for each login, whatever their age. Reads only: nothing is fetched. */
-  async getCachedDays(logins: readonly string[]): Promise<{ login: string; fetched_at: number; days_json: string }[]> {
+  async getCachedDays(logins: readonly string[]): Promise<CachedLoginDays[]> {
     const { results } = await this.db
       .prepare(
         `SELECT login, fetched_at, days_json FROM contribution_cache
          WHERE login IN (SELECT value FROM json_each(?)) AND fetched_at IS NOT NULL AND days_json IS NOT NULL`,
       )
       .bind(JSON.stringify(logins))
-      .all<{ login: string; fetched_at: number; days_json: string }>();
+      .all<CachedLoginDays>();
     return results;
   }
 

@@ -210,18 +210,57 @@ describe("GET /v1/installations/{id}/board", () => {
     expect(await (await board()).json()).toMatchObject({ rank: null, contributions: 7, gapToPass: null, above: null, below: null });
   });
 
-  it("has a null updatedAt when nothing on the board has data yet", async () => {
+  it("dates the board by your own count, as Live rank does, else the read time", async () => {
+    // A rival's data is old and yours is missing: Live rank's stale input is now, not the rival's age.
+    await register(ID);
+    await mint(TOKEN, ID);
+    await seedCache("alice", { "2026-11-05": 4 }, T0 - 30 * MINUTE);
+    expect(((await (await board()).json()) as { updatedAt: number }).updatedAt).toBe(T0);
+
+    await seedCache("me", { "2026-11-05": 2 }, T0 - 40 * MINUTE);
+    expect(((await (await board()).json()) as { updatedAt: number }).updatedAt).toBe(T0 - 40 * MINUTE);
+  });
+
+  it("dates an empty board at the read time, with every row a placeholder", async () => {
     await register(ID);
     await mint(TOKEN, ID);
 
-    const body = (await (await board()).json()) as { updatedAt: number | null; rows: { contributions: number | null }[] };
-    expect(body.updatedAt).toBeNull();
+    const body = (await (await board()).json()) as { updatedAt: number; rows: { contributions: number | null }[] };
+    expect(body.updatedAt).toBe(T0);
     expect(body.rows.map((row) => row.contributions)).toEqual([null, null, null]);
+  });
+
+  it("matches the state the cycle pushed, field for field", async () => {
+    // Rivals come from the 5-minute cache, fetched 2 minutes ago; your page 404s. The old board
+    // dated this by the rivals; Live rank dates it by the run.
+    await register(ID);
+    await mint(TOKEN, ID);
+    await env.DB.prepare("UPDATE installations SET activity_push_token = 'aa', activity_started_at = ? WHERE id = ?")
+      .bind(T0, ID)
+      .run();
+    await seedCache("alice", { "2026-11-05": 9 }, T0 - 2 * MINUTE);
+    await seedCache("bob", { "2026-11-05": 1 }, T0 - 2 * MINUTE);
+    await relay.runCycle();
+
+    const row = await env.DB.prepare("SELECT last_state_json FROM installations WHERE id = ?").bind(ID).first<{ last_state_json: string | null }>();
+    expect(row?.last_state_json).toBeTruthy();
+    const { rows: _rows, gapToPass: _gap, login: _login, ...summary } = (await (await board()).json()) as Record<string, unknown>;
+    expect(summary).toEqual(JSON.parse(row!.last_state_json!));
+    expect(summary.updatedAt).toBe(T0);
+  });
+
+  it("varies on Authorization: one screen's cached board is never another's", async () => {
+    await register(ID);
+    await mint(TOKEN, ID);
+    const res = await board();
+    expect(res.headers.get("cache-control")).toBe("private, max-age=60");
+    expect(res.headers.get("vary")).toBe("Authorization");
   });
 
   describe("errors", () => {
     async function expectError(res: Response, status: number, error: string) {
       expect(res.status).toBe(status);
+      expect(res.headers.get("cache-control")).toBe("no-store");
       const body = (await res.json()) as Record<string, unknown>;
       expect(Object.keys(body).sort()).toEqual(["error", "message"]);
       expect(body.error).toBe(error);
@@ -265,6 +304,10 @@ describe("GET /v1/installations/{id}/board", () => {
     it("400 for an unknown window", async () => {
       await expectError(await board(ID, "?window=yearly"), 400, "invalid_window");
       expect((await board(ID, "?window=weekly")).status).toBe(200);
+    });
+
+    it("400 for an unknown window before looking anything up", async () => {
+      await expectError(await board("no-such-installation", "?window=yearly"), 400, "invalid_window");
     });
 
     it("leaves the device API alone: a board token can't write", async () => {

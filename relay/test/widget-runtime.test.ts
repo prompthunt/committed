@@ -30,19 +30,38 @@ describe("widget runtime limits (Chromium 76)", () => {
     }
   });
 
-  it.each([
-    ["flex/grid gap", /(^|[\s;{])(row-|column-)?gap\s*:/m],
-    ["inset", /(^|[\s;{])inset\s*:/m],
-    ["aspect-ratio", /aspect-ratio/],
-    ["clamp()", /\bclamp\(/],
-    ["min()", /\bmin\(/],
-    ["max()", /\bmax\(/],
+  /** Chromium 76 lacks these (flex `gap` is 84, `inset` 87, `aspect-ratio` 88, `clamp()`/`min()`/`max()` 79). */
+  const CHROMIUM_76_MISSING: [string, RegExp, string][] = [
+    ["flex/grid gap", /(^|[\s;{])(row-|column-)?gap\s*:/m, ".a{display:flex;gap:8px}"],
+    ["inset", /(^|[\s;{])inset\s*:/m, ".a{position:absolute;inset:0}"],
+    ["aspect-ratio", /aspect-ratio/, ".a{aspect-ratio:1/1}"],
+    ["clamp()", /\bclamp\(/, ".a{font-size:clamp(12px,2vw,20px)}"],
+    ["min()", /\bmin\(/, ".a{width:min(100%,400px)}"],
+    ["max()", /\bmax\(/, ".a{width:max(50%,200px)}"],
+  ];
+  /** Allowed on Chromium 76 but kept out for the Frame's GPU budget. */
+  const TOO_HEAVY: [string, RegExp][] = [
     ["gradients", /gradient\(/],
     ["box-shadow", /box-shadow/],
     ["text-shadow", /text-shadow/],
     ["filter / blur", /(^|[\s;{-])filter\s*:|blur\(/m],
     ["CSS variables", /var\(--|(^|[\s;{])--[\w-]+\s*:/m],
-  ])("avoids %s in CSS", (_name, banned) => {
+  ];
+
+  it.each(CHROMIUM_76_MISSING)("avoids %s in CSS (missing in Chromium 76)", (_name, banned) => {
+    expect(css).not.toMatch(banned);
+  });
+
+  it.each(CHROMIUM_76_MISSING)("would catch %s", (_name, banned, sample) => {
+    expect(sample).toMatch(banned);
+  });
+
+  it("would not flag what Chromium 76 has: margins, row-reverse, max-width", () => {
+    const fine = ".a{margin:0 8px;flex-direction:row-reverse;max-width:400px;min-height:10px}";
+    for (const [name, banned] of CHROMIUM_76_MISSING) expect(fine, name).not.toMatch(banned);
+  });
+
+  it.each(TOO_HEAVY)("avoids %s in CSS", (_name, banned) => {
     expect(css).not.toMatch(banned);
   });
 

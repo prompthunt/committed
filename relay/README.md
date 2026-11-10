@@ -115,15 +115,21 @@ installation secret (ticket #82).
 
 ### `GET /v1/installations/{id}/board?window=daily`
 
-- **Auth:** `Authorization: Bearer <board read token>`. The installation secret is not accepted here,
-  and a board read token can't call the device API.
+- **Auth:** `Authorization: Bearer <board read token>`, 32 to 256 characters. The installation
+  secret is not accepted here, and a board read token can't call the device API.
+- **Check order:** `window` first (400), then the token's presence and length (401), then the
+  installation (404), and only then the token itself (401, 403). Looking up the installation before
+  the token is deliberate: deleting an installation deletes its tokens, so a screen can still tell
+  "Live rank is off" (404) from "this token was revoked" (403). It does reveal whether an
+  installation ID exists to anyone sending a well-formed token; IDs are random UUIDs, so that
+  isn't a way to find installations.
 - **`window`:** `daily` (the default), `weekly` or `monthly`.
 - **Reads only.** The board is computed from the cycle's `contribution_cache` and the installation's
-  competitors, time zone, login and today's movement baseline, using `src/board.ts`, the code
-  the cycle uses. A read never fetches from GitHub and never writes, so it can't disagree with
-  Live rank.
-- **Response** (`Cache-Control: private, max-age=60`): the Live rank summary fields, plus the full
-  visible board in board order.
+  competitors, time zone, login and today's movement baseline by `deriveBoard` in `src/board.ts`,
+  the same function the cycle pushes from. A read never fetches from GitHub and never writes, so
+  read at the same moment it returns the state the cycle pushed.
+- **Response** (`Cache-Control: private, max-age=60`, `Vary: Authorization`): the Live rank
+  summary fields, plus the full visible board in board order.
 
   ```json
   {
@@ -143,13 +149,14 @@ installation secret (ticket #82).
     is null with no rivals or no data for you.
   - `gapToPass` is `max(above − yours, 1)`, null with nobody above (Swift `gapToPass`).
   - A row's `contributions` is null when that login has no data yet.
-  - `updatedAt` (Unix seconds) is when your count was fetched, else the newest data on the board,
-    and null when nothing has data.
-- **Errors** are `{ "error": "<code>", "message": "<text>" }`:
+  - `updatedAt` (Unix seconds) follows Live rank's rule: when your own count was fetched, else
+    the time of the read (as the cycle uses its run time). A rival's older data never dates the
+    board, so it's never null.
+- **Errors** are `{ "error": "<code>", "message": "<text>" }` with `Cache-Control: no-store`:
 
   | Status | `error` | When |
   |---|---|---|
-  | 401 | `unauthorized` | Token missing, malformed (under 32 characters) or unknown |
+  | 401 | `unauthorized` | Token missing, malformed (under 32 or over 256 characters) or unknown |
   | 403 | `revoked` | The token was revoked |
   | 403 | `forbidden` | The token belongs to another installation |
   | 404 | `not_found` | The installation is gone (Live rank turned off, GitHub disconnected) |

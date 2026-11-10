@@ -63,14 +63,18 @@ describe("GET /v1/widget", () => {
   it("404s an unknown layout or file in the board route's error shape", async () => {
     const layout = await get("/v1/widget?layout=poster");
     expect(layout.status).toBe(404);
+    expect(layout.headers.get("cache-control")).toBe("no-store");
     expect(await layout.json()).toMatchObject({ error: "invalid_layout" });
     const file = await get("/v1/widget/secrets.txt");
     expect(file.status).toBe(404);
+    expect(file.headers.get("cache-control")).toBe("no-store");
     expect(await file.json()).toMatchObject({ error: "not_found", message: expect.any(String) });
   });
 
   it("only answers GET", async () => {
     const res = await get("/v1/widget", { method: "POST" });
     expect(res.status).toBe(405);
+    expect(res.headers.get("cache-control")).toBe("no-store");
+    expect(await res.json()).toEqual({ error: "method_not_allowed", message: expect.any(String) });
   });
 });

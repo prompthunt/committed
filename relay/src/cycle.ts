@@ -7,10 +7,10 @@ import {
   type ApnsPayload,
   type ApnsSender,
 } from "./apns";
-import { competitorsOf, dailyRanks, rankDeltas as deltasFrom, standingsFor, type LoginData } from "./board";
+import { competitorsOf, deriveBoard, loginData, type LoginData } from "./board";
 import type { InstallationRow, Store } from "./db";
-import { deriveLiveRankState, type LiveRankState } from "./liveRank";
-import { localDate, parseDays, type Days } from "./parser";
+import type { LiveRankState } from "./liveRank";
+import { parseDays } from "./parser";
 import type { GitHubFetch, Log } from "./relay";
 
 export interface CycleDeps {
@@ -57,32 +57,12 @@ async function runInstallation(
   deps: CycleDeps,
   now: number,
 ): Promise<void> {
-  const competitors = competitorsOf(row);
-  const today = localDate(now, row.time_zone);
-
-  // Today's movement: mirror RefreshCoordinator.updateDailyRankDeltas. The day's first run
-  // captures the baseline (ranks of rows with data); later runs report baseline − current.
-  const daily = standingsFor(competitors, data, "daily", today);
-  const ranksToday = dailyRanks(competitors, daily);
-  let rankDeltas: Record<string, number> = {};
+  const { today, ranksToday, state } = deriveBoard(row, data, row.window, now);
+  // The day's first run captures the movement baseline; later runs report baseline − current.
   if (row.baseline_date !== today || !row.baseline_ranks_json) {
     row.baseline_date = today;
     row.baseline_ranks_json = JSON.stringify(ranksToday);
-  } else {
-    rankDeltas = deltasFrom(JSON.parse(row.baseline_ranks_json) as Record<string, number>, ranksToday);
   }
-
-  const standings = row.window === "daily" ? daily : standingsFor(competitors, data, row.window, today);
-  const state = deriveLiveRankState({
-    self: row.login,
-    competitors,
-    standings,
-    window: row.window,
-    rankDeltas,
-    // The data's age is that of your own count, the headline number. A rival whose page keeps
-    // failing (renamed account) must not pin every push's stale date in the past.
-    now: standings[row.login] ? data.get(row.login)!.fetchedAt : now,
-  });
   const previous = row.last_state_json ? (JSON.parse(row.last_state_json) as LiveRankState) : null;
 
   if (row.activity_push_token) {
@@ -168,9 +148,8 @@ async function loadContributions(logins: string[], deps: CycleDeps, now: number)
     for (let login = queue.shift(); login !== undefined; login = queue.shift()) {
       const cached = await deps.store.getCached(login);
       if (cached && now - cached.attempted_at < CACHE_SECONDS) {
-        if (cached.days_json && cached.fetched_at !== null) {
-          result.set(login, { days: JSON.parse(cached.days_json) as Days, fetchedAt: cached.fetched_at });
-        }
+        const entry = loginData(cached);
+        if (entry) result.set(login, entry);
         continue;
       }
       try {
@@ -181,9 +160,8 @@ async function loadContributions(logins: string[], deps: CycleDeps, now: number)
         await deps.store.putFailed(login, now, String(error));
         deps.log("contributions_failed", { login, error: String(error) });
         // Stale beats missing: keep the last good days, with their real age.
-        if (cached?.days_json && cached.fetched_at !== null) {
-          result.set(login, { days: JSON.parse(cached.days_json) as Days, fetchedAt: cached.fetched_at });
-        }
+        const entry = loginData(cached);
+        if (entry) result.set(login, entry);
       }
     }
   };

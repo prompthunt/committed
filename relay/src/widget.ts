@@ -3,6 +3,7 @@ import standbyHtml from "../widget/standby.html";
 import standbyJs from "../widget/standby.js";
 import interTightExtraBold from "../widget/fonts/InterTight-ExtraBold.ttf";
 import interTightRegular from "../widget/fonts/InterTight-Regular.ttf";
+import { boardError } from "./board";
 
 /**
  * The web widget (ticket #83): static HTML, CSS, ES5 JS and fonts with no data in them, served
@@ -32,18 +33,18 @@ export { standbyCss, standbyHtml, standbyJs };
 export function widgetResponse(request: Request, url: URL): Response | null {
   if (url.pathname !== "/v1/widget" && !url.pathname.startsWith("/v1/widget/")) return null;
   if (request.method !== "GET" && request.method !== "HEAD") {
-    return Response.json({ error: "method_not_allowed", message: "Use GET." }, { status: 405 });
+    return boardError(405, "method_not_allowed", "Use GET.");
   }
   if (url.pathname === "/v1/widget") {
     const layout = url.searchParams.get("layout") ?? "standby";
     if (!WIDGET_LAYOUTS.includes(layout)) {
-      return Response.json({ error: "invalid_layout", message: "layout must be standby." }, { status: 404 });
+      return boardError(404, "invalid_layout", "layout must be standby.");
     }
     return new Response(standbyHtml, {
       headers: { "content-type": "text/html; charset=utf-8", "cache-control": SHORT, "referrer-policy": "no-referrer" },
     });
   }
   const file = WIDGET_FILES[url.pathname];
-  if (!file) return Response.json({ error: "not_found", message: "No such widget file." }, { status: 404 });
+  if (!file) return boardError(404, "not_found", "No such widget file.");
   return new Response(file.body, { headers: { "content-type": file.type, "cache-control": file.cache } });
 }

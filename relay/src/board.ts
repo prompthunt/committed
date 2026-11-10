@@ -1,12 +1,12 @@
-import type { InstallationRow } from "./db";
+import type { CachedDays, InstallationRow } from "./db";
 import { deriveLiveRankState, type LiveRankState } from "./liveRank";
 import { localDate, sum, type Days } from "./parser";
 import { order, selfFirst, type Standing, type Window } from "./ranking";
 
 /**
  * Board computation shared by the cron cycle (Live rank pushes) and the board route (other
- * screens), so the two can't disagree. Both rank with `order` and derive with
- * `deriveLiveRankState`; only where the contribution days come from differs.
+ * screens). Both call `deriveBoard`, so they can't disagree; only where the contribution days
+ * come from differs, and both read them through `loginData`.
  */
 
 export interface LoginData {
@@ -15,12 +15,18 @@ export interface LoginData {
   fetchedAt: number;
 }
 
+/** A contribution cache row's last good days, or null when it has none. */
+export function loginData(cached: Pick<CachedDays, "fetched_at" | "days_json"> | null): LoginData | null {
+  if (!cached || cached.days_json === null || cached.fetched_at === null) return null;
+  return { days: JSON.parse(cached.days_json) as Days, fetchedAt: cached.fetched_at };
+}
+
 /** Rows saved before registration enforced it may list you later: rank them you-first too. */
 export function competitorsOf(row: InstallationRow): string[] {
   return selfFirst(row.login, JSON.parse(row.competitors_json) as string[]);
 }
 
-export function standingsFor(
+function standingsFor(
   competitors: readonly string[],
   data: ReadonlyMap<string, LoginData>,
   window: Window,
@@ -35,7 +41,7 @@ export function standingsFor(
 }
 
 /** Today's daily ranks of the rows that have data: what the day's movement baseline records. */
-export function dailyRanks(competitors: readonly string[], daily: Readonly<Record<string, Standing>>): Record<string, number> {
+function dailyRanks(competitors: readonly string[], daily: Readonly<Record<string, Standing>>): Record<string, number> {
   const ranks: Record<string, number> = {};
   for (const entry of order(competitors, daily, "daily")) {
     if (daily[entry.login]) ranks[entry.login] = entry.rank;
@@ -44,12 +50,57 @@ export function dailyRanks(competitors: readonly string[], daily: Readonly<Recor
 }
 
 /** Today's movement per login, `baseline − current`, as `RefreshCoordinator.updateDailyRankDeltas` reports it. */
-export function rankDeltas(baseline: Readonly<Record<string, number>>, current: Readonly<Record<string, number>>) {
+function rankDeltas(baseline: Readonly<Record<string, number>>, current: Readonly<Record<string, number>>) {
   const deltas: Record<string, number> = {};
   for (const [login, rank] of Object.entries(current)) {
     if (baseline[login] !== undefined) deltas[login] = baseline[login] - rank;
   }
   return deltas;
+}
+
+export interface BoardDerivation {
+  /** The installation's local calendar date. */
+  today: string;
+  /** Today's daily ranks: the movement baseline the day's first cycle records. */
+  ranksToday: Record<string, number>;
+  /** Today's movement per login; empty until today's baseline exists. */
+  deltas: Record<string, number>;
+  standings: Record<string, Standing>;
+  state: LiveRankState;
+}
+
+/**
+ * The one derivation of an installation's Live rank state for a window. Pure: it reads the
+ * movement baseline but never records it (the cycle does, from `ranksToday`).
+ */
+export function deriveBoard(
+  row: InstallationRow,
+  data: ReadonlyMap<string, LoginData>,
+  window: Window,
+  now: number,
+): BoardDerivation {
+  const competitors = competitorsOf(row);
+  const today = localDate(now, row.time_zone);
+  // Today's movement mirrors RefreshCoordinator.updateDailyRankDeltas: baseline − current, once
+  // the day's baseline (ranks of rows with data) exists.
+  const daily = standingsFor(competitors, data, "daily", today);
+  const ranksToday = dailyRanks(competitors, daily);
+  const deltas =
+    row.baseline_date === today && row.baseline_ranks_json
+      ? rankDeltas(JSON.parse(row.baseline_ranks_json) as Record<string, number>, ranksToday)
+      : {};
+  const standings = window === "daily" ? daily : standingsFor(competitors, data, window, today);
+  const state = deriveLiveRankState({
+    self: row.login,
+    competitors,
+    standings,
+    window,
+    rankDeltas: deltas,
+    // The data's age is that of your own count, the headline number. A rival whose page keeps
+    // failing (renamed account) must not pin every push's stale date in the past.
+    now: data.get(row.login)?.fetchedAt ?? now,
+  });
+  return { today, ranksToday, deltas, standings, state };
 }
 
 export interface BoardRow {
@@ -64,12 +115,10 @@ export interface BoardRow {
 }
 
 /**
- * The board route's body: the Live rank summary fields, plus the full visible board in board
- * order. `updatedAt` is when your own count was fetched (as in Live rank), else the newest data
- * used; null when nothing on the board has data.
+ * The board route's body: the Live rank state the cycle derives (same `updatedAt` rule: when
+ * your own count was fetched, else the read time), plus the full visible board in board order.
  */
-export interface Board extends Omit<LiveRankState, "updatedAt"> {
-  updatedAt: number | null;
+export interface Board extends LiveRankState {
   /** Your login. */
   login: string;
   /** Contributions to pass the person above (at least 1, since you win ties); null with nobody above. */
@@ -82,27 +131,8 @@ export interface Board extends Omit<LiveRankState, "updatedAt"> {
  * baseline the cycle recorded but never changes it.
  */
 export function readBoard(row: InstallationRow, data: ReadonlyMap<string, LoginData>, window: Window, now: number): Board {
-  const competitors = competitorsOf(row);
-  const today = localDate(now, row.time_zone);
-  const daily = standingsFor(competitors, data, "daily", today);
-  const deltas =
-    row.baseline_date === today && row.baseline_ranks_json
-      ? rankDeltas(JSON.parse(row.baseline_ranks_json) as Record<string, number>, dailyRanks(competitors, daily))
-      : {};
-  const standings = window === "daily" ? daily : standingsFor(competitors, data, window, today);
-
-  const newest = Math.max(...competitors.map((login) => data.get(login)?.fetchedAt ?? -Infinity));
-  const updatedAt = data.get(row.login)?.fetchedAt ?? (Number.isFinite(newest) ? newest : null);
-  const state = deriveLiveRankState({
-    self: row.login,
-    competitors,
-    standings,
-    window,
-    rankDeltas: deltas,
-    now: updatedAt ?? now,
-  });
-
-  const rows = order(competitors, standings, window).map(({ login, rank }) => ({
+  const { standings, deltas, state } = deriveBoard(row, data, window, now);
+  const rows = order(competitorsOf(row), standings, window).map(({ login, rank }) => ({
     rank,
     login,
     contributions: standings[login]?.contributions ?? null,
@@ -112,5 +142,13 @@ export function readBoard(row: InstallationRow, data: ReadonlyMap<string, LoginD
   const gapToPass =
     state.above && state.contributions !== null ? Math.max(state.above.contributions - state.contributions, 1) : null;
 
-  return { ...state, updatedAt, login: row.login, gapToPass, rows };
+  return { ...state, login: row.login, gapToPass, rows };
+}
+
+/**
+ * The board route's (and web widget's) one error shape, never cached. The device API keeps its
+ * older `{ error }` bodies.
+ */
+export function boardError(status: number, error: string, message: string): Response {
+  return Response.json({ error, message }, { status, headers: { "cache-control": "no-store" } });
 }
