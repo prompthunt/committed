@@ -114,6 +114,19 @@ pub struct Row {
     pub is_you: bool,
     pub movement: i32,
     pub status: String,
+    /// Set only on Final standings rows (`FinalStandings`); the live board never shows medals.
+    pub medal: Option<Medal>,
+}
+/// A finished month's ranks among the people on the board now, with medals: recomputed from the
+/// saved calendars, never frozen, so hiding or showing someone changes them like the board.
+/// Rows carry the month's total in `contributions`, no streak and no movement.
+#[derive(Clone, Debug, Serialize)]
+pub struct FinalStandings {
+    /// The month's 1st.
+    pub month: NaiveDate,
+    /// "October", for "October final".
+    pub month_name: String,
+    pub rows: Vec<Row>,
 }
 #[derive(Clone, Debug, Serialize)]
 pub struct Board {
@@ -129,6 +142,8 @@ pub struct Board {
     /// "Day 10 of 30".
     pub day_of_month: u32,
     pub days_in_month: u32,
+    /// Last month's Final standings, all day on the 1st (when last month is offered).
+    pub final_standings: Option<FinalStandings>,
 }
 #[derive(Clone, Default, Serialize, Deserialize)]
 struct Snapshot {
@@ -148,6 +163,10 @@ struct Saved {
     hidden: BTreeMap<String, BTreeSet<String>>,
     #[serde(default)]
     settings: Settings,
+    /// Per account, the last finished month whose result was announced (its 1st), so the
+    /// month-final notification goes out once per month on this PC, across relaunches.
+    #[serde(default)]
+    announced: BTreeMap<String, NaiveDate>,
 }
 #[derive(Clone, Serialize, Deserialize)]
 pub struct Settings {
@@ -245,7 +264,36 @@ impl BoardCore {
             people_error: state.people_error.clone(),
             day_of_month: today.day(),
             days_in_month: history::days_in_month(today),
+            final_standings: if today.day() == 1 {
+                final_standings(&state, previous_month(today), today)
+            } else {
+                None
+            },
         }
+    }
+    /// Finished months that can show Final standings, oldest first: from the calendar's first
+    /// full month (`history::first_full_month`) through last month.
+    pub fn finished_months(&self) -> Vec<NaiveDate> {
+        let state = self.state.lock().unwrap();
+        let today = self.clock.today();
+        let mut months = vec![];
+        let Some(mut month) = first_offered_month(&state) else {
+            return months;
+        };
+        let current = today.with_day(1).expect("every month has a 1st");
+        while month < current {
+            months.push(month);
+            month = month
+                .checked_add_months(chrono::Months::new(1))
+                .expect("a month after a calendar day");
+        }
+        months
+    }
+    /// The Final standings for the month containing `month`, or `None` when that month isn't
+    /// finished or starts before the calendar's first full month.
+    pub fn final_standings(&self, month: NaiveDate) -> Option<FinalStandings> {
+        let state = self.state.lock().unwrap();
+        final_standings(&state, month, self.clock.today())
     }
     pub fn select_window(&self, window: Window) {
         self.state.lock().unwrap().selected = window;
@@ -353,6 +401,47 @@ pub fn order(competitors: &[String], counts: &BTreeMap<String, u32>) -> Vec<(Str
         .map(|(index, login)| (login.clone(), index + 1))
         .collect()
 }
+/// Gold, silver and bronze: ranks 1–3 of a finished month whose total was above zero.
+#[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub enum Medal {
+    Gold,
+    Silver,
+    Bronze,
+}
+/// One person's place in a finished month.
+#[derive(Clone, Debug, PartialEq)]
+pub struct Finish {
+    pub login: String,
+    pub rank: usize,
+    /// That month's contributions; `None` when this person's calendar hasn't loaded.
+    pub total: Option<u32>,
+    pub medal: Option<Medal>,
+}
+/// A finished month's ranks and medals among `competitors` (you first, so you win ties): the
+/// board's `order` over each person's month total, a medal for ranks 1–3 when that total is
+/// above zero. Someone without a total ranks last and never gets a medal.
+pub fn finishes(competitors: &[String], totals: &BTreeMap<String, u32>) -> Vec<Finish> {
+    order(competitors, totals)
+        .into_iter()
+        .map(|(login, rank)| {
+            let total = totals.get(&login).copied();
+            let medal = match (rank, total) {
+                (_, None | Some(0)) => None,
+                (1, _) => Some(Medal::Gold),
+                (2, _) => Some(Medal::Silver),
+                (3, _) => Some(Medal::Bronze),
+                _ => None,
+            };
+            Finish {
+                login,
+                rank,
+                total,
+                medal,
+            }
+        })
+        .collect()
+}
 fn ranked_rows(state: &State, window: Window, today: NaiveDate, now: i64) -> Vec<Row> {
     let mut rows: Vec<_> = state
         .saved
@@ -368,6 +457,7 @@ fn ranked_rows(state: &State, window: Window, today: NaiveDate, now: i64) -> Vec
                 streak: snapshot.map(|s| history::current_streak(&s.days, today)),
                 is_you: state.saved.owner.as_ref() == Some(&person.login),
                 movement: 0,
+                medal: None,
                 status: if state.failed.contains_key(&person.login) {
                     "failed"
                 } else if state.refreshing {
@@ -404,6 +494,73 @@ fn ranked_rows(state: &State, window: Window, today: NaiveDate, now: i64) -> Vec
         }
     }
     rows
+}
+/// The 1st of the month before `today`'s.
+pub(crate) fn previous_month(today: NaiveDate) -> NaiveDate {
+    today
+        .with_day(1)
+        .and_then(|first| first.checked_sub_months(chrono::Months::new(1)))
+        .expect("a month before a calendar day")
+}
+/// The first month offered as finished: the first full month of your calendar (the first person
+/// on the board is you). Everyone's calendar covers the same year, so yours decides.
+fn first_offered_month(state: &State) -> Option<NaiveDate> {
+    let first = state.saved.people.first()?;
+    history::first_full_month(&state.saved.counts.get(&first.login)?.days)
+}
+pub(crate) fn final_standings(
+    state: &State,
+    month: NaiveDate,
+    today: NaiveDate,
+) -> Option<FinalStandings> {
+    let month = month.with_day(1)?;
+    let current = today.with_day(1)?;
+    if month >= current || month < first_offered_month(state)? {
+        return None;
+    }
+    let people: Vec<&Person> = state
+        .saved
+        .people
+        .iter()
+        .filter(|p| !state.saved.hidden(&p.login))
+        .collect();
+    let logins: Vec<String> = people.iter().map(|p| p.login.clone()).collect();
+    let totals: BTreeMap<String, u32> = people
+        .iter()
+        .filter_map(|p| {
+            let snapshot = state.saved.counts.get(&p.login)?;
+            Some((p.login.clone(), history::month_total(&snapshot.days, month)))
+        })
+        .collect();
+    let rows = finishes(&logins, &totals)
+        .into_iter()
+        .map(|finish| {
+            let person = people
+                .iter()
+                .find(|p| p.login == finish.login)
+                .expect("a finish for each person");
+            Row {
+                person: (*person).clone(),
+                rank: finish.rank,
+                contributions: finish.total,
+                streak: None,
+                is_you: state.saved.owner.as_ref() == Some(&finish.login),
+                movement: 0,
+                status: if finish.total.is_some() {
+                    "loaded"
+                } else {
+                    "missing"
+                }
+                .into(),
+                medal: finish.medal,
+            }
+        })
+        .collect();
+    Some(FinalStandings {
+        month,
+        month_name: month.format("%B").to_string(),
+        rows,
+    })
 }
 fn valid_login(login: &str) -> bool {
     !login.is_empty()

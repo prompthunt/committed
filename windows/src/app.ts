@@ -4,6 +4,7 @@ import { GLYPH_PATH } from "../../site/lib/glyph";
 import type {
   Board,
   DesktopSettings,
+  Medal,
   Person,
   PersonVisibility,
   Settings,
@@ -41,6 +42,11 @@ function streakText(streak: number | null | undefined) {
   if (streak == null || streak < 2) return null;
   return streak > 365 ? "365+" : String(streak);
 }
+const medals: Record<Medal, string> = {
+  gold: "🥇",
+  silver: "🥈",
+  bronze: "🥉",
+};
 const streakSpoken = (text: string) =>
   text.endsWith("+") ? `${text} day streak` : `${text}-day streak`;
 const age = (timestamp: number | null) =>
@@ -56,6 +62,9 @@ export async function start(
 ): Promise<() => void> {
   root.className = `view-${view}`;
   let selected: Window = "today";
+  // Final standings: on the 1st the board opens on last month's result until you pick a Window
+  // or use the toggle (null = not chosen yet, so it shows when offered).
+  let showFinal: boolean | null = null;
   let filter = "all";
   let search = "";
   let disposed = false;
@@ -186,29 +195,37 @@ export async function start(
           `<article class="setup"><img class="app-icon" src="${appIcon}" alt="" /><h1>Committed</h1><p>See your standings alongside your organization members and people you follow. Your list updates automatically.</p><div id="device" role="status" aria-live="polite"></div><button class="primary" id="connect" data-action="connect">Connect GitHub</button><p class="muted privacy">Read-only access to your profile, who you follow, and your organizations. Committed never sees your code. Your token stays in Windows Credential Manager.</p><button data-action="open-device" id="open-device" hidden>Open GitHub again</button>${alert()}</article>`,
         );
     } else {
-      const me = board.rows.find((row) => row.is_you);
-      const myStreak = me ? streakText(me.streak) : null;
+      const finals = board.final_standings ?? null;
+      const final = finals !== null && showFinal !== false;
+      const rows = final ? finals.rows : board.rows;
+      const me = rows.find((row) => row.is_you);
+      const myStreak = me && !final ? streakText(me.streak) : null;
       const refreshing = board.refreshing;
       const first = !board.rows.some((r) => r.contributions !== null);
       const maxContributions = Math.max(
         1,
-        ...board.rows.map((row) => row.contributions ?? 0),
+        ...rows.map((row) => row.contributions ?? 0),
       );
+      const statusText = final
+        ? `${finals.month_name} final${me ? ` · You finished #${me.rank} of ${rows.length}` : ""}`
+        : `${windows.find((w) => w[0] === selected)![1]}${selected === "month" ? ` · Day ${board.day_of_month} of ${board.days_in_month}` : ""} · ${refreshing ? (first ? "Fetching the first set of standings" : "Updating Contributions…") : board.error ? "Refresh finished with errors." : age(board.last_updated)}`;
       replace(`<header><h1>${brandMark} Committed</h1>${menu(board)}</header><div class="board-content">
-        ${me ? `<section class="summary">${avatar(me)}<div><strong>${escape(name(me))}</strong><small>@${escape(me.login)} · you${myStreak ? ` · <span class="streak" role="img" aria-label="${streakSpoken(myStreak)}">🔥 ${myStreak}</span>` : ""}</small></div><div class="summary-count">${count(me.contributions)}<small>Contributions</small></div></section>` : "<p>Connect GitHub to load your board.</p>"}
-        <div class="windows" role="radiogroup" aria-label="Time range">${windows.map(([value, label]) => `<button role="radio" aria-checked="${selected === value}" tabindex="${selected === value ? 0 : -1}" data-window="${value}" data-focus="window-${value}">${label}</button>`).join("")}</div>
-        <p class="status">${windows.find((w) => w[0] === selected)![1]}${selected === "month" ? ` · Day ${board.day_of_month} of ${board.days_in_month}` : ""} · ${refreshing ? (first ? "Fetching the first set of standings" : "Updating Contributions…") : board.error ? "Refresh finished with errors." : age(board.last_updated)}</p>
-        <div class="tracking"><small>Tracking ${board.rows.length} people</small><button data-action="people">People…</button></div>
-        <ol class="standings ${refreshing && !first ? "refreshing" : ""}" aria-label="Leaderboard" aria-busy="${refreshing}">${board.rows
+        ${me ? `<section class="summary">${avatar(me)}<div><strong>${escape(name(me))}</strong><small>@${escape(me.login)} · you${myStreak ? ` · <span class="streak" role="img" aria-label="${streakSpoken(myStreak)}">🔥 ${myStreak}</span>` : ""}</small></div><div class="summary-count">${count(me.contributions)}<small>${final ? `In ${escape(finals.month_name)}` : "Contributions"}</small></div></section>` : "<p>Connect GitHub to load your board.</p>"}
+        <div class="windows" role="radiogroup" aria-label="Time range">${windows.map(([value, label]) => `<button role="radio" aria-checked="${!final && selected === value}" tabindex="${selected === value ? 0 : -1}" data-window="${value}" data-focus="window-${value}">${label}</button>`).join("")}</div>
+        ${finals ? `<button class="final-toggle" data-action="final" aria-pressed="${final}"><span aria-hidden="true">🏅</span> ${escape(finals.month_name)} final standings</button>` : ""}
+        <p class="status">${statusText}</p>
+        <div class="tracking"><small>Tracking ${rows.length} people</small><button data-action="people">People…</button></div>
+        <ol class="standings ${refreshing && !first ? "refreshing" : ""}" aria-label="${final ? `${escape(finals.month_name)} final standings` : "Leaderboard"}" aria-busy="${refreshing}">${rows
           .map((row) => {
-            const streak = streakText(row.streak);
-            const spoken = `Rank ${row.rank}, ${name(row)}, ${row.contributions === null ? "Contributions unavailable" : `${row.contributions} Contributions`}${streak ? `, ${streakSpoken(streak)}` : ""}${row.is_you ? ", you" : ""}`;
+            const streak = final ? null : streakText(row.streak);
+            const medal = final && row.medal ? row.medal : null;
+            const spoken = `Rank ${row.rank}, ${name(row)}, ${row.contributions === null ? "Contributions unavailable" : `${row.contributions} Contributions`}${medal ? `, ${medal} medal` : ""}${streak ? `, ${streakSpoken(streak)}` : ""}${row.is_you ? ", you" : ""}`;
             const shade = Math.min(
               1,
               (row.contributions ?? 0) / maxContributions,
             );
             const squareColor = `rgb(${Math.round(156 - 110 * shade)}, ${Math.round(232 - 71 * shade)}, ${Math.round(168 - 102 * shade)})`;
-            return `<li class="${row.is_you ? "you" : ""}"><button class="standing" data-profile="${escape(row.login)}" data-focus="row-${escape(row.login)}" aria-label="${escape(spoken)}"><span class="rank">#${row.rank}</span>${avatar(row)}<span class="identity"><strong title="${escape(name(row))}">${escape(row.login)}${row.is_you ? ' <span class="badge">you</span>' : ""}</strong>${row.status === "failed" ? "<small>Refresh failed</small>" : ""}</span>${movementWindows.includes(selected) && row.movement ? `<span class="movement ${row.movement > 0 ? "up" : "down"}" aria-label="Moved ${row.movement > 0 ? "up" : "down"} ${Math.abs(row.movement)}">${row.movement > 0 ? "↑" : "↓"}${Math.abs(row.movement)}</span>` : ""}${streak ? `<span class="streak" aria-hidden="true">🔥 ${streak}</span>` : ""}<strong class="contributions">${count(row.contributions)}</strong><svg class="contribution-squares" viewBox="0 0 12 12" fill="${squareColor}" aria-hidden="true" ${row.contributions === null ? 'style="visibility:hidden"' : ""}><path d="M0 0h5v5H0zM7 0h5v5H7zM0 7h5v5H0zM7 7h5v5H7z" /></svg></button></li>`;
+            return `<li class="${row.is_you ? "you" : ""}"><button class="standing" data-profile="${escape(row.login)}" data-focus="row-${escape(row.login)}" aria-label="${escape(spoken)}"><span class="rank">#${row.rank}</span>${avatar(row)}${medal ? `<span class="medal" aria-hidden="true">${medals[medal]}</span>` : ""}<span class="identity"><strong title="${escape(name(row))}">${escape(row.login)}${row.is_you ? ' <span class="badge">you</span>' : ""}</strong>${row.status === "failed" ? "<small>Refresh failed</small>" : ""}</span>${!final && movementWindows.includes(selected) && row.movement ? `<span class="movement ${row.movement > 0 ? "up" : "down"}" aria-label="Moved ${row.movement > 0 ? "up" : "down"} ${Math.abs(row.movement)}">${row.movement > 0 ? "↑" : "↓"}${Math.abs(row.movement)}</span>` : ""}${streak ? `<span class="streak" aria-hidden="true">🔥 ${streak}</span>` : ""}<strong class="contributions">${count(row.contributions)}</strong><svg class="contribution-squares" viewBox="0 0 12 12" fill="${squareColor}" aria-hidden="true" ${row.contributions === null ? 'style="visibility:hidden"' : ""}><path d="M0 0h5v5H0zM7 0h5v5H7zM0 7h5v5H0zM7 7h5v5H7z" /></svg></button></li>`;
           })
           .join("")}</ol>
         ${first && !refreshing ? '<p class="muted">Fetching the first set of standings. Use Refresh to retry if GitHub is unavailable.</p>' : ""}
@@ -263,6 +280,7 @@ export async function start(
     if (!target) return;
     if (target.dataset.window) {
       selected = target.dataset.window as Window;
+      showFinal = false;
       await act("select_window", { window: selected });
       await load();
       await act("request_refresh", { reason: "windowChanged" });
@@ -293,6 +311,10 @@ export async function start(
         break;
       case "refresh":
         await act("request_refresh", { reason: "manual" });
+        break;
+      case "final":
+        showFinal = target.getAttribute("aria-pressed") !== "true";
+        await load();
         break;
       case "people":
       case "about":
