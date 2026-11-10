@@ -24,8 +24,8 @@ class ListingFileTests(unittest.TestCase):
     def test_listing_points_at_the_site_pages(self):
         files = listing()
         self.assertEqual(files['app-info/en-US.json']['privacyPolicyUrl'], 'https://gitcommitted.app/privacy')
-        self.assertEqual(files['version/1.0.1/en-US.json']['supportUrl'], 'https://gitcommitted.app/support')
-        self.assertEqual(files['version/1.0.1/en-US.json']['marketingUrl'], 'https://gitcommitted.app')
+        self.assertEqual(files['version/1.0.2/en-US.json']['supportUrl'], 'https://gitcommitted.app/support')
+        self.assertEqual(files['version/1.0.2/en-US.json']['marketingUrl'], 'https://gitcommitted.app')
         self.assertEqual(files['categories.json'], {'primaryCategory': 'DEVELOPER_TOOLS', 'secondaryCategory': 'PRODUCTIVITY'})
 
     def test_review_notes_send_the_reviewer_to_the_sample_board(self):
@@ -48,9 +48,9 @@ class ListingFileTests(unittest.TestCase):
         cases = [
             ('app-info/en-US.json', 'subtitle', 'x' * 31, 'subtitle'),
             ('app-info/en-US.json', 'name', 'x' * 31, 'name'),
-            ('version/1.0.1/en-US.json', 'keywords', 'é' * 51, 'keywords'),  # 51 characters, 102 bytes
-            ('version/1.0.1/en-US.json', 'promotionalText', 'x' * 171, 'promotionalText'),
-            ('version/1.0.1/en-US.json', 'description', 'x' * 4001, 'description'),
+            ('version/1.0.2/en-US.json', 'keywords', 'é' * 51, 'keywords'),  # 51 characters, 102 bytes
+            ('version/1.0.2/en-US.json', 'promotionalText', 'x' * 171, 'promotionalText'),
+            ('version/1.0.2/en-US.json', 'description', 'x' * 4001, 'description'),
             ('review-information.json', 'notes', 'Try a sample board\n' + 'x' * 4000, 'notes'),
         ]
         for name, field, value, expected in cases:
@@ -60,26 +60,26 @@ class ListingFileTests(unittest.TestCase):
                 self.assertIn(expected, ' '.join(appstore.listing_problems(files)))
         files = copy.deepcopy(listing())
         files['app-info/en-US.json']['subtitle'] = 'x' * 30
-        files['version/1.0.1/en-US.json']['keywords'] = 'x' * 100
+        files['version/1.0.2/en-US.json']['keywords'] = 'x' * 100
         self.assertEqual(appstore.listing_problems(files), [])
 
     def test_keywords_are_a_comma_list_without_spaces_or_repeats(self):
         for keywords in ('rank, team', 'rank,,team', 'rank,team,rank'):
             with self.subTest(keywords=keywords):
                 files = copy.deepcopy(listing())
-                files['version/1.0.1/en-US.json']['keywords'] = keywords
+                files['version/1.0.2/en-US.json']['keywords'] = keywords
                 self.assertIn('keywords', ' '.join(appstore.listing_problems(files)))
 
     def test_copy_avoids_words_the_glossary_rules_out(self):
         for phrase in ('demo account', 'Guest mode', 'Sign in with GitHub', 'log in'):
             with self.subTest(phrase=phrase):
                 files = copy.deepcopy(listing())
-                files['version/1.0.1/en-US.json']['description'] += ' ' + phrase
+                files['version/1.0.2/en-US.json']['description'] += ' ' + phrase
                 self.assertIn('glossary', ' '.join(appstore.listing_problems(files)))
 
     def test_listing_text_has_no_email_address(self):
         files = copy.deepcopy(listing())
-        files['version/1.0.1/en-US.json']['description'] += ' Write to someone@example.com.'
+        files['version/1.0.2/en-US.json']['description'] += ' Write to someone@example.com.'
         self.assertIn('email', ' '.join(appstore.listing_problems(files)))
 
 

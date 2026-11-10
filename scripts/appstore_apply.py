@@ -20,7 +20,7 @@ import sys
 import tempfile
 
 APP_ID = '6831797452'
-VERSION = '1.0.1'
+VERSION = '1.0.2'
 PLATFORM = 'IOS'
 LOCALE = 'en-US'
 COPYRIGHT = '2026 Prompt Hunt, Inc.'
