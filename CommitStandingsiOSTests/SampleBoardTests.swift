@@ -346,7 +346,8 @@ struct SampleBoardTests {
         #expect(snapshot.state.passLine == "1 to pass ezra-q")
         // Lock Screen accessories.
         #expect(CommittedWidgetText.headline(snapshot.state) == "#4 · 5 today")
-        #expect(CommittedWidgetText.inline(snapshot.state) == "#4 · 1 to pass ezra-q")
+        // The Sample board's people are made up: the widgets never refetch them.
+        #expect(snapshot.isSampleBoard == true)
         // The Committed Board widget.
         #expect(snapshot.boardRows().map(\.login) == ["ines-volk", "odile-m", "ezra-q", "ari-linden"])
 

@@ -176,6 +176,8 @@ private struct BoardShareWidget: View {
         let room = format.widgetRoom
         let scale = min(room.width / size.width, room.height / size.height)
         content(shown)
+            // A still image can't count up: the timestamp under the widget says when instead.
+            .environment(\.showsUpdateAge, false)
             // The system's widget content margin, which the rows bleed into.
             .padding(16)
             .frame(width: size.width, height: size.height)

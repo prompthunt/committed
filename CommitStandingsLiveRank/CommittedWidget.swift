@@ -4,10 +4,13 @@ import WidgetKit
 /// Committed on the Home Screen and the Lock Screen, and (the small size) in CarPlay and StandBy.
 ///
 /// Every size shows Live rank's Window from `WidgetSnapshot`, which the app writes after each
-/// refresh and then reloads these widgets. Nothing is fetched here. The timeline holds the snapshot
-/// as written, plus one more entry at its stale date (20 minutes after the data) that steps the
-/// colors down and adds the clock, as Live rank does. Without a snapshot (not connected yet), the
-/// widget asks you to open Committed; the placeholder and gallery use a sample board.
+/// refresh and then reloads these widgets. Between the app's refreshes the widgets refresh
+/// themselves: each timeline asks for the next one 15 minutes on, and `WidgetRefresh` refetches
+/// everyone's count first (iOS's reload budget may stretch that). Each size shows how long ago its
+/// numbers were updated, counting up. The timeline holds the snapshot, plus one more entry at its
+/// stale date (an hour after the data) that steps the colors down and turns the age amber. Without
+/// a snapshot (not connected yet), the widget asks you to open Committed; the placeholder and
+/// gallery use a sample board.
 struct CommittedWidget: Widget {
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: WidgetSnapshot.widgetKind, provider: CommittedWidgetProvider()) { entry in
@@ -18,7 +21,7 @@ struct CommittedWidget: Widget {
                 .widgetURL(entry.snapshot?.state.boardURL ?? DeepLink.board(window: nil).url)
         }
         .configurationDisplayName("Committed")
-        .description("Your place on the board, and how many Contributions to pass the person ahead.")
+        .description("Your place on the board and the people around you, updated every 15 minutes.")
         .supportedFamilies([
             .systemSmall, .systemMedium, .systemLarge,
             .accessoryRectangular, .accessoryInline, .accessoryCircular,
@@ -62,7 +65,7 @@ struct CommittedWidgetEntry: TimelineEntry {
     init(date: Date, snapshot: WidgetSnapshot?) {
         self.date = date
         self.snapshot = snapshot
-        isStale = snapshot.map { $0.state.staleDate <= date } ?? false
+        isStale = snapshot.map { $0.staleDate <= date } ?? false
     }
 }
 
@@ -78,14 +81,19 @@ struct CommittedWidgetProvider: TimelineProvider {
     }
 
     func getTimeline(in context: Context, completion: @escaping (Timeline<CommittedWidgetEntry>) -> Void) {
-        let now = Date.now
-        let saved = WidgetSnapshot.load()
-        var entries = [CommittedWidgetEntry(date: now, snapshot: saved)]
-        if let saved, saved.state.staleDate > now {
-            entries.append(CommittedWidgetEntry(date: saved.state.staleDate, snapshot: saved))
+        // WidgetKit calls this once per timeline and keeps the handler only until it's called.
+        nonisolated(unsafe) let completion = completion
+        Task {
+            let now = Date.now
+            let snapshot = await WidgetRefresh(fetcher: ContributionsClient()).current(now: now)
+            var entries = [CommittedWidgetEntry(date: now, snapshot: snapshot)]
+            if let snapshot, snapshot.staleDate > now {
+                entries.append(CommittedWidgetEntry(date: snapshot.staleDate, snapshot: snapshot))
+            }
+            // The app still reloads after its own refreshes; this keeps the widgets current
+            // between them.
+            completion(Timeline(entries: entries, policy: .after(now.addingTimeInterval(WidgetRefresh.interval))))
         }
-        // The app reloads after every refresh; there's nothing to fetch from here.
-        completion(Timeline(entries: entries, policy: .never))
     }
 }
 

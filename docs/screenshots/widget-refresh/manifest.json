@@ -1,0 +1,79 @@
+{
+  "device": "6.9\" iPhone sizes (440 × 956 pt) at 3x, rendered in the iPhone Duo Simulator test host",
+  "os": "iOS 27.1",
+  "notes": "Renders, not runtime captures: the Simulator cannot draw widgets on a Home Screen, a Live Activity, or the Dynamic Island from the command line. WidgetRefreshRenderTests renders the real views fed by the Sample board through AppModel (SampleBoardSurfaces), with the data aged 13 min 36 sec (fresh) or 3 hours (stale). The Dynamic Island is Live rank's own region views on a drawn black island shape. The before renders ran the same test against origin/main (it was added there temporarily, not committed). Avatars are initials; nothing is fetched.",
+  "screenshots": [
+    {
+      "file": "before-widgets-fresh.png",
+      "caption": "Before: Home Screen small, Committed Board, medium and large widgets, then the Lock Screen inline, rectangular and circular widgets; numbers 13 min 36 sec old (render)",
+      "capture": {
+        "sourceCommit": "3290e291ca1aa9b21ba6a2ce8cb2a8d53affd800",
+        "fixture": true
+      }
+    },
+    {
+      "file": "after-widgets-fresh.png",
+      "caption": "After: Home Screen small, Committed Board, medium and large widgets, then the Lock Screen inline, rectangular and circular widgets; numbers 13 min 36 sec old. 20 pt title-case Window, counting-up age on the right, no \"to pass\" line (render)",
+      "capture": {
+        "sourceCommit": "2b1f93b2570398a327b9a86e0c7cffe86fc71472",
+        "fixture": true
+      }
+    },
+    {
+      "file": "before-widgets-stale.png",
+      "caption": "Before: The same widgets with numbers 3 hours old (stale) (render)",
+      "capture": {
+        "sourceCommit": "3290e291ca1aa9b21ba6a2ce8cb2a8d53affd800",
+        "fixture": true
+      }
+    },
+    {
+      "file": "after-widgets-stale.png",
+      "caption": "After: The same widgets with numbers 3 hours old (stale). 20 pt title-case Window, counting-up age on the right, no \"to pass\" line (render)",
+      "capture": {
+        "sourceCommit": "2b1f93b2570398a327b9a86e0c7cffe86fc71472",
+        "fixture": true
+      }
+    },
+    {
+      "file": "before-live-rank-fresh.png",
+      "caption": "Before: Live rank's Lock Screen card, the expanded Dynamic Island, the compact island, and the CarPlay/Apple Watch small card; numbers 13 min 36 sec old (render)",
+      "capture": {
+        "sourceCommit": "3290e291ca1aa9b21ba6a2ce8cb2a8d53affd800",
+        "fixture": true
+      }
+    },
+    {
+      "file": "after-live-rank-fresh.png",
+      "caption": "After: Live rank's Lock Screen card, the expanded Dynamic Island, the compact island, and the CarPlay/Apple Watch small card; numbers 13 min 36 sec old. 20 pt title-case Window, counting-up age on the right, no \"to pass\" line (render)",
+      "capture": {
+        "sourceCommit": "2b1f93b2570398a327b9a86e0c7cffe86fc71472",
+        "fixture": true
+      }
+    },
+    {
+      "file": "before-live-rank-stale.png",
+      "caption": "Before: The same Live rank presentations with numbers 3 hours old (stale) (render)",
+      "capture": {
+        "sourceCommit": "3290e291ca1aa9b21ba6a2ce8cb2a8d53affd800",
+        "fixture": true
+      }
+    },
+    {
+      "file": "after-live-rank-stale.png",
+      "caption": "After: The same Live rank presentations with numbers 3 hours old (stale). 20 pt title-case Window, counting-up age on the right, no \"to pass\" line (render)",
+      "capture": {
+        "sourceCommit": "2b1f93b2570398a327b9a86e0c7cffe86fc71472",
+        "fixture": true
+      }
+    },
+    {
+      "file": "after-share-race-square.png",
+      "caption": "After: Share board \"Your race\" square image, the medium widget without the counting-up age (the timestamp underneath says when) (render)",
+      "capture": {
+        "sourceCommit": "2b1f93b2570398a327b9a86e0c7cffe86fc71472",
+        "fixture": true
+      }
+    }
+  ]
+}

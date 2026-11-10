@@ -84,10 +84,10 @@ Committed for iPhone runs the same board, ranking, people sync, and visibility r
 **Live rank** is a Live Activity that keeps your current rank in the Dynamic Island and on the Lock Screen.
 
 - **Compact Dynamic Island:** the trophy with your rank (for example `#2`) on one side and your Contributions on the other. **Minimal** (when another app's activity shares the island): your rank.
-- **Expanded Dynamic Island:** the person ranked directly above you, you, and the person directly below, in the board's own rows (rank, avatar, username, the **you** badge, today's movement chevron, Contributions, and the squares glyph), with the Window beside the trophy and the gap to pass the person ahead ("3 to pass alice").
-- **Lock Screen:** the same three rows, then the Window, the gap to pass, and when the data was last updated ("Updated 4 minutes ago").
+- **Expanded Dynamic Island:** the person ranked directly above you, you, and the person directly below, in the board's own rows (rank, avatar, username, the **you** badge, today's movement chevron, Contributions, and the squares glyph), with the Window ("Today") beside the trophy and, on the right, how long ago the numbers were updated ("13 min, 36 sec"), counting up every second.
+- **Lock Screen:** the trophy and the Window with the same counting-up age on the right, then the same three rows.
 - Avatars in Live rank are small copies the app saves for everyone on the board each time it refreshes; someone whose avatar hasn't been saved yet shows initials.
-- With no visible rivals, Live rank shows your Contributions without a rank rather than `#1 of 1`, and the Lock Screen says "Just you so far". Before your count loads it shows placeholders, never zero, and the Lock Screen says "Waiting for your first count". Twenty minutes after its data, Live rank's colors step down (the lit squares behind a Lock Screen without rows go dark), a clock appears, and it shows how old the data is.
+- With no visible rivals, Live rank shows your Contributions without a rank rather than `#1 of 1`, and the Lock Screen says "Just you so far". Before your count loads it shows placeholders, never zero, and the Lock Screen says "Waiting for your first count". Twenty minutes after its data, Live rank's colors step down (the lit squares behind a Lock Screen without rows go dark) and the age turns amber; the compact island, which has no room for the age, shows a clock beside your count.
 - Tapping Live rank opens the Board on Live rank's Window.
 - **Settings ▸ Live rank** has an on/off switch, a Window picker (Today by default, independent of the board's Window), and a status line. When Live Activities are off for Committed in iOS Settings, it says so and links there.
 - Live rank starts while the app is open, once you've connected GitHub and your board loads. It updates whenever the app refreshes: in the foreground, on pull-to-refresh, and during background app refresh, which iOS schedules when it chooses. It only updates when what it shows has changed. Hiding or showing someone, or changing Live rank's Window, updates it right away while the app is open. A Window change ends the activity and starts a new one.
@@ -96,6 +96,15 @@ Committed for iPhone runs the same board, ranking, people sync, and visibility r
 - **The first time Live rank turns on with the relay** (after Connect GitHub, or from the switch), one sheet explains what the relay receives. **Turn On Live Rank** starts it; **Not Now** leaves it off until you turn the switch on, which shows the sheet again. Once accepted, it isn't shown again.
 - **Without the relay** (a build with no relay configured), Live rank is on by default and driven by the iPhone alone: iOS ends it after 8 hours, the app can't start one from the background, so it comes back the next time you open Committed, and updates while the app is closed depend on background app refresh.
 - **On the Sample board**, Live rank always runs as it does without the relay, whatever the build: it never registers with the Committed relay, the relay sheet never appears, and its settings aren't saved. Leaving the Sample board ends it.
+
+### Widgets
+
+Committed's widgets show Live rank's Window: **Committed** (small, medium and large on the Home Screen; rectangular, inline and circular on the Lock Screen; the small size also shows in CarPlay and StandBy) and **Committed Board** (a small list made for StandBy).
+
+- **Every Home Screen size** is headed by the trophy and the Window ("Today", "7 days", "30 days"), with how long ago the numbers were updated ("13 min, 36 sec") counting up every second on the right. The small sizes put the age on its own line. The medium widget shows the person above you, you and the person below in the board's rows; the large widget shows the top six, with you below a rule when you're further down; the small widget shows your rank and count. The rectangular Lock Screen widget shows "#3 · 12 today" over the age; the inline one shows "#3 · 12 today".
+- **Updates:** the app updates the widgets whenever it refreshes. Between those, the widgets refresh themselves every 15 minutes: they re-read everyone's public contribution graph anonymously, as the app does (no token, no Committed relay), re-rank the board the app last saved, and carry today's movement on. iOS spends widget updates from a daily budget, so it can stretch 15 minutes to 30 or more; the counting-up age shows exactly how old the numbers are. Someone GitHub doesn't answer for keeps their last count (on Today, until midnight). A widget an hour past its data steps its colors down and turns the age amber.
+- **The Sample board's** widgets never fetch: they show what the Sample board saved.
+- **Share board** images use the same widgets without the counting-up age; the timestamp under the widget says when the numbers are from.
 
 ### The Committed relay
 
