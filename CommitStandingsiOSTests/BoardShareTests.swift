@@ -57,7 +57,9 @@ struct BoardShareTests {
     @Test func storyHeadlineFollowsTheWindow() {
         #expect(BoardShareCard.headline(.daily) == "Who shipped more today?")
         #expect(BoardShareCard.headline(.weekly) == "Who shipped more this week?")
-        #expect(BoardShareCard.headline(.monthly) == "Who shipped more this month?")
+        // 30 days is trailing, so only This month says "this month".
+        #expect(BoardShareCard.headline(.monthly) == "Who shipped more in 30 days?")
+        #expect(BoardShareCard.headline(.month) == "Who shipped more this month?")
     }
 
     /// The sheet as it opens from the Board, and the Board with its Share button, for the PR's
@@ -88,6 +90,21 @@ struct BoardShareTests {
         let directory = try #require(renderDirectory)
         let image = try #require(BoardShareRenderer.image(Self.farDown, style: .board, format: format))
         try #require(image.pngData()).write(to: directory.appendingPathComponent("share-board-far-\(format.rawValue).png"))
+    }
+
+    /// This month's story as the app builds it from the Sample board on This month, for the PR's
+    /// screenshots: "Who shipped more this month?".
+    @Test(.enabled(if: ProcessInfo.processInfo.environment["RENDER_DIR"] != nil))
+    func thisMonthStoryFromTheSampleBoard() async throws {
+        let directory = try #require(renderDirectory)
+        let model = AppModel(services: SampleServices.make(), backgroundTime: ImmediateBackgroundTime())
+        model.store.selectedWindow = .month
+        await model.sceneDidBecomeActive()
+        let snapshot = try #require(model.boardToShare())
+        #expect(snapshot.state.window == "month")
+        let image = try #require(BoardShareRenderer.image(snapshot, style: .board, format: .story))
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        try #require(image.pngData()).write(to: directory.appendingPathComponent("share-board-this-month-story.png"))
     }
 
     private func makeWindow(_ controller: UIViewController) throws -> UIWindow {

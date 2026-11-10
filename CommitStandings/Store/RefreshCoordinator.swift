@@ -71,13 +71,14 @@ final class RefreshCoordinator {
     /// daily count zeroing at midnight) instead of reporting the reset as a flurry of crossings.
     private var previousRanking: [ContributionWindow: (date: Date, counts: [String: Int])] = [:]
 
-    /// Each tracked username's placement change since the start of today (+ moved up, − moved
-    /// down), for the Today board's small rank-shift chevrons. Observable so rows update live.
-    private(set) var dailyRankDeltas: [String: Int] = [:]
-    /// The daily ranking captured at the day's first refresh — the baseline today's deltas measure
-    /// against. Reset when a new calendar day's first refresh lands.
-    private var dailyBaselineRanks: [String: Int] = [:]
-    private var dailyBaselineDate: Date?
+    /// Per Window that shows movement (Today, This month): each tracked username's placement
+    /// change since the start of today (+ moved up, − moved down), for the board's small rank-shift
+    /// chevrons. Observable so rows update live.
+    private(set) var todaysRankDeltas: [ContributionWindow: [String: Int]] = [:]
+    /// Each such Window's ranking captured at the day's first refresh of it — the baseline today's
+    /// deltas measure against. Reset when a new calendar day's first refresh lands (which on the
+    /// 1st is also This month's reset).
+    private var todaysBaselines: [ContributionWindow: (date: Date, ranks: [String: Int])] = [:]
 
     init(
         store: StandingsStore,
@@ -102,9 +103,8 @@ final class RefreshCoordinator {
         generation = UUID()
         isRefreshing = false
         previousRanking = [:]
-        dailyBaselineRanks = [:]
-        dailyBaselineDate = nil
-        dailyRankDeltas = [:]
+        todaysBaselines = [:]
+        todaysRankDeltas = [:]
     }
 
     func refreshAll(reason: RefreshReason) async {
@@ -125,13 +125,12 @@ final class RefreshCoordinator {
 
         if baselineVisibilityRevision != store.visibilityRevision {
             previousRanking = [:]
-            dailyBaselineRanks = [:]
-            dailyBaselineDate = nil
-            dailyRankDeltas = [:]
+            todaysBaselines = [:]
+            todaysRankDeltas = [:]
             baselineVisibilityRevision = store.visibilityRevision
         }
         notifyPositionChanges(window: window, reference: reference)
-        updateDailyRankDeltas(window: window, reference: reference)
+        updateTodaysRankDeltas(window: window, reference: reference)
 
         for extra in extras {
             // Every Window comes from the same page: work it out from the days just fetched, and
@@ -145,7 +144,7 @@ final class RefreshCoordinator {
                 await fetch(missing, window: extra, reference: reference)
             }
             guard !Task.isCancelled, generation == requestGeneration else { return }
-            updateDailyRankDeltas(window: extra, reference: reference)
+            updateTodaysRankDeltas(window: extra, reference: reference)
         }
         store.markRefreshComplete(at: reference)
         await didRefresh(reason)
@@ -231,45 +230,48 @@ final class RefreshCoordinator {
         )
     }
 
-    /// The signed-in user (or anyone's) placement change since the start of today, or nil when the
-    /// position held / there's nothing to show. Drives the Today board's rank-shift chevrons.
-    func rankDelta(for username: String) -> Int? {
-        guard baselineVisibilityRevision == store.visibilityRevision, !store.isHidden(username) else { return nil }
-        let delta = dailyRankDeltas[username] ?? 0
+    /// Anyone's placement change on `window` since the start of today, or nil when the position
+    /// held, there's nothing to show, or `window` doesn't show movement. Drives the rank-shift
+    /// chevrons on Today and This month.
+    func rankDelta(for username: String, in window: ContributionWindow = .daily) -> Int? {
+        guard window.showsTodaysMovement, baselineVisibilityRevision == store.visibilityRevision,
+              !store.isHidden(username) else { return nil }
+        let delta = todaysRankDeltas[window]?[username] ?? 0
         return delta == 0 ? nil : delta
     }
 
-    /// After a Today-window refresh, recompute each competitor's movement vs the start-of-day
-    /// baseline. The first refresh of a new day (re)sets the baseline and reports no movement yet.
-    private func updateDailyRankDeltas(window: ContributionWindow, reference: Date) {
-        guard window == .daily else { return }
+    /// After refreshing a Window that shows movement, recompute each competitor's movement on it
+    /// vs that Window's start-of-day baseline. The first refresh of a new day (re)sets the baseline
+    /// and reports no movement yet.
+    private func updateTodaysRankDeltas(window: ContributionWindow, reference: Date) {
+        guard window.showsTodaysMovement else { return }
         let ordered = Ranking.order(
             competitors: store.visibleCompetitors,
-            standings: store.standings(for: .daily),
-            window: .daily
+            standings: store.standings(for: window),
+            window: window
         )
         // Only rank rows that actually have data; a never-loaded row shouldn't generate movement.
         var currentRanks: [String: Int] = [:]
         for entry in ordered {
-            if let standing = store.standing(for: entry.competitor.username, window: .daily),
+            if let standing = store.standing(for: entry.competitor.username, window: window),
                standing.lastUpdated != .distantPast {
                 currentRanks[entry.competitor.username] = entry.rank
             }
         }
         // New day (or first capture this session): re-baseline, no movement yet.
-        if dailyBaselineDate == nil || !Calendar.current.isDate(dailyBaselineDate!, inSameDayAs: reference) {
-            dailyBaselineRanks = currentRanks
-            dailyBaselineDate = reference
-            dailyRankDeltas = [:]
+        guard let baseline = todaysBaselines[window],
+              Calendar.current.isDate(baseline.date, inSameDayAs: reference) else {
+            todaysBaselines[window] = (reference, currentRanks)
+            todaysRankDeltas[window] = [:]
             return
         }
         var deltas: [String: Int] = [:]
         for (username, rank) in currentRanks {
-            if let baseline = dailyBaselineRanks[username] {
-                deltas[username] = baseline - rank   // + = climbed (lower rank number)
+            if let start = baseline.ranks[username] {
+                deltas[username] = start - rank   // + = climbed (lower rank number)
             }
         }
-        dailyRankDeltas = deltas
+        todaysRankDeltas[window] = deltas
     }
 
     /// After a full refresh, diff the just-updated window's ranking against the prior in-memory
@@ -285,7 +287,7 @@ final class RefreshCoordinator {
             }
         }
         // Re-baseline across the window's reset boundary: a prior snapshot from an earlier period
-        // (yesterday for .daily, last week/month for .weekly/.monthly) is comparing pre-reset
+        // (yesterday for .daily, last week/month for .weekly/.monthly/.month) is comparing pre-reset
         // counts to post-reset ones, which would report the reset itself as crossings. Treat it
         // as a first snapshot instead.
         let prior = previousRanking[window]
@@ -312,7 +314,7 @@ final class RefreshCoordinator {
         switch window {
         case .daily: return calendar.isDate(a, inSameDayAs: b)
         case .weekly: return calendar.isDate(a, equalTo: b, toGranularity: .weekOfYear)
-        case .monthly: return calendar.isDate(a, equalTo: b, toGranularity: .month)
+        case .monthly, .month: return calendar.isDate(a, equalTo: b, toGranularity: .month)
         }
     }
 

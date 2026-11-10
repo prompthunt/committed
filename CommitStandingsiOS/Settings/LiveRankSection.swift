@@ -20,7 +20,8 @@ struct LiveRankSection: View {
                     get: { liveRank.window },
                     set: { window in Task { await model.setLiveRankWindow(window) } }
                 )) {
-                    ForEach(ContributionWindow.allCases) { window in
+                    // Not This month yet: the relay doesn't rank it (#97).
+                    ForEach(ContributionWindow.liveRankChoices) { window in
                         Text(window.shortTitle).tag(window)
                     }
                 }

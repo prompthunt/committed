@@ -91,6 +91,10 @@ struct SampleServicesTests {
         await model.windowDidChange()
         #expect(board(model, .monthly) == ["ines-volk", "odile-m", "ari-linden", "ezra-q", "bram-ott"])
 
+        model.store.selectedWindow = .month
+        await model.windowDidChange()
+        #expect(model.store.standing(for: "ines-volk", window: .month)?.contributions == 84)
+
         #expect(GitHubTrafficRecorder.unexpectedRequests.isEmpty)
     }
 
@@ -101,6 +105,18 @@ struct SampleServicesTests {
         await model.pullToRefresh()
         #expect(board(model, .daily) == ["ines-volk", "odile-m", "ari-linden", "ezra-q", "bram-ott"])
         #expect(model.refresh.rankDelta(for: "ari-linden") != nil) // the movement chevron
+    }
+
+    /// This month moves the way Today does: Ari Linden passes Ezra Q on the second refresh, with a
+    /// chevron.
+    @Test func pullToRefreshMovesThisMonth() async {
+        let model = makeModel()
+        model.store.selectedWindow = .month
+        await model.sceneDidBecomeActive()
+        #expect(board(model, .month) == ["ines-volk", "odile-m", "ezra-q", "ari-linden", "bram-ott"])
+        await model.pullToRefresh()
+        #expect(board(model, .month) == ["ines-volk", "odile-m", "ari-linden", "ezra-q", "bram-ott"])
+        #expect(model.refresh.rankDelta(for: "ari-linden", in: .month) == 1)
     }
 
     @Test func peopleSyncedFourMinutesAgo() async {

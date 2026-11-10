@@ -89,6 +89,25 @@ struct BoardSummaryTests {
         #expect(week?.movementToday == nil)
     }
 
+    /// This month gets Today's chevrons and says which day of the month it is (local calendar).
+    @Test func thisMonthShowsMovementAndWhichDayItIs() throws {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = try #require(TimeZone(identifier: "America/Los_Angeles"))
+        // 03:00 UTC on December 1 is still November 30 in Los Angeles.
+        let today = Date(timeIntervalSince1970: 1_796_094_000)
+        let result = BoardSummary.make(
+            competitors: [me, ada],
+            standings: ["me": standing("me", 9, .month), "ada": standing("ada", 4, .month)],
+            window: .month, displayName: nil, rankDelta: { ["me": 1][$0] }, lastUpdated: loadedAt,
+            today: today, calendar: calendar
+        )
+        #expect(result?.movementToday == 1)
+        #expect(result?.dayOfMonth == "Day 30 of 30")
+        #expect(result?.accessibilityDescription
+            == "You, @me, rank 1 of 2, 9 contributions for this month, day 30 of 30, up 1 place today")
+        #expect(summary([me], [standing("me", 3)])?.dayOfMonth == nil)
+    }
+
     @Test func noProfileNameFallsBackToTheHandle() {
         #expect(summary([me], [], displayName: nil)?.firstName == nil)
     }

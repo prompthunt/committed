@@ -8,7 +8,7 @@ For contributors, designers, and agents. Last reviewed: 2026-11-04. Positioning 
 
 Committed is a Mac **menu-bar app**, a Windows **tray app**, and an **iPhone app** for comparing GitHub contributions with friends. Connect GitHub to load the people you follow and members of your GitHub organizations, then hide anyone you don't want on your board.
 
-Open the menu bar (or the app on iPhone) to see where you stand today or over the last 7 or 30 days. Your rank follows the contribution count on your GitHub profile.
+Open the menu bar (or the app on iPhone) to see where you stand today, over the last 7 or 30 days, or so far this month. Your rank follows the contribution count on your GitHub profile.
 
 ## Who it's for
 
@@ -22,7 +22,7 @@ The leaderboard compares activity counts. It does not assess code quality or wor
 ## Core loop
 
 1. Connect GitHub and let your people load automatically.
-2. Open the menu bar to compare contributions for Today, 7 days, or 30 days.
+2. Open the menu bar to compare contributions for Today, 7 days, 30 days, or This month.
 3. Check back as the board refreshes, or turn on notifications to hear when you pass someone or they pass you.
 
 ## What it does
@@ -42,8 +42,9 @@ A segmented control at the top switches the window; the contribution count recom
 - **Today** — the current day.
 - **7 days** — the trailing 7 days.
 - **30 days** — the trailing 30 days.
+- **This month** — your local calendar month so far (Mac and iPhone; Windows doesn't have it yet). It resets to zero for everyone at local midnight on the 1st. Beside it, the board says which day of the month it is ("Day 10 of 30"): on the Mac under your count, on iPhone in your summary's heading. Today's movement chevrons work on it as on Today: each person's places moved since the day's first This month ranking.
 
-All three windows are available once the contribution data loads; there is no history-building or backfill period. The app sums the daily counts for the selected range.
+Every window is available once the contribution data loads; there is no history-building or backfill period. The app sums the daily counts for the selected range, in the device's time zone. Choosing 30 days is saved as it always was, so existing settings are unaffected.
 
 ### Refresh behavior the user notices
 
@@ -69,8 +70,8 @@ All three windows are available once the contribution data loads; there is no hi
 
 Committed for iPhone runs the same board, ranking, people sync, and visibility rules as the Mac app. It's a native app with three tabs: **Board**, **People**, and **Settings**. On iPhone Duo the tabs and toolbar sit in the vertical side bar. It's dark only and wears the website's look: an ink background, lime for you and your rank, Inter Tight numbers, and a lit field of contribution squares behind your rank.
 
-- **Board** — your summary (your rank, Contributions, today's movement, the gap to pass the person ahead, and when the numbers were updated), the **Today / 7 days / 30 days** switch (a menu at the largest text sizes), and everyone ranked with the same rows as the Mac popover, including the "you" badge, placeholders, today's movement, and the private-contributions tip. Pull to refresh reloads people and contributions. Opening the app refreshes only when the data is older than about 2 minutes; while open, the board refreshes about every 5 minutes.
-- **Share board** — the share button in the Board's navigation bar opens a sheet for sharing the board as an image of Committed's own widget. Swipe between **Board** (the large widget, grown to eight people on a square and ten on a story, counting you: you sit below a rule when you're further down), **Your race** (the medium widget), **Rank** (the small widget), and **Top 4** (the Committed Board widget). Pick **Square** (1080 × 1080) or **Story** (1080 × 1920: the widget on the contribution-square field under "Who shipped more today?", "…this week?" or "…this month?"). The image shows the Board's current Window and only the people the board shows, with when the numbers are from ("As of Nov 8, 2026 at 1:22 PM") under the widget and "Committed · 27 people" and gitcommitted.app at the foot. **Share** opens the system share sheet with the image alone as a PNG, with no caption.
+- **Board** — your summary (your rank, Contributions, today's movement, the gap to pass the person ahead, and when the numbers were updated), the **Today / 7 days / 30 days / This month** switch (a menu at the largest text sizes), and everyone ranked with the same rows as the Mac popover, including the "you" badge, placeholders, today's movement, and the private-contributions tip. Pull to refresh reloads people and contributions. Opening the app refreshes only when the data is older than about 2 minutes; while open, the board refreshes about every 5 minutes.
+- **Share board** — the share button in the Board's navigation bar opens a sheet for sharing the board as an image of Committed's own widget. Swipe between **Board** (the large widget, grown to eight people on a square and ten on a story, counting you: you sit below a rule when you're further down), **Your race** (the medium widget), **Rank** (the small widget), and **Top 4** (the Committed Board widget). Pick **Square** (1080 × 1080) or **Story** (1080 × 1920: the widget on the contribution-square field under "Who shipped more today?", "…this week?", "…in 30 days?" or "…this month?"). The image shows the Board's current Window and only the people the board shows, with when the numbers are from ("As of Nov 8, 2026 at 1:22 PM") under the widget and "Committed · 27 people" and gitcommitted.app at the foot. **Share** opens the system share sheet with the image alone as a PNG, with no caption.
 - **iPhone Duo** — open in landscape, the Board shows two panes divided evenly at the fold: the leaderboard on the leading side and your summary beside it, with the people directly above and below you under it. Wherever there's room for only one (closed, open in portrait, Split View), the leaderboard shows with your summary at the top. Opening and closing keeps the tab and the Window. Centered controls (Connect GitHub, the People filter) move to one side of the fold when it's partially folded like a book.
 - **Connect GitHub** uses the same device flow. The code is shown large with **Copy Code** and **Open GitHub**, and approval can happen in Safari on the same phone. The token is stored in the iPhone's Keychain.
 - **Sample board** — **Try a sample board**, under Connect GitHub, opens the real app on built-in sample data: five people ranked across every Window, People with its filters and hide/show, Share board, Live rank (on the phone only, see below), the Home Screen, Lock Screen and Committed Board widgets, and Leaderboard Notifications as on a real board. Pull to refresh moves a count and shows a movement chevron. Nothing leaves the iPhone: no GitHub API calls, avatars as initials (in the app, Share board, Live rank and the widgets, never a saved avatar), and no Committed relay. A slim **Sample board · Connect GitHub** banner tops the Board and People; tapping it starts Connect GitHub. Reopening the app returns to the Sample board. Connect GitHub from the Sample board (the banner or Settings) shows GitHub's code over it, with **Cancel**, while the Sample board stays underneath. Only a successful Connect GitHub replaces it, completely, with no sample people or visibility preferences left behind. A declined or expired code keeps the Sample board: the cover says why, with **Try Again**, and Cancel returns to the Sample board. Cancel while waiting returns to it too, with no error. While Connect GitHub is waiting for approval, the Sample board can't be started or left.
@@ -89,7 +90,7 @@ Committed for iPhone runs the same board, ranking, people sync, and visibility r
 - Avatars in Live rank are small copies the app saves for everyone on the board each time it refreshes; someone whose avatar hasn't been saved yet shows initials.
 - With no visible rivals, Live rank shows your Contributions without a rank rather than `#1 of 1`, and the Lock Screen says "Just you so far". Before your count loads it shows placeholders, never zero, and the Lock Screen says "Waiting for your first count". Twenty minutes after its data, Live rank's colors step down (the lit squares behind a Lock Screen without rows go dark); the compact island, which has no room for the age, shows a clock beside your count.
 - Tapping Live rank opens the Board on Live rank's Window.
-- **Settings ▸ Live rank** has an on/off switch, a Window picker (Today by default, independent of the board's Window), and a status line. When Live Activities are off for Committed in iOS Settings, it says so and links there.
+- **Settings ▸ Live rank** has an on/off switch, a Window picker (Today, 7 days or 30 days; Today by default, independent of the board's Window; This month isn't offered yet), and a status line. When Live Activities are off for Committed in iOS Settings, it says so and links there.
 - Live rank starts while the app is open, once you've connected GitHub and your board loads. It updates whenever the app refreshes: in the foreground, on pull-to-refresh, and during background app refresh, which iOS schedules when it chooses. It only updates when what it shows has changed. Hiding or showing someone, or changing Live rank's Window, updates it right away while the app is open. A Window change ends the activity and starts a new one.
 - **Disconnect GitHub** and turning Live rank off end it. Only one Live rank shows at a time; extra copies end the next time the app opens.
 - **With the Committed relay** (below), Live rank stays on all day with the app closed. The relay recomputes your rank every 5 minutes from public contribution graphs and updates Live rank within about 5 minutes of a change. iOS ends a Live Activity after 8 hours, so the relay replaces it with a fresh one at 7.5 hours. If you dismiss Live rank, the relay brings it back at the next 7.5-hour point rather than every 5 minutes. Today resets at your local midnight.
@@ -118,7 +119,7 @@ The **Committed relay** is a small push service that keeps Live rank current whi
 
 ## How it works
 
-The single metric comes from one GitHub source, computed for the selected trailing window:
+The single metric comes from one GitHub source, computed for the selected window:
 
 - **Contributions** — the app reads the public `github.com/users/<name>/contributions` page anonymously, even when GitHub is connected. It sums the daily counts for the selected window locally. Private activity contributes to this public count only when the person has enabled GitHub’s private-contribution visibility setting.
 
@@ -172,7 +173,8 @@ The app is intentionally **not sandboxed** to support its Sparkle update path. B
 |---|---|
 | Competitor | You, someone you follow on GitHub, or a member of your GitHub organizations. Hidden competitors stay in People but leave the leaderboard. |
 | Connect GitHub | Authorizing Committed's read-only GitHub access (`read:user read:org`) through GitHub's device flow. It does not create a Committed account; the token stays in the Mac's or iPhone's Keychain or Windows Credential Manager and is sent only to GitHub, never to the Committed relay. Say "Connect GitHub" and "Disconnect GitHub", not "sign in", "sign up", "log out", or "create an account". |
-| Window | The trailing time range the board is computed over: Today, 7 days, or 30 days. |
+| Window | The time range the board is computed over: Today, 7 days, 30 days (trailing), or This month. |
+| This month | A Window for the calendar month to date, in the device's time zone. It resets to zero on the 1st. Say "This month", not "monthly" or "30 days" (a different, trailing Window). |
 | Contributions | The count behind GitHub's contribution graph ("green squares") for the window. The single ranking metric. |
 | Refresh | Reloading contribution counts on a ~5-minute timer, stale menu-open, or stale window switch. Manual **Refresh** also reloads the people list. |
 | Live rank | The Live Activity that shows your current rank, your Contributions, and the people just above and below you in the Dynamic Island and on the Lock Screen, for a Window you choose in Settings. Say "Live rank", not "widget" or "Live Activity" in product copy. |

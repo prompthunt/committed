@@ -67,7 +67,7 @@ extension WidgetSnapshot {
                 rank: entry.rank,
                 login: login,
                 contributions: standing?.window == window ? standing?.contributions : nil,
-                movement: window == .daily ? rankDelta(login) ?? 0 : 0,
+                movement: window.showsTodaysMovement ? rankDelta(login) ?? 0 : 0,
                 isSelf: entry.competitor.isSelf
             )
         }
