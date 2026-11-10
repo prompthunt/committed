@@ -11,7 +11,9 @@ documentation. Third-party dependencies and assets retain their respective terms
   font, [video/launch/assets/fonts/OFL.txt](video/launch/assets/fonts/OFL.txt). The iPhone
   app and its Live rank extension bundle the same Regular and ExtraBold faces with their
   license ([CommitStandingsiOS/Fonts/OFL.txt](CommitStandingsiOS/Fonts/OFL.txt),
-  [CommitStandingsLiveRank/Fonts/OFL.txt](CommitStandingsLiveRank/Fonts/OFL.txt)).
+  [CommitStandingsLiveRank/Fonts/OFL.txt](CommitStandingsLiveRank/Fonts/OFL.txt)). The relay
+  serves the same two faces to its web widget, with their license at
+  [relay/widget/fonts/OFL.txt](relay/widget/fonts/OFL.txt).
 - GitHub marks and GitHub profile avatars belong to their respective owners. Their
   inclusion is not an endorsement and does not grant trademark or image rights.
   The root MIT license does not relicense those third-party images.

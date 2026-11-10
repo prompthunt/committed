@@ -5,6 +5,7 @@ import { runCycle } from "./cycle";
 import type { LiveRankState } from "./liveRank";
 import { isValidTimeZone } from "./parser";
 import { selfFirst, WINDOWS, type Window } from "./ranking";
+import { widgetResponse } from "./widget";
 
 /** Fetches the public `github.com/users/<login>/contributions` HTML. Never authenticated. */
 export type GitHubFetch = (login: string) => Promise<string>;
@@ -44,6 +45,9 @@ export function createRelay(deps: RelayDeps) {
   async function fetchHandler(request: Request): Promise<Response> {
     const url = new URL(request.url);
     if (url.pathname === "/" && request.method === "GET") return text(200, "Committed relay");
+
+    const widget = widgetResponse(request, url);
+    if (widget) return widget;
 
     const boardMatch = url.pathname.match(/^\/v1\/installations\/([^/]+)\/board$/);
     if (boardMatch) return boardHandler(request, url, boardMatch[1]!);

@@ -195,6 +195,62 @@ npx wrangler d1 execute committed-relay --remote --command \
 
 A revoked token gets `403` from then on.
 
+## Web widget
+
+Committed's StandBy pair (the rank card beside the board list) as a web page, so any screen can
+show your board. Glance on the office Frame iframes it (ticket #83; ADR 0001 in `addisonk/glance`).
+
+### `GET /v1/widget?layout=standby`
+
+- **Public, static, no data.** `widget/standby.html`, `standby.css`, `standby.js` and the Inter
+  Tight Regular and ExtraBold fonts are bundled into the Worker (the `rules` in
+  `wrangler.jsonc`) and served by `src/widget.ts` under `/v1/widget/`. `layout` defaults to
+  `standby`, the only layout; any other is a `404`. The page may be framed from any origin.
+- **Address:** `https://committed-relay.prompt-hunt.workers.dev/v1/widget?layout=standby#installation=<id>&token=<board read token>`.
+  The installation ID and token are in the **fragment**, which browsers never send to a server.
+  The page calls `GET /v1/installations/{id}/board?window=daily` on the same origin (no CORS)
+  with `Authorization: Bearer <token>`; the token never appears in a request URL. Add
+  `&window=weekly` or `&window=monthly` to the fragment for another Window.
+- **Refresh:** every 5 minutes, in step with the cycle (every minute until the first board
+  arrives). A failed refresh keeps the last board.
+- **States:**
+
+  | When | Shows |
+  |---|---|
+  | Before the first board | `–` placeholders and "Your board is loading", never 0 |
+  | Data more than 20 minutes old (`updatedAt`) | Live rank's stale treatment: colors step down (lime to deep lime, rank to grey); the age stays grey |
+  | No rivals | Your count without a rank, "Just you so far" |
+  | `401` / `403` | "This screen's access was revoked" |
+  | `404` | "Live rank is off on your iPhone" |
+  | No fragment | How to add the installation ID and token |
+
+- **Layout:** one rem scales with the box, so the pair fills whatever size it's given (a box
+  taller than wide stacks the card over the list). The list shows as many rows as fit, chosen
+  as the small Board widget chooses them (`WidgetSnapshot.boardRows`): the leaders, or the first
+  few, the person ahead of you and you. Long logins lose their middle. Avatars load from GitHub
+  over initials.
+- **Motion:** your count ticks up, rows slide to their new places (FLIP with transforms), and
+  movement chevrons fade in.
+
+### Runtime limits (Samsung Frame, Chromium 76)
+
+ES5 JavaScript only. No CSS flex `gap`, `inset`, `aspect-ratio`, `clamp()`, `min()`, `max()` or
+custom properties; no gradients, shadows or blur; only `opacity` and `transform` animate. Fonts
+and icons come from the relay; only avatars come from GitHub. `test/widget-runtime.test.ts`
+checks all of this in `npm test` against the exact files the route serves (ES5 via `acorn`).
+
+### Browser tests
+
+`browser/widget.spec.ts` drives the page in Playwright against a stubbed board route: every
+state above, the poll, the stale switch, the token staying out of URLs, the row swap and count
+tick, and no overflow at 1280×1080, 852×393, 360×240 and 400×900.
+
+```bash
+npx playwright install chromium   # once
+npm run test:browser
+WIDGET_SCREENS=/some/dir npm run test:browser   # also save a screenshot of each state
+```
+
 ## What the cron run does
 
 `src/cycle.ts`, once every 5 minutes:
@@ -301,6 +357,7 @@ cd relay
 npm ci
 npm run typecheck
 npm test                                    # Vitest in workerd: fake APNs, fake GitHub, local D1
+npm run test:browser                        # Playwright: the web widget against a stubbed board
 npx wrangler d1 migrations apply committed-relay --local
 npx wrangler dev --test-scheduled           # then: curl "localhost:8787/__scheduled?cron=*/5+*+*+*+*"
 ```

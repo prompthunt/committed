@@ -1,0 +1,499 @@
+/*
+ * Committed's StandBy pair for other screens. Runs on Chromium 76 (Samsung Frame): no flex gap,
+ * inset, aspect-ratio, clamp/min/max, CSS variables, gradients, shadows or blur, and only opacity
+ * and transform animate. test/widget-runtime.test.ts checks these rules.
+ *
+ * Every size is in rem. standby.js sets the root font size from the box the page is given, so the
+ * whole layout scales to fill it. Colors are Committed's palette (CommittedTheme.swift):
+ * ink #050505, raised #1b1d17, lime #c8ff2e, limeDeep #8bc41a, onLime #1e2410, muted #8e9288,
+ * soft #d6d9d0.
+ */
+
+@font-face {
+  font-family: "Inter Tight";
+  src: url(/v1/widget/fonts/InterTight-Regular.ttf) format("truetype");
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Inter Tight";
+  src: url(/v1/widget/fonts/InterTight-ExtraBold.ttf) format("truetype");
+  font-weight: 800;
+  font-display: swap;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #050505;
+  color: #ffffff;
+  font-family: "Inter Tight", sans-serif;
+  font-weight: 400;
+  -webkit-font-smoothing: antialiased;
+}
+
+html {
+  font-size: 24px; /* replaced by standby.js */
+}
+
+.defs {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+}
+
+.widget {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  padding: 1.2rem 1.4rem;
+  overflow: hidden;
+}
+
+/* MARK: Panes */
+
+.panes {
+  display: flex;
+  flex-direction: row;
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+}
+
+/* The whole board fits with room to spare: the pair sits in the middle of the box, the rank
+   centered beside the rows, as StandBy shows it. */
+.compact .panes {
+  flex: 0 0 auto;
+}
+
+.compact .rows {
+  flex: 0 0 auto;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  flex: 0 0 40%;
+  width: 40%;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.board {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-width: 0;
+  margin-left: 1.2rem;
+  overflow: hidden;
+}
+
+/* A tall box (taller than it is wide) stacks the card over the board. */
+.stacked .panes {
+  flex-direction: column;
+}
+
+.stacked .card {
+  flex: 0 0 auto;
+  width: 100%;
+}
+
+.stacked .board {
+  flex: 1 1 auto;
+  margin-left: 0;
+  margin-top: 1rem;
+  min-height: 0;
+}
+
+/* MARK: Header: the trophy and the Window, the age on the right */
+
+.head {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  flex: 0 0 auto;
+  height: 1.4rem;
+  white-space: nowrap;
+}
+
+.trophy {
+  flex: 0 0 auto;
+  width: 1.05rem;
+  height: 1.05rem;
+  margin-right: 0.4rem;
+  color: #c8ff2e;
+}
+
+.window-title {
+  flex: 0 0 auto;
+  font-size: 0.95rem;
+  color: #d6d9d0;
+}
+
+.age {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-align: right;
+  font-size: 0.7rem;
+  color: #d6d9d0;
+}
+
+/* MARK: Rank card */
+
+.hero {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.stacked .hero {
+  flex: 0 0 auto;
+  margin-top: 0.6rem;
+}
+
+.rank {
+  font-weight: 800;
+  font-size: 4.75rem;
+  line-height: 1;
+  letter-spacing: -0.04em;
+  white-space: nowrap;
+  color: #ffffff;
+}
+
+.count-line {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  margin-top: 0.35rem;
+  white-space: nowrap;
+  transform-origin: 0 50%;
+  transition: transform 0.25s ease-out;
+}
+
+.count-line.bump {
+  transform: scale(1.08);
+}
+
+.count {
+  font-weight: 800;
+  font-size: 2.6rem;
+  line-height: 1;
+  color: #c8ff2e;
+}
+
+.unranked .rank {
+  display: none;
+}
+
+.unranked .count {
+  font-size: 4.75rem;
+  letter-spacing: -0.04em;
+}
+
+/* Contribution square, empty to busiest: the site's --color-sq-0…3, then lime. */
+.square {
+  flex: 0 0 auto;
+  display: block;
+  width: 1.15rem;
+  height: 1.15rem;
+  margin-left: 0.5rem;
+  border-radius: 0.25rem;
+  box-sizing: border-box;
+  background: #14170f;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.unranked .square {
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 0.38rem;
+}
+
+.square[data-level="3"] {
+  background: #6aa81a;
+  border-color: transparent;
+}
+
+.square[data-level="4"] {
+  background: #c8ff2e;
+  border-color: transparent;
+}
+
+.status {
+  margin-top: 0.7rem;
+  font-size: 1.05rem;
+  line-height: 1.3;
+  font-weight: 800;
+  color: #c8ff2e;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.status.quiet {
+  font-weight: 400;
+  color: #d6d9d0;
+}
+
+/* MARK: Board rows (StandingRowStyle.liveRank) */
+
+.rows {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  margin: 0.5rem 0 0 0;
+  padding: 0;
+  list-style: none;
+  overflow: hidden;
+}
+
+.row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  height: 2.3rem;
+  margin-bottom: 0.25rem;
+  padding: 0 0.55rem;
+  box-sizing: border-box;
+  border: 1px solid transparent;
+  border-radius: 0.55rem;
+  white-space: nowrap;
+  color: #ffffff;
+  transition: transform 0.6s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.45s ease-out;
+}
+
+.row.entering {
+  opacity: 0;
+}
+
+.row[data-self="true"] {
+  background: rgba(200, 255, 46, 0.08);
+  border-color: rgba(200, 255, 46, 0.32);
+}
+
+.row-rank {
+  flex: 0 0 auto;
+  width: 1.9rem;
+  text-align: right;
+  font-size: 0.85rem;
+  color: #8e9288;
+}
+
+.avatar {
+  position: relative;
+  flex: 0 0 auto;
+  width: 1.4rem;
+  height: 1.4rem;
+  margin: 0 0.55rem;
+  border-radius: 50%;
+  box-sizing: border-box;
+  overflow: hidden;
+  background: #1b1d17;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  text-align: center;
+}
+
+.initials {
+  display: block;
+  font-size: 0.5rem;
+  line-height: 1.32rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  color: #d6d9d0;
+}
+
+.avatar img {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  transition: opacity 0.4s ease-out;
+}
+
+.avatar.loaded img {
+  opacity: 1;
+}
+
+.name-wrap {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.name {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 1.05rem;
+}
+
+.row[data-self="true"] .name {
+  font-weight: 800;
+}
+
+.badge {
+  flex: 0 0 auto;
+  margin-left: 0.35rem;
+  padding: 0 0.32rem;
+  border-radius: 0.5rem;
+  font-size: 0.62rem;
+  line-height: 0.95rem;
+  font-weight: 800;
+  background: #c8ff2e;
+  color: #1e2410;
+}
+
+.movement {
+  flex: 0 0 auto;
+  display: block;
+  width: 0.8rem;
+  height: 0.8rem;
+  margin-left: 0.5rem;
+  color: #c8ff2e;
+  transition: opacity 0.5s ease-out, transform 0.5s ease-out;
+}
+
+.movement svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.movement[data-direction="down"] {
+  color: #d6d9d0;
+}
+
+.movement[data-direction="down"] svg {
+  transform: scaleY(-1);
+}
+
+.movement.appearing {
+  opacity: 0;
+  transform: translateY(0.3rem);
+}
+
+.movement[data-direction="down"].appearing {
+  transform: translateY(-0.3rem);
+}
+
+.row-count {
+  flex: 0 0 auto;
+  min-width: 1.7rem;
+  margin-left: 0.35rem;
+  text-align: right;
+  font-size: 1.15rem;
+}
+
+.row[data-self="true"] .row-count {
+  font-weight: 800;
+  color: #c8ff2e;
+}
+
+/* The rows' 2×2 squares glyph, by SquareRamp level (Palette.rowGlyphs). */
+.glyph {
+  position: relative;
+  flex: 0 0 auto;
+  display: block;
+  width: 0.8rem;
+  height: 0.8rem;
+  margin-left: 0.55rem;
+}
+
+.glyph i {
+  position: absolute;
+  width: 45%;
+  height: 45%;
+  border-radius: 22%;
+  background: #8e9288;
+}
+
+.glyph i:nth-child(1) { left: 0; top: 0; }
+.glyph i:nth-child(2) { right: 0; top: 0; }
+.glyph i:nth-child(3) { left: 0; bottom: 0; }
+.glyph i:nth-child(4) { right: 0; bottom: 0; }
+
+.glyph[data-level="1"] i { background: #4f8a14; }
+.glyph[data-level="2"] i { background: #6aa81a; }
+.glyph[data-level="3"] i { background: #7ab61a; }
+.glyph[data-level="4"] i { background: #8bc41a; }
+.glyph.empty { opacity: 0; }
+
+/* MARK: Stale (data more than 20 minutes old): colors step down, as Live rank's do */
+
+[data-state="stale"] .trophy { color: #8bc41a; }
+[data-state="stale"] .rank { color: #8e9288; }
+[data-state="stale"] .count { color: #8bc41a; }
+[data-state="stale"] .status { color: #8bc41a; }
+[data-state="stale"] .status.quiet { color: #d6d9d0; }
+[data-state="stale"] .square[data-level="4"] { background: #6aa81a; }
+[data-state="stale"] .row { color: #d6d9d0; }
+[data-state="stale"] .row[data-self="true"] {
+  background: rgba(139, 196, 26, 0.08);
+  border-color: rgba(139, 196, 26, 0.32);
+}
+[data-state="stale"] .row[data-self="true"] .row-count { color: #8bc41a; }
+[data-state="stale"] .badge { background: #8bc41a; }
+[data-state="stale"] .movement { color: #8bc41a; }
+[data-state="stale"] .movement[data-direction="down"] { color: #8e9288; }
+
+/* MARK: Messages in place of the board: revoked, gone, not set up */
+
+.message {
+  display: none;
+  flex: 1 1 auto;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.message .head {
+  margin-bottom: 1rem;
+}
+
+.message .trophy {
+  width: 1.6rem;
+  height: 1.6rem;
+}
+
+.message-title {
+  margin: 0;
+  font-size: 1.9rem;
+  line-height: 1.15;
+  font-weight: 800;
+  color: #ffffff;
+}
+
+.message-detail {
+  margin: 0.7rem 0 0 0;
+  font-size: 1rem;
+  line-height: 1.35;
+  color: #d6d9d0;
+}
+
+[data-state="revoked"] .panes,
+[data-state="gone"] .panes,
+[data-state="setup"] .panes {
+  display: none;
+}
+
+[data-state="revoked"] .message,
+[data-state="gone"] .message,
+[data-state="setup"] .message {
+  display: flex;
+}
