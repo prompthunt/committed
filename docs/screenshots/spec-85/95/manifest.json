@@ -1,0 +1,36 @@
+{
+  "device": "iPhone Duo Simulator",
+  "os": "iOS 27.1",
+  "notes": "#95 This month. iPhone: runtime captures (xcrun simctl io screenshot --display=primary) of a Debug build on the persistent iPhone Duo, launched with -ScreenshotFixture -ScreenshotWindow month|daily -dismissedPrivateContribTip YES (Sample board data; the fixture refreshes twice, so both Windows show movement). Mac: the scripts/build-flow-capture.py fixture host, launched with -CaptureWindow month|daily -CaptureSnapshot <file> (the host writes its own window's contents; this shell has no Screen Recording permission). The share story is a render, not runtime capture: BoardShareTests.thisMonthStoryFromTheSampleBoard renders the real BoardShareRenderer from AppModel.boardToShare() on the Sample board, on a disposable iPhone Duo via scripts/ios_check.py ios. No before captures: the three-segment baseline was not recaptured. All captured on 2026-11-10 (Day 10 of 30).",
+  "screenshots": [
+    {
+      "file": "iphone-this-month.png",
+      "caption": "iPhone Board on This month: fourth segment, summary heading 04 · This month · Day 10 of 30, movement chevrons (Ari up 1 past Ezra)",
+      "capture": { "sourceCommit": "ded160894d3a735d1f4b5993f4392389a60dc4a7", "fixture": true }
+    },
+    {
+      "file": "iphone-today.png",
+      "caption": "iPhone Board on Today with the four-segment Window switch",
+      "capture": { "sourceCommit": "ded160894d3a735d1f4b5993f4392389a60dc4a7", "fixture": true }
+    },
+    {
+      "file": "mac-this-month.png",
+      "caption": "Mac popover on This month: four segments fit the 340 pt popover, Day 10 of 30 under your count",
+      "device": "MacBook Pro (fixture host)",
+      "os": "macOS 27.0.1",
+      "capture": { "sourceCommit": "ded160894d3a735d1f4b5993f4392389a60dc4a7", "fixture": true }
+    },
+    {
+      "file": "mac-today.png",
+      "caption": "Mac popover on Today with the four-segment Window switch",
+      "device": "MacBook Pro (fixture host)",
+      "os": "macOS 27.0.1",
+      "capture": { "sourceCommit": "ded160894d3a735d1f4b5993f4392389a60dc4a7", "fixture": true }
+    },
+    {
+      "file": "share-this-month-story.png",
+      "caption": "Share board story on This month: Who shipped more this month? (render, not runtime capture)",
+      "capture": { "sourceCommit": "ded160894d3a735d1f4b5993f4392389a60dc4a7", "fixture": true }
+    }
+  ]
+}
