@@ -121,6 +121,8 @@ export interface BoardRow {
 export interface Board extends LiveRankState {
   /** Your login. */
   login: string;
+  /** Your public GitHub name, as the cycle last looked it up; null when unknown or empty. */
+  displayName: string | null;
   /** Contributions to pass the person above (at least 1, since you win ties); null with nobody above. */
   gapToPass: number | null;
   rows: BoardRow[];
@@ -142,7 +144,7 @@ export function readBoard(row: InstallationRow, data: ReadonlyMap<string, LoginD
   const gapToPass =
     state.above && state.contributions !== null ? Math.max(state.above.contributions - state.contributions, 1) : null;
 
-  return { ...state, login: row.login, gapToPass, rows };
+  return { ...state, login: row.login, displayName: row.display_name || null, gapToPass, rows };
 }
 
 /**

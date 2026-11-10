@@ -10,6 +10,12 @@ import { widgetResponse } from "./widget";
 /** Fetches the public `github.com/users/<login>/contributions` HTML. Never authenticated. */
 export type GitHubFetch = (login: string) => Promise<string>;
 
+/**
+ * The `name` on a public GitHub profile (`api.github.com/users/<login>`), null when it has none.
+ * Never authenticated; throws when the lookup fails.
+ */
+export type GitHubNameFetch = (login: string) => Promise<string | null>;
+
 /** Structured log sink. Callers pass ids and event names only: never tokens or secrets. */
 export type Log = (event: string, fields?: Record<string, string | number | boolean | null>) => void;
 
@@ -17,6 +23,7 @@ export interface RelayDeps {
   db: D1Database;
   apns: ApnsSender;
   github: GitHubFetch;
+  githubName: GitHubNameFetch;
   /** Unix seconds. */
   now: () => number;
   bundleId: string;
@@ -157,7 +164,7 @@ export function createRelay(deps: RelayDeps) {
   return {
     fetch: fetchHandler,
     /** One cron run: recompute every installation's Live rank and push what changed. */
-    runCycle: () => runCycle({ store, apns: deps.apns, github: deps.github, now: deps.now, log }),
+    runCycle: () => runCycle({ store, apns: deps.apns, github: deps.github, githubName: deps.githubName, now: deps.now, log }),
   };
 }
 

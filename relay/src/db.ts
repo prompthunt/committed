@@ -20,6 +20,10 @@ export interface InstallationRow {
   last_push_at: number | null;
   rate_window_start: number;
   rate_count: number;
+  /** The owner's public GitHub name, or null when unknown or empty. */
+  display_name: string | null;
+  /** Unix seconds of the last name lookup, successful or not. */
+  display_name_checked_at: number | null;
   created_at: number;
   updated_at: number;
 }
@@ -82,12 +86,14 @@ export class Store {
       .prepare(
         `UPDATE installations SET apns_environment = ?, push_to_start_token = ?, login = ?, competitors_json = ?,
            window = ?, time_zone = ?, updated_at = ?,
+           display_name = CASE WHEN login = ? THEN display_name ELSE NULL END,
+           display_name_checked_at = CASE WHEN login = ? THEN display_name_checked_at ELSE NULL END,
            baseline_date = CASE WHEN ? THEN NULL ELSE baseline_date END,
            baseline_ranks_json = CASE WHEN ? THEN NULL ELSE baseline_ranks_json END
          WHERE id = ?`,
       )
       .bind(reg.apnsEnvironment, reg.pushToStartToken, reg.login, JSON.stringify(reg.competitors), reg.window,
-        reg.timeZone, now, resetBaseline ? 1 : 0, resetBaseline ? 1 : 0, id)
+        reg.timeZone, now, reg.login, reg.login, resetBaseline ? 1 : 0, resetBaseline ? 1 : 0, id)
       .run();
   }
 
@@ -106,6 +112,24 @@ export class Store {
     await this.db
       .prepare("UPDATE installations SET rate_window_start = ?, rate_count = ? WHERE id = ?")
       .bind(windowStart, count, id)
+      .run();
+  }
+
+  /**
+   * Records a name lookup. `name` undefined means it failed: keep the last name, note the attempt.
+   * The login guard drops a lookup that raced a re-registration under another login.
+   */
+  async recordDisplayName(id: string, login: string, name: string | null | undefined, now: number): Promise<void> {
+    if (name === undefined) {
+      await this.db
+        .prepare("UPDATE installations SET display_name_checked_at = ? WHERE id = ? AND login = ?")
+        .bind(now, id, login)
+        .run();
+      return;
+    }
+    await this.db
+      .prepare("UPDATE installations SET display_name = ?, display_name_checked_at = ? WHERE id = ? AND login = ?")
+      .bind(name, now, id, login)
       .run();
   }
 

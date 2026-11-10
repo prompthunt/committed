@@ -40,7 +40,7 @@ async function row(id = ID) {
 beforeEach(() => {
   apns = new FakeApns();
   clock = new Clock(1_793_800_000);
-  relay = createRelay({ db: env.DB, apns, github: new FakeGitHub().fetch, now: clock.now, bundleId: "com.example.app" });
+  relay = createRelay({ db: env.DB, apns, github: new FakeGitHub().fetch, githubName: new FakeGitHub().name, now: clock.now, bundleId: "com.example.app" });
 });
 
 describe("PUT /v1/installations/{id}", () => {

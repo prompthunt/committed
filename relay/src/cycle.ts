@@ -11,12 +11,13 @@ import { competitorsOf, deriveBoard, loginData, type LoginData } from "./board";
 import type { InstallationRow, Store } from "./db";
 import type { LiveRankState } from "./liveRank";
 import { parseDays } from "./parser";
-import type { GitHubFetch, Log } from "./relay";
+import type { GitHubFetch, GitHubNameFetch, Log } from "./relay";
 
 export interface CycleDeps {
   store: Store;
   apns: ApnsSender;
   github: GitHubFetch;
+  githubName: GitHubNameFetch;
   now: () => number;
   log: Log;
 }
@@ -27,6 +28,8 @@ export const CACHE_SECONDS = 5 * 60;
 export const ROTATE_AFTER_SECONDS = 7.5 * 60 * 60;
 /** Heartbeat when the last pushed state is within this long of its stale date. */
 export const HEARTBEAT_MARGIN_SECONDS = 5 * 60;
+/** The owner's public GitHub name is looked up at most once a day per installation, failed or not. */
+export const NAME_LOOKUP_SECONDS = 24 * 60 * 60;
 const FETCH_CONCURRENCY = 6;
 
 /**
@@ -48,6 +51,8 @@ export async function runCycle(deps: CycleDeps): Promise<void> {
       deps.log("installation_failed", { id: row.id, error: String(error) });
     }
   }
+  // After the pushes, so a slow or failing GitHub API never delays Live rank.
+  for (const row of installations) await lookUpDisplayName(row, deps, now);
   deps.log("cycle_complete", { installations: installations.length, logins: logins.size });
 }
 
@@ -88,6 +93,25 @@ async function runInstallation(
   }
 
   await deps.store.save(row);
+}
+
+/**
+ * The board route's `displayName`: the owner's public GitHub profile name, refreshed at most once a
+ * day. Failures are silent (logged) and keep the last name until the next day's try.
+ */
+async function lookUpDisplayName(row: InstallationRow, deps: CycleDeps, now: number): Promise<void> {
+  if (row.display_name_checked_at !== null && now - row.display_name_checked_at < NAME_LOOKUP_SECONDS) return;
+  let name: string | null | undefined;
+  try {
+    name = (await deps.githubName(row.login))?.trim() || null;
+  } catch (error) {
+    deps.log("display_name_failed", { id: row.id, error: String(error) });
+  }
+  try {
+    await deps.store.recordDisplayName(row.id, row.login, name, now);
+  } catch (error) {
+    deps.log("display_name_failed", { id: row.id, error: String(error) });
+  }
 }
 
 async function start(row: InstallationRow, state: LiveRankState, deps: CycleDeps, now: number): Promise<void> {

@@ -12,6 +12,7 @@ beforeEach(() => {
     db: env.DB,
     apns: new FakeApns(),
     github: github.fetch,
+    githubName: github.name,
     now: new Clock(1_793_804_400).now,
     bundleId: "b",
     log: () => {},

@@ -22,7 +22,7 @@ let relay: ReturnType<typeof createRelay>;
 beforeEach(() => {
   github = new FakeGitHub();
   clock = new Clock(T0);
-  relay = createRelay({ db: env.DB, apns: new FakeApns(), github: github.fetch, now: clock.now, bundleId: "b", log: () => {} });
+  relay = createRelay({ db: env.DB, apns: new FakeApns(), github: github.fetch, githubName: github.name, now: clock.now, bundleId: "b", log: () => {} });
 });
 
 async function deviceCall(method: string, id: string, body?: unknown): Promise<Response> {
@@ -116,7 +116,7 @@ describe("GET /v1/installations/{id}/board", () => {
       expect(res.headers.get("cache-control")).toBe("private, max-age=60");
       const body = (await res.json()) as Record<string, unknown> & { rows: { login: string; rank: number }[] };
       expect(body.rows.map(({ login, rank }) => ({ login, rank }))).toEqual(expected.order);
-      const { rows: _rows, gapToPass: _gap, login: _login, ...summary } = body;
+      const { rows: _rows, gapToPass: _gap, login: _login, displayName: _name, ...summary } = body;
       expect(summary).toEqual(expected.liveRankState);
     });
   }
@@ -127,8 +127,10 @@ describe("GET /v1/installations/{id}/board", () => {
     github.set("bob", { "2026-11-05": 1 });
     await register(ID);
     await mint(TOKEN, ID);
+    github.setName("me", "Me Myself");
     await relay.runCycle();
     github.requests.length = 0;
+    github.nameRequests.length = 0;
     github.set("me", { "2026-11-05": 50 }); // GitHub moved on; the board shows the cycle's view
     clock.advance(12 * MINUTE);
 
@@ -137,6 +139,7 @@ describe("GET /v1/installations/{id}/board", () => {
     expect(await res.json()).toEqual({
       window: "daily",
       login: "me",
+      displayName: "Me Myself",
       rank: 2,
       competitorCount: 3,
       contributions: 5,
@@ -152,6 +155,7 @@ describe("GET /v1/installations/{id}/board", () => {
       ],
     });
     expect(github.requests).toEqual([]);
+    expect(github.nameRequests).toEqual([]);
   });
 
   it("reports each row's movement since the cycle's baseline, and changes nothing when read", async () => {
@@ -244,7 +248,7 @@ describe("GET /v1/installations/{id}/board", () => {
 
     const row = await env.DB.prepare("SELECT last_state_json FROM installations WHERE id = ?").bind(ID).first<{ last_state_json: string | null }>();
     expect(row?.last_state_json).toBeTruthy();
-    const { rows: _rows, gapToPass: _gap, login: _login, ...summary } = (await (await board()).json()) as Record<string, unknown>;
+    const { rows: _rows, gapToPass: _gap, login: _login, displayName: _name, ...summary } = (await (await board()).json()) as Record<string, unknown>;
     expect(summary).toEqual(JSON.parse(row!.last_state_json!));
     expect(summary.updatedAt).toBe(T0);
   });
