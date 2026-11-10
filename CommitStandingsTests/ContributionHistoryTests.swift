@@ -92,6 +92,99 @@ struct ContributionHistoryTests {
         #expect(decoded.timeZone.identifier == "Asia/Tokyo")
     }
 
+    // MARK: Current streak
+
+    /// Days in a row with at least one contribution, counted back from today, or from yesterday
+    /// while today has none yet (a day not on the calendar yet counts as none).
+    struct StreakCase: CustomTestStringConvertible, Sendable {
+        let name: String
+        let days: [String: Int]
+        /// Local wall-clock time in `zone`.
+        let local: (Int, Int, Int, Int, Int)
+        let zone: String
+        let expected: Int
+        var testDescription: String { name }
+    }
+
+    /// `count` consecutive days ending on `last` ("YYYY-MM-DD"), each with `value` contributions.
+    static func run(_ count: Int, endingOn last: String, value: Int = 1) -> [String: Int] {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "UTC")!
+        let parts = last.split(separator: "-").compactMap { Int($0) }
+        let end = calendar.date(from: DateComponents(year: parts[0], month: parts[1], day: parts[2]))!
+        var days: [String: Int] = [:]
+        for offset in 0..<count {
+            let day = calendar.date(byAdding: .day, value: -offset, to: end)!
+            days[ContributionHistory.key(for: day, in: calendar)] = value
+        }
+        return days
+    }
+
+    static func merged(_ parts: [String: Int]...) -> [String: Int] {
+        parts.reduce(into: [:]) { result, part in result.merge(part) { _, new in new } }
+    }
+
+    static let streakCases: [StreakCase] = [
+        StreakCase(name: "today counts once you've contributed",
+                   days: run(3, endingOn: "2026-05-28"), local: (2026, 5, 28, 12, 0), zone: "UTC", expected: 3),
+        StreakCase(name: "alive through today while today is still zero",
+                   days: merged(run(2, endingOn: "2026-05-27"), ["2026-05-28": 0]),
+                   local: (2026, 5, 28, 12, 0), zone: "UTC", expected: 2),
+        StreakCase(name: "alive through today when the calendar doesn't reach today yet",
+                   days: run(2, endingOn: "2026-05-27"), local: (2026, 5, 28, 8, 0), zone: "UTC", expected: 2),
+        StreakCase(name: "broken when yesterday and today are both empty",
+                   days: merged(run(4, endingOn: "2026-05-26"), ["2026-05-27": 0, "2026-05-28": 0]),
+                   local: (2026, 5, 28, 12, 0), zone: "UTC", expected: 0),
+        StreakCase(name: "an empty day ends it",
+                   days: merged(run(3, endingOn: "2026-05-22", value: 9), ["2026-05-23": 0], run(5, endingOn: "2026-05-28")),
+                   local: (2026, 5, 28, 12, 0), zone: "UTC", expected: 5),
+        StreakCase(name: "a minute before midnight it's still alive",
+                   days: merged(run(2, endingOn: "2026-05-27"), ["2026-05-28": 0]),
+                   local: (2026, 5, 28, 23, 59), zone: "America/Los_Angeles", expected: 2),
+        StreakCase(name: "midnight breaks it when the day ended empty",
+                   days: merged(run(2, endingOn: "2026-05-27"), ["2026-05-28": 0]),
+                   local: (2026, 5, 29, 0, 0), zone: "America/Los_Angeles", expected: 0),
+        StreakCase(name: "midnight keeps it when the day ended with a contribution",
+                   days: run(3, endingOn: "2026-05-28"),
+                   local: (2026, 5, 29, 0, 1), zone: "America/Los_Angeles", expected: 3),
+        StreakCase(name: "across the day the clocks go forward",
+                   days: run(3, endingOn: "2026-03-09"), local: (2026, 3, 9, 0, 30), zone: "America/Los_Angeles", expected: 3),
+        StreakCase(name: "across the day the clocks go back",
+                   days: run(3, endingOn: "2026-11-02"), local: (2026, 11, 2, 23, 30), zone: "America/Los_Angeles", expected: 3),
+        StreakCase(name: "across a leap day",
+                   days: run(3, endingOn: "2028-03-01"), local: (2028, 3, 1, 12, 0), zone: "Australia/Adelaide", expected: 3),
+        StreakCase(name: "across a 28-day February",
+                   days: run(3, endingOn: "2026-03-01"), local: (2026, 3, 1, 12, 0), zone: "UTC", expected: 3),
+        StreakCase(name: "across the new year",
+                   days: run(4, endingOn: "2026-01-02"), local: (2026, 1, 2, 9, 0), zone: "Asia/Tokyo", expected: 4),
+        StreakCase(name: "days after today never count",
+                   days: run(5, endingOn: "2026-05-30"), local: (2026, 5, 28, 12, 0), zone: "UTC", expected: 3),
+        StreakCase(name: "a calendar shorter than a year counts what it has",
+                   days: run(2, endingOn: "2026-05-28"), local: (2026, 5, 28, 12, 0), zone: "UTC", expected: 2),
+        StreakCase(name: "every day of GitHub's calendar",
+                   days: run(371, endingOn: "2026-05-28"), local: (2026, 5, 28, 12, 0), zone: "UTC", expected: 371),
+        StreakCase(name: "no days at all",
+                   days: [:], local: (2026, 5, 28, 12, 0), zone: "UTC", expected: 0),
+    ]
+
+    @Test(arguments: streakCases)
+    func currentStreak(_ c: StreakCase) throws {
+        let zone = try #require(TimeZone(identifier: c.zone))
+        let history = ContributionHistory(days: c.days, timeZone: zone)
+        #expect(history.currentStreak(asOf: try Self.instant(c.local, in: zone)) == c.expected)
+    }
+
+    /// The same instant is Thursday evening in Los Angeles and already Friday in Tokyo: each
+    /// history's own day decides whether today is still to come.
+    @Test func streakUsesEachHistorysOwnDay() throws {
+        let instant = try Self.instant((2026, 5, 29, 3, 0), in: TimeZone(identifier: "UTC")!)
+        let days = Self.merged(Self.run(3, endingOn: "2026-05-27"), ["2026-05-28": 0])
+        let losAngeles = ContributionHistory(days: days, timeZone: TimeZone(identifier: "America/Los_Angeles")!)
+        let tokyo = ContributionHistory(days: days, timeZone: TimeZone(identifier: "Asia/Tokyo")!)
+        #expect(losAngeles.currentStreak(asOf: instant) == 3) // still the 28th: alive
+        #expect(tokyo.currentStreak(asOf: instant) == 0) // the 29th: the 28th ended empty
+    }
+
     static func instant(_ local: (Int, Int, Int, Int, Int), in zone: TimeZone) throws -> Date {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = zone

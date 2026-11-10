@@ -2,13 +2,18 @@ import Foundation
 import Testing
 @testable import CommitStandingsiOS
 
-/// Counts contribution fetches per username and returns fixed counts.
+/// Counts contribution fetches per username and returns fixed counts, plus each person's calendar
+/// when one is given (as the real client does).
 actor FakeContributions: ContributionsFetching {
     private var counts: [String: Int]
+    private var histories: [String: ContributionHistory]
     private(set) var calls: [String: Int] = [:]
     private(set) var windows: [ContributionWindow] = []
 
-    init(_ counts: [String: Int]) { self.counts = counts }
+    init(_ counts: [String: Int], histories: [String: ContributionHistory] = [:]) {
+        self.counts = counts
+        self.histories = histories
+    }
 
     func total() -> Int { calls.values.reduce(0, +) }
 
@@ -17,7 +22,7 @@ actor FakeContributions: ContributionsFetching {
         calls[username, default: 0] += 1
         windows.append(window)
         guard let count = counts[username] else { return .failure(.userNotFound) }
-        return .success(StandingCounts(contributions: count))
+        return .success(StandingCounts(contributions: count, history: histories[username]))
     }
 }
 
@@ -61,9 +66,10 @@ struct AppModelTests {
     let rosterCalls = RosterCalls()
     let background = FakeBackgroundTime()
 
-    private func makeModel(signedIn: Bool = true, counts: [String: Int] = ["me": 3, "ada": 5])
+    private func makeModel(signedIn: Bool = true, counts: [String: Int] = ["me": 3, "ada": 5],
+                           histories: [String: ContributionHistory] = [:])
         -> (AppModel, FakeContributions) {
-        let contributions = FakeContributions(counts)
+        let contributions = FakeContributions(counts, histories: histories)
         let session: URLSession = {
             let config = URLSessionConfiguration.ephemeral
             config.protocolClasses = [FakeGitHubProtocol.self]
@@ -97,6 +103,29 @@ struct AppModelTests {
         #expect(rosterCalls.count == 1)
         #expect(await contributions.calls == ["me": 1, "ada": 1])
         #expect(model.store.standing(for: "ada", window: .daily)?.contributions == 5)
+    }
+
+    /// Streaks on the Board come from the calendars a Refresh brings back, as of the app's clock.
+    @Test func aRefreshShowsStreaksFromEachPersonsCalendar() async {
+        let utc = TimeZone(identifier: "UTC")!
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = utc
+        func days(_ counts: [Int]) -> [String: Int] { // today first, then each day before
+            var result: [String: Int] = [:]
+            for (offset, count) in counts.enumerated() {
+                let day = calendar.date(byAdding: .day, value: -offset, to: clock.now)!
+                result[ContributionHistory.key(for: day, in: calendar)] = count
+            }
+            return result
+        }
+        let (model, _) = makeModel(counts: ["me": 3, "ada": 5], histories: [
+            "me": ContributionHistory(days: days([3, 1, 2, 0, 4]), timeZone: utc),
+            "ada": ContributionHistory(days: days([0, 5, 1, 1, 1, 0]), timeZone: utc),
+        ])
+        #expect(model.refresh.streak(for: "me") == nil)
+        await model.sceneDidBecomeActive()
+        #expect(model.refresh.streak(for: "me") == 3)
+        #expect(model.refresh.streak(for: "ada") == 4) // nothing yet today: alive from yesterday
     }
 
     @Test func becomingActiveAgainWithFreshDataDoesNotRefresh() async {

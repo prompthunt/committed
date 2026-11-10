@@ -32,6 +32,9 @@ extension StandingRowStyle {
         // Losing a place is news: brighter than secondary text, never alarm-orange.
         movementDownColor: .soft,
         movementFont: .caption2.weight(.heavy),
+        // Quieter than the count beside it, on the board's numerals; never muted (it's news).
+        streakFont: CommittedType.numeral(14, relativeTo: .footnote),
+        streakColor: .soft,
         // The Mac's 2×2 squares glyph, tinted on the site's ramp; Live rank's rows match.
         squares: .shadedSymbol(Color.rowGlyphs)
     )
