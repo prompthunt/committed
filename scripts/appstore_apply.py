@@ -20,7 +20,7 @@ import sys
 import tempfile
 
 APP_ID = '6831797452'
-VERSION = '1.0'
+VERSION = '1.0.1'
 PLATFORM = 'IOS'
 LOCALE = 'en-US'
 COPYRIGHT = '2026 Prompt Hunt, Inc.'
@@ -35,6 +35,7 @@ LIMITS = {
     ('app-info', 'subtitle'): 30,
     ('version', 'promotionalText'): 170,
     ('version', 'description'): 4000,
+    ('version', 'whatsNew'): 4000,
     ('review', 'notes'): 4000,
 }
 KEYWORD_BYTES = 100
@@ -71,7 +72,8 @@ def listing_problems(files):
     if len(set(term.lower() for term in terms)) != len(terms):
         problems.append('keywords repeat a term.')
     text = {'subtitle': app_info.get('subtitle'), 'description': version.get('description'),
-            'keywords': keywords, 'promotionalText': version.get('promotionalText'), 'notes': review.get('notes')}
+            'keywords': keywords, 'promotionalText': version.get('promotionalText'),
+            'whatsNew': version.get('whatsNew'), 'notes': review.get('notes')}
     for field, value in text.items():
         lowered = (value or '').lower()
         for phrase in BANNED:

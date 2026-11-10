@@ -1,7 +1,7 @@
 # App Store listing
 
 The App Store listing for Committed for iPhone ("Committed: Commit Leaderboard", app
-`6831797452`, version 1.0, en-US). Change it here in a PR, then re-apply it.
+`6831797452`, version 1.0.1, en-US). Change it here in a PR, then re-apply it.
 
 ## What's here
 
@@ -10,7 +10,7 @@ The App Store listing for Committed for iPhone ("Committed: Commit Leaderboard",
 | File | Holds |
 |---|---|
 | `app-info/en-US.json` | Name, subtitle, privacy policy URL |
-| `version/1.0/en-US.json` | Description, keywords, promotional text, support and marketing URLs |
+| `version/1.0.1/en-US.json` | Description, keywords, promotional text, What's New, support and marketing URLs |
 | `categories.json` | Developer Tools, with Productivity as the secondary |
 | `age-rating.json` | Every answer none or false (4+) |
 | `review-information.json` | App Review notes; no demo account |
@@ -39,7 +39,7 @@ Store Connect first and writes only what differs, so a second run prints "No cha
 Then check the version:
 
 ```bash
-asc validate --app 6831797452 --version-id efad017c-5171-480c-b19e-f9c3548e521d --platform IOS
+asc validate --app 6831797452 --version-id <1.0.1's version id> --platform IOS
 ```
 
 `python3 -m unittest discover -s scripts -p 'test_*.py'` checks the files against Apple's
