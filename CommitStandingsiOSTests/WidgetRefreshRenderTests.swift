@@ -3,7 +3,7 @@ import Testing
 @testable import CommitStandingsiOS
 
 /// Every widget and Live rank presentation on the Sample board, with its numbers 13 min 36 sec
-/// old (fresh) and 3 hours old (stale): the 20 pt Window, the counting-up age, and no "to pass"
+/// old (fresh) and 3 hours old (stale): the 16 pt Window, the counting-up age, and no "to pass"
 /// line. The expanded and compact Dynamic Island are drawn from Live rank's own region views on a
 /// black island shape. Renders, not captures: the Simulator can't show widgets on a Home Screen,
 /// a Live Activity, or the Dynamic Island from here.

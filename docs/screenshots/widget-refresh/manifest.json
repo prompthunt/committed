@@ -13,9 +13,9 @@
     },
     {
       "file": "after-widgets-fresh.png",
-      "caption": "After: Home Screen small, Committed Board, medium and large widgets, then the Lock Screen inline, rectangular and circular widgets; numbers 13 min 36 sec old. 20 pt title-case Window, counting-up age on the right, no \"to pass\" line (render)",
+      "caption": "After: Home Screen small, Committed Board, medium and large widgets, then the Lock Screen inline, rectangular and circular widgets; numbers 13 min 36 sec old. 16 pt title-case Window, counting-up age on the right, no \"to pass\" line (render)",
       "capture": {
-        "sourceCommit": "2b1f93b2570398a327b9a86e0c7cffe86fc71472",
+        "sourceCommit": "a860cca5a1d09b9c232b408e07202563a005494a",
         "fixture": true
       }
     },
@@ -29,9 +29,9 @@
     },
     {
       "file": "after-widgets-stale.png",
-      "caption": "After: The same widgets with numbers 3 hours old (stale). 20 pt title-case Window, counting-up age on the right, no \"to pass\" line (render)",
+      "caption": "After: The same widgets with numbers 3 hours old (stale). 16 pt title-case Window, counting-up age on the right, no \"to pass\" line (render)",
       "capture": {
-        "sourceCommit": "2b1f93b2570398a327b9a86e0c7cffe86fc71472",
+        "sourceCommit": "a860cca5a1d09b9c232b408e07202563a005494a",
         "fixture": true
       }
     },
@@ -45,9 +45,9 @@
     },
     {
       "file": "after-live-rank-fresh.png",
-      "caption": "After: Live rank's Lock Screen card, the expanded Dynamic Island, the compact island, and the CarPlay/Apple Watch small card; numbers 13 min 36 sec old. 20 pt title-case Window, counting-up age on the right, no \"to pass\" line (render)",
+      "caption": "After: Live rank's Lock Screen card, the expanded Dynamic Island, the compact island, and the CarPlay/Apple Watch small card; numbers 13 min 36 sec old. 16 pt title-case Window, counting-up age on the right, no \"to pass\" line (render)",
       "capture": {
-        "sourceCommit": "2b1f93b2570398a327b9a86e0c7cffe86fc71472",
+        "sourceCommit": "a860cca5a1d09b9c232b408e07202563a005494a",
         "fixture": true
       }
     },
@@ -61,9 +61,9 @@
     },
     {
       "file": "after-live-rank-stale.png",
-      "caption": "After: The same Live rank presentations with numbers 3 hours old (stale). 20 pt title-case Window, counting-up age on the right, no \"to pass\" line (render)",
+      "caption": "After: The same Live rank presentations with numbers 3 hours old (stale). 16 pt title-case Window, counting-up age on the right, no \"to pass\" line (render)",
       "capture": {
-        "sourceCommit": "2b1f93b2570398a327b9a86e0c7cffe86fc71472",
+        "sourceCommit": "a860cca5a1d09b9c232b408e07202563a005494a",
         "fixture": true
       }
     },
@@ -71,7 +71,7 @@
       "file": "after-share-race-square.png",
       "caption": "After: Share board \"Your race\" square image, the medium widget without the counting-up age (the timestamp underneath says when) (render)",
       "capture": {
-        "sourceCommit": "2b1f93b2570398a327b9a86e0c7cffe86fc71472",
+        "sourceCommit": "a860cca5a1d09b9c232b408e07202563a005494a",
         "fixture": true
       }
     }
