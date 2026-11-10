@@ -3,14 +3,14 @@ import Testing
 import UIKit
 @testable import CommitStandingsiOS
 
-/// The App Store screenshots (#71): five 6.9" iPhone frames, each a caption band over an app
-/// screen or system surface, rendered from the Sample board. They're renders, not runtime
+/// The App Store screenshots' iPhone screens (#71): five 6.9" iPhone frames, each a caption band
+/// over an app screen or system surface, and each bare screen, rendered from the Sample board. They're renders, not runtime
 /// captures: the only Simulator on iOS 27.1 is the iPhone Duo, which isn't an App Store size.
 ///
 /// Always runs, to keep the frames at the size App Store Connect takes and on sample data. With
 /// `RENDER_DIR` set (`TEST_RUNNER_RENDER_DIR=/path`), it also writes `01-board.png` …
-/// `05-people.png` there, and each bare screen (status bar, no caption or phone) under `screens/`
-/// for the screenshot editor; `docs/screenshots/app-store/README.md` says how to publish them.
+/// `05-people.png` there, and each bare screen (status bar, no caption or phone) under `screens/`:
+/// the screenshot editor's sources. `docs/screenshots/app-store/README.md` says how to publish them.
 @MainActor
 @Suite(.serialized)
 struct AppStoreScreenshotTests {
