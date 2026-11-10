@@ -12,6 +12,8 @@ const board = {
   people_error: null,
   last_updated: 1779969600,
   people_updated: 1779969600,
+  day_of_month: 10,
+  days_in_month: 30,
   rows: [
     {
       login: "octocat",
@@ -175,5 +177,84 @@ test("the fixture page's Sample board renders every streak case", async () => {
   );
   expect(flames).toEqual(["🔥 365+", "🔥 23", "🔥 12", "🔥 2"]);
   expect(document.querySelector(".summary .streak")?.textContent).toBe("🔥 12");
+  dispose();
+});
+test("the picker offers This month fourth and keyboard navigation wraps across all four", async () => {
+  const dispose = await mount(board);
+  const labels = [...document.querySelectorAll("[data-window]")].map(
+    (button) => [button.getAttribute("data-window"), button.textContent],
+  );
+  expect(labels).toEqual([
+    ["today", "Today"],
+    ["week", "7 days"],
+    ["monthly", "30 days"],
+    ["month", "This month"],
+  ]);
+  const press = async (key: string, expected: string) => {
+    (document.activeElement as HTMLElement).dispatchEvent(
+      new KeyboardEvent("keydown", { key, bubbles: true }),
+    );
+    await vi.waitFor(() =>
+      expect(document.activeElement?.getAttribute("data-window")).toBe(
+        expected,
+      ),
+    );
+  };
+  document.querySelector<HTMLButtonElement>('[data-window="today"]')!.focus();
+  await press("ArrowLeft", "month");
+  await press("ArrowRight", "today");
+  await press("End", "month");
+  await press("ArrowLeft", "monthly");
+  await press("Home", "today");
+  dispose();
+});
+test("This month shows the day of the month and today's movement", async () => {
+  const calls: string[] = [];
+  const windows: unknown[] = [];
+  mockIPC((command, args) => {
+    calls.push(command);
+    if (command === "get_board") {
+      windows.push((args as { window: string }).window);
+      return {
+        ...board,
+        window: (args as { window: string }).window,
+        rows: [{ ...board.rows[0], movement: 2 }],
+      };
+    }
+    if (command === "get_settings")
+      return {
+        notifications: false,
+        automatic_updates: true,
+        private_tip_dismissed: false,
+      };
+    if (command === "get_desktop_settings")
+      return { launch_at_login: false, version: "0.1.50" };
+    if (command === "plugin:event|listen") return 1;
+    return null;
+  });
+  document.body.innerHTML = '<main id="app"></main>';
+  const dispose = await start(document.querySelector("main")!, "board");
+  expect(document.querySelector(".status")?.textContent).not.toContain("Day");
+  document.querySelector<HTMLButtonElement>('[data-window="month"]')!.click();
+  await vi.waitFor(() =>
+    expect(document.querySelector(".status")?.textContent).toContain(
+      "This month · Day 10 of 30 ·",
+    ),
+  );
+  expect(windows).toContain("month");
+  expect(
+    document.querySelector('.movement[aria-label="Moved up 2"]'),
+  ).not.toBeNull();
+  expect(document.querySelector(".sr-only")?.textContent).toContain(
+    "Day 10 of 30",
+  );
+  document.querySelector<HTMLButtonElement>('[data-window="monthly"]')!.click();
+  await vi.waitFor(() =>
+    expect(document.querySelector(".status")?.textContent).toContain(
+      "30 days ·",
+    ),
+  );
+  expect(document.querySelector(".status")?.textContent).not.toContain("Day");
+  expect(document.querySelector(".movement")).toBeNull();
   dispose();
 });

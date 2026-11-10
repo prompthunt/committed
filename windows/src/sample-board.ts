@@ -15,26 +15,26 @@ export const samplePeople: SamplePerson[] = [
   {
     login: "ines-volk",
     name: "Ines Volk",
-    counts: { today: 12, week: 61, month: 240 },
+    counts: { today: 12, week: 61, monthly: 240, month: 224 },
     streak: 371,
   },
   {
     login: "odile-m",
     name: "Odile M.",
-    counts: { today: 9, week: 44, month: 198 },
+    counts: { today: 9, week: 44, monthly: 198, month: 185 },
     streak: 23,
   },
   {
     login: "ari-linden",
     name: "Ari Linden",
-    counts: { today: 7, week: 38, month: 171 },
+    counts: { today: 7, week: 38, monthly: 171, month: 160 },
     streak: 12,
     movement: 1,
   },
   {
     login: "ezra-q",
     name: "Ezra Q.",
-    counts: { today: 6, week: 52, month: 160 },
+    counts: { today: 6, week: 52, monthly: 160, month: 149 },
     streak: 2,
     movement: -1,
   },
@@ -42,7 +42,7 @@ export const samplePeople: SamplePerson[] = [
   {
     login: "bram-ott",
     name: "Bram Ott",
-    counts: { today: 0, week: 11, month: 57 },
+    counts: { today: 0, week: 11, monthly: 57, month: 50 },
     streak: 1,
   },
   // Never loads: no count and no streak.
@@ -52,6 +52,8 @@ export const sampleOwner = "ari-linden";
 
 /** The board the core would send for `window`, ranked like `committed_core::order`. */
 export function sampleBoard(window: Window, now: number): Board {
+  // The core sends today's local day of the month and the month's length (This month's "Day X of Y").
+  const date = new Date(now * 1000);
   const rows: Row[] = samplePeople
     .map((person, index) => ({ person, index }))
     .sort(
@@ -67,7 +69,8 @@ export function sampleBoard(window: Window, now: number): Board {
       contributions: person.counts?.[window] ?? null,
       streak: person.streak,
       is_you: person.login === sampleOwner,
-      movement: window === "today" ? (person.movement ?? 0) : 0,
+      movement:
+        window === "today" || window === "month" ? (person.movement ?? 0) : 0,
       status: person.counts ? "loaded" : "failed",
     }));
   return {
@@ -79,6 +82,12 @@ export function sampleBoard(window: Window, now: number): Board {
     error: null,
     people_updated: now - 600,
     people_error: null,
+    day_of_month: date.getDate(),
+    days_in_month: new Date(
+      date.getFullYear(),
+      date.getMonth() + 1,
+      0,
+    ).getDate(),
   };
 }
 

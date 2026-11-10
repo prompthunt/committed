@@ -33,6 +33,61 @@
         "fixture": true
       },
       "notes": "Windows board, not WebView2 on Windows: the real app UI (windows/src/app.ts and style.css) served by vite and fed the Sample board through windows/fixture.html (mocked Tauri IPC, data in windows/src/sample-board.ts). macOS system fonts instead of Segoe UI; no window chrome or tray. Streak cases on show: 365+ (ines-volk, a 371-day run), 23, 12 (you, also in the summary), 2 (ezra-q), 1 (bram-ott, hidden), and no data (niko-vane, failed: no streak). No before capture: the fixture page is new in this change, so there is no baseline board to compare. Recipe: cd windows && npm run dev, open http://127.0.0.1:1420/fixture.html?view=board, resize to 380×620."
+    },
+    {
+      "file": "96/before-30-days-dark.png",
+      "caption": "#96 Before: the Windows picker had three Windows (Today, 7 days, 30 days); 30 days selected, dark",
+      "capture": {
+        "device": "Chromium (in-app browser) on macOS, mocked Tauri IPC",
+        "os": "macOS 27.0",
+        "sourceCommit": "999a565ecb1b47fc89759ad9fed20a9946da729e",
+        "fixture": true
+      },
+      "notes": "Windows board (#96) captured as Chromium on macOS with mocked Tauri IPC: windows/ served by vite, start(root, 'board') driven through @tauri-apps/api/mocks with fixture rows (five made-up logins, letter avatars). Not WebView2 on Windows: fonts are macOS system fonts, there's no window chrome or tray. Board window at its default 380×620 CSS px unless noted (340 px is tauri.conf's minWidth). The before capture is origin/spec-85-streaks-month-person (999a565) with the same fixture."
+    },
+    {
+      "file": "96/this-month-dark.png",
+      "caption": "#96 After: This month added as the fourth Window; status reads 'This month · Day 10 of 30' and today's movement chevrons show, dark",
+      "capture": {
+        "device": "Chromium (in-app browser) on macOS, mocked Tauri IPC",
+        "os": "macOS 27.0",
+        "sourceCommit": "e1f41a5269624e323c0d96adc66a28bf275a93b2",
+        "fixture": true
+      },
+      "notes": "Windows board (#96) captured as Chromium on macOS with mocked Tauri IPC: windows/ served by vite, start(root, 'board') driven through @tauri-apps/api/mocks with fixture rows (five made-up logins, letter avatars). Not WebView2 on Windows: fonts are macOS system fonts, there's no window chrome or tray. Board window at its default 380×620 CSS px unless noted (340 px is tauri.conf's minWidth). The before capture is origin/spec-85-streaks-month-person (999a565) with the same fixture."
+    },
+    {
+      "file": "96/this-month-light.png",
+      "caption": "#96 After: This month on day 10 of 30 with movement chevrons, light",
+      "capture": {
+        "device": "Chromium (in-app browser) on macOS, mocked Tauri IPC",
+        "os": "macOS 27.0",
+        "sourceCommit": "e1f41a5269624e323c0d96adc66a28bf275a93b2",
+        "fixture": true
+      },
+      "notes": "Windows board (#96) captured as Chromium on macOS with mocked Tauri IPC: windows/ served by vite, start(root, 'board') driven through @tauri-apps/api/mocks with fixture rows (five made-up logins, letter avatars). Not WebView2 on Windows: fonts are macOS system fonts, there's no window chrome or tray. Board window at its default 380×620 CSS px unless noted (340 px is tauri.conf's minWidth). The before capture is origin/spec-85-streaks-month-person (999a565) with the same fixture."
+    },
+    {
+      "file": "96/this-month-dark-340.png",
+      "caption": "#96 After: This month at the board's 340 px minimum width; all four labels stay on one line, dark",
+      "capture": {
+        "device": "Chromium (in-app browser) on macOS, mocked Tauri IPC",
+        "os": "macOS 27.0",
+        "sourceCommit": "e1f41a5269624e323c0d96adc66a28bf275a93b2",
+        "fixture": true
+      },
+      "notes": "Windows board (#96) captured as Chromium on macOS with mocked Tauri IPC: windows/ served by vite, start(root, 'board') driven through @tauri-apps/api/mocks with fixture rows (five made-up logins, letter avatars). Not WebView2 on Windows: fonts are macOS system fonts, there's no window chrome or tray. Board window at its default 380×620 CSS px unless noted (340 px is tauri.conf's minWidth). The before capture is origin/spec-85-streaks-month-person (999a565) with the same fixture."
+    },
+    {
+      "file": "96/this-month-first-day-dark.png",
+      "caption": "#96 After: the 1st of a 31-day month ('Day 1 of 31'); This month restarts from today's counts, no movement yet, dark",
+      "capture": {
+        "device": "Chromium (in-app browser) on macOS, mocked Tauri IPC",
+        "os": "macOS 27.0",
+        "sourceCommit": "e1f41a5269624e323c0d96adc66a28bf275a93b2",
+        "fixture": true
+      },
+      "notes": "Windows board (#96) captured as Chromium on macOS with mocked Tauri IPC: windows/ served by vite, start(root, 'board') driven through @tauri-apps/api/mocks with fixture rows (five made-up logins, letter avatars). Not WebView2 on Windows: fonts are macOS system fonts, there's no window chrome or tray. Board window at its default 380×620 CSS px unless noted (340 px is tauri.conf's minWidth). The before capture is origin/spec-85-streaks-month-person (999a565) with the same fixture."
     }
   ]
 }

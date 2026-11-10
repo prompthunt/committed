@@ -1,4 +1,5 @@
-export type Window = "today" | "week" | "month";
+// Same raw values as the Mac and iPhone for 30 days ("monthly") and This month ("month").
+export type Window = "today" | "week" | "monthly" | "month";
 export interface Person {
   login: string;
   name: string | null;
@@ -24,6 +25,9 @@ export interface Board {
   error: string | null;
   people_updated: number | null;
   people_error: string | null;
+  /** Today's day of the local month and the month's length: This month's "Day 10 of 30". */
+  day_of_month: number;
+  days_in_month: number;
 }
 export interface Settings {
   notifications: boolean;
