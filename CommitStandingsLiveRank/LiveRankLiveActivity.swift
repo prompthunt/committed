@@ -6,14 +6,16 @@ import WidgetKit
 ///
 /// The expanded island and the Lock Screen list the person above you, you, and the person below
 /// in the board's own row (`LiveRankRows`); the row carries the rank, so there's no separate
-/// headline. Compact and minimal show your rank and count.
+/// headline. Over the rows sit the trophy and the Window ("Today") and, on the right, how long ago
+/// the numbers were updated ("13 min, 36 sec"), counting up live between updates. Compact and
+/// minimal show your rank and count.
 ///
 /// Every presentation uses tabular numerals and no fixed widths, so it reads in the iPhone Duo's
 /// vertical Dynamic Island as well as the standard horizontal one. A missing count shows a
 /// placeholder, never zero, and an empty state says what it's waiting for. Once the content passes
 /// its stale date (20 minutes after the data), colors step down (lime to deep lime, white to soft)
-/// rather than fading, the Lock Screen's field goes dark, and a clock marks it in every
-/// presentation. Tapping opens the Board on Live rank's Window.
+/// rather than fading, the Lock Screen's field goes dark, the age turns amber, and compact's count
+/// gets a clock, since it has no room for the age. Tapping opens the Board on Live rank's Window.
 struct LiveRankLiveActivity: Widget {
     var body: some WidgetConfiguration {
         ActivityConfiguration(for: LiveRankAttributes.self) { context in
@@ -26,44 +28,18 @@ struct LiveRankLiveActivity: Widget {
             let state = context.state
             let stale = context.isStale
             return DynamicIsland {
-                // Beside the sensor: the trophy and the Window, then the gap to pass (or, with
-                // no rows to show, your count).
-                // Both corners sit inward from their regions' edges: flush, the island's corner
-                // curve clipped the trophy and the region's edge shaved the pass line's last glyph.
-                // The trailing 10 pt also ends the pass line where the rows' squares end.
                 DynamicIslandExpandedRegion(.leading) {
-                    LiveRankWindowLabel(state: state)
-                        .padding(.leading, 12)
+                    LiveRankIslandLeading(state: state)
                         .liveRankStale(stale)
                 }
                 DynamicIslandExpandedRegion(.trailing) {
-                    Group {
-                        if state.hasLadder {
-                            LiveRankPassLine(state: state)
-                        } else {
-                            LiveRankCountLabel(state: state, style: .expanded)
-                        }
-                    }
-                    .padding(.trailing, 10)
-                    .liveRankStale(stale)
+                    LiveRankIslandTrailing(state: state)
+                        .liveRankStale(stale)
                 }
                 DynamicIslandExpandedRegion(.bottom) {
-                    VStack(alignment: .leading, spacing: 4) {
-                        if state.hasLadder {
-                            LiveRankRows(state: state, selfLogin: context.attributes.selfLogin)
-                                .environment(\.savedAvatars, context.attributes.savedAvatars)
-                        } else if state.competitorCount <= 1, let line = state.emptyStateLine {
-                            Text(line).font(.subheadline).foregroundStyle(Color.soft)
-                        }
-                        // The corners already carry the Window and the gap to pass, so the
-                        // footer only appears with something to add: staleness or a missing count.
-                        if LiveRankFooter.showsStatus(state, showsWindow: false, isStale: stale) {
-                            LiveRankFooter(state: state, showsWindow: false, showsPassLine: false)
-                        }
-                    }
-                    // A fixed-height presentation: three rows must not wrap off the bottom.
-                    .dynamicTypeSize(...DynamicTypeSize.xxLarge)
-                    .liveRankStale(stale)
+                    LiveRankIslandBottom(state: state, selfLogin: context.attributes.selfLogin)
+                        .environment(\.savedAvatars, context.attributes.savedAvatars)
+                        .liveRankStale(stale)
                 }
             } compactLeading: {
                 LiveRankRankLabel(state: state, style: .compact)
@@ -114,47 +90,118 @@ extension LiveRankState {
     var hasLadder: Bool { competitorCount > 1 && contributions != nil }
 }
 
-/// The expanded island's leading corner: the trophy and Live rank's Window ("TODAY").
+/// The trophy and the Window ("Today", "7 days", "30 days") at 20 pt, heading Live rank and every
+/// system-size widget.
 struct LiveRankWindowLabel: View {
     let state: LiveRankState
+    var accessibilityName = "Live rank"
     @Environment(\.liveRankIsStale) private var isStale
-    @ScaledMetric(relativeTo: .footnote) private var trophySize: CGFloat = 15
 
     var body: some View {
         HStack(spacing: 6) {
-            TrophyMark(size: trophySize, color: isStale ? .limeDeep : .lime)
+            TrophyMark(size: 20, color: isStale ? .limeDeep : .lime)
             if let window = state.contributionWindow {
                 Text(window.shortTitle)
-                    .eyebrow()
-                    .foregroundStyle(isStale ? Color.warning : Color.soft)
+                    .font(.system(size: 20))
+                    .foregroundStyle(Color.soft)
                     .fixedSize()
             }
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(state.contributionWindow.map { "Live rank, \($0.accessibilityDescription)" } ?? "Live rank")
+        .accessibilityLabel(state.contributionWindow.map { "\(accessibilityName), \($0.accessibilityDescription)" } ?? accessibilityName)
     }
 }
 
-/// "3 to pass alice", in lime: the island's trailing corner, beside the rows.
-struct LiveRankPassLine: View {
-    let state: LiveRankState
+/// How long ago the numbers were updated, at 12 pt: "13 min, 36 sec", counting up every second
+/// without a reload (a date-relative `Text`), so you can tell at a glance whether they're current.
+/// Amber once they're stale. Left out of Share board's images (`showsUpdateAge`), where a
+/// still frozen at one moment would mislead.
+struct UpdateAge: View {
+    let date: Date
     @Environment(\.liveRankIsStale) private var isStale
+    @Environment(\.showsUpdateAge) private var showsUpdateAge
 
     var body: some View {
-        if let line = LiveRankText.passLine(state) {
-            Text(line)
-                .font(.footnote.weight(.semibold))
-                .foregroundStyle(isStale ? Color.limeDeep : Color.lime)
+        if showsUpdateAge {
+            Text(date, style: .relative)
+                .font(.system(size: 12))
                 .monospacedDigit()
+                .foregroundStyle(isStale ? Color.warning : Color.soft)
+                .multilineTextAlignment(.trailing)
                 .lineLimit(1)
-                .minimumScaleFactor(0.8)
-                .truncationMode(.middle)
+                .accessibilityLabel(Text("Updated \(Text(date, style: .relative)) ago"))
         }
     }
 }
 
-/// Your rank with the trophy glyph. With no visible rivals there's no rank, just the trophy (and,
-/// on the Lock Screen, "Just you so far").
+/// The Window on the left, the age on the right, on one baseline: the head of Live rank's Lock
+/// Screen card and of the medium and large widgets.
+struct LiveRankHeader: View {
+    let state: LiveRankState
+    var accessibilityName = "Live rank"
+
+    var body: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 8) {
+            LiveRankWindowLabel(state: state, accessibilityName: accessibilityName)
+            Spacer(minLength: 8)
+            UpdateAge(date: state.updatedDate)
+        }
+    }
+}
+
+/// The expanded island's leading corner: the trophy and the Window. Inset from the region's edge:
+/// flush, the island's corner curve clipped the trophy.
+struct LiveRankIslandLeading: View {
+    let state: LiveRankState
+
+    var body: some View {
+        LiveRankWindowLabel(state: state)
+            .padding(.leading, 12)
+    }
+}
+
+/// The expanded island's trailing corner: the age, or, with no rows to show, your count. The 10 pt
+/// inset ends it where the rows' squares end.
+struct LiveRankIslandTrailing: View {
+    let state: LiveRankState
+
+    var body: some View {
+        Group {
+            if state.hasLadder {
+                UpdateAge(date: state.updatedDate)
+            } else {
+                LiveRankCountLabel(state: state, style: .expanded)
+            }
+        }
+        .padding(.trailing, 10)
+    }
+}
+
+/// The expanded island's bottom: the rows, or what Live rank is waiting for.
+struct LiveRankIslandBottom: View {
+    let state: LiveRankState
+    let selfLogin: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            if state.hasLadder {
+                LiveRankRows(state: state, selfLogin: selfLogin)
+            } else {
+                if state.competitorCount <= 1, let line = state.emptyStateLine {
+                    Text(line).font(.subheadline).foregroundStyle(Color.soft)
+                }
+                // The corners carry the Window and the count; the age goes here.
+                LiveRankStatusLine(state: state)
+            }
+        }
+        // A fixed-height presentation: three rows must not wrap off the bottom.
+        .dynamicTypeSize(...DynamicTypeSize.xxLarge)
+    }
+}
+
+/// Your rank with the trophy glyph (on the Lock Screen and the medium widget, the header has the
+/// trophy). With no visible rivals there's no rank, just the trophy (on the Lock Screen, "Just you
+/// so far").
 struct LiveRankRankLabel: View {
     enum Style { case compact, minimal, small, lockScreen }
 
@@ -194,9 +241,10 @@ struct LiveRankRankLabel: View {
         }
     }
 
-    /// The Committed trophy in lime, sized with the rank beside it.
+    /// The Committed trophy in lime, sized with the rank beside it. Not on the Lock Screen card or
+    /// the medium widget, whose header already carries it.
     @ViewBuilder private var trophy: some View {
-        if style != .minimal || state.rank == nil {
+        if style != .lockScreen, style != .minimal || state.rank == nil {
             let size = trophySize
             TrophyMark(size: size, color: isStale ? .limeDeep : .lime)
                 .alignmentGuide(.firstTextBaseline) { $0[.bottom] - size * 0.12 }
@@ -273,8 +321,9 @@ struct LiveRankCountLabel: View {
     private var row: some View {
         VStack(alignment: .trailing, spacing: 2) {
             HStack(alignment: .center, spacing: 5) {
-                if isStale, style == .compact || style == .small {
-                    // Stale without relying on brightness: a clock beside the count.
+                if isStale, style == .compact {
+                    // Stale without relying on brightness: a clock beside the count, since
+                    // compact has no room for the age.
                     Image(systemName: "clock.badge.exclamationmark")
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(Color.warning)
@@ -303,68 +352,35 @@ struct LiveRankCountLabel: View {
     }
 }
 
-/// The Window, then "Updated 4 minutes ago" once there's data ("Waiting for your first count"
-/// before), and on the Lock Screen the gap to pass. The age is a live date-driven `Text`, so it
-/// keeps counting between updates without the app running.
-struct LiveRankFooter: View {
+/// One line under the rows' place: what Live rank is waiting for before your count loads
+/// ("Waiting for your first count"), otherwise the age.
+struct LiveRankStatusLine: View {
     let state: LiveRankState
-    let showsWindow: Bool
-    let showsPassLine: Bool
     @Environment(\.liveRankIsStale) private var isStale
 
     var body: some View {
-        // One line, so the Lock Screen card stays inside its height: the Window, the gap to pass,
-        // then the refresh age, which shrinks a little before anything truncates.
-        HStack(spacing: 8) {
-            if showsWindow, let window = state.contributionWindow {
-                Text(window.shortTitle).fontWeight(.medium)
-                    .foregroundStyle(isStale ? Color.warning : Color.soft)
-                    .fixedSize()
-            }
-            if showsPassLine, let line = LiveRankText.passLine(state) {
-                Text(line)
-                    .fontWeight(.semibold)
-                    .foregroundStyle(isStale ? Color.limeDeep : Color.lime)
-                    .monospacedDigit()
-                    .truncationMode(.middle)
-                    .layoutPriority(1)
-            }
-            status
-                .minimumScaleFactor(0.8)
-        }
-        .font(.caption)
-        .lineLimit(1)
-    }
-
-    /// Whether the status (refresh age, or what it's waiting for) has anything to say.
-    static func showsStatus(_ state: LiveRankState, showsWindow: Bool, isStale: Bool) -> Bool {
-        (state.contributions == nil && state.competitorCount > 1 && state.emptyStateLine != nil)
-            || showsWindow || isStale
-    }
-
-    @ViewBuilder private var status: some View {
-        if state.contributions == nil, state.competitorCount > 1, let line = state.emptyStateLine {
-            // No count yet: say so, rather than "Updated" beside dashes.
+        if let line = Self.waiting(state) {
             Text(line)
+                .font(.caption)
                 .foregroundStyle(isStale ? Color.warning : Color.soft)
-        } else if showsWindow || isStale {
-            HStack(spacing: 3) {
-                if isStale {
-                    Image(systemName: "clock.badge.exclamationmark").accessibilityHidden(true)
-                }
-                Text("Updated \(Text(.currentDate, format: .reference(to: state.updatedDate, allowedFields: [.minute, .hour, .day], maxFieldCount: 1)))")
-                    .monospacedDigit()
-            }
-            .foregroundStyle(isStale ? Color.warning : Color.soft)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+        } else {
+            UpdateAge(date: state.updatedDate)
         }
+    }
+
+    /// Rivals but no count of yours yet: say so, rather than an age beside dashes.
+    static func waiting(_ state: LiveRankState) -> String? {
+        state.contributions == nil && state.competitorCount > 1 ? state.emptyStateLine : nil
     }
 }
 
-/// Lock Screen: the people above and below you in the board's rows, then the Window, the gap to
-/// pass, and the refresh age. Without rows (no rivals, or no count yet), the trophy and your count
-/// head the card instead, over the site's lit field, which goes dark when the numbers are stale.
-/// The rows sit on plain ink: their squares glyph is a mark that has to keep 3:1, and the field's
-/// lit squares would take that away.
+/// Lock Screen: the trophy and the Window with the age on the right, as the medium widget heads
+/// itself, then the people above and below you in the board's rows. Without rows (no rivals, or no
+/// count yet), your rank and count take their place, over the site's lit field,
+/// which goes dark when the numbers are stale. The rows sit on plain ink: their squares glyph is a
+/// mark that has to keep 3:1, and the field's lit squares would take that away.
 struct LiveRankLockScreen: View {
     let state: LiveRankState
     let selfLogin: String
@@ -372,9 +388,10 @@ struct LiveRankLockScreen: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
+            LiveRankHeader(state: state)
             if state.hasLadder {
                 LiveRankRows(state: state, selfLogin: selfLogin)
-                    // Line the rows' content up with the footer's text.
+                    // Line the rows' content up with the header's.
                     .padding(.horizontal, -10)
             } else {
                 HStack(alignment: .firstTextBaseline) {
@@ -384,8 +401,13 @@ struct LiveRankLockScreen: View {
                         LiveRankCountLabel(state: state, style: .lockScreen)
                     }
                 }
+                if let line = LiveRankStatusLine.waiting(state) {
+                    Text(line)
+                        .font(.caption)
+                        .foregroundStyle(isStale ? Color.warning : Color.soft)
+                        .lineLimit(1)
+                }
             }
-            LiveRankFooter(state: state, showsWindow: true, showsPassLine: true)
         }
         // The card is a fixed height: past accessibility 1 the headline would clip, and the
         // rows would wrap long names off the bottom.
@@ -407,10 +429,9 @@ struct LiveRankLockScreen: View {
 }
 
 /// The small family: the CarPlay dashboard and Apple Watch's Smart Stack. It's read at a glance
-/// from the driver's seat, so there are no rows. Your rank and count sit on one line, then the gap
-/// to pass ("3 to pass alice"), or what Live rank is waiting for. Stale content steps its colors
-/// down and puts the clock beside the count. CarPlay doesn't run buttons; a tap on iPhone opens
-/// the Board.
+/// from the driver's seat, so there are no rows. Your rank and count sit on one line, then the
+/// Window and the age, or what Live rank is waiting for. Stale content steps its colors down and
+/// turns the age amber. CarPlay doesn't run buttons; a tap on iPhone opens the Board.
 struct LiveRankSmall: View {
     let state: LiveRankState
     @Environment(\.liveRankIsStale) private var isStale
@@ -424,10 +445,16 @@ struct LiveRankSmall: View {
                     LiveRankCountLabel(state: state, style: .small)
                 }
             }
-            // One line, never two facts: the refresh age doesn't fit beside the gap at this size,
-            // and the clock and stepped-down colors already mark stale numbers.
             if state.hasLadder {
-                LiveRankPassLine(state: state)
+                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                    if let window = state.contributionWindow {
+                        Text(window.shortTitle)
+                            .font(.footnote)
+                            .foregroundStyle(Color.soft)
+                    }
+                    Spacer(minLength: 4)
+                    UpdateAge(date: state.updatedDate)
+                }
             } else if let line = state.emptyStateLine {
                 Text(line)
                     .font(.footnote)
@@ -448,6 +475,8 @@ struct LiveRankSmall: View {
 extension EnvironmentValues {
     /// Live rank's content is past its stale date.
     @Entry var liveRankIsStale = false
+    /// Whether `UpdateAge` shows. Share board's images turn it off.
+    @Entry var showsUpdateAge = true
 }
 
 private extension View {

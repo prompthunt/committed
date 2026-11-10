@@ -136,6 +136,13 @@ targets:
       - path: CommitStandings/Views/StandingRow.swift
       - path: CommitStandings/Views/StandingRowStyle.swift
       - path: CommitStandings/Views/AvatarView.swift
+      # The widgets' own 15-minute refresh: refetch public contribution counts and re-rank.
+      - path: CommitStandings/Store/WidgetSnapshot.swift
+      - path: CommitStandings/Store/WidgetRefresh.swift
+      - path: CommitStandings/Store/Ranking.swift
+      - path: CommitStandings/Store/LiveRankDerivation.swift
+      - path: CommitStandings/Services/ContributionsClient.swift
+      - path: CommitStandings/Services/ContributionsParser.swift
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.addisonk.CommitStandings.iOS.LiveRank

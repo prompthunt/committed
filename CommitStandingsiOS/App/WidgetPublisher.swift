@@ -60,7 +60,7 @@ extension WidgetSnapshot {
             visible.contains(login) && standing.lastUpdated != .distantPast
         }
         let ranked = Ranking.order(competitors: competitors, standings: standings, window: window)
-        let top = ranked.prefix(rows).map { entry in
+        let board = ranked.map { entry in
             let login = entry.competitor.username
             let standing = standings[login]
             return Row(
@@ -71,6 +71,7 @@ extension WidgetSnapshot {
                 isSelf: entry.competitor.isSelf
             )
         }
-        return WidgetSnapshot(selfLogin: me, state: state, top: top)
+        return WidgetSnapshot(selfLogin: me, state: state, top: Array(board.prefix(rows)),
+                              people: competitors.map(\.username), board: board)
     }
 }

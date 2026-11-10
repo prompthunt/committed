@@ -271,3 +271,38 @@ final class StandingsStore {
         persistence.save(competitors)
     }
 }
+
+// MARK: - Live rank
+
+// Here rather than beside `derive`, which the widget extension also compiles: the extension has no
+// `StandingsStore`.
+extension LiveRankState {
+    /// Live rank for `window` from the board as it stands, so it never disagrees with the board:
+    /// visible competitors only, and a row still loading for the first time (or failed with nothing
+    /// cached, both `.distantPast`) counts as no data rather than a zero. `rankDelta` is the
+    /// Today board's movement (`RefreshCoordinator.rankDelta(for:)`). `updatedAt` is the newest
+    /// count shown, or `now` when there's none.
+    @MainActor
+    static func board(
+        _ store: StandingsStore,
+        window: ContributionWindow,
+        rankDelta: (String) -> Int?,
+        now: Date
+    ) -> LiveRankState {
+        let competitors = store.visibleCompetitors
+        let visible = Set(competitors.map(\.username))
+        let standings = store.standings(for: window).filter { login, standing in
+            visible.contains(login) && standing.lastUpdated != .distantPast
+        }
+        // Everyone's, not just yours: the rows above and below you show their chevrons too.
+        var deltas: [String: Int] = [:]
+        for login in visible { deltas[login] = rankDelta(login) }
+        return derive(
+            competitors: competitors,
+            standings: standings,
+            window: window,
+            rankDeltas: deltas,
+            now: standings.values.map(\.lastUpdated).max() ?? now
+        )
+    }
+}
