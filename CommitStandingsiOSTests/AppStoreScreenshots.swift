@@ -4,7 +4,9 @@ import UIKit
 import UniformTypeIdentifiers
 @testable import CommitStandingsiOS
 
-// The App Store screenshots (#71): five 6.9" iPhone frames, 440 × 956 pt at 3x (1320 × 2868 px).
+// The App Store screenshots' iPhone screens (#71): five 6.9" iPhone frames, 440 × 956 pt at 3x
+// (1320 × 2868 px), and each frame's bare screen. The listing's frames are now made in the
+// screenshot editor (appstore/screenshots) from the bare screens; these composed frames were 1.0's.
 // Each is a caption band in the marketing site's style (ink, lime, Inter Tight, a lit field of
 // contribution squares) over a phone showing an app screen or a system surface, all from the
 // Sample board.
@@ -76,6 +78,9 @@ enum AppStoreFrame: Int, CaseIterable {
 struct AppStoreFrameImage {
     let frame: AppStoreFrame
     let png: Data
+    /// The screen alone, full size with its status bar and no caption or phone: the source the
+    /// screenshot editor (`appstore/screenshots/`) frames itself.
+    let screen: Data
     /// Every GitHub login the frame shows.
     let people: Set<String>
 
@@ -132,6 +137,11 @@ enum AppStoreScreenshots {
             AppStoreFrameImage(
                 frame: frame,
                 png: try opaquePNG(AppStoreFrameView(frame: frame) { screen }),
+                screen: try opaquePNG(
+                    screen
+                        .frame(width: size.width, height: size.height)
+                        .environment(\.colorScheme, .dark)
+                ),
                 people: shown
             )
         }
