@@ -1,0 +1,47 @@
+{
+  "device": "Chromium (in-app browser) on macOS, mocked Tauri IPC",
+  "os": "macOS 27.0",
+  "notes": "Windows board (#96) captured as Chromium on macOS with mocked Tauri IPC: windows/ served by vite, start(root, 'board') driven through @tauri-apps/api/mocks with fixture rows (five made-up logins, letter avatars). Not WebView2 on Windows: fonts are macOS system fonts, there's no window chrome or tray. Board window at its default 380×620 CSS px unless noted (340 px is tauri.conf's minWidth). The before capture is origin/spec-85-streaks-month-person (999a565) with the same fixture.",
+  "screenshots": [
+    {
+      "file": "before-30-days-dark.png",
+      "caption": "Before: the Windows picker had three Windows (Today, 7 days, 30 days); 30 days selected, dark",
+      "capture": {
+        "sourceCommit": "999a565ecb1b47fc89759ad9fed20a9946da729e",
+        "fixture": true
+      }
+    },
+    {
+      "file": "this-month-dark.png",
+      "caption": "After: This month added as the fourth Window; status reads 'This month · Day 10 of 30' and today's movement chevrons show, dark",
+      "capture": {
+        "sourceCommit": "e1f41a5269624e323c0d96adc66a28bf275a93b2",
+        "fixture": true
+      }
+    },
+    {
+      "file": "this-month-light.png",
+      "caption": "After: This month on day 10 of 30 with movement chevrons, light",
+      "capture": {
+        "sourceCommit": "e1f41a5269624e323c0d96adc66a28bf275a93b2",
+        "fixture": true
+      }
+    },
+    {
+      "file": "this-month-dark-340.png",
+      "caption": "After: This month at the board's 340 px minimum width; all four labels stay on one line, dark",
+      "capture": {
+        "sourceCommit": "e1f41a5269624e323c0d96adc66a28bf275a93b2",
+        "fixture": true
+      }
+    },
+    {
+      "file": "this-month-first-day-dark.png",
+      "caption": "After: the 1st of a 31-day month ('Day 1 of 31'); This month restarts from today's counts, no movement yet, dark",
+      "capture": {
+        "sourceCommit": "e1f41a5269624e323c0d96adc66a28bf275a93b2",
+        "fixture": true
+      }
+    }
+  ]
+}
