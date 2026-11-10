@@ -9,31 +9,46 @@
 </head>
 <body>
 <!--
-  Committed's StandBy pair as a web page (relay/README.md, "Web widget"): the rank card beside the
-  board list. No data is in this file. The page reads #installation=…&token=… from its own address
+  Committed's StandBy pair as a web page (relay/README.md, "Web widget"): the iPhone app's hero card
+  (rank only) beside the board list. No data is in this file. The page reads #installation=…&token=… from its own address
   and asks the board route for the board with the token in an Authorization header.
 -->
 <main class="widget" id="widget">
   <div class="panes">
-    <section class="card" id="panes-card" aria-label="Your rank">
-      <header class="head">
-        <svg class="trophy" viewBox="0 0 16 16" aria-hidden="true"><use href="#trophy"></use></svg>
-        <span class="window-title" data-window-title>Today</span>
+    <!-- The iPhone app's hero card (BoardSummaryView), rank only. -->
+    <section class="card loading" id="card" data-testid="card" aria-label="Your rank">
+      <div class="field" id="field" data-testid="field" aria-hidden="true"></div>
+      <header class="folio eyebrow">
+        <span class="folio-title" id="folio" data-testid="folio">01 · Today</span>
+        <span class="folio-label" data-testid="folio-label">Your rank</span>
       </header>
-      <div class="hero">
-        <div class="rank" data-testid="rank" id="rank">–</div>
-        <div class="count-line" id="count-line">
-          <span class="count" data-testid="count" id="count">–</span><span class="card-glyph" id="count-glyph" data-testid="count-glyph" data-level="0"><i></i><i></i><i></i><i></i></span>
-        </div>
-        <div class="status quiet" data-testid="status" id="status">Your board is loading</div>
+      <div class="who" id="who">
+        <span class="who-avatar avatar" id="who-avatar" data-testid="who-avatar"><span class="initials" id="who-initials"></span></span>
+        <span class="who-text">
+          <span class="who-name" id="who-name" data-testid="who-name"></span>
+          <span class="who-handle" id="who-handle" data-testid="who-handle"></span>
+        </span>
       </div>
+      <div class="hero" id="hero">
+        <div class="rank-line" id="rank-line">
+          <span class="rank" data-testid="rank" id="rank">–</span><span class="rank-of" data-testid="rank-of" id="rank-of"></span>
+        </div>
+        <div class="solo" id="solo">
+          <svg class="trophy trophy-mark" data-testid="trophy-mark" viewBox="0 0 16 16" aria-hidden="true"><use href="#trophy"></use></svg>
+          <span class="solo-count">
+            <span class="count" data-testid="count" id="count">–</span>
+            <span class="count-label eyebrow">Contributions</span>
+          </span>
+        </div>
+      </div>
+      <footer class="news">
+        <div class="movement-line" id="movement-line" data-testid="movement-line"></div>
+        <div class="status quiet" data-testid="status" id="status">Your board is loading</div>
+        <div class="age" data-testid="age" id="age"></div>
+      </footer>
     </section>
-    <section class="board" aria-label="Board">
-      <header class="head">
-        <svg class="trophy" viewBox="0 0 16 16" aria-hidden="true"><use href="#trophy"></use></svg>
-        <span class="window-title" data-window-title>Today</span>
-        <span class="age" data-testid="age" id="age"></span>
-      </header>
+    <section class="board" data-testid="board" aria-label="Board">
+      <header class="list-head eyebrow" id="list-head" data-testid="list-head"></header>
       <ol class="rows" id="rows"></ol>
     </section>
   </div>

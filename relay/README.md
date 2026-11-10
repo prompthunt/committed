@@ -133,7 +133,7 @@ installation secret (ticket #82).
 
   ```json
   {
-    "window": "daily", "login": "me", "rank": 2, "competitorCount": 3, "contributions": 5,
+    "window": "daily", "login": "me", "displayName": "Mae Example", "rank": 2, "competitorCount": 3, "contributions": 5,
     "above": { "login": "alice", "contributions": 9, "movementToday": 0 },
     "below": { "login": "bob", "contributions": 1, "movementToday": 0 },
     "movementToday": 0, "gapToPass": 4, "updatedAt": 1793804400,
@@ -148,6 +148,11 @@ installation secret (ticket #82).
   - `rank`, `above`, `below` and `movementToday` follow the `LiveRankState` rules below: `rank`
     is null with no rivals or no data for you.
   - `gapToPass` is `max(above − yours, 1)`, null with nobody above (Swift `gapToPass`).
+  - `displayName` is the `name` on your public GitHub profile, null when it's unknown or empty.
+    The cron cycle looks it up (`GET https://api.github.com/users/<login>`, unauthenticated) at
+    most once every 24 hours per installation, after its pushes, and keeps it in D1
+    (`migrations/0003_display_name.sql`). A failed lookup keeps the last name and tries again the
+    next day; a registration under another login forgets it. The board route only reads it.
   - A row's `contributions` is null when that login has no data yet.
   - `updatedAt` (Unix seconds) follows Live rank's rule: when your own count was fetched, else
     the time of the read (as the cycle uses its run time). A rival's older data never dates the
@@ -204,13 +209,14 @@ A revoked token gets `403` from then on.
 
 ## Web widget
 
-Committed's StandBy pair (the rank card beside the board list) as a web page, so any screen can
-show your board. Glance on the office Frame iframes it (ticket #83; ADR 0001 in `addisonk/glance`).
+Committed's StandBy pair as a web page, so any screen can show your board: the iPhone app's hero
+card (`BoardSummaryView`, rank only) beside the board list. Glance on the office Frame iframes it (ticket #83; ADR 0001 in `addisonk/glance`).
 
 ### `GET /v1/widget?layout=standby`
 
-- **Public, static, no data.** `widget/standby.html`, `standby.css`, `standby.js` and the Inter
-  Tight Regular and ExtraBold fonts are bundled into the Worker (the `rules` in
+- **Public, static, no data.** `widget/standby.html`, `standby.css`, `standby.js`, the Inter
+  Tight Regular and ExtraBold fonts and JetBrains Mono Medium (the eyebrows' monospace; the TV has
+  none), subset to Basic Latin, `·`, `–` and `…` (about 10 KB), are bundled into the Worker (the `rules` in
   `wrangler.jsonc`) and served by `src/widget.ts` under `/v1/widget/`. `layout` defaults to
   `standby`, the only layout; any other is a `404`. The page may be framed from any origin.
 - **Address:** `https://committed-relay.prompt-hunt.workers.dev/v1/widget?layout=standby#installation=<id>&token=<board read token>`.
@@ -224,19 +230,29 @@ show your board. Glance on the office Frame iframes it (ticket #83; ADR 0001 in 
 
   | When | Shows |
   |---|---|
-  | Before the first board | `–` placeholders and "Your board is loading", never 0 |
-  | Data more than 20 minutes old (`updatedAt`) | Live rank's stale treatment: colors step down (lime to deep lime, rank to grey); the age stays grey |
-  | No rivals | Your count without a rank, "Just you so far" |
+  | Before the first board | A `–` placeholder and "Your board is loading", never 0 |
+  | Data more than 20 minutes old (`updatedAt`) | Live rank's stale treatment: colors step down (lime to deep lime, rank to grey, the field dims); the age stays soft |
+  | No rivals | The trophy in place of a rank, your count, "Just you so far" |
+  | No count of yours yet | The trophy, "Waiting for your first count" |
   | `401` / `403` | "This screen's access was revoked" |
   | `404` | "Live rank is off on your iPhone" |
   | No fragment | How to add the installation ID and token |
 
+- **The card:** a folio ("01 · TODAY", "02 · 7 DAYS", "03 · 30 DAYS" … "YOUR RANK") over a
+  hairline; your avatar with a lime ring, your first name (`displayName`'s first word, as the app
+  shows it) over `@login`, or `@login` alone; your rank huge with "of N"; then today's movement
+  ("Up 2 today" in lime, "Down 1 today" in soft, nothing when you held), the pass line ("5 to pass
+  mossbyte", none at #1) and "Updated 6 min ago" (the app's coarse age). Your count stays on your
+  row. Behind the rank sits the app's square field, drawn still for the card's size with its
+  masks folded into each square's opacity. The list's header is the eyebrow "12 PEOPLE · TODAY".
 - **Layout:** one rem scales with the box, so the pair fills whatever size it's given (a box
-  taller than wide stacks the card over the list). The list shows as many rows as fit, chosen
+  taller than wide stacks the card over the list). The rank shrinks to fit the card; in a box too
+  small for it the card drops your identity first, then the age, the movement line and the
+  folio's label. The list shows as many rows as fit, chosen
   as the small Board widget chooses them (`WidgetSnapshot.boardRows`): the leaders, or the first
   few, the person ahead of you and you. Long logins lose their middle. Avatars load from GitHub
   over initials.
-- **Motion:** your count ticks up, rows slide to their new places (FLIP with transforms), and
+- **Motion:** row counts tick up, rows slide to their new places (FLIP with transforms), and
   movement chevrons fade in.
 
 ### Runtime limits (Samsung Frame, Chromium 76)

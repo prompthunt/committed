@@ -3,6 +3,7 @@ import standbyHtml from "../widget/standby.html";
 import standbyJs from "../widget/standby.js";
 import interTightExtraBold from "../widget/fonts/InterTight-ExtraBold.ttf";
 import interTightRegular from "../widget/fonts/InterTight-Regular.ttf";
+import jetBrainsMonoMedium from "../widget/fonts/JetBrainsMono-Medium.ttf";
 import { boardError } from "./board";
 
 /**
@@ -22,6 +23,8 @@ export const WIDGET_FILES: Record<string, { body: string | ArrayBuffer; type: st
   "/v1/widget/standby.js": { body: standbyJs, type: "text/javascript; charset=utf-8", cache: SHORT },
   "/v1/widget/fonts/InterTight-Regular.ttf": { body: interTightRegular, type: "font/ttf", cache: LONG },
   "/v1/widget/fonts/InterTight-ExtraBold.ttf": { body: interTightExtraBold, type: "font/ttf", cache: LONG },
+  /** The eyebrows' monospace (the TV has none), subset to Basic Latin, · and …. */
+  "/v1/widget/fonts/JetBrainsMono-Medium.ttf": { body: jetBrainsMonoMedium, type: "font/ttf", cache: LONG },
 };
 
 export const WIDGET_LAYOUTS = ["standby"];

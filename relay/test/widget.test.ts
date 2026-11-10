@@ -53,6 +53,14 @@ describe("GET /v1/widget", () => {
       // A TrueType file starts with the sfnt version 0x00010000.
       expect([...bytes.slice(0, 4)]).toEqual([0, 1, 0, 0]);
     }
+    // The eyebrows' monospace face: JetBrains Mono Medium, subset to Basic Latin, so it's small.
+    const mono = await get("/v1/widget/fonts/JetBrainsMono-Medium.ttf");
+    expect(mono.status).toBe(200);
+    expect(mono.headers.get("content-type")).toBe("font/ttf");
+    const bytes = new Uint8Array(await mono.arrayBuffer());
+    expect(bytes.byteLength).toBeGreaterThan(4_000);
+    expect(bytes.byteLength).toBeLessThan(40_000);
+    expect([...bytes.slice(0, 4)]).toEqual([0, 1, 0, 0]);
   });
 
   it("can be framed by another screen", async () => {

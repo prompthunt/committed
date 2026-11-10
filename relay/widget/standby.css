@@ -5,8 +5,8 @@
  *
  * Every size is in rem. standby.js sets the root font size from the box the page is given, so the
  * whole layout scales to fill it. Colors are Committed's palette (CommittedTheme.swift):
- * ink #050505, raised #1b1d17, lime #c8ff2e, limeDeep #8bc41a, onLime #1e2410, muted #8e9288,
- * soft #d6d9d0.
+ * ink #050505, tile #0e100b, raised #1b1d17, lime #c8ff2e, limeDeep #8bc41a, onLime #1e2410,
+ * muted #8e9288, soft #d6d9d0.
  */
 
 @font-face {
@@ -20,6 +20,14 @@
   font-family: "Inter Tight";
   src: url(/v1/widget/fonts/InterTight-ExtraBold.ttf) format("truetype");
   font-weight: 800;
+  font-display: swap;
+}
+
+/* The eyebrows' monospace: JetBrains Mono Medium, subset to Basic Latin (the TV has no monospace). */
+@font-face {
+  font-family: "JetBrains Mono";
+  src: url(/v1/widget/fonts/JetBrainsMono-Medium.ttf) format("truetype");
+  font-weight: 500;
   font-display: swap;
 }
 
@@ -62,11 +70,11 @@ html.embedded body {
   width: 100%;
   height: 100%;
   box-sizing: border-box;
-  padding: 1.2rem 1.4rem;
+  padding: 1.1rem 1.15rem;
   overflow: hidden;
 }
 
-/* MARK: Panes */
+/* MARK: Panes: the hero card beside the board (a tall box stacks them) */
 
 .panes {
   display: flex;
@@ -76,23 +84,14 @@ html.embedded body {
   width: 100%;
 }
 
-/* The whole board fits with room to spare: the pair sits in the middle of the box, the rank
-   centered beside the rows, as StandBy shows it. */
+/* The whole board fits with room to spare: the pair sits in the middle of the box. It can still
+   shrink to the box, so a tall card never pushes past it. */
 .compact .panes {
-  flex: 0 0 auto;
+  flex: 0 1 auto;
 }
 
 .compact .rows {
   flex: 0 0 auto;
-}
-
-.card {
-  display: flex;
-  flex-direction: column;
-  flex: 0 0 40%;
-  width: 40%;
-  min-width: 0;
-  overflow: hidden;
 }
 
 .board {
@@ -100,13 +99,63 @@ html.embedded body {
   flex-direction: column;
   flex: 1 1 auto;
   min-width: 0;
-  margin-left: 1.2rem;
+  margin-left: 0.8rem;
+  padding-top: 0.95rem;
   overflow: hidden;
 }
 
-/* A tall box (taller than it is wide) stacks the card over the board. */
 .stacked .panes {
   flex-direction: column;
+}
+
+.stacked .board {
+  flex: 1 1 auto;
+  margin-left: 0;
+  margin-top: 0.8rem;
+  padding-top: 0;
+  min-height: 0;
+}
+
+/* The Committed mark, in the message screens and the card's no-rank state. */
+.trophy {
+  flex: 0 0 auto;
+  color: #c8ff2e;
+}
+
+/* MARK: Eyebrows: the site's monospace labels ("01 · TODAY", "12 PEOPLE · TODAY") */
+
+.eyebrow {
+  font-family: "JetBrains Mono", monospace;
+  font-weight: 500;
+  font-size: 0.55rem;
+  line-height: 1.25;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.list-head {
+  flex: 0 0 auto;
+  padding: 0 0.55rem 0.5rem;
+  overflow: hidden;
+  color: #8e9288;
+}
+
+/* MARK: The hero card (BoardSummaryView): Committed's tile with a hairline */
+
+.card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  flex: 0 0 42%;
+  width: 42%;
+  min-width: 0;
+  box-sizing: border-box;
+  padding: 0.95rem 1rem;
+  overflow: hidden;
+  background: #0e100b;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 0.8rem;
 }
 
 .stacked .card {
@@ -114,48 +163,118 @@ html.embedded body {
   width: 100%;
 }
 
-.stacked .board {
-  flex: 1 1 auto;
-  margin-left: 0;
-  margin-top: 1rem;
-  min-height: 0;
+/* The app's square field, drawn still by standby.js for the card's size (no runtime gradients:
+   its masks are folded into each square's opacity). */
+.field {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
 }
 
-/* MARK: Header: the trophy and the Window, the age on the right */
+.field i {
+  position: absolute;
+  border-radius: 22%;
+}
 
-.head {
+[data-state="stale"] .field {
+  opacity: 0.6;
+}
+
+.folio,
+.who,
+.hero,
+.news {
+  position: relative;
+}
+
+.folio {
+  display: flex;
+  flex-direction: row;
+  flex: 0 0 auto;
+  padding-bottom: 0.4rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  color: #d6d9d0;
+  overflow: hidden;
+}
+
+.folio-title {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.folio-label {
+  flex: 0 0 auto;
+  margin-left: auto;
+  padding-left: 0.5rem;
+}
+
+/* Too narrow for both: the number and Window alone, as the app's FolioRow falls back. */
+.no-label .folio-label {
+  display: none;
+}
+
+/* Who you are: avatar with a lime ring, your first name over @login (or @login alone). */
+
+.who {
   display: flex;
   flex-direction: row;
   align-items: center;
   flex: 0 0 auto;
-  height: 1.4rem;
-  white-space: nowrap;
+  margin-top: 0.85rem;
+  min-width: 0;
 }
 
-.trophy {
-  flex: 0 0 auto;
-  width: 1.05rem;
-  height: 1.05rem;
-  margin-right: 0.4rem;
-  color: #c8ff2e;
+.loading .who,
+.no-who .who {
+  display: none;
 }
 
-.window-title {
-  flex: 0 0 auto;
-  font-size: 0.95rem;
-  color: #d6d9d0;
+.who .who-avatar {
+  width: 1.85rem;
+  height: 1.85rem;
+  margin: 0 0.5rem 0 0;
+  border: 2px solid rgba(200, 255, 46, 0.6);
 }
 
-.age {
+.who-avatar .initials {
+  font-size: 0.6rem;
+  line-height: 1.7rem;
+}
+
+.who-text {
+  display: flex;
+  flex-direction: column;
   flex: 1 1 auto;
   min-width: 0;
   overflow: hidden;
-  text-align: right;
-  font-size: 0.7rem;
-  color: #d6d9d0;
+  white-space: nowrap;
 }
 
-/* MARK: Rank card */
+.who-name {
+  font-size: 0.95rem;
+  line-height: 1.15;
+  font-weight: 800;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.who-handle {
+  font-size: 0.76rem;
+  line-height: 1.25;
+  color: #d6d9d0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.who-handle:empty {
+  display: none;
+}
+
+/* Your rank, huge, with "of N" beside it; the trophy when there's no rank. */
 
 .hero {
   display: flex;
@@ -163,101 +282,162 @@ html.embedded body {
   justify-content: center;
   flex: 1 1 auto;
   min-height: 0;
+  margin: 0.9rem 0;
 }
 
 .stacked .hero {
   flex: 0 0 auto;
-  margin-top: 0.6rem;
+}
+
+.rank-line {
+  display: flex;
+  flex-direction: row;
+  align-items: baseline;
+  white-space: nowrap;
 }
 
 .rank {
+  flex: 0 0 auto;
   font-weight: 800;
-  font-size: 4.75rem;
-  line-height: 1;
+  font-size: 7rem; /* fitted to the card by standby.js */
+  line-height: 0.9;
   letter-spacing: -0.04em;
-  white-space: nowrap;
   color: #ffffff;
 }
 
-.count-line {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  margin-top: 0.35rem;
-  white-space: nowrap;
-  transform-origin: 0 50%;
-  transition: transform 0.25s ease-out;
+/* Before the first board: a quiet placeholder, never a fake rank. */
+.loading .rank {
+  font-size: 4rem;
+  color: #8e9288;
 }
 
-.count-line.bump {
-  transform: scale(1.08);
+.rank-of {
+  flex: 0 0 auto;
+  margin-left: 0.4rem;
+  font-size: 1.1rem;
+  color: #d6d9d0;
+}
+
+.rank-of:empty {
+  display: none;
+}
+
+.solo {
+  display: none;
+  flex-direction: row;
+  align-items: center;
+}
+
+.unranked .rank-line {
+  display: none;
+}
+
+.unranked .solo {
+  display: flex;
+}
+
+.trophy-mark {
+  width: 3.4rem;
+  height: 3.4rem;
+}
+
+.solo-count {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  flex: 0 1 auto;
+  min-width: 0;
+  margin-left: auto;
+  padding-left: 0.6rem;
+}
+
+.waiting .solo-count {
+  display: none;
 }
 
 .count {
   font-weight: 800;
-  font-size: 2.6rem;
-  line-height: 1;
-  color: #c8ff2e;
-}
-
-.unranked .rank {
-  display: none;
-}
-
-.unranked .count {
-  font-size: 4.75rem;
+  font-size: 3rem;
+  line-height: 0.95;
   letter-spacing: -0.04em;
+  white-space: nowrap;
+  color: #c8ff2e;
+  transform-origin: 100% 50%;
+  transition: transform 0.25s ease-out;
 }
 
-/* Your count's 2×2 squares glyph, the rows' glyph at card size: lime once you have contributions. */
-.card-glyph {
-  position: relative;
+.count.bump {
+  transform: scale(1.08);
+}
+
+.count-label {
+  margin-top: 0.25rem;
+  color: #d6d9d0;
+}
+
+/* The news, then the age: "Up 2 today", "5 to pass mossbyte", "Updated 6 min ago". */
+
+.news {
   flex: 0 0 auto;
-  display: block;
-  width: 1.6rem;
-  height: 1.6rem;
-  margin-left: 0.6rem;
+  white-space: nowrap;
 }
 
-.card-glyph i {
-  position: absolute;
-  width: 44%;
-  height: 44%;
-  border-radius: 22%;
-  box-sizing: border-box;
-  background: #14170f;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.card-glyph i:nth-child(1) { left: 0; top: 0; }
-.card-glyph i:nth-child(2) { right: 0; top: 0; }
-.card-glyph i:nth-child(3) { left: 0; bottom: 0; }
-.card-glyph i:nth-child(4) { right: 0; bottom: 0; }
-
-.unranked .card-glyph {
-  width: 2.6rem;
-  height: 2.6rem;
-  margin-left: 0.8rem;
-}
-
-.card-glyph[data-level="4"] i {
-  background: #c8ff2e;
-  border-color: transparent;
-}
-
-.status {
-  margin-top: 0.7rem;
-  font-size: 1.05rem;
+.movement-line {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  font-size: 0.8rem;
   line-height: 1.3;
   font-weight: 800;
   color: #c8ff2e;
-  white-space: nowrap;
   overflow: hidden;
+}
+
+.movement-line:empty,
+.no-move .movement-line {
+  display: none;
+}
+
+.movement-line svg {
+  flex: 0 0 auto;
+  width: 0.72rem;
+  height: 0.72rem;
+  margin-right: 0.3rem;
+}
+
+.movement-line[data-direction="down"] {
+  color: #d6d9d0;
+}
+
+.status {
+  font-size: 0.8rem;
+  line-height: 1.3;
+  font-weight: 800;
+  color: #c8ff2e;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.status:empty {
+  display: none;
 }
 
 .status.quiet {
   font-weight: 400;
   color: #d6d9d0;
+}
+
+.age {
+  margin-top: 0.15rem;
+  font-size: 0.73rem;
+  line-height: 1.3;
+  color: #d6d9d0;
+  overflow: hidden;
+}
+
+.age:empty,
+.no-age .age {
+  display: none;
 }
 
 /* MARK: Board rows (StandingRowStyle.liveRank) */
@@ -455,7 +635,9 @@ html.embedded body {
 [data-state="stale"] .count { color: #8bc41a; }
 [data-state="stale"] .status { color: #8bc41a; }
 [data-state="stale"] .status.quiet { color: #d6d9d0; }
-[data-state="stale"] .card-glyph[data-level="4"] i { background: #6aa81a; }
+[data-state="stale"] .movement-line { color: #8bc41a; }
+[data-state="stale"] .movement-line[data-direction="down"] { color: #8e9288; }
+[data-state="stale"] .who .who-avatar { border-color: rgba(139, 196, 26, 0.6); }
 [data-state="stale"] .row { color: #d6d9d0; }
 [data-state="stale"] .row[data-self="true"] {
   background: rgba(139, 196, 26, 0.08);
@@ -476,6 +658,7 @@ html.embedded body {
 }
 
 .message .head {
+  display: flex;
   margin-bottom: 1rem;
 }
 

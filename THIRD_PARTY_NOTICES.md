@@ -14,6 +14,9 @@ documentation. Third-party dependencies and assets retain their respective terms
   [CommitStandingsLiveRank/Fonts/OFL.txt](CommitStandingsLiveRank/Fonts/OFL.txt)). The relay
   serves the same two faces to its web widget, with their license at
   [relay/widget/fonts/OFL.txt](relay/widget/fonts/OFL.txt).
+- JetBrains Mono Medium (subset to Basic Latin) is distributed under the SIL Open Font License,
+  included at [relay/widget/fonts/OFL-JetBrainsMono.txt](relay/widget/fonts/OFL-JetBrainsMono.txt).
+  The relay serves it to its web widget for the monospace eyebrows.
 - GitHub marks and GitHub profile avatars belong to their respective owners. Their
   inclusion is not an endorsement and does not grant trademark or image rights.
   The root MIT license does not relicense those third-party images.
