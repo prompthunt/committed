@@ -14,7 +14,7 @@ import WidgetKit
 /// vertical Dynamic Island as well as the standard horizontal one. A missing count shows a
 /// placeholder, never zero, and an empty state says what it's waiting for. Once the content passes
 /// its stale date (20 minutes after the data), colors step down (lime to deep lime, white to soft)
-/// rather than fading, the Lock Screen's field goes dark, the age turns amber, and compact's count
+/// rather than fading, the Lock Screen's field goes dark, and compact's count
 /// gets a clock, since it has no room for the age. Tapping opens the Board on Live rank's Window.
 struct LiveRankLiveActivity: Widget {
     var body: some WidgetConfiguration {
@@ -90,7 +90,7 @@ extension LiveRankState {
     var hasLadder: Bool { competitorCount > 1 && contributions != nil }
 }
 
-/// The trophy and the Window ("Today", "7 days", "30 days") at 20 pt, heading Live rank and every
+/// The trophy and the Window ("Today", "7 days", "30 days") at 16 pt, heading Live rank and every
 /// system-size widget.
 struct LiveRankWindowLabel: View {
     let state: LiveRankState
@@ -99,10 +99,10 @@ struct LiveRankWindowLabel: View {
 
     var body: some View {
         HStack(spacing: 6) {
-            TrophyMark(size: 20, color: isStale ? .limeDeep : .lime)
+            TrophyMark(size: 17, color: isStale ? .limeDeep : .lime)
             if let window = state.contributionWindow {
                 Text(window.shortTitle)
-                    .font(.system(size: 20))
+                    .font(.system(size: 16))
                     .foregroundStyle(Color.soft)
                     .fixedSize()
             }
@@ -114,11 +114,10 @@ struct LiveRankWindowLabel: View {
 
 /// How long ago the numbers were updated, at 12 pt: "13 min, 36 sec", counting up every second
 /// without a reload (a date-relative `Text`), so you can tell at a glance whether they're current.
-/// Amber once they're stale. Left out of Share board's images (`showsUpdateAge`), where a
-/// still frozen at one moment would mislead.
+/// Always soft grey: its value says how old the numbers are. Left out of Share board's images
+/// (`showsUpdateAge`), where a still frozen at one moment would mislead.
 struct UpdateAge: View {
     let date: Date
-    @Environment(\.liveRankIsStale) private var isStale
     @Environment(\.showsUpdateAge) private var showsUpdateAge
 
     var body: some View {
@@ -126,7 +125,7 @@ struct UpdateAge: View {
             Text(date, style: .relative)
                 .font(.system(size: 12))
                 .monospacedDigit()
-                .foregroundStyle(isStale ? Color.warning : Color.soft)
+                .foregroundStyle(Color.soft)
                 .multilineTextAlignment(.trailing)
                 .lineLimit(1)
                 .accessibilityLabel(Text("Updated \(Text(date, style: .relative)) ago"))
@@ -430,8 +429,8 @@ struct LiveRankLockScreen: View {
 
 /// The small family: the CarPlay dashboard and Apple Watch's Smart Stack. It's read at a glance
 /// from the driver's seat, so there are no rows. Your rank and count sit on one line, then the
-/// Window and the age, or what Live rank is waiting for. Stale content steps its colors down and
-/// turns the age amber. CarPlay doesn't run buttons; a tap on iPhone opens the Board.
+/// Window and the age, or what Live rank is waiting for. Stale content steps its colors down.
+/// CarPlay doesn't run buttons; a tap on iPhone opens the Board.
 struct LiveRankSmall: View {
     let state: LiveRankState
     @Environment(\.liveRankIsStale) private var isStale

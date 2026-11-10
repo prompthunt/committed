@@ -6,7 +6,7 @@ import SwiftUI
 // depend on WidgetKit's timeline; the widgets in `CommittedWidget.swift` wrap these in their
 // configurations.
 //
-// Every system size heads itself as Live rank does: the trophy and the Window ("Today") at 20 pt,
+// Every system size heads itself as Live rank does: the trophy and the Window ("Today") at 16 pt,
 // and how long ago the numbers were updated ("13 min, 36 sec") counting up at 12 pt on the right,
 // or, where a small widget has no room beside the Window, on its own line.
 

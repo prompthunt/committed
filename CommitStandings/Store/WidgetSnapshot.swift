@@ -38,7 +38,7 @@ struct WidgetSnapshot: Codable, Equatable, Sendable {
     /// Rows the large widget has room for.
     static let topCount = 6
 
-    /// How long after its data a widget looks stale (colors stepped down, the age in amber). Longer
+    /// How long after its data a widget looks stale (colors stepped down). Longer
     /// than Live rank's 20 minutes: widgets refresh every 15 minutes at best, and iOS's reload
     /// budget can stretch that.
     static let staleInterval: TimeInterval = 60 * 60

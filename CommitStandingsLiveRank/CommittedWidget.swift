@@ -8,7 +8,7 @@ import WidgetKit
 /// themselves: each timeline asks for the next one 15 minutes on, and `WidgetRefresh` refetches
 /// everyone's count first (iOS's reload budget may stretch that). Each size shows how long ago its
 /// numbers were updated, counting up. The timeline holds the snapshot, plus one more entry at its
-/// stale date (an hour after the data) that steps the colors down and turns the age amber. Without
+/// stale date (an hour after the data) that steps the colors down. Without
 /// a snapshot (not connected yet), the widget asks you to open Committed; the placeholder and
 /// gallery use a sample board.
 struct CommittedWidget: Widget {
