@@ -69,7 +69,7 @@ interface Harness {
   reply: (next: Reply) => void;
 }
 
-async function open(page: Page, first: Reply, url = WIDGET_URL, html?: string): Promise<Harness> {
+async function open(page: Page, first: Reply, url = WIDGET_URL, html?: string, avatar?: Buffer): Promise<Harness> {
   const harness: Harness = { requests: [], reply: () => {} };
   let current = first;
   harness.reply = (next) => {
@@ -79,7 +79,9 @@ async function open(page: Page, first: Reply, url = WIDGET_URL, html?: string): 
     harness.requests.push({ url: request.url(), authorization: request.headers()["authorization"] ?? null });
   });
   await page.clock.install({ time: T0 });
-  await page.route(/^https:\/\/(github\.com|avatars\.githubusercontent\.com)\//, (route) => route.abort());
+  await page.route(/^https:\/\/(github\.com|avatars\.githubusercontent\.com)\//, (route) =>
+    avatar ? route.fulfill({ status: 200, contentType: "image/png", body: avatar }) : route.abort()
+  );
   await page.route(`${ORIGIN}/**`, async (route: Route) => {
     const { pathname } = new URL(route.request().url());
     if (pathname === "/v1/widget" && html !== undefined) {
@@ -118,6 +120,9 @@ const MUTED = "rgb(142, 146, 136)";
 const LABEL_SECONDARY = "rgba(255, 255, 255, 0.6)";
 const SEPARATOR = "rgba(255, 255, 255, 0.1)";
 const color = (locator: ReturnType<Page["locator"]>) => locator.evaluate((el) => getComputedStyle(el).color);
+/** The classes on the page's <html>, sorted; layout classes such as "stacked" aren't at 1280×1080. */
+const htmlClasses = (frame: { evaluate: Page["evaluate"] }) =>
+  frame.evaluate(() => document.documentElement.className.split(/\s+/).filter(Boolean).sort());
 
 test("first load shows placeholders, never zero", async ({ page }) => {
   await open(page, "hang");
@@ -588,6 +593,8 @@ test("embedded in another screen's frame, the page is transparent so the host's 
     getComputedStyle(document.body).backgroundColor,
   ]);
   expect(bgs).toEqual(["rgba(0, 0, 0, 0)", "rgba(0, 0, 0, 0)"]);
+  // No rendering-mode message from the host: fullColor, beside embedded.
+  expect(await htmlClasses(widget)).toEqual(["embedded", "rendering-full-color"]);
 
   // Glance's tile may be flat or glass, so the page draws with Apple's vibrant tokens, not fixed
   // greys (Glance's ADR 0004): label-secondary for supporting text, label-primary for the rest,
@@ -632,3 +639,222 @@ test("embedded and stale, the stepped-down colours are label-secondary too", asy
   for (const key of ["rank", "row", "rowRank", "rowMovementDown"] as const) expect(stale[key], key).toBe(LABEL_SECONDARY);
   expect(stale.status).toBe(LIME_DEEP);
 });
+
+// MARK: Rendering modes: Glance posts { type: "glance:rendering-mode", renderingMode } to the frame
+
+const WHITE = "rgb(255, 255, 255)";
+const NIGHT_RED = "rgb(255, 69, 58)";
+/** Apple's fills (dark), as plain alpha white. */
+const FILL_PRIMARY = "rgba(255, 255, 255, 0.2)";
+const FILL_SECONDARY = "rgba(255, 255, 255, 0.07)";
+
+/**
+ * The widget in Glance's place: a host page frames it and, like Glance, posts the rendering mode
+ * on the frame's load. Returns the widget's frame once the board is on screen.
+ */
+async function framed(page: Page, reply: Reply, renderingMode?: unknown, src = WIDGET_URL) {
+  const HOST = "https://host.test/";
+  const post =
+    renderingMode === undefined
+      ? ""
+      : ` onload='this.contentWindow.postMessage(${JSON.stringify({ type: "glance:rendering-mode", renderingMode })}, "*")'`;
+  await page.route(HOST, (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "text/html",
+      body: `<!doctype html><body style="margin:0;background:#141416"><iframe id="w" src="${src}"${post} style="border:0;width:1280px;height:1080px"></iframe></body>`,
+    })
+  );
+  await open(page, reply, HOST);
+  await expect(page.frameLocator("#w").getByTestId("rank")).toHaveText("#3");
+  return page.frames().find((f) => f.url().startsWith(ORIGIN))!;
+}
+
+/** Posts a rendering mode to the widget from the host page, as Glance does when the mode changes. */
+async function hostPosts(page: Page, message: unknown) {
+  await page.evaluate((m) => (document.getElementById("w") as HTMLIFrameElement).contentWindow!.postMessage(m, "*"), message);
+}
+
+test("accented: Glance's message turns every colour white, with Apple's hierarchy and fills", async ({ page }) => {
+  const widget = await framed(page, { status: 200, body: board() }, "accented");
+  await expect.poll(() => htmlClasses(widget)).toEqual(["embedded", "rendering-accented"]);
+  const t = await tones(widget);
+  for (const [role, value] of Object.entries(t.secondary)) expect(value, role).toBe(LABEL_SECONDARY);
+  expect(t.login).toBe(WHITE);
+  // Committed's lime goes white; the "you" badge is a selected chip (fill-primary) with white text.
+  expect(t.lime).toEqual({ movementUp: WHITE, status: WHITE, selfCount: WHITE, badge: FILL_PRIMARY });
+  expect(await color(page.frameLocator("#w").locator(".badge"))).toBe(WHITE);
+  // The rank card and your row use Apple's fills in place of the dark card and the lime tint.
+  expect(t.card).toEqual({ bg: FILL_SECONDARY, border: SEPARATOR });
+  expect(t.selfRow).toEqual({ bg: FILL_SECONDARY, border: FILL_PRIMARY });
+  expect(t.avatar).toBe(FILL_SECONDARY);
+});
+
+/** Every element that paints text or an icon in currentColor, with its colour. */
+async function inkColours(frame: { evaluate: Page["evaluate"] }) {
+  return frame.evaluate(() => {
+    const out: Record<string, string> = {};
+    for (const el of Array.from(document.querySelectorAll("body *"))) {
+      const paintsText = Array.from(el.childNodes).some((n) => n.nodeType === 3 && n.nodeValue!.trim());
+      if (!paintsText && el.tagName.toLowerCase() !== "svg") continue;
+      const box = el.getBoundingClientRect();
+      if (!box.width || !box.height) continue;
+      out[`${el.tagName.toLowerCase()}.${el.getAttribute("class") ?? ""} ${(el.textContent ?? "").trim().slice(0, 20)}`] =
+        getComputedStyle(el).color;
+    }
+    return out;
+  });
+}
+
+test("vibrant: Night Mode draws every piece of text in the full night red", async ({ page }) => {
+  const widget = await framed(page, { status: 200, body: board() }, "vibrant");
+  await expect.poll(() => htmlClasses(widget)).toEqual(["embedded", "rendering-vibrant"]);
+  const ink = await inkColours(widget);
+  expect(Object.keys(ink).length).toBeGreaterThan(15);
+  // No alpha hierarchy: a 60% red would be about 2.3:1 on black.
+  for (const [what, value] of Object.entries(ink)) expect(value, what).toBe(NIGHT_RED);
+  const t = await tones(widget);
+  // Fills and hairlines are decorative, so they're the night red at Apple's fill alphas.
+  expect(t.card).toEqual({ bg: "rgba(255, 69, 58, 0.07)", border: "rgba(255, 69, 58, 0.1)" });
+  expect(t.selfRow).toEqual({ bg: "rgba(255, 69, 58, 0.07)", border: "rgba(255, 69, 58, 0.2)" });
+  expect(t.lime.badge).toBe("rgba(255, 69, 58, 0.2)");
+});
+
+test("vibrant and stale, the stepped-down colours stay the full night red", async ({ page }) => {
+  const widget = await framed(page, { status: 200, body: board({ updatedAt: NOW - 45 * 60 }) }, "vibrant");
+  await expect.poll(() => widget.evaluate(() => document.documentElement.getAttribute("data-state"))).toBe("stale");
+  await expect.poll(() => htmlClasses(widget)).toEqual(["embedded", "rendering-vibrant"]);
+  for (const [what, value] of Object.entries(await inkColours(widget))) expect(value, what).toBe(NIGHT_RED);
+});
+
+test("a rendering-mode message from anyone but the framing page is ignored", async ({ page }) => {
+  const widget = await framed(page, { status: 200, body: board() }, "accented");
+  await expect.poll(() => htmlClasses(widget)).toEqual(["embedded", "rendering-accented"]);
+  const seen = await countModeMessages(widget);
+  // The widget's own window, and a second frame inside the host page, post vibrant.
+  await widget.evaluate(() => window.postMessage({ type: "glance:rendering-mode", renderingMode: "vibrant" }, "*"));
+  await page.evaluate(() => {
+    const other = document.createElement("iframe");
+    document.body.appendChild(other);
+    (other.contentWindow as unknown as { eval: (code: string) => void }).eval(
+      "parent.document.getElementById('w').contentWindow.postMessage({ type: 'glance:rendering-mode', renderingMode: 'vibrant' }, '*')"
+    );
+  });
+  await expect.poll(seen).toBe(2);
+  expect(await htmlClasses(widget)).toEqual(["embedded", "rendering-accented"]);
+});
+
+/** Counts rendering-mode messages in the widget once its own listener has handled them. */
+async function countModeMessages(widget: { evaluate: Page["evaluate"] }) {
+  await widget.evaluate(() => {
+    const w = window as unknown as { seen: number };
+    w.seen = 0;
+    window.addEventListener("message", (e) => {
+      if (e.data && typeof e.data === "object" && "renderingMode" in e.data) w.seen += 1;
+    });
+  });
+  return () => widget.evaluate(() => (window as unknown as { seen: number }).seen);
+}
+
+test("an unknown rendering mode, or another message type, is ignored", async ({ page }) => {
+  const widget = await framed(page, { status: 200, body: board() }, "accented");
+  await expect.poll(() => htmlClasses(widget)).toEqual(["embedded", "rendering-accented"]);
+  const seen = await countModeMessages(widget);
+  for (const renderingMode of ["neon", "Vibrant", "toString", "", null, 1]) {
+    await hostPosts(page, { type: "glance:rendering-mode", renderingMode });
+  }
+  await hostPosts(page, { type: "glance:theme", renderingMode: "vibrant" });
+  await hostPosts(page, "glance:rendering-mode vibrant");
+  await expect.poll(seen).toBe(7);
+  expect(await htmlClasses(widget)).toEqual(["embedded", "rendering-accented"]);
+  // fullColor afterwards takes the page back to its framed tones.
+  await hostPosts(page, { type: "glance:rendering-mode", renderingMode: "fullColor" });
+  await expect.poll(() => htmlClasses(widget)).toEqual(["embedded", "rendering-full-color"]);
+  const t = await tones(widget);
+  expect(t.lime).toEqual({ movementUp: LIME, status: LIME, selfCount: LIME, badge: LIME });
+  expect(t.card.bg).toBe("rgba(0, 0, 0, 0.25)");
+});
+
+test("Glance changes the mode on a frame already showing the board, and a resize keeps it", async ({ page }) => {
+  const widget = await framed(page, { status: 200, body: board() });
+  await hostPosts(page, { type: "glance:rendering-mode", renderingMode: "vibrant" });
+  await expect.poll(() => htmlClasses(widget)).toEqual(["embedded", "rendering-vibrant"]);
+  // A tall frame stacks the panes; the mode stays.
+  await page.evaluate(() => {
+    const w = document.getElementById("w")!;
+    w.style.width = "400px";
+    w.style.height = "900px";
+  });
+  await expect.poll(() => htmlClasses(widget)).toEqual(["embedded", "rendering-vibrant", "stacked"]);
+});
+
+test("?renderingMode= forces a mode on the page's own address, the token still in the fragment", async ({ page }) => {
+  const url = `${ORIGIN}/v1/widget?size=medium&renderingMode=accented#installation=${INSTALLATION}&token=${TOKEN}`;
+  const harness = await open(page, { status: 200, body: board() }, url);
+  await expect(rank(page)).toHaveText("#3");
+  expect(await htmlClasses(page)).toEqual(["rendering-accented"]);
+  expect(await color(page.getByTestId("status"))).toBe(WHITE);
+  expect(await color(page.getByTestId("age"))).toBe(LABEL_SECONDARY);
+  expect(harness.requests.some((r) => r.url.includes(TOKEN))).toBe(false);
+  // Unframed, nothing can post: a message from the page itself is ignored.
+  await page.evaluate(() => window.postMessage({ type: "glance:rendering-mode", renderingMode: "vibrant" }, "*"));
+  await page.waitForTimeout(50);
+  expect(await htmlClasses(page)).toEqual(["rendering-accented"]);
+});
+
+test("?renderingMode= pins the mode: Glance's messages don't override it", async ({ page }) => {
+  // A TV capture forces Night Mode by day, while Glance posts fullColor on load and on changes.
+  const src = `${ORIGIN}/v1/widget?size=medium&renderingMode=vibrant#installation=${INSTALLATION}&token=${TOKEN}`;
+  const widget = await framed(page, { status: 200, body: board() }, "fullColor", src);
+  const seen = await countModeMessages(widget);
+  await hostPosts(page, { type: "glance:rendering-mode", renderingMode: "accented" });
+  await hostPosts(page, { type: "glance:rendering-mode", renderingMode: "fullColor" });
+  await expect.poll(seen).toBe(2);
+  expect(await htmlClasses(widget)).toEqual(["embedded", "rendering-vibrant"]);
+});
+
+test("an unknown ?renderingMode= pins nothing: Glance's message still sets the mode", async ({ page }) => {
+  const src = `${ORIGIN}/v1/widget?size=medium&renderingMode=night#installation=${INSTALLATION}&token=${TOKEN}`;
+  const widget = await framed(page, { status: 200, body: board() }, "accented", src);
+  await expect.poll(() => htmlClasses(widget)).toEqual(["embedded", "rendering-accented"]);
+});
+
+test("an unknown ?renderingMode= falls back to fullColor", async ({ page }) => {
+  await open(page, { status: 200, body: board() }, `${ORIGIN}/v1/widget?size=medium&renderingMode=night#installation=${INSTALLATION}&token=${TOKEN}`);
+  await expect(rank(page)).toHaveText("#3");
+  expect(await htmlClasses(page)).toEqual(["rendering-full-color"]);
+});
+
+test("the setup and size-not-supported messages take the mode too", async ({ page }) => {
+  await open(page, { status: 200, body: board() }, `${ORIGIN}/v1/widget?size=medium&renderingMode=vibrant`);
+  await expect(page.locator("#message-title")).toHaveText("Add this screen's board token");
+  expect(await htmlClasses(page)).toEqual(["rendering-vibrant"]);
+  expect(await color(page.locator("#message-title"))).toBe(NIGHT_RED);
+  expect(await color(page.locator("#message-detail"))).toBe(NIGHT_RED);
+});
+
+/** A 1×1 lime PNG, standing in for a GitHub avatar. */
+const AVATAR = Buffer.from(
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGPYcVQBAAOYAa1Jk6JEAAAAAElFTkSuQmCC",
+  "base64"
+);
+
+/** Apple renders images greyscale in accented, and Night Mode tints them red (a static filter; Glance measured 41 fps on the Frame). */
+const AVATAR_FILTERS = [
+  ["fullColor", "none"],
+  ["accented", "grayscale(1)"],
+  ["vibrant", "grayscale(1) brightness(0.35) sepia(1) saturate(4) hue-rotate(-45deg)"],
+] as const;
+
+for (const [mode, filter] of AVATAR_FILTERS) {
+  test(`avatars in ${mode}: filter ${filter}, fully opaque`, async ({ page }) => {
+    const url = `${ORIGIN}/v1/widget?size=medium&renderingMode=${mode}#installation=${INSTALLATION}&token=${TOKEN}`;
+    await open(page, { status: 200, body: board() }, url, undefined, AVATAR);
+    await expect(page.locator(".row .avatar.loaded")).toHaveCount(5);
+    await expect(page.locator("#who-avatar")).toHaveClass(/loaded/);
+    for (const img of [page.locator(".row .avatar img").first(), page.locator("#who-avatar img")]) {
+      await expect.poll(() => img.evaluate((el) => getComputedStyle(el).opacity)).toBe("1");
+      expect(await img.evaluate((el) => getComputedStyle(el).filter)).toBe(filter);
+    }
+  });
+}

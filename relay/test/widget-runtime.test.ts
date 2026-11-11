@@ -19,6 +19,15 @@ const css = [standbyCss, ...pages.flatMap((html) => [...html.matchAll(/style="([
   .join("\n")
   .replace(/\/\*[\s\S]*?\*\//g, "");
 
+/**
+ * The one filter the Frame can afford: a static colour filter on the avatars in a rendering mode.
+ * Glance measured `filter: grayscale(1)` on a dozen images on the Office Frame (2026-11-10): 41 fps
+ * against 42 flat. Blur and SVG filters (4-5 fps) stay out.
+ */
+const AVATAR_FILTER_RULE =
+  /html\.rendering-(?:accented|vibrant) \.avatar\.loaded img\s*\{\s*filter:\s*(?:(?:grayscale|sepia|saturate|brightness|hue-rotate)\(-?[\d.]+(?:deg)?\)\s*)+;\s*\}/g;
+const cssWithoutAvatarFilters = (source: string) => source.replace(AVATAR_FILTER_RULE, "");
+
 const inlineScripts = pages.flatMap((html) =>
   [...html.matchAll(/<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/g)].map((m) => m[1]!),
 );
@@ -67,7 +76,20 @@ describe("widget runtime limits (Chromium 76)", () => {
   });
 
   it.each(TOO_HEAVY)("avoids %s in CSS", (_name, banned) => {
-    expect(css).not.toMatch(banned);
+    expect(cssWithoutAvatarFilters(css)).not.toMatch(banned);
+  });
+
+  it("filters only the avatars in a rendering mode, with a static colour filter", () => {
+    expect(css.match(AVATAR_FILTER_RULE)).toHaveLength(2);
+    // Anything else still counts as a filter: blur, an SVG filter, or a filter on another element.
+    for (const heavy of [
+      "html.rendering-accented .avatar.loaded img { filter: blur(2px); }",
+      "html.rendering-accented .avatar.loaded img { filter: url(#tint); }",
+      "html.rendering-accented .card { filter: grayscale(1); }",
+      ".avatar img { filter: grayscale(1); }",
+    ]) {
+      expect(cssWithoutAvatarFilters(heavy), heavy).toMatch(/(^|[\s;{-])filter\s*:|blur\(/m);
+    }
   });
 
   it("animates only opacity and transform", () => {
@@ -103,3 +125,46 @@ describe("widget runtime limits (Chromium 76)", () => {
     }
   });
 });
+
+/** Every rule in the served CSS whose selector names `cls`, as [selector, declarations]. */
+function rulesFor(cls: string): [string, string][] {
+  return [...css.matchAll(/([^{}]+)\{([^{}]*)\}/g)]
+    .filter((m) => new RegExp(`\\.${cls}(?![\\w-])`).test(m[1]!))
+    .map((m) => [m[1]!.trim(), m[2]!]);
+}
+
+const colourValues = (declarations: string) => [...declarations.matchAll(/#[0-9a-f]{3,8}\b|rgba?\([^)]*\)/gi)].map((m) => m[0]);
+
+describe("rendering modes (Glance's glance:rendering-mode message)", () => {
+  it("styles each mode class the script sets on <html>, and only those", () => {
+    const classes = [...new Set([...standbyJs.matchAll(/"(rendering-[a-z-]+)"/g)].map((m) => m[1]!))].sort();
+    expect(classes).toEqual(["rendering-accented", "rendering-full-color", "rendering-vibrant"]);
+    // fullColor is the page as it was: no rule of its own.
+    expect(rulesFor("rendering-full-color")).toEqual([]);
+    expect(rulesFor("rendering-accented").length).toBeGreaterThan(5);
+    expect(rulesFor("rendering-vibrant").length).toBeGreaterThan(5);
+    const known = new Set(classes);
+    for (const m of css.matchAll(/\.(rendering-[\w-]+)/g)) expect(known.has(m[1]!), m[1]).toBe(true);
+  });
+
+  it("accented draws in white only, at Apple's alphas", () => {
+    for (const [selector, declarations] of rulesFor("rendering-accented")) {
+      for (const value of colourValues(declarations)) {
+        expect(value, selector).toMatch(/^(#fff|#ffffff|rgba\(255, 255, 255, (0?\.\d+)\))$/i);
+      }
+    }
+  });
+
+  it("vibrant (Night Mode) draws in night red #ff453a only, at full strength for text", () => {
+    for (const [selector, declarations] of rulesFor("rendering-vibrant")) {
+      for (const value of colourValues(declarations)) {
+        expect(value, selector).toMatch(/^(#ff453a|rgba\(255, 69, 58, (0?\.\d+)\))$/i);
+      }
+      // Information text is never translucent red: alpha is for fills and hairlines.
+      for (const m of declarations.matchAll(/(?:^|;)\s*color\s*:\s*([^;!]+)/g)) {
+        expect(m[1]!.trim(), selector).toBe("#ff453a");
+      }
+    }
+  });
+});
+
