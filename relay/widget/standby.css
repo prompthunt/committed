@@ -889,7 +889,7 @@ html.rendering-vibrant .field i.l3 { background: rgba(255, 69, 58, 0.3) !importa
    tinted toward night red in Night Mode: every grey lands at hue 3-4 degrees (#ff453a is 3.4), and
    white at rgb(213,81,72), just under the night red, so a pale avatar never outshines the text.
    Static filters only: Glance measured
-   grayscale() on a dozen images at 41 fps on the Frame against 42 flat (its docs/office-frame.md),
+   grayscale() on a dozen images at 41 fps on the Office Frame against 42 flat (2026-11-10),
    where blur and SVG filters ran at 4-5 fps. test/widget-runtime.test.ts allows exactly these two. */
 html.rendering-accented .avatar.loaded img {
   filter: grayscale(1);

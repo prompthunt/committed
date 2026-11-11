@@ -21,8 +21,8 @@ const css = [standbyCss, ...pages.flatMap((html) => [...html.matchAll(/style="([
 
 /**
  * The one filter the Frame can afford: a static colour filter on the avatars in a rendering mode.
- * Glance measured `filter: grayscale(1)` on a dozen images at 41 fps against 42 flat (its
- * docs/office-frame.md); blur and SVG filters (4-5 fps) stay out.
+ * Glance measured `filter: grayscale(1)` on a dozen images on the Office Frame (2026-11-10): 41 fps
+ * against 42 flat. Blur and SVG filters (4-5 fps) stay out.
  */
 const AVATAR_FILTER_RULE =
   /html\.rendering-(?:accented|vibrant) \.avatar\.loaded img\s*\{\s*filter:\s*(?:(?:grayscale|sepia|saturate|brightness|hue-rotate)\(-?[\d.]+(?:deg)?\)\s*)+;\s*\}/g;
