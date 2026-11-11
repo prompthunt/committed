@@ -275,6 +275,15 @@ card (`BoardSummaryView`, rank only) beside the board list. Glance on the office
   as the small Board widget chooses them (`WidgetSnapshot.boardRows`): the leaders, or the first
   few, the person ahead of you and you. Long logins lose their middle. Avatars load from GitHub
   over initials.
+- **Framed:** in another page's frame (`html.embedded`, set when `window.self !== window.top`) the
+  page is transparent and sits on the host's surface: Glance's flat `#141416` or its glass, which
+  it can't tell apart. So it trades fixed greys for translucent white, as Glance's ADR 0004 asks:
+  the eyebrow over the list and the row ranks at 72% white (were muted `#8e9288`), the card's
+  folio, `@login`, "of N", the age and the soft "down" movement at 82% (were soft `#d6d9d0`),
+  and the stale step-down the same way. The card's solid tile becomes `rgba(0,0,0,0.25)` with its
+  hairline. Lime, your row's highlight and the avatars don't change. Opened on its own, the page
+  looks as before. Every text role measures at least 4.5:1 (3:1 for large text) on both
+  surfaces at Glance's Medium slot, 912×492.
 - **Motion:** row counts tick up, rows slide to their new places (FLIP with transforms), and
   movement chevrons fade in.
 

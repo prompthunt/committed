@@ -6,7 +6,8 @@
  * Every size is in rem. standby.js sets the root font size from the box the page is given, so the
  * whole layout scales to fill it. Colors are Committed's palette (CommittedTheme.swift):
  * ink #050505, tile #0e100b, raised #1b1d17, lime #c8ff2e, limeDeep #8bc41a, onLime #1e2410,
- * muted #8e9288, soft #d6d9d0.
+ * muted #8e9288, soft #d6d9d0. Framed in another screen (html.embedded), the greys become
+ * translucent white and the card's tile a translucent dark: see "Framed" at the end.
  */
 
 @font-face {
@@ -694,4 +695,47 @@ html.embedded body {
 [data-state="setup"] .message,
 [data-state="unsupported"] .message {
   display: flex;
+}
+
+/* MARK: Framed: translucent white in place of fixed greys (Glance's ADR 0004)
+
+   In another screen's frame the page sits on the host's surface, Glance's flat #141416 or its
+   glass, and can't know which. Secondary text uses white at 72% (was muted) or 82% (was soft), the
+   card's solid tile becomes a translucent dark, and the stale step-down follows. Lime, the self
+   row's highlight and the avatars keep their colours. */
+
+html.embedded .list-head,
+html.embedded .row-rank {
+  color: rgba(255, 255, 255, 0.72);
+}
+
+html.embedded .folio,
+html.embedded .who-handle,
+html.embedded .rank-of,
+html.embedded .count-label,
+html.embedded .movement-line[data-direction="down"],
+html.embedded .status.quiet,
+html.embedded .age,
+html.embedded .movement[data-direction="down"],
+html.embedded .message-detail {
+  color: rgba(255, 255, 255, 0.82);
+}
+
+html.embedded .card {
+  background: rgba(0, 0, 0, 0.25);
+}
+
+html.embedded .loading .rank {
+  color: rgba(255, 255, 255, 0.72);
+}
+
+html.embedded[data-state="stale"] .rank,
+html.embedded[data-state="stale"] .movement-line[data-direction="down"],
+html.embedded[data-state="stale"] .movement[data-direction="down"] {
+  color: rgba(255, 255, 255, 0.72);
+}
+
+html.embedded[data-state="stale"] .row,
+html.embedded[data-state="stale"] .status.quiet {
+  color: rgba(255, 255, 255, 0.82);
 }
