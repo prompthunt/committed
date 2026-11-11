@@ -2,7 +2,7 @@ import SwiftUI
 
 /// The "you" card pinned to the top of the board (below the tabs): your avatar, your first name
 /// over your @handle, and the selected window's contribution count as a big condensed number with
-/// a small uppercase "CONTRIBUTIONS" caption, with your streak ("🔥 12") under your handle once
+/// a small uppercase "CONTRIBUTIONS" caption, with your streak (the streak mark and "12") under your handle once
 /// your count has loaded. Shown in both the solo and the populated board so there's always a sense
 /// of where you stand. (Your rank is visible in the list below; the explainer stays reachable from
 /// the ⋯ "About Committed" menu.)
@@ -36,8 +36,8 @@ struct HeroCard: View {
                             .lineLimit(1)
                             .truncationMode(.middle)
                     }
-                    if let streakText = StreakLabel.text(streak) {
-                        Text(streakText)
+                    if StreakLabel.number(streak) != nil {
+                        StreakBadge(streak: streak, markSize: 11, relativeTo: .caption)
                             .font(.caption.monospacedDigit())
                             .foregroundStyle(.secondary)
                             .padding(.top, 2)

@@ -15,6 +15,7 @@
   --selection-border: #c4d4a5;
   --bar: #476510;
   --past-bar: #d9dcd3;
+  --streak-mark: #476510;
 }
 * {
   box-sizing: border-box;
@@ -307,6 +308,31 @@ small {
   color: var(--muted);
   font-size: 12px;
 }
+/* The streak mark: one path in its own color, sized to the text beside it. */
+.streak-mark {
+  width: 0.95em;
+  height: 0.95em;
+  margin-right: 0.25em;
+  vertical-align: -0.1em;
+  fill: var(--streak-mark);
+  flex-shrink: 0;
+}
+.streak {
+  display: inline-flex;
+  align-items: baseline;
+}
+.streak .streak-mark {
+  align-self: center;
+}
+/* Your row when your name doesn't fit whole (see `fitYourRow`). */
+.you.no-badge .badge,
+.you.no-streak .streak {
+  display: none;
+}
+.you.wraps .identity strong {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
 .contribution-squares {
   width: 12px;
   height: 12px;
@@ -527,7 +553,7 @@ select {
 }
 .person-stats {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: 8px;
   margin: 0 0 8px;
 }
@@ -546,6 +572,84 @@ select {
   font-size: 17px;
   font-weight: 650;
   font-variant-numeric: tabular-nums;
+}
+.person-stats dd small {
+  display: block;
+  margin-top: 1px;
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--muted);
+}
+.race {
+  margin: 0 0 8px;
+  padding: 12px 14px 8px;
+  border-radius: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+}
+.race p {
+  margin: 0;
+}
+.race-title {
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.race .race-headline {
+  margin-top: 4px;
+  font-size: 22px;
+  font-weight: 750;
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+}
+.race-number {
+  color: var(--bar);
+}
+.race-story {
+  font-size: 12px;
+  color: var(--muted);
+}
+.race-chart {
+  display: block;
+  width: 100%;
+  height: auto;
+  margin-top: 6px;
+  overflow: visible;
+}
+.race-axis {
+  stroke: var(--border);
+}
+.race-line {
+  fill: none;
+  stroke: var(--muted);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.race-line.them {
+  stroke: var(--bar);
+  stroke-width: 2.5;
+}
+.race-marker {
+  fill: var(--muted);
+}
+.race-marker.them {
+  fill: var(--bar);
+}
+.race-label {
+  fill: var(--muted);
+  font-size: 10px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+.race-label.them {
+  fill: var(--bar);
+}
+.race-tick {
+  fill: var(--muted);
+  font-size: 9px;
 }
 .month-head {
   display: flex;
@@ -672,6 +776,7 @@ select {
     --bar: var(--brand);
     --past-bar: #3a3d35;
     --troll-red: #ff4f3f;
+    --streak-mark: #8bc41a;
   }
   .avatar {
     outline-color: rgb(255 255 255 / 0.1);
@@ -697,6 +802,7 @@ select {
     --bar: Highlight;
     --past-bar: GrayText;
     --troll-red: CanvasText;
+    --streak-mark: CanvasText;
     background: Canvas;
     color: CanvasText;
   }

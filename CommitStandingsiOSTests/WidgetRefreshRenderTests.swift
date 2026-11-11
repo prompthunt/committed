@@ -48,6 +48,40 @@ struct WidgetRefreshRenderTests {
         }
     }
 
+    /// Your row never loses your name: the board's own row, 364 pt wide (the closed Duo's board
+    /// beside the vertical bar), with logins from short to GitHub's 39-character maximum. The
+    /// badge goes first, then your streak, then the name wraps; a rival's row keeps its streak.
+    @Test func yourRowKeepsYourName() throws {
+        func row(_ login: String, rank: Int, count: Int, isSelf: Bool, delta: Int, streak: Int) -> some View {
+            StandingRow(rank: rank, competitor: Competitor(username: login, isSelf: isSelf),
+                        standing: Standing(username: login, contributions: count, window: .daily,
+                                           lastUpdated: .now, state: .loaded),
+                        window: .daily, maxContributions: 140, rankDelta: delta, streak: streak)
+        }
+        try SurfaceRenderer.write(
+            SurfaceBackdrop {
+                VStack(spacing: 6) {
+                    row("odile-m", rank: 2, count: 9, isSelf: false, delta: 0, streak: 371)
+                    row("ari-linden", rank: 3, count: 7, isSelf: true, delta: 1, streak: 14)
+                    row("ari", rank: 3, count: 7, isSelf: true, delta: 1, streak: 14)
+                    row("addisonkowalski", rank: 12, count: 128, isSelf: true, delta: 2, streak: 41)
+                    row("maximilian-bergstrom-hollingsworth-iii", rank: 12, count: 128, isSelf: true,
+                        delta: -2, streak: 41)
+                    row("maximilian-bergstrom-hollingsworth-iii", rank: 13, count: 120, isSelf: false,
+                        delta: 0, streak: 6)
+                }
+                .frame(width: 364)
+                .padding(.vertical, 8)
+                .background(Color.ink)
+                .environment(\.standingRowStyle, .committed)
+                .environment(\.avatarFallbackStyle, .committed)
+                .environment(\.loadsGitHubAvatars, false)
+                .foregroundStyle(.white)
+            },
+            name: "your-row", to: directory
+        )
+    }
+
     private func writeWidgets(_ snapshot: WidgetSnapshot, stale: Bool, name: String) throws {
         try SurfaceRenderer.write(
             SurfaceBackdrop {

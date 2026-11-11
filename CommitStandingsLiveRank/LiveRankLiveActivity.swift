@@ -281,7 +281,7 @@ struct LiveRankRankLabel: View {
     }
 }
 
-/// Your streak ("🔥 14", from 2 days) where Live rank has no rows to carry it: the Lock Screen card
+/// Your streak (the mark and "14", from 2 days) where Live rank has no rows to carry it: the Lock Screen card
 /// and the expanded island when nobody else is on your board. Nothing without your count
 /// (`state.streak` is nil then) or under 2 days.
 struct LiveRankStreak: View {
@@ -290,14 +290,12 @@ struct LiveRankStreak: View {
     @Environment(\.liveRankIsStale) private var isStale
 
     var body: some View {
-        if let text = StreakLabel.text(state.streak) {
-            Text(text)
-                .font(CommittedType.numeral(size, relativeTo: .subheadline))
-                .foregroundStyle(isStale ? Color.muted : Color.soft)
-                .lineLimit(1)
-                .fixedSize()
-                .accessibilityLabel(StreakLabel.spoken(state.streak) ?? "")
-        }
+        StreakBadge(streak: state.streak, markSize: size * 0.9, relativeTo: .subheadline,
+                    markColor: isStale ? Color.rowGlyphs[1] : .limeDeep)
+            .font(CommittedType.numeral(size, relativeTo: .subheadline))
+            .foregroundStyle(isStale ? Color.muted : Color.soft)
+            .lineLimit(1)
+            .fixedSize()
     }
 }
 

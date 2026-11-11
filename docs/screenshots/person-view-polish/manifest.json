@@ -1,0 +1,93 @@
+{
+  "notes": "Person view polish (follow-up to spec #85, rebased on #110's removal of the calendar-month race): a rival's view leads with your race over the Board's 30 days, one streak tile, and the brand's contribution green on the Mac. Before captures are #110's, under docs/screenshots/polish-month-race/ where available, and spec #85's under docs/screenshots/spec-85/.",
+  "screenshots": [
+    {
+      "file": "windows/rival-light.png",
+      "caption": "Windows person view for odile-m, light: You vs odile-m · 30 days (66 to pass, passed you on October 26, both running totals from October 24 to today), one Streak tile, active days",
+      "capture": {
+        "device": "Chromium (in-app browser) on macOS, mocked Tauri IPC, 460×900 person window at 2x",
+        "os": "macOS 27.0",
+        "sourceCommit": "94aea5ac3d4e58ae06939ec89cd2c25c81400f8a",
+        "fixture": true
+      },
+      "notes": "Windows person window, not WebView2 on Windows: the real app UI (windows/src/app.ts and style.css) served by vite and fed the Sample people through windows/fixture.html (mocked Tauri IPC, data from samplePerson in windows/src/sample-board.ts) with ?view=person&date=2026-11-22&login=<login>. The Sample people's 30-day race is made up from their made-up days, so its totals needn't match the fixture board's 30 days. macOS system fonts instead of Segoe UI; no window chrome."
+    },
+    {
+      "file": "windows/rival-dark.png",
+      "caption": "Windows person view for odile-m, dark: the same race card in lime",
+      "capture": {
+        "device": "Chromium (in-app browser) on macOS, mocked Tauri IPC, 460×900 person window at 2x",
+        "os": "macOS 27.0",
+        "sourceCommit": "94aea5ac3d4e58ae06939ec89cd2c25c81400f8a",
+        "fixture": true
+      },
+      "notes": "Windows person window, not WebView2 on Windows: the real app UI (windows/src/app.ts and style.css) served by vite and fed the Sample people through windows/fixture.html (mocked Tauri IPC, data from samplePerson in windows/src/sample-board.ts) with ?view=person&date=2026-11-22&login=<login>. The Sample people's 30-day race is made up from their made-up days, so its totals needn't match the fixture board's 30 days. macOS system fonts instead of Segoe UI; no window chrome."
+    },
+    {
+      "file": "windows/you-light.png",
+      "caption": "Windows person view for yourself (ari-linden), light: no race card, one Streak tile (12 days · Best 19 days)",
+      "capture": {
+        "device": "Chromium (in-app browser) on macOS, mocked Tauri IPC, 460×900 person window at 2x",
+        "os": "macOS 27.0",
+        "sourceCommit": "94aea5ac3d4e58ae06939ec89cd2c25c81400f8a",
+        "fixture": true
+      },
+      "notes": "Windows person window, not WebView2 on Windows: the real app UI (windows/src/app.ts and style.css) served by vite and fed the Sample people through windows/fixture.html (mocked Tauri IPC, data from samplePerson in windows/src/sample-board.ts) with ?view=person&date=2026-11-22&login=<login>. The Sample people's 30-day race is made up from their made-up days, so its totals needn't match the fixture board's 30 days. macOS system fonts instead of Segoe UI; no window chrome."
+    },
+    {
+      "file": "mac/rival-light.png",
+      "caption": "Mac person window for hubot, light: You vs hubot · 30 days, 51 ahead of hubot, You've led for all 30 days; hubot's line and bars in deep green #476510, GitHub link in the system accent",
+      "capture": {
+        "device": "Mac Studio (M1 Max), fixture host (scripts/build-flow-capture.py)",
+        "os": "macOS 27.0.1",
+        "sourceCommit": "94aea5ac3d4e58ae06939ec89cd2c25c81400f8a",
+        "fixture": true
+      },
+      "notes": "Fixture-host capture: scripts/build-flow-capture.py's host (current tracked views, in-memory store, made-up calendars for the fixture's GitHub handles), launched with -CaptureDate 2026-11-22T18:00:00Z -CaptureSurface Person -CapturePerson <login> [-CaptureAppearance dark] -CaptureSnapshot <file>; the host draws its own window into a PNG. The real PersonWindowView at the person window's default 460 x 640 pt."
+    },
+    {
+      "file": "mac/rival-dark.png",
+      "caption": "Mac person window for hubot, dark: hubot's line, bars and the gap in lime",
+      "capture": {
+        "device": "Mac Studio (M1 Max), fixture host (scripts/build-flow-capture.py)",
+        "os": "macOS 27.0.1",
+        "sourceCommit": "94aea5ac3d4e58ae06939ec89cd2c25c81400f8a",
+        "fixture": true
+      },
+      "notes": "Fixture-host capture: scripts/build-flow-capture.py's host (current tracked views, in-memory store, made-up calendars for the fixture's GitHub handles), launched with -CaptureDate 2026-11-22T18:00:00Z -CaptureSurface Person -CapturePerson <login> [-CaptureAppearance dark] -CaptureSnapshot <file>; the host draws its own window into a PNG. The real PersonWindowView at the person window's default 460 x 640 pt."
+    },
+    {
+      "file": "mac/you-light.png",
+      "caption": "Mac person window for yourself (octocat), light: no race card, one Streak tile, deep-green bars, the you badge in the system accent",
+      "capture": {
+        "device": "Mac Studio (M1 Max), fixture host (scripts/build-flow-capture.py)",
+        "os": "macOS 27.0.1",
+        "sourceCommit": "94aea5ac3d4e58ae06939ec89cd2c25c81400f8a",
+        "fixture": true
+      },
+      "notes": "Fixture-host capture: scripts/build-flow-capture.py's host (current tracked views, in-memory store, made-up calendars for the fixture's GitHub handles), launched with -CaptureDate 2026-11-22T18:00:00Z -CaptureSurface Person -CapturePerson <login> [-CaptureAppearance dark] -CaptureSnapshot <file>; the host draws its own window into a PNG. The real PersonWindowView at the person window's default 460 x 640 pt."
+    },
+    {
+      "file": "iphone/rival-odile.png",
+      "caption": "iPhone person view for odile-m (sheet): You vs odile-m · 30 days, 27 to pass odile-m, odile-m has led for all 30 days; one Streak tile reading 365+ days · Longest in the past year",
+      "capture": {
+        "device": "iPhone Duo Simulator (persistent, closed)",
+        "os": "iOS 27.1",
+        "sourceCommit": "94aea5ac3d4e58ae06939ec89cd2c25c81400f8a",
+        "fixture": true
+      },
+      "notes": "Runtime capture (xcrun simctl io screenshot --display=1) of a Debug build on the persistent iPhone Duo (closed), launched with -ScreenshotFixture -ScreenshotTab board -ScreenshotPerson <login>: the Sample board's made-up calendars, real clock (November 10, 2026). The iPhone app is dark only."
+    },
+    {
+      "file": "iphone/you.png",
+      "caption": "iPhone person view for yourself (ari-linden): no race card, one Streak tile (14 days · Best 24 days)",
+      "capture": {
+        "device": "iPhone Duo Simulator (persistent, closed)",
+        "os": "iOS 27.1",
+        "sourceCommit": "94aea5ac3d4e58ae06939ec89cd2c25c81400f8a",
+        "fixture": true
+      },
+      "notes": "Runtime capture (xcrun simctl io screenshot --display=1) of a Debug build on the persistent iPhone Duo (closed), launched with -ScreenshotFixture -ScreenshotTab board -ScreenshotPerson <login>: the Sample board's made-up calendars, real clock (November 10, 2026). The iPhone app is dark only."
+    }
+  ]
+}

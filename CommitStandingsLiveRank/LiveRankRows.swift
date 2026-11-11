@@ -2,7 +2,7 @@ import SwiftUI
 
 /// The person above you, you, and the person below (whichever exist), drawn with the board's own
 /// `StandingRow` (never forked): `#rank`, avatar, login, the "you" badge, today's chevron, the
-/// streak ("🔥 12", from 2 days), the count, and the squares glyph. The expanded Dynamic Island
+/// streak (the mark and "12", from 2 days), the count, and the squares glyph. The expanded Dynamic Island
 /// and the Lock Screen show these; both are capped at about 160 pt, so the full board doesn't fit.
 ///
 /// Avatars come from the App Group (`AvatarCache`): the app saves them on each refresh, since this
@@ -101,6 +101,10 @@ extension StandingRowStyle {
             // Quieter than the counts beside it, like the Board's (`StandingRowStyle.committed`).
             streakFont: CommittedType.numeral(13, relativeTo: .footnote),
             streakColor: stale ? .muted : .soft,
+            streakMarkSize: 12,
+            streakTextStyle: .footnote,
+            // Deep lime like the board's; stale steps down to the squares ramp's dimmest green.
+            streakMarkColor: stale ? Color.rowGlyphs[1] : .limeDeep,
             squares: .shadedSymbol(Color.rowGlyphs)
         )
     }

@@ -1,7 +1,15 @@
 // Made-up board data for the dev fixture page (`fixture.html`) and the UI tests: the Sample
 // board's people and counts (`CommitStandingsiOS/App/SampleServices.swift`), with streaks that
 // cover every display case. Never read by the shipped app.
-import type { Board, PersonView, PersonVisibility, Row, Window } from "./types";
+import type {
+  Board,
+  PersonView,
+  PersonVisibility,
+  Race,
+  RaceStory,
+  Row,
+  Window,
+} from "./types";
 
 interface SamplePerson {
   login: string;
@@ -194,6 +202,7 @@ export function samplePerson(login: string, now: number): PersonView | null {
       0,
     ).getDate(),
     history: null,
+    race: null,
   };
   if (!person.counts || person.streak === null || person.thisMonth === null)
     return view;
@@ -221,8 +230,25 @@ export function samplePerson(login: string, now: number): PersonView | null {
     return noise(login, 100 + d) < 0.68;
   });
   const lastMonthSeries = spread(login, 200, pastActive, person.lastMonth ?? 0);
+  // A rival's view races them against the owner over the last 30 days of these made-up days.
+  const thirty = (p: PersonView) =>
+    [...p.history!.last_month, ...p.history!.this_month].slice(-30);
+  const owner = login === sampleOwner ? null : samplePerson(sampleOwner, now);
+  let race: Race | null = null;
+  if (owner?.history) {
+    const yours = running(thirty(owner));
+    const theirs = running([...lastMonthSeries, ...thisMonth].slice(-30));
+    const start = new Date(date.getFullYear(), date.getMonth(), day - 29);
+    race = {
+      start: iso(start),
+      yours,
+      theirs,
+      story: raceStory(yours, theirs),
+    };
+  }
   return {
     ...view,
+    race,
     history: {
       this_month: thisMonth,
       last_month: lastMonthSeries,
@@ -235,4 +261,47 @@ export function samplePerson(login: string, now: number): PersonView | null {
       active_days: thisMonth.filter((n) => n > 0).length,
     },
   };
+}
+
+const running = (days: number[]) => {
+  let total = 0;
+  return days.map((n) => (total += n));
+};
+
+/** The core's `history::race_story`, for the Sample board's made-up races. */
+export function raceStory(yours: number[], theirs: number[]): RaceStory {
+  const days = Math.min(yours.length, theirs.length);
+  const leader = (i: number) =>
+    theirs[i] > yours[i] ? "them" : yours[i] > theirs[i] ? "you" : null;
+  let leading: "you" | "them" | null = null;
+  let firstLead = 0;
+  let changes = 0;
+  let lastChange = 0;
+  for (let i = 0; i < days; i++) {
+    const side = leader(i);
+    if (!side) continue;
+    if (!leading) {
+      leading = side;
+      firstLead = i + 1;
+    } else if (side !== leading) {
+      leading = side;
+      changes++;
+      lastChange = i + 1;
+    }
+  }
+  if (!leading) return { kind: "level" };
+  if (days > 0 && !leader(days - 1)) {
+    let start = days;
+    while (start > 1 && !leader(start - 2)) start--;
+    return {
+      kind: "caught",
+      by: leading === "you" ? "them" : "you",
+      day: start,
+    };
+  }
+  if (changes > 0)
+    return { kind: "passed", by: leading, day: lastChange, changes };
+  return firstLead === 1
+    ? { kind: "led", by: leading }
+    : { kind: "pulled_ahead", by: leading, day: firstLead };
 }

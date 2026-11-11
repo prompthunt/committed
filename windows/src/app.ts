@@ -1,12 +1,13 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
-import { GLYPH_PATH } from "../../site/lib/glyph";
+import { GLYPH_PATH, STREAK_PATH } from "../../site/lib/glyph";
 import type {
   Board,
   Burst,
   DesktopSettings,
   Person,
   PersonView,
+  Race,
   PersonVisibility,
   Settings,
   Window,
@@ -14,6 +15,8 @@ import type {
 
 // Reuse the site's trophy and the approved app tile instead of drawing substitutes.
 const brandMark = `<svg class="brand-mark" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="${GLYPH_PATH}" /></svg>`;
+// The streak mark, drawn in its own color (`--streak-mark`) beside the streak's number.
+const streakMark = `<svg class="streak-mark" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="${STREAK_PATH}" /></svg>`;
 const appIcon = new URL(
   "../../docs/design/committed-app-icon.svg",
   import.meta.url,
@@ -65,6 +68,124 @@ const streakDays = (n: number) =>
     ? `<span aria-hidden="true">${streakCap}+ days</span><span class="sr-only">${streakCap}-plus days</span>`
     : plural(n, "day");
 /** "18 active days this month, most on November 8 with 41": the chart's screen-reader summary. */
+/** The streak tile's value: "14 days", or "None" once it's broken. */
+const streakValue = (current: number) =>
+  current === 0 ? "None" : streakDays(current);
+/**
+ * The streak tile's caption: their longest only when it differs from the current one, so the
+ * tile never says the same thing twice (as on the Mac and iPhone).
+ */
+export function streakCaption(current: number, longest: number) {
+  if (longest === 0) return "No streaks in the past year";
+  if (current >= longest || Math.min(current, longest) > streakCap)
+    return "Longest in the past year";
+  return `Best ${streakDays(longest)}`;
+}
+const monthNames = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
+];
+/** The race's `day` (1 = `start`) as "November 8". */
+export function raceDate(race: Race, day: number) {
+  const date = new Date(`${race.start}T00:00:00Z`);
+  date.setUTCDate(date.getUTCDate() + day - 1);
+  return `${monthNames[date.getUTCMonth()]} ${date.getUTCDate()}`;
+}
+const last = (totals: number[]) => totals[totals.length - 1] ?? 0;
+/**
+ * The gap in the Board's words, as on the Mac and iPhone: "5 to pass odile-m", "12 ahead of
+ * ezra-q", "Level with ezra-q". `number` is the leading figure drawn in the bar color.
+ */
+export function raceHeadline(view: PersonView, race: Race) {
+  const yours = last(race.yours);
+  const theirs = last(race.theirs);
+  const gap = Math.abs(theirs - yours).toLocaleString();
+  if (yours === theirs)
+    return { number: null, text: `Level with ${view.login}` };
+  return {
+    number: gap,
+    text: `${gap} ${theirs > yours ? "to pass" : "ahead of"} ${view.login}`,
+  };
+}
+/** Who passed whom: "odile-m passed you on November 8", "You've led for all 30 days". */
+export function raceStory(view: PersonView, race: Race) {
+  const story = race.story;
+  const span = `all ${race.yours.length} days`;
+  const on = (day: number) => raceDate(race, day);
+  switch (story.kind) {
+    case "level":
+      return `Level for ${span}`;
+    case "led":
+      return story.by === "you"
+        ? `You’ve led for ${span}`
+        : `${view.login} has led for ${span}`;
+    case "pulled_ahead":
+      return `${story.by === "you" ? "You" : view.login} pulled ahead on ${on(story.day)}`;
+    case "passed":
+      return `${story.by === "you" ? `You passed ${view.login}` : `${view.login} passed you`} on ${on(story.day)}${story.changes > 1 ? ` · the lead changed ${story.changes} times` : ""}`;
+    case "caught":
+      return story.by === "you"
+        ? `You caught ${view.login} on ${on(story.day)}`
+        : `${view.login} caught you on ${on(story.day)}`;
+  }
+}
+/** The race card read aloud, chart included. */
+function raceSpoken(view: PersonView, race: Race) {
+  return `You vs ${view.login}, 30 days. ${raceHeadline(view, race).text}. ${raceStory(view, race)}. ${view.login} ${last(race.theirs).toLocaleString()}, you ${last(race.yours).toLocaleString()}.`;
+}
+/**
+ * Both running totals as lines, theirs in the bar color and yours muted, with the latest change
+ * of lead marked and each total labeled at its end (the higher above the lower).
+ */
+function raceChart(view: PersonView, race: Race) {
+  const width = 320;
+  const plot = 228;
+  const height = 96;
+  const top = 12;
+  const bottom = 16;
+  const days = Math.max(race.yours.length, race.theirs.length, 2);
+  const yours = last(race.yours);
+  const theirs = last(race.theirs);
+  const most = Math.max(1, yours, theirs);
+  const x = (day: number) => ((day - 1) / (days - 1)) * plot;
+  const y = (total: number) =>
+    top + (height - top - bottom) * (1 - total / most);
+  const line = (totals: number[]) =>
+    totals
+      .map(
+        (t, i) => `${i ? "L" : "M"}${x(i + 1).toFixed(1)},${y(t).toFixed(1)}`,
+      )
+      .join("");
+  const story = race.story;
+  let marker = "";
+  if (story.kind !== "level" && story.kind !== "led") {
+    const totals = story.by === "you" ? race.yours : race.theirs;
+    marker = `<circle class="race-marker ${story.by}" cx="${x(story.day)}" cy="${y(totals[story.day - 1])}" r="3.5" />`;
+  }
+  const end = x(days) + 8;
+  const labels =
+    yours === theirs
+      ? `<text class="race-label" x="${end}" y="${y(theirs) + 4}">${theirs.toLocaleString()} each</text>`
+      : `<text class="race-label them" x="${end}" y="${y(theirs) + (theirs > yours ? -2 : 11)}">${theirs.toLocaleString()} ${escape(view.login)}</text><text class="race-label" x="${end}" y="${y(yours) + (yours > theirs ? -2 : 11)}">${yours.toLocaleString()} you</text>`;
+  return `<svg class="race-chart" viewBox="0 0 ${width} ${height}" aria-hidden="true"><line class="race-axis" x1="0" x2="${plot}" y1="${height - bottom}" y2="${height - bottom}" /><path class="race-line" d="${line(race.yours)}" /><path class="race-line them" d="${line(race.theirs)}" />${marker}${labels}<text class="race-tick" x="0" y="${height - 3}">${escape(raceDate(race, 1))}</text><text class="race-tick" x="${plot}" y="${height - 3}" text-anchor="end">Today</text></svg>`;
+}
+function raceCard(view: PersonView, race: Race) {
+  const headline = raceHeadline(view, race);
+  const text = headline.number
+    ? `<span class="race-number">${escape(headline.number)}</span>${escape(headline.text.slice(headline.number.length))}`
+    : escape(headline.text);
+  return `<section class="race" role="group" aria-label="${escape(raceSpoken(view, race))}"><div aria-hidden="true"><p class="race-title">You vs ${escape(view.login)} · 30 days</p><p class="race-headline">${text}</p><p class="race-story">${escape(raceStory(view, race))}</p>${raceChart(view, race)}</div></section>`;
+}
 function chartSummary(view: PersonView, days: number[]) {
   const active = days.filter((n) => n > 0).length;
   if (!active) return "No contributions yet this month";
@@ -123,10 +244,10 @@ function personHtml(view: PersonView, selected: number) {
   const total = (days: number[]) => days.reduce((a, b) => a + b, 0);
   return `${header}
     ${view.status === "failed" ? '<p class="muted">Refresh failed · showing saved counts</p>' : ""}
+    ${view.race ? raceCard(view, view.race) : ""}
     <dl class="person-stats">
-      <div><dt><span aria-hidden="true">🔥 </span>Current streak</dt><dd>${streakDays(history.current_streak)}</dd></div>
-      <div><dt>Longest streak</dt><dd>${streakDays(history.longest_streak)}</dd></div>
-      <div><dt>Active days</dt><dd>${history.active_days} of ${view.day_of_month}</dd></div>
+      <div><dt>${streakMark}Streak</dt><dd>${streakValue(history.current_streak)}<small>${streakCaption(history.current_streak, history.longest_streak)}</small></dd></div>
+      <div><dt>Active days</dt><dd>${history.active_days} of ${view.day_of_month}<small>This month</small></dd></div>
     </dl>
     <section class="month" aria-labelledby="month-title"><div class="month-head"><h2 id="month-title">${escape(view.month_name)}</h2><p class="legend"><span class="key now" aria-hidden="true"></span>${escape(view.month_name)} <strong>${total(history.this_month).toLocaleString()}</strong><span class="key past" aria-hidden="true"></span>${escape(view.last_month_name)} <strong>${total(history.last_month).toLocaleString()}</strong></p></div>
       ${selectedDay(view, selected)}${chart(view, selected)}</section>
@@ -296,7 +417,7 @@ export async function start(
       );
       const statusText = `${windows.find((w) => w[0] === selected)![1]} · ${refreshing ? (first ? "Fetching the first set of standings" : "Updating Contributions…") : board.error ? "Refresh finished with errors." : age(board.last_updated)}`;
       replace(`<header><h1>${brandMark} Committed</h1>${menu(board)}</header><div class="board-content">
-        ${me ? `<section class="summary">${avatar(me)}<div><strong>${escape(name(me))}</strong><small>@${escape(me.login)} · you${myStreak ? ` · <span class="streak" role="img" aria-label="${streakSpoken(myStreak)}">🔥 ${myStreak}</span>` : ""}</small></div><div class="summary-count">${count(me.contributions)}<small>Contributions</small></div></section>` : "<p>Connect GitHub to load your board.</p>"}
+        ${me ? `<section class="summary">${avatar(me)}<div><strong>${escape(name(me))}</strong><small>@${escape(me.login)} · you${myStreak ? ` · <span class="streak" role="img" aria-label="${streakSpoken(myStreak)}">${streakMark}${myStreak}</span>` : ""}</small></div><div class="summary-count">${count(me.contributions)}<small>Contributions</small></div></section>` : "<p>Connect GitHub to load your board.</p>"}
         <div class="windows" role="radiogroup" aria-label="Time range">${windows.map(([value, label]) => `<button role="radio" aria-checked="${selected === value}" tabindex="${selected === value ? 0 : -1}" data-window="${value}" data-focus="window-${value}">${label}</button>`).join("")}</div>
         <p class="status">${statusText}</p>
         <div class="tracking"><small>Tracking ${rows.length} people</small><button data-action="people">People…</button></div>
@@ -309,7 +430,7 @@ export async function start(
               (row.contributions ?? 0) / maxContributions,
             );
             const squareColor = `rgb(${Math.round(156 - 110 * shade)}, ${Math.round(232 - 71 * shade)}, ${Math.round(168 - 102 * shade)})`;
-            return `<li class="${row.is_you ? "you" : ""}"><button class="standing" data-open-person="${escape(row.login)}" data-focus="row-${escape(row.login)}" aria-label="${escape(spoken)}"><span class="rank">#${row.rank}</span>${avatar(row)}<span class="identity"><strong title="${escape(name(row))}">${escape(row.login)}${row.is_you ? ' <span class="badge">you</span>' : ""}</strong>${row.status === "failed" ? "<small>Refresh failed</small>" : ""}</span>${row.movement ? `<span class="movement ${row.movement > 0 ? "up" : "down"}" aria-label="Moved ${row.movement > 0 ? "up" : "down"} ${Math.abs(row.movement)}">${row.movement > 0 ? "↑" : "↓"}${Math.abs(row.movement)}</span>` : ""}${streak ? `<span class="streak" aria-hidden="true">🔥 ${streak}</span>` : ""}<strong class="contributions${row.burst ? " troll" : ""}">${count(row.contributions)}</strong>${row.burst ? `<span class="troll-face" style="--troll: url('${trollFace}')" title="${escape(`Problem? ${trolling(row.burst)}.`)}" aria-hidden="true"></span>` : `<svg class="contribution-squares" viewBox="0 0 12 12" fill="${squareColor}" aria-hidden="true" ${row.contributions === null ? 'style="visibility:hidden"' : ""}><path d="M0 0h5v5H0zM7 0h5v5H7zM0 7h5v5H7zM7 7h5v5H7z" /></svg>`}</button></li>`;
+            return `<li class="${row.is_you ? "you" : ""}"><button class="standing" data-open-person="${escape(row.login)}" data-focus="row-${escape(row.login)}" aria-label="${escape(spoken)}"><span class="rank">#${row.rank}</span>${avatar(row)}<span class="identity"><strong title="${escape(name(row))}">${escape(row.login)}${row.is_you ? ' <span class="badge">you</span>' : ""}</strong>${row.status === "failed" ? "<small>Refresh failed</small>" : ""}</span>${row.movement ? `<span class="movement ${row.movement > 0 ? "up" : "down"}" aria-label="Moved ${row.movement > 0 ? "up" : "down"} ${Math.abs(row.movement)}">${row.movement > 0 ? "↑" : "↓"}${Math.abs(row.movement)}</span>` : ""}${streak ? `<span class="streak" aria-hidden="true">${streakMark}${streak}</span>` : ""}<strong class="contributions${row.burst ? " troll" : ""}">${count(row.contributions)}</strong>${row.burst ? `<span class="troll-face" style="--troll: url('${trollFace}')" title="${escape(`Problem? ${trolling(row.burst)}.`)}" aria-hidden="true"></span>` : `<svg class="contribution-squares" viewBox="0 0 12 12" fill="${squareColor}" aria-hidden="true" ${row.contributions === null ? 'style="visibility:hidden"' : ""}><path d="M0 0h5v5H0zM7 0h5v5H7zM0 7h5v5H0zM7 7h5v5H7z" /></svg>`}</button></li>`;
           })
           .join("")}</ol>
         ${first && !refreshing ? '<p class="muted">Fetching the first set of standings. Use Refresh to retry if GitHub is unavailable.</p>' : ""}
@@ -319,10 +440,25 @@ export async function start(
         <p id="update-status" role="status">${escape(status)}</p><button id="install-update" data-action="install-update" ${updateReady ? "" : "hidden"}>Restart to update</button>${alert()}</div>`);
     }
     if (view === "board") {
+      fitYourRow();
       const message = root.querySelector(".status")?.textContent ?? "";
       if (announcer.textContent !== message) announcer.textContent = message;
     }
   }
+  // Your row never loses your name: when it doesn't fit whole, the "you" badge goes first (the
+  // row's highlight already says it's you), then your streak (the summary still has it), and last
+  // the name wraps. The Mac and iPhone rows (`StandingRow`) drop in the same order.
+  function fitYourRow() {
+    const row = root.querySelector<HTMLElement>(".standings li.you");
+    const label = row?.querySelector<HTMLElement>(".identity strong");
+    if (!row || !label) return;
+    row.classList.remove("no-badge", "no-streak", "wraps");
+    for (const step of ["no-badge", "no-streak", "wraps"]) {
+      if (label.scrollWidth <= label.clientWidth) return;
+      row.classList.add(step);
+    }
+  }
+  const onResize = () => fitYourRow();
   function renderPerson() {
     replace(
       `<div class="person">${personView ? personHtml(personView, selectedBar) : '<p class="muted">Pick someone on the board to see their month.</p>'}${alert()}</div>`,
@@ -530,6 +666,7 @@ export async function start(
   root.addEventListener("change", onChange);
   root.addEventListener("input", input);
   root.addEventListener("keydown", keydown);
+  window.addEventListener("resize", onResize);
   const unlisten = await listen("board-changed", () => {
     void load().catch((error) => showError(String(error)));
   });
@@ -559,5 +696,6 @@ export async function start(
     root.removeEventListener("change", onChange);
     root.removeEventListener("input", input);
     root.removeEventListener("keydown", keydown);
+    window.removeEventListener("resize", onResize);
   };
 }

@@ -100,16 +100,16 @@ struct LeaderboardRankingTests {
         #expect(!unchanged.accessibilityDescription.contains("places today"))
     }
 
-    /// "🔥 12" beside the count from 2 days, capped at "365+" past GitHub's calendar, and read as
-    /// "12-day streak" (never the emoji).
+    /// The mark and "12" beside the count from 2 days, capped at "365+" past GitHub's calendar,
+    /// and read as "12-day streak".
     @Test func streakLabelShowsFromTwoDaysAndCapsAtTheCalendar() {
-        #expect(StreakLabel.text(nil) == nil)
-        #expect(StreakLabel.text(0) == nil)
-        #expect(StreakLabel.text(1) == nil)
-        #expect(StreakLabel.text(2) == "🔥 2")
-        #expect(StreakLabel.text(12) == "🔥 12")
-        #expect(StreakLabel.text(365) == "🔥 365")
-        #expect(StreakLabel.text(366) == "🔥 365+")
+        #expect(StreakLabel.number(nil) == nil)
+        #expect(StreakLabel.number(0) == nil)
+        #expect(StreakLabel.number(1) == nil)
+        #expect(StreakLabel.number(2) == "2")
+        #expect(StreakLabel.number(12) == "12")
+        #expect(StreakLabel.number(365) == "365")
+        #expect(StreakLabel.number(366) == "365+")
         #expect(StreakLabel.spoken(1) == nil)
         #expect(StreakLabel.spoken(12) == "12-day streak")
         #expect(StreakLabel.spoken(371) == "365-plus-day streak")
@@ -138,13 +138,13 @@ struct LeaderboardRankingTests {
                               lastUpdated: .distantPast, state: .failed("Offline"))
         let noCount = StandingRow(rank: 1, competitor: competitor, standing: failed, window: .daily, streak: 12)
         #expect(!noCount.accessibilityDescription.contains("streak"))
-        #expect(noCount.streakText == nil)
+        #expect(noCount.streakNumber == nil)
 
         let loading = Standing(username: "ada", contributions: 0, window: .daily,
                                lastUpdated: .distantPast, state: .loading)
         #expect(StandingRow(rank: 1, competitor: competitor, standing: loading, window: .daily, streak: 12)
-            .streakText == nil)
-        #expect(row.streakText == "🔥 12")
+            .streakNumber == nil)
+        #expect(row.streakNumber == "12")
     }
 
     @Test func heroCardReadsYourStreakBesideALoadedCount() {

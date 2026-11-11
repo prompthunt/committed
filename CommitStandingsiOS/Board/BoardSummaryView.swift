@@ -172,12 +172,10 @@ struct BoardSummaryView: View {
             // The news (your streak, movement, the gap to pass), then how fresh the numbers are.
             VStack(alignment: .leading, spacing: 4) {
                 news {
-                    if let streak = StreakLabel.text(summary.streak) {
-                        Text(streak)
-                            .fontWeight(.semibold)
-                            .foregroundStyle(.white)
-                            .monospacedDigit()
-                    }
+                    // Your streak: the mark in lime (it's yours, like the count above), the number white.
+                    StreakBadge(streak: summary.streak, markSize: 14, relativeTo: .footnote, markColor: .lime)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(.white)
                     if let movement = summary.movementToday {
                         HStack(spacing: 4) {
                             Image(systemName: movement > 0 ? "chevron.up" : "chevron.down")

@@ -50,9 +50,14 @@ struct StandingRowStyle {
     var movementUpColor: Color = .green
     var movementDownColor: Color? = nil
     var movementFont: Font = .system(size: 9, weight: .semibold)
-    /// The "🔥 12" streak beside the count. nil color = `.secondary`.
+    /// The streak (mark and "12") beside the count. nil color = `.secondary`.
     var streakFont: Font = .caption.monospacedDigit()
     var streakColor: Color? = nil
+    /// The streak mark's base size and the text style it scales with, matching `streakFont`.
+    var streakMarkSize: CGFloat = 11
+    var streakTextStyle: Font.TextStyle = .caption
+    /// The mark's own color. nil = the number's (`streakColor`).
+    var streakMarkColor: Color? = nil
 
     /// The contribution square right of the count.
     var squares: Squares = .symbol
