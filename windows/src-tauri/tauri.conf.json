@@ -46,6 +46,17 @@
         "minHeight": 400
       },
       {
+        "label": "person",
+        "create": false,
+        "title": "Committed",
+        "url": "index.html?view=person",
+        "width": 460,
+        "height": 640,
+        "visible": false,
+        "minWidth": 380,
+        "minHeight": 480
+      },
+      {
         "label": "about",
         "create": false,
         "title": "About Committed",

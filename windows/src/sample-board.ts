@@ -4,6 +4,9 @@
 import type {
   Board,
   FinalStandings,
+  Medal,
+  MonthFinish,
+  PersonView,
   PersonVisibility,
   Row,
   Window,
@@ -150,3 +153,150 @@ export const samplePeopleList = (): PersonVisibility[] =>
     hidden: false,
     is_you: login === sampleOwner,
   }));
+
+/** A made-up but repeatable number in [0, 1) for `login` and `n`, so the fixture never changes. */
+function noise(login: string, n: number) {
+  let hash = 2166136261 ^ n;
+  for (const c of login) hash = Math.imul(hash ^ c.charCodeAt(0), 16777619);
+  hash = Math.imul(hash ^ (hash >>> 15), 2246822507);
+  return ((hash ^ (hash >>> 13)) >>> 0) / 2 ** 32;
+}
+
+/** `total` spread over the days marked active (weights from `noise`), whole numbers. */
+function spread(
+  login: string,
+  salt: number,
+  active: boolean[],
+  total: number,
+): number[] {
+  const weights = active.map((on, i) =>
+    on ? 0.2 + noise(login, salt + i) ** 2 : 0,
+  );
+  const sum = weights.reduce((a, b) => a + b, 0);
+  if (!sum || total <= 0) return active.map(() => 0);
+  const counts = weights.map((w) =>
+    w ? Math.max(1, Math.floor((total * w) / sum)) : 0,
+  );
+  // Settle rounding on the heaviest day so the series adds up to `total`.
+  const heaviest = weights.indexOf(Math.max(...weights));
+  counts[heaviest] += total - counts.reduce((a, b) => a + b, 0);
+  return counts;
+}
+
+/** The longest run of non-zero days in `series`. */
+function longestRun(series: number[]) {
+  let longest = 0;
+  let run = 0;
+  for (const count of series) {
+    run = count > 0 ? run + 1 : 0;
+    longest = Math.max(longest, run);
+  }
+  return longest;
+}
+
+const iso = (date: Date) =>
+  `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+const monthName = (date: Date) =>
+  date.toLocaleString("en-US", { month: "long" });
+
+/**
+ * The person view the core would send for a Sample person on the day `now` falls on: this
+ * month's days add up to their This month count with today's count last and the current streak
+ * ending today, last month's add up to last month's total, and six finished months with medals.
+ * Niko never loads, so his view waits. Consistent on the 2nd to the 29th; made up all the same.
+ */
+export function samplePerson(login: string, now: number): PersonView | null {
+  const person = samplePeople.find((p) => p.login === login);
+  if (!person) return null;
+  const date = new Date(now * 1000);
+  const day = date.getDate();
+  const month = new Date(date.getFullYear(), date.getMonth(), 1);
+  const lastMonth = new Date(date.getFullYear(), date.getMonth() - 1, 1);
+  const lastLength = new Date(date.getFullYear(), date.getMonth(), 0).getDate();
+  const view: PersonView = {
+    login,
+    name: person.name,
+    avatar_url: null,
+    is_you: login === sampleOwner,
+    status: person.counts ? "loaded" : "failed",
+    month: iso(month),
+    month_name: monthName(month),
+    last_month: iso(lastMonth),
+    last_month_name: monthName(lastMonth),
+    day_of_month: day,
+    days_in_month: new Date(
+      date.getFullYear(),
+      date.getMonth() + 1,
+      0,
+    ).getDate(),
+    history: null,
+  };
+  if (!person.counts || person.streak === null) return view;
+  const today = person.counts.today;
+  const streak = person.streak;
+  // The streak's run ends today, or yesterday when today has nothing yet.
+  const runEnd = today > 0 ? day : day - 1;
+  const runStart = runEnd - streak + 1;
+  const active = Array.from({ length: day - 1 }, (_, i) => {
+    const d = i + 1;
+    if (d >= runStart && d <= runEnd) return true;
+    if (d === runStart - 1) return false;
+    return noise(login, d) < 0.72;
+  });
+  const thisMonth = [
+    ...spread(login, 0, active, person.counts.month - today),
+    today,
+  ];
+  // Last month: its days before this month's run are free; a run that reaches back stays whole.
+  const carried = Math.max(0, streak - runEnd);
+  const pastActive = Array.from({ length: lastLength }, (_, i) => {
+    const d = i + 1;
+    if (d > lastLength - carried) return true;
+    if (carried && d === lastLength - carried) return false;
+    return noise(login, 100 + d) < 0.68;
+  });
+  const lastMonthSeries = spread(login, 200, pastActive, person.lastMonth ?? 0);
+  return {
+    ...view,
+    history: {
+      this_month: thisMonth,
+      last_month: lastMonthSeries,
+      current_streak: streak,
+      longest_streak: Math.max(
+        streak,
+        longestRun([...lastMonthSeries, ...thisMonth]),
+        9 + Math.floor(noise(login, 999) * 20),
+      ),
+      active_days: thisMonth.filter((n) => n > 0).length,
+      finishes: sampleFinishes(login, date),
+    },
+  };
+}
+
+/** Six finished months, newest first: last month's Final standings, then made-up earlier ones. */
+function sampleFinishes(login: string, date: Date): MonthFinish[] {
+  const medals: Medal[] = ["gold", "silver", "bronze"];
+  return Array.from({ length: 6 }, (_, i) => {
+    const month = new Date(date.getFullYear(), date.getMonth() - 1 - i, 1);
+    const total = (person: SamplePerson) =>
+      person.lastMonth === null
+        ? null
+        : i === 0
+          ? person.lastMonth
+          : Math.round(
+              (person.counts?.monthly ?? 0) *
+                (0.45 + noise(person.login, 500 + i)),
+            );
+    const order = ranked(total);
+    const rank = order.findIndex((p) => p.login === login) + 1;
+    const mine = total(order[rank - 1]) ?? 0;
+    return {
+      month: iso(month),
+      month_name: monthName(month),
+      rank,
+      of: order.length,
+      total: mine,
+      medal: mine > 0 ? (medals[rank - 1] ?? null) : null,
+    };
+  });
+}

@@ -48,6 +48,44 @@ pub fn current_streak(days: &BTreeMap<NaiveDate, u32>, today: NaiveDate) -> u32 
     streak
 }
 
+/// The longest run of consecutive days with a contribution anywhere in the calendar through
+/// `today` (about the past year). Days after `today` never count, and a day missing from the
+/// calendar breaks a run, like `current_streak`.
+pub fn longest_streak(days: &BTreeMap<NaiveDate, u32>, today: NaiveDate) -> u32 {
+    let mut longest = 0;
+    let mut run = 0;
+    let mut previous: Option<NaiveDate> = None;
+    for (day, count) in days.range(..=today) {
+        if *count == 0 {
+            run = 0;
+        } else if previous.is_some_and(|p| *day - p == Duration::days(1)) && run > 0 {
+            run += 1;
+        } else {
+            run = 1;
+        }
+        longest = longest.max(run);
+        previous = Some(*day);
+    }
+    longest
+}
+
+/// The person view's bars: each day's count in `range`, first day first, 0 for a day the
+/// calendar doesn't have. Pass `range(Window::ThisMonth, today)` for this month to date and
+/// `month_range(month)` for a whole finished month.
+pub fn series(days: &BTreeMap<NaiveDate, u32>, range: RangeInclusive<NaiveDate>) -> Vec<u32> {
+    range
+        .start()
+        .iter_days()
+        .take_while(|day| day <= range.end())
+        .map(|day| days.get(&day).copied().unwrap_or(0))
+        .collect()
+}
+
+/// Days in `range` with at least one contribution: the 18 in "Active days: 18 of 22".
+pub fn active_days(days: &BTreeMap<NaiveDate, u32>, range: RangeInclusive<NaiveDate>) -> u32 {
+    days.range(range).filter(|(_, count)| **count > 0).count() as u32
+}
+
 /// Every day of the month that contains `month` (any day of it names the month), 1st to last.
 /// Final standings use it for a finished month; This month is `range(Window::ThisMonth, today)`.
 pub fn month_range(month: NaiveDate) -> RangeInclusive<NaiveDate> {
