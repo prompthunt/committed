@@ -45,10 +45,13 @@ app_file.write_text(r'''import SwiftUI
         if LARGE_BOARD {
             for number in 1...14 { try! s.addRival(username: "sample-rival-\(number)") }
         }
+        let now = Date()
+        s.updateHistories(Dictionary(uniqueKeysWithValues: s.competitors.map { ($0.username, captureHistory($0.username, asOf: now)) }))
         for window in ContributionWindow.allCases {
-            for (index, entry) in s.competitors.enumerated() {
-                s.updateStanding(Standing(username: entry.username, contributions: (s.competitors.count-index)*8*captureScale(window),
-                    window: window, lastUpdated: Date(), state: .loaded))
+            for entry in s.competitors {
+                s.updateStanding(Standing(username: entry.username,
+                    contributions: captureHistory(entry.username, asOf: now).total(for: window, asOf: now),
+                    window: window, lastUpdated: now, state: .loaded))
             }
         }
         // `-CaptureWindow month` opens the board on that Window (a ContributionWindow raw value).
@@ -115,20 +118,28 @@ app_file.write_text(r'''import SwiftUI
     NSApp.terminate(nil)
 }
 
-/// Made-up counts grow with the Window, so 30 days reads bigger than This month or Today.
-private func captureScale(_ window: ContributionWindow) -> Int {
-    switch window {
-    case .daily: 1
-    case .weekly: 7
-    case .monthly: 30
-    case .month: 10
+private struct CaptureCounts: ContributionsFetching {
+    func standingCounts(for username: String, window: ContributionWindow, asOf reference: Date) async -> Result<StandingCounts, ContributionsError> {
+        let history = captureHistory(username, asOf: reference)
+        return .success(StandingCounts(contributions: history.total(for: window, asOf: reference), history: history))
     }
 }
 
-private struct CaptureCounts: ContributionsFetching {
-    func standingCounts(for username: String, window: ContributionWindow, asOf reference: Date) async -> Result<StandingCounts, ContributionsError> {
-        .success(StandingCounts(contributions: (["octocat":40,"hubot":32,"monalisa":24,"defunkt":16,"mojombo":8][username] ?? 4) * captureScale(window)))
+/// A made-up year of days: a fixed count a day, a streak of the listed length (nothing the day
+/// before it), then most days. monalisa's runs the whole calendar ("365+"); defunkt has none.
+private func captureHistory(_ username: String, asOf reference: Date) -> ContributionHistory {
+    let perDay = ["octocat": 5, "hubot": 4, "monalisa": 3, "defunkt": 2, "mojombo": 1][username] ?? 1
+    let streak = ["octocat": 14, "hubot": 6, "monalisa": 371, "defunkt": 0, "mojombo": 2][username] ?? 1
+    var calendar = Calendar(identifier: .gregorian)
+    calendar.timeZone = .current
+    let today = calendar.startOfDay(for: reference)
+    var days: [String: Int] = [:]
+    for offset in 0..<371 {
+        let day = calendar.date(byAdding: .day, value: -offset, to: today)!
+        let active = offset < streak || (offset > max(streak, 1) && offset % 5 != 0)
+        days[ContributionHistory.key(for: day, in: calendar)] = active ? perDay * (1 + offset % 3) : 0
     }
+    return ContributionHistory(days: days, timeZone: .current)
 }
 
 enum MenuPopoverLayout'''.replace('LARGE_BOARD', str(args.large_board).lower()) + helpers)

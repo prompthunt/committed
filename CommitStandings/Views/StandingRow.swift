@@ -10,6 +10,9 @@ struct StandingRow: View {
     var maxContributions: Int = 0
     /// Change in this row's placement since the start of the day (+ up, − down). nil/0 ⇒ no marker.
     var rankDelta: Int? = nil
+    /// Days in a row with a contribution (`ContributionHistory.currentStreak`). Shown as "🔥 12"
+    /// from 2 days, and only once this row's count has loaded. nil ⇒ no history yet.
+    var streak: Int? = nil
     /// Grows with Dynamic Type on iPhone so "#12" never truncates; stays 24pt on the Mac.
     @ScaledMetric(relativeTo: .caption) private var rankWidth: CGFloat = 24
     /// iPhone at accessibility text sizes wraps long usernames instead of truncating them.
@@ -41,6 +44,7 @@ struct StandingRow: View {
             Spacer(minLength: 6)
             HStack(spacing: 4) {
                 rankDeltaIndicator
+                streakLabel
                 contributionsLabel
                     .fixedSize(horizontal: style.keepsCountWhole, vertical: false)
                     .frame(minWidth: style.countMinWidth, alignment: .trailing)
@@ -131,7 +135,25 @@ struct StandingRow: View {
         let movement = rankDelta.map { delta in
             delta == 0 ? "" : ", \(delta > 0 ? "up" : "down") \(delta.magnitude) \(delta.magnitude == 1 ? "place" : "places") today"
         } ?? ""
-        return standingDescription + movement
+        let streak = hasData ? StreakLabel.spoken(streak).map { ", " + $0 } ?? "" : ""
+        return standingDescription + streak + movement
+    }
+
+    /// "🔥 12" beside the count, or nil: under 2 days, or no count loaded (a failed or first load
+    /// shows no streak, never "0").
+    var streakText: String? {
+        hasData ? StreakLabel.text(streak) : nil
+    }
+
+    @ViewBuilder
+    private var streakLabel: some View {
+        if let streakText {
+            Text(streakText)
+                .font(style.streakFont)
+                .foregroundStyle(style.streakColor.map(AnyShapeStyle.init) ?? AnyShapeStyle(.secondary))
+                .lineLimit(1)
+                .fixedSize()
+        }
     }
 
     private var standingDescription: String {
@@ -185,6 +207,31 @@ struct StandingRow: View {
                     .pulsing(isRefreshing)
             }
         }
+    }
+}
+
+/// How a streak reads wherever it shows: "🔥 12" from 2 days ("🔥 1" would clutter every row),
+/// "365+" past GitHub's calendar (about a year, so the app never claims more than it can see), and
+/// "12-day streak" to VoiceOver so the flame isn't read aloud.
+enum StreakLabel {
+    /// Shortest streak shown.
+    static let minimum = 2
+    /// Longest streak shown as a number; anything longer reads "365+".
+    static let cap = 365
+
+    static func text(_ streak: Int?) -> String? {
+        number(streak).map { "🔥 \($0)" }
+    }
+
+    static func spoken(_ streak: Int?) -> String? {
+        guard let streak, streak >= minimum else { return nil }
+        return streak > cap ? "\(cap)-plus-day streak" : "\(streak)-day streak"
+    }
+
+    /// "12", "365+", or nil under 2 days.
+    static func number(_ streak: Int?) -> String? {
+        guard let streak, streak >= minimum else { return nil }
+        return streak > cap ? "\(cap)+" : "\(streak)"
     }
 }
 
