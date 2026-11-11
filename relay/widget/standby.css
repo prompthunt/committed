@@ -1,13 +1,15 @@
 /*
  * Committed's StandBy pair for other screens. Runs on Chromium 76 (Samsung Frame): no flex gap,
- * inset, aspect-ratio, clamp/min/max, CSS variables, gradients, shadows or blur, and only opacity
- * and transform animate. test/widget-runtime.test.ts checks these rules.
+ * inset, aspect-ratio, clamp/min/max, CSS variables, gradients, shadows or blur, no filter but the
+ * rendering modes' two static avatar filters, and only opacity and transform animate. test/widget-runtime.test.ts checks these rules.
  *
  * Every size is in rem. standby.js sets the root font size from the box the page is given, so the
  * whole layout scales to fill it. Colors are Committed's palette (CommittedTheme.swift):
  * ink #050505, tile #0e100b, raised #1b1d17, lime #c8ff2e, limeDeep #8bc41a, onLime #1e2410,
  * muted #8e9288, soft #d6d9d0. Framed in another screen (html.embedded), the page draws with
- * Apple's vibrant tokens (label-secondary, label-tertiary, separator): see "Framed" at the end.
+ * Apple's vibrant tokens (label-secondary, label-tertiary, separator): see "Framed" near the end.
+ * The host's rendering mode (fullColor, accented, vibrant) is a class on <html>: see "Rendering
+ * modes" at the end.
  */
 
 @font-face {
@@ -752,4 +754,147 @@ html.embedded .card {
 /* separator */
 html.embedded .folio {
   border-bottom-color: rgba(255, 255, 255, 0.1);
+}
+
+/* MARK: Rendering modes: iOS widgets' modes under Apple's names (Glance's rendering-mode message)
+
+   standby.js sets one class on <html>, beside embedded: rendering-full-color (the default, and
+   what every rule above draws), rendering-accented (the tinted Home Screen) or rendering-vibrant
+   (StandBy's Night Mode). Glance posts the mode to the frame; ?renderingMode= forces it for tests.
+
+   A mode recolours everything, the stale step-down included, so its colours are !important: they
+   win over every state rule above without repeating each one, and over the field squares' inline
+   colours. The iPhone widget marks the trophy and the rank as its accent (.widgetAccentable());
+   here every colour collapses to the mode's one colour, so the accent reads by size, as it does
+   in Apple's accented mode. */
+
+/* accented, label-primary (#fff): Committed's lime and deep lime, the trophy, avatar initials */
+html.rendering-accented .trophy,
+html.rendering-accented .count,
+html.rendering-accented .movement-line,
+html.rendering-accented .status,
+html.rendering-accented .movement,
+html.rendering-accented .row[data-self="true"] .row-count,
+html.rendering-accented .initials,
+html.rendering-accented .badge {
+  color: #ffffff !important;
+}
+
+/* accented, label-secondary: the supporting text, as when framed, and the stale step-down */
+html.rendering-accented .list-head,
+html.rendering-accented .row-rank,
+html.rendering-accented .folio,
+html.rendering-accented .who-handle,
+html.rendering-accented .rank-of,
+html.rendering-accented .count-label,
+html.rendering-accented .movement-line[data-direction="down"],
+html.rendering-accented .status.quiet,
+html.rendering-accented .age,
+html.rendering-accented .movement[data-direction="down"],
+html.rendering-accented .message-detail,
+html.rendering-accented .loading .rank,
+html.rendering-accented[data-state="stale"] .rank,
+html.rendering-accented[data-state="stale"] .row {
+  color: rgba(255, 255, 255, 0.6) !important;
+}
+
+/* accented fills: fill-secondary for the rank card, your row and the avatars' circles; fill-primary
+   (a selected chip) for the "you" badge and your row's edge; separator for hairlines */
+html.rendering-accented .card {
+  background: rgba(255, 255, 255, 0.07) !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+html.rendering-accented .folio {
+  border-bottom-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+html.rendering-accented .row[data-self="true"] {
+  background: rgba(255, 255, 255, 0.07) !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+html.rendering-accented .badge {
+  background: rgba(255, 255, 255, 0.2) !important;
+}
+
+html.rendering-accented .avatar {
+  background: rgba(255, 255, 255, 0.07) !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+html.rendering-accented .who .who-avatar {
+  border-color: rgba(255, 255, 255, 0.6) !important;
+}
+
+/* accented squares: the row glyph's levels step up in white; the hero's field keeps its ramp at
+   about half each green's own grey, since white over the surface lifts it where the greens darken it */
+html.rendering-accented .glyph i { background: rgba(255, 255, 255, 0.25) !important; }
+html.rendering-accented .glyph[data-level="1"] i { background: rgba(255, 255, 255, 0.4) !important; }
+html.rendering-accented .glyph[data-level="2"] i { background: rgba(255, 255, 255, 0.6) !important; }
+html.rendering-accented .glyph[data-level="3"] i { background: rgba(255, 255, 255, 0.8) !important; }
+html.rendering-accented .glyph[data-level="4"] i { background: #ffffff !important; }
+html.rendering-accented .field i.l0 { background: rgba(255, 255, 255, 0.04) !important; }
+html.rendering-accented .field i.l1 { background: rgba(255, 255, 255, 0.08) !important; }
+html.rendering-accented .field i.l2 { background: rgba(255, 255, 255, 0.16) !important; }
+html.rendering-accented .field i.l3 { background: rgba(255, 255, 255, 0.3) !important; }
+
+/* vibrant (Night Mode): night red, Apple's dark systemRed #ff453a (6.2:1 on black), for every piece
+   of text and every icon. No alpha hierarchy: a 60% red would be about 2.3:1 on black, so
+   hierarchy comes from size and weight. Only decorative fills and hairlines use red at low alpha. */
+html.rendering-vibrant,
+html.rendering-vibrant * {
+  color: #ff453a !important;
+}
+
+html.rendering-vibrant .card {
+  background: rgba(255, 69, 58, 0.07) !important;
+  border-color: rgba(255, 69, 58, 0.1) !important;
+}
+
+html.rendering-vibrant .folio {
+  border-bottom-color: rgba(255, 69, 58, 0.1) !important;
+}
+
+html.rendering-vibrant .row[data-self="true"] {
+  background: rgba(255, 69, 58, 0.07) !important;
+  border-color: rgba(255, 69, 58, 0.2) !important;
+}
+
+html.rendering-vibrant .badge {
+  background: rgba(255, 69, 58, 0.2) !important;
+}
+
+html.rendering-vibrant .avatar {
+  background: rgba(255, 69, 58, 0.07) !important;
+  border-color: rgba(255, 69, 58, 0.1) !important;
+}
+
+html.rendering-vibrant .who .who-avatar {
+  border-color: rgba(255, 69, 58, 0.6) !important;
+}
+
+/* vibrant squares: the same ramp as accented, in night red */
+html.rendering-vibrant .glyph i { background: rgba(255, 69, 58, 0.25) !important; }
+html.rendering-vibrant .glyph[data-level="1"] i { background: rgba(255, 69, 58, 0.4) !important; }
+html.rendering-vibrant .glyph[data-level="2"] i { background: rgba(255, 69, 58, 0.6) !important; }
+html.rendering-vibrant .glyph[data-level="3"] i { background: rgba(255, 69, 58, 0.8) !important; }
+html.rendering-vibrant .glyph[data-level="4"] i { background: #ff453a !important; }
+html.rendering-vibrant .field i.l0 { background: rgba(255, 69, 58, 0.04) !important; }
+html.rendering-vibrant .field i.l1 { background: rgba(255, 69, 58, 0.08) !important; }
+html.rendering-vibrant .field i.l2 { background: rgba(255, 69, 58, 0.16) !important; }
+html.rendering-vibrant .field i.l3 { background: rgba(255, 69, 58, 0.3) !important; }
+
+/* Images (the GitHub avatars): greyscale in accented, as Apple renders images there, and greyscale
+   tinted toward night red in Night Mode: every grey lands at hue 3-4 degrees (#ff453a is 3.4), and
+   white at rgb(213,81,72), just under the night red, so a pale avatar never outshines the text.
+   Static filters only: Glance measured
+   grayscale() on a dozen images at 41 fps on the Frame against 42 flat (its docs/office-frame.md),
+   where blur and SVG filters ran at 4-5 fps. test/widget-runtime.test.ts allows exactly these two. */
+html.rendering-accented .avatar.loaded img {
+  filter: grayscale(1);
+}
+
+html.rendering-vibrant .avatar.loaded img {
+  filter: grayscale(1) brightness(0.35) sepia(1) saturate(4) hue-rotate(-45deg);
 }

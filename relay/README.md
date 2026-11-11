@@ -287,13 +287,32 @@ card (`BoardSummaryView`, rank only) beside the board list. Glance on the office
   highlight and the avatars don't change. Opened on its own, the page looks as before. On flat
   every text role clears 4.5:1 (3:1 for large text); on the unmaterialled glass bake two
   `label-secondary` roles fall short, which Glance's material behind the tile is to fix.
+- **Rendering modes:** iOS widgets' modes under Apple's names. The host posts
+  `{ type: "glance:rendering-mode", renderingMode: "fullColor" | "accented" | "vibrant" }` to the
+  frame (Glance does on each frame's `load` and whenever the mode changes). The page takes it only
+  when `event.source === window.parent` and the value is one of the three; anything else is
+  ignored. It sets one class on `<html>` beside `embedded`: `rendering-full-color` (the default,
+  with no message, unframed, and with older hosts), `rendering-accented` or `rendering-vibrant`.
+  All the styling is in `standby.css`, keyed off that class, so re-renders pick it up. For tests and
+  TV captures, `?renderingMode=<mode>` in the query forces a mode (the fragment holds the token).
+  - `fullColor`: the look above, unchanged.
+  - `accented` (the tinted Home Screen): lime and deep lime go white, the supporting text stays
+    `label-secondary`, the rank card, your row and the avatars' circles use `fill-secondary`
+    (`rgba(255,255,255,0.07)`), the "you" badge and your row's edge `fill-primary` (0.20), and the
+    squares keep their ramp in white. Avatars render greyscale (`filter: grayscale(1)`).
+  - `vibrant` (StandBy's Night Mode): every piece of text and every icon in night red `#ff453a`
+    (Apple's dark systemRed, 6.2:1 on black), with no alpha hierarchy; fills and hairlines are the
+    same red at Apple's fill alphas. Avatars render greyscale tinted toward the red.
+  - The two avatar filters are the only `filter` the page uses: Glance measured a static
+    `grayscale(1)` on a dozen images at 41 fps on the Frame against 42 flat.
 - **Motion:** row counts tick up, rows slide to their new places (FLIP with transforms), and
   movement chevrons fade in.
 
 ### Runtime limits (Samsung Frame, Chromium 76)
 
 ES5 JavaScript only. No CSS flex `gap`, `inset`, `aspect-ratio`, `clamp()`, `min()`, `max()` or
-custom properties; no gradients, shadows or blur; only `opacity` and `transform` animate. Fonts
+custom properties; no gradients, shadows or blur, and no `filter` except the two static avatar
+filters of the rendering modes; only `opacity` and `transform` animate. Fonts
 and icons come from the relay; only avatars come from GitHub. `test/widget-runtime.test.ts`
 checks all of this in `npm test` against the exact files the route serves (ES5 via `acorn`).
 
@@ -301,7 +320,7 @@ checks all of this in `npm test` against the exact files the route serves (ES5 v
 
 `browser/widget.spec.ts` drives the page in Playwright against a stubbed board route: every
 state above, the poll, the stale switch, the token staying out of URLs, the row swap and count
-tick, and no overflow at 1280×1080, 852×393, 360×240 and 400×900.
+tick, each rendering mode from a framing page's message (and messages it must ignore), and no overflow at 1280×1080, 852×393, 360×240 and 400×900.
 
 ```bash
 npx playwright install chromium   # once

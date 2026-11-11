@@ -27,6 +27,12 @@
   var RANK_STACKED_REM = 5;
   /** Below this the card gives up a line (identity, then the age, …) to keep the rank legible. */
   var RANK_MIN_REM = 2.6;
+  /**
+   * iOS widgets' rendering modes, under Apple's names, and the class each sets on <html>. Glance
+   * posts { type: "glance:rendering-mode", renderingMode } to its tiles' frames; all the styling is
+   * in standby.css, keyed off the class.
+   */
+  var RENDERING_MODES = { fullColor: "rendering-full-color", accented: "rendering-accented", vibrant: "rendering-vibrant" };
   /** Palette.squares up to the hero field's brightest level (FieldTone.hero.maxLevel = 3). */
   var SQUARES = [[0x14, 0x17, 0x0f], [0x1d, 0x2e, 0x0e], [0x35, 0x5c, 0x12], [0x6a, 0xa8, 0x1a]];
 
@@ -54,6 +60,8 @@
   /** The size the field was last drawn for. */
   var fieldKey = "";
   var whoLogin = null;
+  /** fullColor until the host (or the ?renderingMode= test hook) says otherwise. */
+  var renderingMode = "fullColor";
 
   function byId(id) {
     return doc.getElementById(id);
@@ -663,8 +671,9 @@
         var u = c / columns;
         var wave = (Math.cos(3 * u) + Math.cos(u)) / 4 + 0.5;
         var value = Math.min(Math.max((0.62 * hash(c, r) + 0.38 * wave) * (0.35 + 0.9 * lit), 0), 0.999) * (SQUARES.length - 1);
+        // The level's class lets a rendering mode recolour the square in CSS (standby.css).
         html +=
-          '<i style="left:' + x + "px;top:" + y + "px;width:" + cell + "px;height:" + cell + "px;background:" +
+          '<i class="l' + Math.floor(value) + '" style="left:' + x + "px;top:" + y + "px;width:" + cell + "px;height:" + cell + "px;background:" +
           squareColor(value) + ";opacity:" + opacity.toFixed(2) + '"></i>';
       }
     }
@@ -712,6 +721,38 @@
     return p - Math.floor(p);
   }
 
+  // MARK: - Rendering mode
+
+  /** The layout, framing and rendering-mode classes on <html>, together: fit() rewrites them on resize. */
+  function applyClasses() {
+    root.className = (stacked ? "stacked " : "") + (embedded ? "embedded " : "") + RENDERING_MODES[renderingMode];
+  }
+
+  /** A known mode replaces the current one; anything else is ignored. */
+  function setRenderingMode(mode) {
+    if (typeof mode !== "string" || !RENDERING_MODES.hasOwnProperty(mode)) return;
+    renderingMode = mode;
+    applyClasses();
+  }
+
+  /** The test hook: ?renderingMode=<mode> in the query (the fragment holds the token). */
+  function readQuery(search) {
+    var parts = (search || "").replace(/^\?/, "").split("&");
+    for (var i = 0; i < parts.length; i++) {
+      var pair = parts[i].split("=");
+      if (pair[0] === "renderingMode") return pair.slice(1).join("=");
+    }
+    return null;
+  }
+
+  /** Glance's message, only from the page that frames this one. */
+  function onMessage(event) {
+    if (event.source !== window.parent || window.parent === window) return;
+    var data = event.data;
+    if (!data || typeof data !== "object" || data.type !== "glance:rendering-mode") return;
+    setRenderingMode(data.renderingMode);
+  }
+
   // MARK: - Fitting the box
 
   /** One rem scales with the box the page is given, so the pair fills it at any size. */
@@ -721,7 +762,7 @@
     stacked = height > width * 1.2;
     unit = stacked ? Math.min(width / 20, height / 28) : Math.min(width / 36, height / 15);
     root.style.fontSize = unit + "px";
-    root.className = (stacked ? "stacked" : "") + (embedded ? " embedded" : "");
+    applyClasses();
     if (board) {
       renderRows(false);
       fitCard();
@@ -731,6 +772,8 @@
   // MARK: - Start
 
   setText(byId("folio"), WINDOW_NUMBERS[windowName] + " · " + WINDOW_TITLES[windowName]);
+  setRenderingMode(readQuery(location.search));
+  window.addEventListener("message", onMessage);
   fit();
   window.addEventListener("resize", fit);
   if (doc.fonts && doc.fonts.ready) {
