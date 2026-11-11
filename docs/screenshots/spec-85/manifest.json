@@ -209,6 +209,50 @@
         "fixture": true
       },
       "notes": "Board surface of the fixture host, light, with made-up calendars for the fixture's GitHub handles. The host drew its own window into a PNG (NSView cacheDisplay, the technique the script's -CaptureSnapshot uses) because the capturing shell has no Screen Recording permission. No before capture. Captured on branch spec-85/92-streaks before it merged #95, so the Window switch has no This month yet."
+    },
+    {
+      "file": "98/mac-final-standings.png",
+      "caption": "#98 Mac popover on the 1st: the board opens on October's Final standings behind the 🏅 October final standings switch, with \"October final · You finished #1 of 5\" over the rows, 🥇🥈🥉 before the top three names, and your card showing your October total (\"in October\")",
+      "capture": {
+        "device": "MacBook Pro, fixture host (scripts/build-flow-capture.py)",
+        "os": "macOS 27.0.1",
+        "sourceCommit": "92f9d0619a3cae97fcc000ca466424e96aea1920",
+        "fixture": true
+      },
+      "notes": "Fixture host launched with -CaptureDate 2026-11-01T18:00:00Z -CaptureSnapshot; the host drew its own window into a PNG (NSView cacheDisplay) because the capturing shell has no Screen Recording permission. Made-up calendars from #92's host (captureHistory); light appearance. Final standings rows show no streak by design."
+    },
+    {
+      "file": "98/mac-board-the-2nd.png",
+      "caption": "#98 Mac popover on the 2nd: no Final standings switch; the live board as before",
+      "capture": {
+        "device": "MacBook Pro, fixture host (scripts/build-flow-capture.py)",
+        "os": "macOS 27.0.1",
+        "sourceCommit": "92f9d0619a3cae97fcc000ca466424e96aea1920",
+        "fixture": true
+      },
+      "notes": "Same host with -CaptureDate 2026-11-02T18:00:00Z, as the after-the-1st baseline."
+    },
+    {
+      "file": "98/iphone-final-standings.png",
+      "caption": "#98 iPhone Board on the 1st (Sample board): the 🏅 October final standings switch, on, then \"October final · You finished #3 of 6\" and the rows with 🥇 ines-volk, 🥈 odile-m and 🥉 ari-linden (you)",
+      "capture": {
+        "device": "iPhone Duo Simulator (closed)",
+        "os": "iOS 27.1",
+        "sourceCommit": "92f9d0619a3cae97fcc000ca466424e96aea1920",
+        "fixture": true
+      },
+      "notes": "Runtime capture (xcrun simctl io screenshot --display=1) of a Debug build on the persistent iPhone Duo, launched with -ScreenshotFixture -ScreenshotTab board -ScreenshotDate 2026-11-01T18:00:00Z: the Sample board's made-up calendars (niko-vane always fails and ranks 6th below the fold). \"Updated 9 days ago\" comes from the fixture's fixed past clock against today's date, not from the feature. The summary card stays on the live Window on iPhone."
+    },
+    {
+      "file": "98/iphone-board-the-2nd.png",
+      "caption": "#98 iPhone Board on the 2nd (Sample board): no Final standings switch; the live board as before",
+      "capture": {
+        "device": "iPhone Duo Simulator (closed)",
+        "os": "iOS 27.1",
+        "sourceCommit": "92f9d0619a3cae97fcc000ca466424e96aea1920",
+        "fixture": true
+      },
+      "notes": "Same launch with -ScreenshotDate 2026-11-02T18:00:00Z, as the after-the-1st baseline. \"Updated 8 days ago\" is the fixed past clock, as above."
     }
   ]
 }
