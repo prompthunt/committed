@@ -233,84 +233,22 @@ fn current_streaks() {
 }
 
 #[test]
-fn windows_use_the_mac_and_iphone_raw_values_for_30_days_and_this_month() {
-    // Swift and the relay call 30 days "monthly" and This month "month"; Windows matches them.
+fn windows_use_the_mac_and_iphone_raw_value_for_30_days() {
+    // Swift and the relay call 30 days "monthly"; Windows matches them.
     assert_eq!(
         serde_json::to_string(&Window::Monthly).unwrap(),
         r#""monthly""#
     );
     assert_eq!(
-        serde_json::to_string(&Window::ThisMonth).unwrap(),
-        r#""month""#
-    );
-    assert_eq!(
-        serde_json::from_str::<Window>(r#""month""#).unwrap(),
-        Window::ThisMonth
+        serde_json::from_str::<Window>(r#""monthly""#).unwrap(),
+        Window::Monthly
     );
     assert_eq!(serde_json::to_string(&Window::Today).unwrap(), r#""today""#);
     assert_eq!(serde_json::to_string(&Window::Week).unwrap(), r#""week""#);
 }
 
 #[test]
-fn this_month_counts_the_local_calendar_month_to_date() {
-    let calendar = days(&[
-        (d(2026, 1, 31), 50), // the day before February: never in February's total
-        (d(2026, 2, 1), 1),
-        (d(2026, 2, 14), 2),
-        (d(2026, 2, 28), 4), // last day of a 28-day February
-        (d(2026, 3, 1), 8),
-        (d(2026, 3, 8), 16), // US DST starts
-        (d(2026, 4, 1), 3),
-        (d(2026, 4, 30), 5), // last day of a 30-day April
-        (d(2026, 5, 1), 10),
-        (d(2026, 5, 27), 20),
-        (d(2026, 5, 28), 30),
-        (d(2026, 5, 29), 40), // after today on May 28
-        (d(2026, 5, 31), 60), // last day of a 31-day May
-        (d(2026, 6, 1), 7),
-        (d(2026, 12, 31), 9),
-        (d(2027, 1, 1), 11),
-        (d(2028, 2, 28), 2),
-        (d(2028, 2, 29), 6), // leap day
-        (d(2028, 3, 1), 1),
-    ]);
-    let cases: &[(&str, NaiveDate, u32)] = &[
-        (
-            "May 28: May 1 to 28, future days ignored",
-            d(2026, 5, 28),
-            60,
-        ),
-        ("last day of a 31-day month", d(2026, 5, 31), 160),
-        ("the 1st resets to just today", d(2026, 6, 1), 7),
-        ("the 1st with nothing yet is 0", d(2026, 7, 1), 0),
-        ("last day of a 28-day February", d(2026, 2, 28), 7),
-        ("Mar 1 after February starts again", d(2026, 3, 1), 8),
-        ("across the DST change", d(2026, 3, 9), 24),
-        ("last day of a 30-day April", d(2026, 4, 30), 8),
-        ("Dec 31", d(2026, 12, 31), 9),
-        ("Jan 1 does not reach back into December", d(2027, 1, 1), 11),
-        ("29-day February on the leap day", d(2028, 2, 29), 8),
-        ("Mar 1 after a leap day", d(2028, 3, 1), 1),
-        // Midnight on the 1st in different zones: at 2026-05-31T15:30Z it's already June 1 in
-        // Tokyo but still May 31 in Los Angeles. Each clock hands the core its own local day.
-        ("Tokyo's month at 2026-05-31T15:30Z", d(2026, 6, 1), 7),
-        (
-            "Los Angeles' month at 2026-05-31T15:30Z",
-            d(2026, 5, 31),
-            160,
-        ),
-    ];
-    for (name, today, expected) in cases {
-        assert_eq!(
-            history::total(&calendar, Window::ThisMonth, *today),
-            *expected,
-            "{name}"
-        );
-    }
-}
-
-#[test]
-fn days_in_month_for_day_x_of_y() {
+fn days_in_month_counts_each_months_length() {
     let cases: &[(NaiveDate, u32)] = &[
         (d(2026, 2, 10), 28),
         (d(2028, 2, 10), 29),
@@ -325,27 +263,11 @@ fn days_in_month_for_day_x_of_y() {
 }
 
 #[test]
-fn a_finished_month_totals_the_whole_month() {
-    let calendar = days(&[
-        (d(2026, 9, 30), 50), // the day before October
-        (d(2026, 10, 1), 1),
-        (d(2026, 10, 15), 2),
-        (d(2026, 10, 31), 4), // last day of a 31-day month
-        (d(2026, 11, 1), 8),  // the day after
-        (d(2027, 2, 28), 3),
-        (d(2028, 2, 29), 6), // leap day
-        (d(2028, 3, 1), 9),
-    ]);
-    let cases: &[(&str, NaiveDate, u32)] = &[
-        ("October from its 1st", d(2026, 10, 1), 7),
-        ("any day names its month", d(2026, 10, 20), 7),
-        ("a 28-day February", d(2027, 2, 1), 3),
-        ("a 29-day February includes the leap day", d(2028, 2, 1), 6),
-        ("a month with no cells is 0", d(2026, 12, 1), 0),
-    ];
-    for (name, month, expected) in cases {
-        assert_eq!(history::month_total(&calendar, *month), *expected, "{name}");
-    }
+fn a_month_range_runs_from_the_1st_to_the_last_day() {
+    assert_eq!(
+        history::month_range(d(2026, 10, 20)),
+        d(2026, 10, 1)..=d(2026, 10, 31)
+    );
     assert_eq!(
         history::month_range(d(2028, 2, 10)),
         d(2028, 2, 1)..=d(2028, 2, 29)
@@ -356,37 +278,8 @@ fn a_finished_month_totals_the_whole_month() {
     );
 }
 
-/// GitHub's calendar starts on a Sunday about a year back and the parser keeps every rendered
-/// cell, zeros included, so the calendar's first key is the first day it covers. A month counts
-/// as finished-and-offered only from the first month the calendar covers in full.
-#[test]
-fn the_first_full_month_is_the_first_month_the_calendar_covers_from_its_1st() {
-    type Case<'a> = (&'a str, &'a [(NaiveDate, u32)], Option<NaiveDate>);
-    let cases: &[Case] = &[
-        ("no calendar", &[], None),
-        (
-            "starts mid-month: the next month",
-            &[(d(2025, 11, 9), 0), (d(2026, 11, 1), 3)],
-            Some(d(2025, 12, 1)),
-        ),
-        (
-            "starts on a 1st: that month",
-            &[(d(2025, 11, 1), 0), (d(2026, 11, 1), 3)],
-            Some(d(2025, 11, 1)),
-        ),
-        (
-            "starts on Dec 31: next January",
-            &[(d(2025, 12, 31), 0)],
-            Some(d(2026, 1, 1)),
-        ),
-    ];
-    for (name, cells, expected) in cases {
-        assert_eq!(history::first_full_month(&days(cells)), *expected, "{name}");
-    }
-}
-
 /// The person view's bars: one count per day of a range, 1st first, 0 for a day the calendar
-/// doesn't have. This month stops at today; a finished month runs to its last day.
+/// doesn't have. This month stops at today; last month runs to its last day.
 #[test]
 fn a_day_series_has_one_count_per_day_of_the_range() {
     let calendar = days(&[
@@ -399,7 +292,7 @@ fn a_day_series_has_one_count_per_day_of_the_range() {
     ]);
     let today = d(2026, 11, 3);
     assert_eq!(
-        history::series(&calendar, history::range(Window::ThisMonth, today)),
+        history::series(&calendar, d(2026, 11, 1)..=today),
         vec![1, 0, 5]
     );
     let october = history::series(&calendar, history::month_range(d(2026, 10, 1)));
@@ -423,12 +316,9 @@ fn active_days_count_days_with_a_contribution() {
         (d(2026, 11, 6), 8), // after today
     ]);
     let today = d(2026, 11, 5);
+    assert_eq!(history::active_days(&calendar, d(2026, 11, 1)..=today), 3);
     assert_eq!(
-        history::active_days(&calendar, history::range(Window::ThisMonth, today)),
-        3
-    );
-    assert_eq!(
-        history::active_days(&BTreeMap::new(), history::range(Window::ThisMonth, today)),
+        history::active_days(&BTreeMap::new(), d(2026, 11, 1)..=today),
         0
     );
 }

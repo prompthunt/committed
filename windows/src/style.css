@@ -188,12 +188,10 @@ small {
   gap: 3px;
 }
 .windows button {
-  /* Four Windows share the row by label width so "This month" stays on one line at 340 px. */
-  flex: 1 1 auto;
-  white-space: nowrap;
+  flex: 1;
   border: 0;
   background: none;
-  padding: 7px 4px;
+  padding: 7px 0;
   min-height: 36px;
 }
 .windows [aria-checked="true"] {
@@ -201,26 +199,6 @@ small {
   box-shadow: 0 1px 3px #0002;
   font-weight: 600;
   color: var(--accent);
-}
-.final-toggle {
-  display: block;
-  width: 100%;
-  margin-top: 8px;
-  padding: 7px 10px;
-  min-height: 36px;
-  border-radius: 9px;
-  font-weight: 600;
-  text-align: center;
-}
-.final-toggle[aria-pressed="true"] {
-  background: var(--selected);
-  border-color: var(--selection-border);
-  color: var(--accent);
-}
-.medal {
-  flex-shrink: 0;
-  font-size: 15px;
-  line-height: 1;
 }
 .status {
   font-size: 12px;
@@ -639,23 +617,6 @@ select {
   font-size: 9px;
   text-anchor: middle;
 }
-.finishes {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-.finishes li {
-  display: grid;
-  grid-template-columns: 24px 1fr auto auto;
-  align-items: center;
-  gap: 10px;
-  padding: 8px 4px;
-  border-bottom: 1px solid var(--border);
-  font-variant-numeric: tabular-nums;
-}
-.finish-rank {
-  color: var(--muted);
-}
 .waiting {
   padding: 16px;
   border-radius: 12px;
@@ -740,7 +701,6 @@ select {
     color: CanvasText;
   }
   .windows [aria-checked="true"],
-  .final-toggle[aria-pressed="true"],
   .you {
     outline: 1px solid Highlight;
   }

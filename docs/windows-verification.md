@@ -36,16 +36,13 @@ and notification behavior. UI tests mock Tauri IPC. Tests do not use a live toke
 - [x] The per-user installer exits successfully without elevation and registers Committed in the current user's Installed apps registry.
 - [x] The installed app restores the GitHub connection after relaunch and loads the owner's profile image without another approval.
 - [x] The installed board uses the site's trophy and lime palette; About renders the approved app tile. Compact standings scroll beneath the fixed header, and time-range switching still works.
-- [ ] This month shows "Day N of M" for the local month, matches the Mac's This month totals, and starts again at zero on the 1st; its movement chevrons appear like Today's.
-- [ ] On the 1st the board opens on last month's Final standings (🥇🥈🥉 on the top three above zero, "October final · You finished #N of M"); the toggle and every Window return to the live board, and the next day the toggle is gone.
-- [ ] Clicking a row opens that person's view in its own window titled with their name; clicking the same row again focuses it, and another row switches it. It shows this month's bars over last month's grey ones, the selected day's date and count, current and longest streak, "Active days: N of M", past months with medals, and GitHub profile opens their page. Your own view has the private-contributions tip; someone whose count hasn't loaded shows "Waiting for …'s count", never empty bars. Narrator reads the chart summary and each bar by arrow key.
+- [ ] Clicking a row opens that person's view in its own window titled with their name; clicking the same row again focuses it, and another row switches it. It shows this month's bars over last month's grey ones, the selected day's date and count, current and longest streak and "Active days: N of M"; GitHub profile opens their page. Your own view has the private-contributions tip; someone whose count hasn't loaded shows "Waiting for …'s count", never empty bars. Narrator reads the chart summary and each bar by arrow key.
 - [ ] Tray click toggles the board next to the notification area, including alternate taskbar positions and display scaling; outside click and Escape hide it.
 - [ ] Inspect Credential Manager for `com.digg.commitstandings.windows`; Disconnect deletes the credential without deleting hidden choices.
 - [ ] Check People source filters and complete all flows using only the keyboard.
 - [ ] Menu Refresh, About, private-tip dismissal and Disconnect work on the desktop.
 - [ ] Enable Launch at Login, restart Windows, verify start; disable and verify no start.
 - [ ] Opt into notifications; a real crossing displays the tested copy; turning them off suppresses it.
-- [ ] With notifications on, the first refresh of a new month shows one "October final" / "You finished #N of M" toast, and no second one after quitting and relaunching that month.
 - [ ] Check light theme, dark theme, high contrast, transparency off and reduced motion on the board.
 - [ ] Narrator reads rank, name, Contributions, you, time-range changes and refresh completion/failure.
 - [ ] Installed apps uninstall removes the app and login entry.

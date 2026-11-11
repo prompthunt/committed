@@ -1,7 +1,7 @@
 // Dev-only entry for `fixture.html`: answers the app's Tauri commands with the Sample board so
 // any view renders in a plain browser. Query: `view` (board, people, about, person; default
-// board), `date` (YYYY-MM-DD, default today; a 1st shows last month's Final standings) and, for
-// the person view, `login` (default you; niko-vane never loads, so his view waits).
+// board), `date` (YYYY-MM-DD, default today) and, for the person view, `login` (default you;
+// niko-vane never loads, so his view waits).
 import { mockIPC } from "@tauri-apps/api/mocks";
 import { start } from "./app";
 import {

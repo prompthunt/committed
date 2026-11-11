@@ -5,7 +5,6 @@ import type {
   Board,
   Burst,
   DesktopSettings,
-  Medal,
   Person,
   PersonView,
   PersonVisibility,
@@ -30,7 +29,6 @@ const windows: [Window, string][] = [
   ["today", "Today"],
   ["week", "7 days"],
   ["monthly", "30 days"],
-  ["month", "This month"],
 ];
 const escape = (value: unknown) =>
   String(value ?? "").replace(
@@ -51,11 +49,6 @@ function streakText(streak: number | null | undefined) {
   if (streak == null || streak < 2) return null;
   return streak > streakCap ? `${streakCap}+` : String(streak);
 }
-const medals: Record<Medal, string> = {
-  gold: "🥇",
-  silver: "🥈",
-  bronze: "🥉",
-};
 /** "12-day streak", or "365-plus-day streak" past the calendar. */
 const streakSpoken = (text: string) =>
   `${text.replace(/\+$/, "-plus")}-day streak`;
@@ -118,10 +111,6 @@ function selectedDay(view: PersonView, day: number) {
   const last = past[day - 1];
   return `<p class="selected-day"><strong>${view.month_name} ${day}</strong> · ${plural(now[day - 1], "contribution")}${last === undefined ? "" : ` <span class="muted">· ${view.last_month_name} ${day} · ${last.toLocaleString()}</span>`}</p>`;
 }
-function finishMonth(view: PersonView, month: string, monthName: string) {
-  const year = month.slice(0, 4);
-  return year === view.month.slice(0, 4) ? monthName : `${monthName} ${year}`;
-}
 /** The private-contributions tip, as on the Mac: always shown on your own person view. */
 const privateTip = `<aside class="tip person-tip"><div><p><strong>Want your private work to count?</strong></p><p>Include private repo and org activity: on your GitHub profile, above the green squares, choose <strong>Contribution settings → Private contributions</strong>.</p><p>Only daily counts are shared. Your code and repo details stay private.</p><button data-action="contributions">Open GitHub profile settings</button></div></aside>`;
 /** What the Contributions count can't show (#89), under your own person view, as on the Mac. */
@@ -132,13 +121,6 @@ function personHtml(view: PersonView, selected: number) {
   if (!history)
     return `${header}<section class="waiting" role="status"><p><strong>Waiting for ${escape(name(view))}’s count</strong></p><p class="muted">${view.status === "failed" ? "GitHub didn’t answer the last refresh. Committed tries again on the next one." : "Their month appears once the next refresh loads it."}</p></section>${view.is_you ? privateTip + limitsNote : ""}`;
   const total = (days: number[]) => days.reduce((a, b) => a + b, 0);
-  const finishes = history.finishes
-    .map((finish) => {
-      const month = finishMonth(view, finish.month, finish.month_name);
-      const spoken = `${month}: #${finish.rank} of ${finish.of}, ${plural(finish.total, "contribution")}${finish.medal ? `, ${finish.medal} medal` : ""}`;
-      return `<li aria-label="${escape(spoken)}"><span class="medal" aria-hidden="true">${finish.medal ? medals[finish.medal] : ""}</span><span class="finish-month" aria-hidden="true">${escape(month)}</span><span class="finish-rank" aria-hidden="true">#${finish.rank} of ${finish.of}</span><strong class="finish-total" aria-hidden="true">${finish.total.toLocaleString()}</strong></li>`;
-    })
-    .join("");
   return `${header}
     ${view.status === "failed" ? '<p class="muted">Refresh failed · showing saved counts</p>' : ""}
     <dl class="person-stats">
@@ -148,7 +130,6 @@ function personHtml(view: PersonView, selected: number) {
     </dl>
     <section class="month" aria-labelledby="month-title"><div class="month-head"><h2 id="month-title">${escape(view.month_name)}</h2><p class="legend"><span class="key now" aria-hidden="true"></span>${escape(view.month_name)} <strong>${total(history.this_month).toLocaleString()}</strong><span class="key past" aria-hidden="true"></span>${escape(view.last_month_name)} <strong>${total(history.last_month).toLocaleString()}</strong></p></div>
       ${selectedDay(view, selected)}${chart(view, selected)}</section>
-    <section aria-labelledby="finishes-title"><h2 id="finishes-title">Past months</h2>${finishes ? `<ol class="finishes">${finishes}</ol>` : '<p class="muted">No finished months yet.</p>'}</section>
     ${view.is_you ? privateTip + limitsNote : ""}`;
 }
 function avatar(person: Person) {
@@ -160,9 +141,6 @@ export async function start(
 ): Promise<() => void> {
   root.className = `view-${view}`;
   let selected: Window = "today";
-  // Final standings: on the 1st the board opens on last month's result until you pick a Window
-  // or use the toggle (null = not chosen yet, so it shows when offered).
-  let showFinal: boolean | null = null;
   let filter = "all";
   let search = "";
   let disposed = false;
@@ -276,7 +254,7 @@ export async function start(
     }
     if (view === "about") {
       replace(
-        `<article class="about"><img class="app-icon" src="${appIcon}" alt="" /><h1>Committed</h1><p>A friendly GitHub leaderboard, one click from your tray.</p><p class="muted">Version ${escape(desktop.version)}</p><h2>What counts?</h2><p>Contributions are the green squares on each person’s public GitHub contribution graph. Today, 7 days and 30 days include today in your local time zone. This month counts from the 1st of your local calendar month and starts again at zero on the next 1st.</p><h2>Private contributions</h2><p>Private activity counts only when that person enables <strong>Contribution settings → Private contributions</strong> on their GitHub profile.</p><p>Connecting requests read-only profile and organization access. Committed never requests repository access. Your token stays in Windows Credential Manager.</p><button data-action="contributions">Open GitHub profile settings</button>${alert()}</article>`,
+        `<article class="about"><img class="app-icon" src="${appIcon}" alt="" /><h1>Committed</h1><p>A friendly GitHub leaderboard, one click from your tray.</p><p class="muted">Version ${escape(desktop.version)}</p><h2>What counts?</h2><p>Contributions are the green squares on each person’s public GitHub contribution graph. Today, 7 days, and 30 days include today in your local time zone.</p><h2>Private contributions</h2><p>Private activity counts only when that person enables <strong>Contribution settings → Private contributions</strong> on their GitHub profile.</p><p>Connecting requests read-only profile and organization access. Committed never requests repository access. Your token stays in Windows Credential Manager.</p><button data-action="contributions">Open GitHub profile settings</button>${alert()}</article>`,
       );
     } else if (view === "people") {
       const people = await invoke<PersonVisibility[]>("list_people", {
@@ -307,39 +285,31 @@ export async function start(
           `<article class="setup"><img class="app-icon" src="${appIcon}" alt="" /><h1>Committed</h1><p>See your standings alongside your organization members and people you follow. Your list updates automatically.</p><div id="device" role="status" aria-live="polite"></div><button class="primary" id="connect" data-action="connect">Connect GitHub</button><p class="muted privacy">Read-only access to your profile, who you follow, and your organizations. Committed never sees your code. Your token stays in Windows Credential Manager.</p><button data-action="open-device" id="open-device" hidden>Open GitHub again</button>${alert()}</article>`,
         );
     } else {
-      const finals = board.final_standings ?? null;
-      // A day without Final standings forgets the choice, so the next 1st opens on them again.
-      if (!finals) showFinal = null;
-      const final = finals !== null && showFinal !== false;
-      const rows = final ? finals.rows : board.rows;
+      const rows = board.rows;
       const me = rows.find((row) => row.is_you);
-      const myStreak = me && !final ? streakText(me.streak) : null;
+      const myStreak = me ? streakText(me.streak) : null;
       const refreshing = board.refreshing;
       const first = !board.rows.some((r) => r.contributions !== null);
       const maxContributions = Math.max(
         1,
         ...rows.map((row) => row.contributions ?? 0),
       );
-      const statusText = final
-        ? `${finals.month_name} final${me ? ` · You finished #${me.rank} of ${rows.length}` : ""}`
-        : `${windows.find((w) => w[0] === selected)![1]}${selected === "month" ? ` · Day ${board.day_of_month} of ${board.days_in_month}` : ""} · ${refreshing ? (first ? "Fetching the first set of standings" : "Updating Contributions…") : board.error ? "Refresh finished with errors." : age(board.last_updated)}`;
+      const statusText = `${windows.find((w) => w[0] === selected)![1]} · ${refreshing ? (first ? "Fetching the first set of standings" : "Updating Contributions…") : board.error ? "Refresh finished with errors." : age(board.last_updated)}`;
       replace(`<header><h1>${brandMark} Committed</h1>${menu(board)}</header><div class="board-content">
-        ${me ? `<section class="summary">${avatar(me)}<div><strong>${escape(name(me))}</strong><small>@${escape(me.login)} · you${myStreak ? ` · <span class="streak" role="img" aria-label="${streakSpoken(myStreak)}">🔥 ${myStreak}</span>` : ""}</small></div><div class="summary-count">${count(me.contributions)}<small>${final ? `In ${escape(finals.month_name)}` : "Contributions"}</small></div></section>` : "<p>Connect GitHub to load your board.</p>"}
-        <div class="windows" role="radiogroup" aria-label="Time range">${windows.map(([value, label]) => `<button role="radio" aria-checked="${!final && selected === value}" tabindex="${selected === value ? 0 : -1}" data-window="${value}" data-focus="window-${value}">${label}</button>`).join("")}</div>
-        ${finals ? `<button class="final-toggle" data-action="final" aria-pressed="${final}"><span aria-hidden="true">🏅</span> ${escape(finals.month_name)} final standings</button>` : ""}
+        ${me ? `<section class="summary">${avatar(me)}<div><strong>${escape(name(me))}</strong><small>@${escape(me.login)} · you${myStreak ? ` · <span class="streak" role="img" aria-label="${streakSpoken(myStreak)}">🔥 ${myStreak}</span>` : ""}</small></div><div class="summary-count">${count(me.contributions)}<small>Contributions</small></div></section>` : "<p>Connect GitHub to load your board.</p>"}
+        <div class="windows" role="radiogroup" aria-label="Time range">${windows.map(([value, label]) => `<button role="radio" aria-checked="${selected === value}" tabindex="${selected === value ? 0 : -1}" data-window="${value}" data-focus="window-${value}">${label}</button>`).join("")}</div>
         <p class="status">${statusText}</p>
         <div class="tracking"><small>Tracking ${rows.length} people</small><button data-action="people">People…</button></div>
-        <ol class="standings ${refreshing && !first ? "refreshing" : ""}" aria-label="${final ? `${escape(finals.month_name)} final standings` : "Leaderboard"}" aria-busy="${refreshing}">${rows
+        <ol class="standings ${refreshing && !first ? "refreshing" : ""}" aria-label="Leaderboard" aria-busy="${refreshing}">${rows
           .map((row) => {
-            const streak = final ? null : streakText(row.streak);
-            const medal = final && row.medal ? row.medal : null;
-            const spoken = `Rank ${row.rank}, ${name(row)}, ${row.contributions === null ? "Contributions unavailable" : `${row.contributions} Contributions`}${medal ? `, ${medal} medal` : ""}${streak ? `, ${streakSpoken(streak)}` : ""}${row.is_you ? ", you" : ""}${row.burst ? `, trolling: ${trolling(row.burst)}` : ""}`;
+            const streak = streakText(row.streak);
+            const spoken = `Rank ${row.rank}, ${name(row)}, ${row.contributions === null ? "Contributions unavailable" : `${row.contributions} Contributions`}${streak ? `, ${streakSpoken(streak)}` : ""}${row.is_you ? ", you" : ""}${row.burst ? `, trolling: ${trolling(row.burst)}` : ""}`;
             const shade = Math.min(
               1,
               (row.contributions ?? 0) / maxContributions,
             );
             const squareColor = `rgb(${Math.round(156 - 110 * shade)}, ${Math.round(232 - 71 * shade)}, ${Math.round(168 - 102 * shade)})`;
-            return `<li class="${row.is_you ? "you" : ""}"><button class="standing" data-open-person="${escape(row.login)}" data-focus="row-${escape(row.login)}" aria-label="${escape(spoken)}"><span class="rank">#${row.rank}</span>${avatar(row)}${medal ? `<span class="medal" aria-hidden="true">${medals[medal]}</span>` : ""}<span class="identity"><strong title="${escape(name(row))}">${escape(row.login)}${row.is_you ? ' <span class="badge">you</span>' : ""}</strong>${row.status === "failed" ? "<small>Refresh failed</small>" : ""}</span>${row.movement ? `<span class="movement ${row.movement > 0 ? "up" : "down"}" aria-label="Moved ${row.movement > 0 ? "up" : "down"} ${Math.abs(row.movement)}">${row.movement > 0 ? "↑" : "↓"}${Math.abs(row.movement)}</span>` : ""}${streak ? `<span class="streak" aria-hidden="true">🔥 ${streak}</span>` : ""}<strong class="contributions${row.burst ? " troll" : ""}">${count(row.contributions)}</strong>${row.burst ? `<span class="troll-face" style="--troll: url('${trollFace}')" title="${escape(`Problem? ${trolling(row.burst)}.`)}" aria-hidden="true"></span>` : `<svg class="contribution-squares" viewBox="0 0 12 12" fill="${squareColor}" aria-hidden="true" ${row.contributions === null ? 'style="visibility:hidden"' : ""}><path d="M0 0h5v5H0zM7 0h5v5H7zM0 7h5v5H7zM7 7h5v5H7z" /></svg>`}</button></li>`;
+            return `<li class="${row.is_you ? "you" : ""}"><button class="standing" data-open-person="${escape(row.login)}" data-focus="row-${escape(row.login)}" aria-label="${escape(spoken)}"><span class="rank">#${row.rank}</span>${avatar(row)}<span class="identity"><strong title="${escape(name(row))}">${escape(row.login)}${row.is_you ? ' <span class="badge">you</span>' : ""}</strong>${row.status === "failed" ? "<small>Refresh failed</small>" : ""}</span>${row.movement ? `<span class="movement ${row.movement > 0 ? "up" : "down"}" aria-label="Moved ${row.movement > 0 ? "up" : "down"} ${Math.abs(row.movement)}">${row.movement > 0 ? "↑" : "↓"}${Math.abs(row.movement)}</span>` : ""}${streak ? `<span class="streak" aria-hidden="true">🔥 ${streak}</span>` : ""}<strong class="contributions${row.burst ? " troll" : ""}">${count(row.contributions)}</strong>${row.burst ? `<span class="troll-face" style="--troll: url('${trollFace}')" title="${escape(`Problem? ${trolling(row.burst)}.`)}" aria-hidden="true"></span>` : `<svg class="contribution-squares" viewBox="0 0 12 12" fill="${squareColor}" aria-hidden="true" ${row.contributions === null ? 'style="visibility:hidden"' : ""}><path d="M0 0h5v5H0zM7 0h5v5H7zM0 7h5v5H7zM7 7h5v5H7z" /></svg>`}</button></li>`;
           })
           .join("")}</ol>
         ${first && !refreshing ? '<p class="muted">Fetching the first set of standings. Use Refresh to retry if GitHub is unavailable.</p>' : ""}
@@ -411,7 +381,6 @@ export async function start(
     if (!target) return;
     if (target.dataset.window) {
       selected = target.dataset.window as Window;
-      showFinal = false;
       await act("select_window", { window: selected });
       await load();
       await act("request_refresh", { reason: "windowChanged" });
@@ -442,10 +411,6 @@ export async function start(
         break;
       case "refresh":
         await act("request_refresh", { reason: "manual" });
-        break;
-      case "final":
-        showFinal = target.getAttribute("aria-pressed") !== "true";
-        await load();
         break;
       case "github":
         await act("open_profile", { login: target.dataset.login });

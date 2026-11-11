@@ -1,5 +1,5 @@
-// Same raw values as the Mac and iPhone for 30 days ("monthly") and This month ("month").
-export type Window = "today" | "week" | "monthly" | "month";
+// Same raw value as the Mac and iPhone for 30 days ("monthly").
+export type Window = "today" | "week" | "monthly";
 export interface Person {
   login: string;
   name: string | null;
@@ -15,8 +15,6 @@ export interface Row extends Person {
   is_you: boolean;
   movement: number;
   status: "loaded" | "loading" | "cached" | "failed" | "missing";
-  /** Only on Final standings rows: ranks 1–3 of a finished month whose total was above zero. */
-  medal?: Medal | null;
   /** The window's trolling day, if any: far above their usual, so the row wears the troll face. */
   burst?: Burst | null;
 }
@@ -25,15 +23,6 @@ export interface Burst {
   count: number;
   /** Their usual big day before it: the count 9 in 10 of their earlier active days stay under. */
   usual: number;
-}
-export type Medal = "gold" | "silver" | "bronze";
-/** A finished month's ranks among the people on the board now; rows carry the month's total. */
-export interface FinalStandings {
-  /** The month's 1st, "2026-10-01". */
-  month: string;
-  /** "October", for "October final". */
-  month_name: string;
-  rows: Row[];
 }
 /** One person's view (`get_person`): their month day by day beside last month's. */
 export interface PersonView extends Person {
@@ -59,16 +48,6 @@ export interface PersonHistory {
   longest_streak: number;
   /** Days this month with a contribution: "Active days: 18 of 22". */
   active_days: number;
-  /** Finished months, newest first. */
-  finishes: MonthFinish[];
-}
-export interface MonthFinish {
-  month: string;
-  month_name: string;
-  rank: number;
-  of: number;
-  total: number;
-  medal: Medal | null;
 }
 export interface Board {
   window: Window;
@@ -79,11 +58,6 @@ export interface Board {
   error: string | null;
   people_updated: number | null;
   people_error: string | null;
-  /** Today's day of the local month and the month's length: This month's "Day 10 of 30". */
-  day_of_month: number;
-  days_in_month: number;
-  /** Last month's Final standings, all day on the 1st; null on other days. */
-  final_standings: FinalStandings | null;
 }
 export interface Settings {
   notifications: boolean;
