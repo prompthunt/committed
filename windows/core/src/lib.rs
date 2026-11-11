@@ -116,6 +116,9 @@ pub struct Row {
     pub status: String,
     /// Set only on Final standings rows (`FinalStandings`); the live board never shows medals.
     pub medal: Option<Medal>,
+    /// The window's trolling day, if any: the row wears the troll face. Ranking ignores it.
+    /// Final standings rows have none.
+    pub burst: Option<parser::Burst>,
 }
 /// A finished month's ranks among the people on the board now, with medals: recomputed from the
 /// saved calendars, never frozen, so hiding or showing someone changes them like the board.
@@ -578,6 +581,7 @@ fn ranked_rows(state: &State, window: Window, today: NaiveDate, now: i64) -> Vec
                 rank: 0,
                 contributions: snapshot.map(|s| history::total(&s.days, window, today)),
                 streak: snapshot.map(|s| history::current_streak(&s.days, today)),
+                burst: snapshot.and_then(|s| parser::burst(&s.days, history::range(window, today))),
                 is_you: state.saved.owner.as_ref() == Some(&person.login),
                 movement: 0,
                 medal: None,
@@ -676,6 +680,7 @@ pub(crate) fn final_standings(
                 }
                 .into(),
                 medal: finish.medal,
+                burst: None,
             }
         })
         .collect();

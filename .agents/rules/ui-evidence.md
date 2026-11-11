@@ -99,7 +99,7 @@ manifest defaults.
 Run `python3 scripts/screenshot_evidence.py --base origin/main` after committing. It
 checks images added relative to the merge-base, so historical evidence never blocks
 unrelated work. App icons and asset catalogs, `docs/design/` references, `fixtures/`,
-`site/public/`, `video/` and Windows icons are exempt; every other new image needs
+`site/public/`, `video/`, Windows icons and Windows UI assets (`windows/src/assets/`) are exempt; every other new image needs
 capture provenance. Add any new exemption explicitly in the checker. A passing check
 covers local storage only; direct attachments and inline verification above remain
 required.

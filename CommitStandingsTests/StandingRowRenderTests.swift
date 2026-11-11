@@ -22,6 +22,11 @@ struct StandingRowRenderTests {
             Standing(username: username, contributions: contributions, window: .daily, lastUpdated: updated, state: state)
         }
         let board = VStack(spacing: 2) {
+            StandingRow(rank: 1, competitor: Competitor(username: "milo-burst", isSelf: false),
+                        standing: Standing(username: "milo-burst", contributions: 784, window: .daily,
+                                           lastUpdated: updated, state: .loaded,
+                                           burst: Burst(day: updated, count: 784, usual: 102)),
+                        window: .daily, maxContributions: 784, rankDelta: 2)
             StandingRow(rank: 1, competitor: Competitor(username: "ines-volk", isSelf: false),
                         standing: standing("ines-volk", 12), window: .daily, maxContributions: 12, rankDelta: 2)
             StandingRow(rank: 2, competitor: Competitor(username: "ari-linden", isSelf: true),

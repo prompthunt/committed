@@ -3,8 +3,8 @@ import Foundation
 /// One Competitor's daily contribution counts, as GitHub's calendar gave them, and the time zone
 /// they were read in. Every Window total comes from here. It's pure: each function takes the date
 /// to answer for and uses this history's own calendar, never the clock or the machine's time zone.
-/// Later tickets add active days beside `total`, `monthTotal` and `currentStreak`; the Windows
-/// core has the same functions in `windows/core/src/history.rs`.
+/// Window and month totals, streaks and trolling days all come from it; the Windows core has the
+/// same functions in `windows/core/src/history.rs`.
 ///
 /// Days are GitHub's civil dates (`data-date="YYYY-MM-DD"`), kept as written. A day missing from
 /// the calendar is unknown, never a zero; a person with no history at all is "no history yet".
@@ -70,6 +70,27 @@ struct ContributionHistory: Codable, Equatable, Sendable {
         return total
     }
 
+    /// The biggest trolling day `window` covers as of `reference`, if any (see `TrollCheck`). Each
+    /// day is judged only against this calendar's days before it, so every device and Window agree
+    /// on the same day; it stays on a longer Window until the day leaves it.
+    func burst(for window: ContributionWindow, asOf reference: Date) -> Burst? {
+        let calendar = calendar
+        let range = days(in: window, asOf: reference)
+        let first = Self.key(for: range.lowerBound, in: calendar)
+        let last = Self.key(for: range.upperBound, in: calendar)
+        // "YYYY-MM-DD" keys sort in date order.
+        let ordered = days.sorted { $0.key < $1.key }
+        var biggest: Burst?
+        for (index, entry) in ordered.enumerated()
+        where entry.key >= first && entry.key <= last && entry.value > TrollCheck.floor {
+            let usual = TrollCheck.usualBigDay(ordered[..<index].map(\.value))
+            guard TrollCheck.isTrolling(count: entry.value, usual: usual), entry.value > (biggest?.count ?? 0),
+                  let day = Self.date(forKey: entry.key, in: calendar) else { continue }
+            biggest = Burst(day: day, count: entry.value, usual: usual)
+        }
+        return biggest
+    }
+
     /// Days in a row with at least one contribution as of `reference`, counted back from today
     /// (in this history's time zone). While today has none yet, including when the calendar doesn't
     /// reach today, the run counts back from yesterday instead, so a streak stays alive until today
@@ -126,6 +147,13 @@ struct ContributionHistory: Codable, Equatable, Sendable {
     static func key(for date: Date, in calendar: Calendar) -> String {
         let parts = calendar.dateComponents([.year, .month, .day], from: date)
         return key(year: parts.year ?? 0, month: parts.month ?? 0, day: parts.day ?? 0)
+    }
+
+    /// The start of the `"YYYY-MM-DD"` day in `calendar`, or nil for a malformed key.
+    static func date(forKey key: String, in calendar: Calendar) -> Date? {
+        let parts = key.split(separator: "-").compactMap { Int($0) }
+        guard parts.count == 3 else { return nil }
+        return calendar.date(from: DateComponents(year: parts[0], month: parts[1], day: parts[2]))
     }
 
     static func key(year: Int, month: Int, day: Int) -> String {

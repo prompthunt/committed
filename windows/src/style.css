@@ -9,6 +9,7 @@
   --border: #dce0d5;
   --brand: #c8ff2e;
   --on-brand: #1e2410;
+  --troll-red: #c8331f;
   --accent: #476510;
   --selected: #eff5e2;
   --selection-border: #c4d4a5;
@@ -332,6 +333,28 @@ small {
   width: 12px;
   height: 12px;
   flex-shrink: 0;
+}
+/* Trolling: a day far above their usual. The count turns red and the troll face, drawn in the
+   text color, takes the squares' place (centered on their slot so counts stay aligned). */
+.contributions.troll {
+  color: var(--troll-red);
+}
+.troll-face {
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
+  overflow: visible;
+  display: grid;
+  place-items: center;
+}
+.troll-face::before {
+  content: "";
+  flex: none;
+  width: 17px;
+  height: 14px;
+  background: currentColor;
+  -webkit-mask: var(--troll) center / contain no-repeat;
+  mask: var(--troll) center / contain no-repeat;
 }
 .badge {
   font-size: 10px;
@@ -678,6 +701,7 @@ select {
     --selection-border: #394526;
     --bar: var(--brand);
     --past-bar: #3a3d35;
+    --troll-red: #ff4f3f;
   }
   .avatar {
     outline-color: rgb(255 255 255 / 0.1);
@@ -702,6 +726,7 @@ select {
     --selection-border: Highlight;
     --bar: Highlight;
     --past-bar: GrayText;
+    --troll-red: CanvasText;
     background: Canvas;
     color: CanvasText;
   }

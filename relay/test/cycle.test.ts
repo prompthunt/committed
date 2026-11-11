@@ -21,7 +21,7 @@ beforeEach(() => {
   apns = new FakeApns();
   github = new FakeGitHub();
   clock = new Clock(T0);
-  relay = createRelay({ db: env.DB, apns, github: github.fetch, now: clock.now, bundleId: BUNDLE, log: () => {} });
+  relay = createRelay({ db: env.DB, apns, github: github.fetch, githubName: github.name, now: clock.now, bundleId: BUNDLE, log: () => {} });
 });
 
 async function put(path: string, body: unknown): Promise<Response> {
@@ -536,7 +536,7 @@ describe("logging", () => {
       });
     }
     // Default logger this time.
-    relay = createRelay({ db: env.DB, apns, github: github.fetch, now: clock.now, bundleId: BUNDLE });
+    relay = createRelay({ db: env.DB, apns, github: github.fetch, githubName: github.name, now: clock.now, bundleId: BUNDLE });
     github.set("me", { "2026-11-05": 5 });
     github.fail("alice");
     await register(ID);
@@ -566,7 +566,7 @@ describe("logging", () => {
       lines.push(args.map(String).join(" "));
     });
     // Default logger: the line it prints is what log search sees.
-    relay = createRelay({ db: env.DB, apns, github: github.fetch, now: clock.now, bundleId: BUNDLE });
+    relay = createRelay({ db: env.DB, apns, github: github.fetch, githubName: github.name, now: clock.now, bundleId: BUNDLE });
     github.set("me", { "2026-11-05": 5 });
     github.set("alice", { "2026-11-05": 9 });
     await register(ID);

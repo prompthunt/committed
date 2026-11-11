@@ -37,6 +37,9 @@ enum SampleServices {
         var includesFailingCompetitor = false
         /// Organizations that won't list their members for Committed, as People shows them.
         var restrictedOrganizations: [String]?
+        /// This person trolls: 784 more today, far above their usual, so their row wears the troll
+        /// face (screenshot fixture only).
+        var trollPerson: String?
     }
 
     static func make(_ options: Options = Options(), now: @escaping @Sendable () -> Date = { Date() })
@@ -50,7 +53,7 @@ enum SampleServices {
         return CommittedServices(
             store: StandingsStore(persistence: InMemoryCompetitorPersistence()),
             credentials: InMemoryGitHubCredentialStore(token: "sample"),
-            contributions: SampleContributions(),
+            contributions: SampleContributions(trollPerson: options.trollPerson),
             // Even a stray Connect GitHub on this graph stays on the phone.
             gitHubAuth: GitHubAuth(clientID: "sample", session: session),
             accountFactory: { GitHubAccountClient(token: $0, session: session) },
@@ -72,6 +75,11 @@ enum SampleServices {
     /// with nothing yesterday or today, none. Extra people have only today, counting down from 39.
     private actor SampleContributions: ContributionsFetching {
         private var rounds: [String: Int] = [:]
+        private let trollPerson: String?
+
+        init(trollPerson: String? = nil) {
+            self.trollPerson = trollPerson
+        }
 
         func standingCounts(for username: String, window: ContributionWindow, asOf reference: Date)
             async -> Result<StandingCounts, ContributionsError> {
@@ -87,7 +95,7 @@ enum SampleServices {
                 "bram-ott": SampleCalendar(today: 0, week: 11, month: 57, thisMonth: 19, streak: 0, seed: 5),
             ]
             let timeZone = TimeZone.current
-            let history: ContributionHistory
+            var history: ContributionHistory
             if username.hasPrefix(SampleServices.extraPersonPrefix),
                let number = Int(username.dropFirst(SampleServices.extraPersonPrefix.count)) {
                 history = SampleCalendar.onlyToday(max(0, 40 - number), asOf: reference, timeZone: timeZone)
@@ -96,7 +104,12 @@ enum SampleServices {
             } else {
                 return .failure(.network("offline"))
             }
-            return .success(StandingCounts(contributions: history.total(for: window, asOf: reference), history: history))
+            if username == trollPerson {
+                // 784 more today, far above their usual: the real trolling rule marks the row.
+                let key = ContributionHistory.key(for: reference, in: history.calendar)
+                history.days[key, default: 0] += 784
+            }
+            return .success(StandingCounts(history: history, window: window, asOf: reference))
         }
     }
 

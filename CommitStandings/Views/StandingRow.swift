@@ -65,6 +65,20 @@ struct StandingRow: View {
         .background(selfHighlight)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(accessibilityDescription)
+        .help(trollDescription.map { "Problem? \($0)." } ?? "")
+    }
+
+    /// The window's trolling day, once the row has data.
+    private var burst: Burst? {
+        hasData ? standing?.burst : nil
+    }
+
+    /// "784 in one day, about 7 times their usual big day", for the tooltip and VoiceOver.
+    private var trollDescription: String? {
+        guard let burst else { return nil }
+        let count = burst.count.formatted()
+        guard let multiple = burst.multiple else { return "\(count) in one day" }
+        return "\(count) in one day, about \(multiple) times their usual big day"
     }
 
     /// Your own row gets the same treatment as the hero card: a soft tint fill with a thin tint
@@ -112,6 +126,22 @@ struct StandingRow: View {
     /// low counts, richer/darker green for high. Hidden when there's no data yet.
     @ViewBuilder
     private var contributionSquare: some View {
+        if burst != nil, style.squares.isShown {
+            Image("Troll")
+                .resizable()
+                .renderingMode(.template)
+                .aspectRatio(contentMode: .fit)
+                .foregroundStyle(.primary)
+                .frame(width: style.trollSize.width, height: style.trollSize.height)
+                .frame(width: 16)
+                .accessibilityHidden(true)
+        } else {
+            squareGlyph
+        }
+    }
+
+    @ViewBuilder
+    private var squareGlyph: some View {
         switch style.squares {
         case .symbol:
             if hasData, let standing {
@@ -145,7 +175,8 @@ struct StandingRow: View {
             delta == 0 ? "" : ", \(delta > 0 ? "up" : "down") \(delta.magnitude) \(delta.magnitude == 1 ? "place" : "places") today"
         } ?? ""
         let streak = hasData ? StreakLabel.spoken(streak).map { ", " + $0 } ?? "" : ""
-        return standingDescription + streak + movement + (medal.map { ", \($0) medal" } ?? "")
+        let trolling = trollDescription.map { ", trolling: \($0)" } ?? ""
+        return standingDescription + streak + movement + (medal.map { ", \($0) medal" } ?? "") + trolling
     }
 
     /// "for today", or "in October" on Final standings.
@@ -210,7 +241,12 @@ struct StandingRow: View {
                 .font(style.countFont)
                 .foregroundStyle(.orange)
         default:
-            if competitor.isSelf, let color = style.selfCountColor {
+            if burst != nil {
+                Text(contributionsText)
+                    .font(competitor.isSelf ? style.selfCountFont : style.countFont)
+                    .foregroundStyle(style.trollColor)
+                    .pulsing(isRefreshing)
+            } else if competitor.isSelf, let color = style.selfCountColor {
                 Text(contributionsText)
                     .font(style.selfCountFont)
                     .foregroundStyle(color)

@@ -6,6 +6,11 @@
   "account_id": "b5438d46cc2771671a2aeba8cb802a4d",
   "main": "src/index.ts",
   "compatibility_date": "2026-11-01",
+  // The web widget's static files (widget/), bundled into the Worker and served by src/widget.ts.
+  "rules": [
+    { "type": "Text", "globs": ["**/widget/*.html", "**/widget/*.css", "**/widget/*.js"], "fallthrough": true },
+    { "type": "Data", "globs": ["**/widget/fonts/*.ttf"], "fallthrough": true }
+  ],
   "observability": { "enabled": true },
   "triggers": { "crons": ["*/5 * * * *"] },
   "d1_databases": [
@@ -16,6 +21,8 @@
       "migrations_dir": "migrations"
     }
   ],
+  // Per-IP limit on the public GET /v1/board read (the Kraken LCD page polls once a minute).
+  "ratelimits": [{ "name": "BOARD_LIMITER", "namespace_id": "1001", "simple": { "limit": 20, "period": 60 } }],
   "vars": {
     // iOS app bundle id; the APNs topic is `${APNS_BUNDLE_ID}.push-type.liveactivity`.
     "APNS_BUNDLE_ID": "com.addisonk.CommitStandings.iOS"

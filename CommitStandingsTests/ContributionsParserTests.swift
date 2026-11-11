@@ -75,4 +75,88 @@ struct ContributionsParserTests {
         #expect(history.days == ["2026-05-28": 9, "2026-01-01": 1])
         #expect(history.timeZone == tokyo)
     }
+
+    // MARK: - Trolling
+
+    private static let utc = TimeZone(identifier: "UTC")!
+
+    /// Sixty days before May 28 at a steady 20 a day, so their usual big day is 20, plus `extra`.
+    private func steadyHistory(_ count: Int = 20, _ extra: [String: Int] = [:]) -> ContributionHistory {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = Self.utc
+        var days: [String: Int] = [:]
+        for offset in 1...60 {
+            days[ContributionHistory.key(for: calendar.date(byAdding: .day, value: -offset, to: ymd(2026, 5, 28))!,
+                                         in: calendar)] = count
+        }
+        days.merge(extra) { $1 }
+        return ContributionHistory(days: days, timeZone: Self.utc)
+    }
+
+    @Test func trolling_flagsADayFarAboveTheirUsualBigDay() {
+        let history = steadyHistory(20, ["2026-05-28": 784])
+        let burst = history.burst(for: .daily, asOf: ymd(2026, 5, 28))
+        #expect(burst == Burst(day: ymd(2026, 5, 28), count: 784, usual: 20))
+        #expect(burst?.multiple == 39)
+        #expect(StandingCounts(history: history, window: .daily, asOf: ymd(2026, 5, 28)).burst == burst)
+    }
+
+    @Test func trolling_ignoresABusyDayUnderFiveTimesTheirUsual() {
+        let history = steadyHistory(40, ["2026-05-28": 200]) // exactly 5×: not over the line
+        #expect(history.burst(for: .daily, asOf: ymd(2026, 5, 28)) == nil)
+    }
+
+    @Test func trolling_needsMoreThanAHundred() {
+        // 50× a quiet account's usual, but not over the floor
+        #expect(steadyHistory(2, ["2026-05-28": 100]).burst(for: .daily, asOf: ymd(2026, 5, 28)) == nil)
+        #expect(steadyHistory(2, ["2026-05-28": 101]).burst(for: .daily, asOf: ymd(2026, 5, 28))?.count == 101)
+    }
+
+    @Test func trolling_newAccountOverTheFloorIsTrolling() {
+        let history = ContributionHistory(days: ["2026-05-28": 150], timeZone: Self.utc)
+        let burst = history.burst(for: .daily, asOf: ymd(2026, 5, 28))
+        #expect(burst == Burst(day: ymd(2026, 5, 28), count: 150, usual: 0))
+        #expect(burst?.multiple == nil)
+    }
+
+    @Test func trolling_staysInLongerWindowsUntilTheDayLeaves() {
+        let history = steadyHistory(20, ["2026-05-25": 500, "2026-05-28": 20])
+        let asOf = ymd(2026, 5, 28)
+        #expect(history.burst(for: .daily, asOf: asOf) == nil)
+        #expect(history.burst(for: .weekly, asOf: asOf)?.count == 500)
+        #expect(history.burst(for: .monthly, asOf: asOf)?.day == ymd(2026, 5, 25))
+    }
+
+    /// This month covers the 1st through today, so a trolling day last month isn't on it.
+    @Test func trolling_thisMonthCoversOnlyTheCalendarMonth() {
+        let history = steadyHistory(20, ["2026-04-30": 500, "2026-05-02": 20])
+        #expect(history.burst(for: .monthly, asOf: ymd(2026, 5, 2))?.count == 500)
+        #expect(history.burst(for: .month, asOf: ymd(2026, 5, 2)) == nil)
+        let may = steadyHistory(20, ["2026-05-01": 600])
+        #expect(may.burst(for: .month, asOf: ymd(2026, 5, 28))?.day == ymd(2026, 5, 1))
+    }
+
+    @Test func trolling_judgesEachDayOnlyAgainstTheDaysBeforeIt() {
+        let history = steadyHistory(20, ["2026-05-27": 300, "2026-05-28": 5_000])
+        // The later huge day doesn't raise the bar for the earlier one…
+        #expect(history.burst(for: .daily, asOf: ymd(2026, 5, 27))
+            == Burst(day: ymd(2026, 5, 27), count: 300, usual: 20))
+        // …and a window with two reports the bigger.
+        #expect(history.burst(for: .weekly, asOf: ymd(2026, 5, 28))
+            == Burst(day: ymd(2026, 5, 28), count: 5_000, usual: 20))
+    }
+
+    @Test func usualBigDay_isTheNinetiethPercentileOfActiveDays() {
+        #expect(TrollCheck.usualBigDay([]) == 0)
+        #expect(TrollCheck.usualBigDay([0, 0]) == 0)
+        #expect(TrollCheck.usualBigDay(Array(1...10)) == 10)
+        #expect(TrollCheck.usualBigDay([0] + Array(1...20)) == 19)
+    }
+
+    /// Midnight UTC on that day.
+    func ymd(_ y: Int, _ m: Int, _ d: Int) -> Date {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = Self.utc
+        return calendar.date(from: DateComponents(year: y, month: m, day: d))!
+    }
 }

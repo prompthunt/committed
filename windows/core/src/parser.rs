@@ -1,6 +1,8 @@
 use chrono::NaiveDate;
 use scraper::{Html, Selector};
+use serde::Serialize;
 use std::collections::BTreeMap;
+use std::ops::RangeInclusive;
 
 fn count(label: &str) -> Option<u32> {
     let label = label.trim().to_ascii_lowercase();
@@ -49,5 +51,139 @@ pub fn parse(html: &str) -> Result<BTreeMap<NaiveDate, u32>, String> {
         Err("No day cells found".into())
     } else {
         Ok(days)
+    }
+}
+/// A trolling day is more than this many times the person's usual big day…
+pub const TROLL_MULTIPLE: u32 = 5;
+/// …and more than this many contributions. Matches the Mac and iPhone (`TrollCheck`).
+pub const TROLL_FLOOR: u32 = 100;
+
+/// One day far above someone's usual. The board marks the row with the troll face; it
+/// doesn't change the count or the rank.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
+pub struct Burst {
+    pub date: NaiveDate,
+    pub count: u32,
+    /// Their usual big day before it: the count 9 in 10 of their earlier active days stay under.
+    pub usual: u32,
+}
+
+/// The count 9 in 10 of these days' active (non-zero) days stay under; 0 with none.
+pub fn usual_big_day(counts: impl Iterator<Item = u32>) -> u32 {
+    let mut active: Vec<u32> = counts.filter(|&count| count > 0).collect();
+    if active.is_empty() {
+        return 0;
+    }
+    active.sort_unstable();
+    let index = (active.len() as f64 * 0.9) as usize;
+    active[index.min(active.len() - 1)]
+}
+
+/// The biggest trolling day in `range` (a Window's days, `history::range`), each day judged only
+/// against the calendar's days before it. Swift's `ContributionHistory.burst(for:asOf:)`.
+pub fn burst(days: &BTreeMap<NaiveDate, u32>, range: RangeInclusive<NaiveDate>) -> Option<Burst> {
+    days.range(range)
+        .filter(|(_, &count)| count > TROLL_FLOOR)
+        .filter_map(|(&date, &count)| {
+            let usual = usual_big_day(days.range(..date).map(|(_, &c)| c));
+            (count > TROLL_FLOOR.max(TROLL_MULTIPLE.saturating_mul(usual))).then_some(Burst {
+                date,
+                count,
+                usual,
+            })
+        })
+        .max_by_key(|burst| burst.count)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::{history, Window};
+
+    fn day(d: u32) -> NaiveDate {
+        NaiveDate::from_ymd_opt(2026, 5, d).unwrap()
+    }
+    /// May 1–27 at a steady 20 a day.
+    fn steady(count: u32) -> BTreeMap<NaiveDate, u32> {
+        (1..=27).map(|d| (day(d), count)).collect()
+    }
+
+    #[test]
+    fn flags_a_day_far_above_their_usual_big_day() {
+        let mut days = steady(20);
+        days.insert(day(28), 784);
+        assert_eq!(
+            burst(&days, day(28)..=day(28)),
+            Some(Burst {
+                date: day(28),
+                count: 784,
+                usual: 20
+            })
+        );
+    }
+
+    #[test]
+    fn five_times_usual_is_not_over_the_line() {
+        let mut days = steady(40);
+        days.insert(day(28), 200);
+        assert_eq!(burst(&days, day(28)..=day(28)), None);
+    }
+
+    #[test]
+    fn needs_more_than_a_hundred() {
+        let mut days = steady(2);
+        days.insert(day(28), 100);
+        assert_eq!(burst(&days, day(28)..=day(28)), None);
+        days.insert(day(28), 101);
+        assert_eq!(burst(&days, day(28)..=day(28)).map(|b| b.count), Some(101));
+    }
+
+    #[test]
+    fn stays_in_longer_windows_until_the_day_leaves() {
+        let mut days = steady(20);
+        days.insert(day(25), 500);
+        days.insert(day(28), 20);
+        assert_eq!(burst(&days, day(28)..=day(28)), None);
+        assert_eq!(
+            burst(&days, day(22)..=day(28)).map(|b| b.date),
+            Some(day(25))
+        );
+    }
+
+    /// This month covers the 1st through today: last month's trolling day isn't on it.
+    #[test]
+    fn this_month_covers_only_the_calendar_month() {
+        let april_30 = NaiveDate::from_ymd_opt(2026, 4, 30).unwrap();
+        let mut days: BTreeMap<NaiveDate, u32> = (1..=29)
+            .map(|d| (NaiveDate::from_ymd_opt(2026, 4, d).unwrap(), 20))
+            .collect();
+        days.insert(april_30, 500);
+        days.insert(day(1), 20);
+        days.insert(day(2), 20);
+        let thirty = history::range(Window::Monthly, day(2));
+        assert_eq!(burst(&days, thirty).map(|b| b.date), Some(april_30));
+        assert_eq!(
+            burst(&days, history::range(Window::ThisMonth, day(2))),
+            None
+        );
+    }
+
+    #[test]
+    fn a_later_day_does_not_raise_the_bar_for_an_earlier_one() {
+        let mut days = steady(20);
+        days.insert(day(27), 300);
+        days.insert(day(28), 5_000);
+        assert_eq!(burst(&days, day(27)..=day(27)).map(|b| b.usual), Some(20));
+        assert_eq!(
+            burst(&days, day(22)..=day(28)).map(|b| b.count),
+            Some(5_000)
+        );
+    }
+
+    #[test]
+    fn usual_big_day_is_the_ninetieth_percentile_of_active_days() {
+        assert_eq!(usual_big_day([].into_iter()), 0);
+        assert_eq!(usual_big_day(1..=10), 10);
+        assert_eq!(usual_big_day([0].into_iter().chain(1..=20)), 19);
     }
 }

@@ -436,7 +436,8 @@ final class RefreshCoordinator {
                 contributions: counts.contributions,
                 window: window,
                 lastUpdated: reference,
-                state: .loaded
+                state: .loaded,
+                burst: counts.burst
             ))
         case .failure(let error):
             if let prior, prior.window == window, case .loaded = prior.state {
@@ -446,7 +447,8 @@ final class RefreshCoordinator {
                     contributions: prior.contributions,
                     window: window,
                     lastUpdated: prior.lastUpdated,
-                    state: .failed(message(for: error))
+                    state: .failed(message(for: error)),
+                    burst: prior.burst
                 ))
             } else {
                 store.updateStanding(Standing(

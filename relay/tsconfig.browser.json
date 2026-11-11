@@ -1,0 +1,15 @@
+{
+  // The Playwright specs (browser/) run in Node, not the Workers runtime.
+  "compilerOptions": {
+    "target": "es2024",
+    "lib": ["es2024", "dom"],
+    "module": "es2022",
+    "moduleResolution": "bundler",
+    "types": ["node"],
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noEmit": true,
+    "skipLibCheck": true
+  },
+  "include": ["browser/**/*.ts", "playwright.config.ts"]
+}

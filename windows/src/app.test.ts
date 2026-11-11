@@ -63,6 +63,33 @@ test("board presents rank, name, contributions and you to assistive technology",
   expect(document.body.textContent).toContain("Today");
   dispose();
 });
+test("a trolling row turns its count red and swaps the squares for the troll face", async () => {
+  const trolling = {
+    ...board,
+    rows: [
+      {
+        ...board.rows[0],
+        contributions: 784,
+        burst: { date: "2026-05-28", count: 784, usual: 102 },
+      },
+    ],
+  };
+  const dispose = await mount(trolling);
+  expect(document.querySelector(".contributions.troll")?.textContent).toBe(
+    "784",
+  );
+  const face = document.querySelector<HTMLElement>(".troll-face");
+  expect(face?.title).toBe(
+    "Problem? 784 in one day, about 7 times their usual big day.",
+  );
+  expect(document.querySelector(".contribution-squares")).toBeNull();
+  expect(
+    document.querySelector(
+      '[aria-label="Rank 1, Mona, 784 Contributions, you, trolling: 784 in one day, about 7 times their usual big day"]',
+    ),
+  ).not.toBeNull();
+  dispose();
+});
 test("keyboard time-range switching selects the core window and requests only a stale refresh", async () => {
   const calls: string[] = [];
   const dispose = await mount(board, calls);

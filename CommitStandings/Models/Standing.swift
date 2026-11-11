@@ -17,6 +17,9 @@ struct Standing: Identifiable, Equatable, Codable {
     var window: ContributionWindow
     var lastUpdated: Date
     var state: LoadState
+    /// The biggest trolling day in the window, if any (see `TrollCheck`). The row marks it with
+    /// the troll face; ranking ignores it. Older snapshots without it decode as nil.
+    var burst: Burst?
 
     var id: String { username }
 
@@ -25,25 +28,54 @@ struct Standing: Identifiable, Equatable, Codable {
         contributions: Int,
         window: ContributionWindow,
         lastUpdated: Date,
-        state: LoadState
+        state: LoadState,
+        burst: Burst? = nil
     ) {
         self.username = username
         self.contributions = contributions
         self.window = window
         self.lastUpdated = lastUpdated
         self.state = state
+        self.burst = burst
     }
 }
 
-/// Result of fetching a competitor's standing: the Window's contributions count and, from the
-/// real client, the daily counts it was worked out from. Stubs may leave `history` nil.
+/// One day far above someone's usual: more than `TrollCheck.multiple` times their usual big day
+/// and over `TrollCheck.floor`. Committed calls it trolling and marks the row; it doesn't change
+/// the count or the rank.
+struct Burst: Equatable, Codable, Sendable {
+    var day: Date
+    var count: Int
+    /// Their usual big day before it: the count 9 in 10 of their earlier active days stay under.
+    var usual: Int
+
+    /// How many times their usual big day, rounded down; nil when they had no history.
+    var multiple: Int? {
+        usual > 0 ? count / usual : nil
+    }
+}
+
+/// Result of fetching a competitor's standing: the Window's contributions count, the Window's
+/// biggest trolling day when there is one and, from the real client, the daily counts both were
+/// worked out from. Stubs may leave `history` nil.
 struct StandingCounts: Equatable, Sendable {
     var contributions: Int
     var history: ContributionHistory?
+    var burst: Burst?
 
-    init(contributions: Int, history: ContributionHistory? = nil) {
+    init(contributions: Int, history: ContributionHistory? = nil, burst: Burst? = nil) {
         self.contributions = contributions
         self.history = history
+        self.burst = burst
+    }
+
+    /// `window`'s total and trolling day as of `reference`, both from `history`.
+    init(history: ContributionHistory, window: ContributionWindow, asOf reference: Date) {
+        self.init(
+            contributions: history.total(for: window, asOf: reference),
+            history: history,
+            burst: history.burst(for: window, asOf: reference)
+        )
     }
 }
 

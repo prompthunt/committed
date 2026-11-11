@@ -1,6 +1,8 @@
 declare namespace Cloudflare {
   interface Env {
     DB: D1Database;
+    /** Per-IP rate limit for the public `GET /v1/board` read. */
+    BOARD_LIMITER: RateLimit;
     /** iOS app bundle id; the APNs topic is `${APNS_BUNDLE_ID}.push-type.liveactivity`. */
     APNS_BUNDLE_ID: string;
     /** Secrets. */

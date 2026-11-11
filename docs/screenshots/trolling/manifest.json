@@ -1,0 +1,45 @@
+{
+  "device": "iPhone Duo Simulator",
+  "os": "iOS 27.1",
+  "notes": "Runtime captures on fixtures. iPhone: Debug app on the shared iPhone Duo Simulator launched with -ScreenshotFixture -ScreenshotTroll bram-ott (simctl io --display=1). Mac: scripts/build-flow-capture.py --troll fixture host drawing its own window with -CaptureSnapshot (the host forces light appearance). Windows: the real Windows board UI (windows/src/app.ts and style.css) served by Vite in the in-app Chromium browser on mocked Tauri IPC, not a capture on Windows/WebView2; the temporary harness page was not committed.",
+  "screenshots": [
+    {
+      "file": "iphone-board.png",
+      "caption": "iPhone Board \u2014 bram-ott trolling: red 784 and the troll face in place of the squares; rank unchanged",
+      "capture": {
+        "sourceCommit": "566f2a7d22d293dd2ec5133c4ee475a719cc8311",
+        "fixture": true
+      }
+    },
+    {
+      "file": "mac-board.png",
+      "caption": "Mac board (light) \u2014 hubot trolling: deep red 816 and the troll face",
+      "device": "MacBook Pro",
+      "os": "macOS 27.0.1",
+      "capture": {
+        "sourceCommit": "566f2a7d22d293dd2ec5133c4ee475a719cc8311",
+        "fixture": true
+      }
+    },
+    {
+      "file": "windows-board-dark.png",
+      "caption": "Windows board (dark) \u2014 hubot trolling",
+      "device": "In-app browser (Chromium), Windows UI on mocked IPC",
+      "os": "macOS 27.0.1",
+      "capture": {
+        "sourceCommit": "566f2a7d22d293dd2ec5133c4ee475a719cc8311",
+        "fixture": true
+      }
+    },
+    {
+      "file": "windows-board-light.png",
+      "caption": "Windows board (light) \u2014 hubot trolling",
+      "device": "In-app browser (Chromium), Windows UI on mocked IPC",
+      "os": "macOS 27.0.1",
+      "capture": {
+        "sourceCommit": "566f2a7d22d293dd2ec5133c4ee475a719cc8311",
+        "fixture": true
+      }
+    }
+  ]
+}

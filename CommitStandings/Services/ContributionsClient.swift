@@ -43,7 +43,7 @@ struct ContributionsClient: ContributionsFetching {
         asOf reference: Date
     ) async -> Result<StandingCounts, ContributionsError> {
         await history(for: username).map { history in
-            StandingCounts(contributions: history.total(for: window, asOf: reference), history: history)
+            StandingCounts(history: history, window: window, asOf: reference)
         }
     }
 

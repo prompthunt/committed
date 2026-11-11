@@ -1,4 +1,9 @@
 import SwiftUI
+#if canImport(AppKit)
+import AppKit
+#else
+import UIKit
+#endif
 
 /// How the shared `StandingRow` is drawn. The Mac popover and the iPhone board use the same row
 /// (one row, never forked); the iPhone restyles it by setting `\.standingRowStyle`. The default,
@@ -52,6 +57,11 @@ struct StandingRowStyle {
     /// The contribution square right of the count.
     var squares: Squares = .symbol
 
+    /// A trolling row (see `TrollCheck`): its count turns this red and the troll face takes the
+    /// square's place, drawn at this size and centered on the square's slot so counts stay aligned.
+    var trollColor: Color = .trollRed
+    var trollSize = CGSize(width: 19, height: 16)
+
     enum Squares {
         /// The Mac's `square.grid.2x2.fill`, mint to green relative to the leader.
         case symbol
@@ -64,6 +74,14 @@ struct StandingRowStyle {
 
     /// The Mac popover's row.
     static let standard = StandingRowStyle()
+}
+
+extension StandingRowStyle.Squares {
+    /// False for a row too narrow for the square, which also leaves out the troll face.
+    var isShown: Bool {
+        if case .hidden = self { return false }
+        return true
+    }
 }
 
 extension EnvironmentValues {
@@ -85,4 +103,23 @@ enum SquareRamp {
         default: return 4
         }
     }
+}
+
+extension Color {
+    /// A trolling count's red: bright on dark, deeper on light so it stays readable (5:1 or better).
+    static let trollRed: Color = {
+        let bright = (red: 1.0, green: 0.31, blue: 0.25)
+        let deep = (red: 0.784, green: 0.2, blue: 0.122)
+        #if canImport(AppKit)
+        return Color(nsColor: NSColor(name: nil) { appearance in
+            let c = appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua ? bright : deep
+            return NSColor(srgbRed: c.red, green: c.green, blue: c.blue, alpha: 1)
+        })
+        #else
+        return Color(uiColor: UIColor { traits in
+            let c = traits.userInterfaceStyle == .dark ? bright : deep
+            return UIColor(red: c.red, green: c.green, blue: c.blue, alpha: 1)
+        })
+        #endif
+    }()
 }

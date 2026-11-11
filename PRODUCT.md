@@ -34,6 +34,7 @@ Clicking the menu-bar icon opens a popover with your contribution summary and a 
 - **Your summary** — your avatar, name or handle, contribution count, and streak appear above the list. Your rank also appears in the menu bar when you have visible rivals.
 - **Streaks** — "🔥 12" beside a count is that person's streak: 12 days in a row with at least one contribution. It stays alive through today until today ends, so having no contributions yet this morning doesn't break it. It shows from 2 days, reads "365+" past GitHub's calendar (about a year), and VoiceOver reads it as "12-day streak". A count that failed or hasn't loaded shows no streak, never "0".
 - **Today's movement** — small chevrons show rank changes since the first refresh of the day. Hiding or showing people starts a new movement baseline.
+- **Trolling** — a day far above someone's usual is marked as trolling: their count turns red and a troll face takes the place of their contribution squares, with "Problem?" and how far over their usual on hover (and for VoiceOver). A day counts as trolling when it's over 100 and more than 5 times their usual big day (the count 9 in 10 of their earlier active days stay under, from the year on their contribution graph). The mark stays on 7 days, 30 days and This month until that day leaves the Window. It doesn't change their count or rank; widgets, Live rank and Final standings don't show it.
 - **Leaderboard Notifications** — opt in through `⋯` to receive a notification when someone passes you or you pass them, and when a month ends ("October final: You finished #3 of 8").
 
 ### Time windows
@@ -138,13 +139,22 @@ Committed's widgets show Live rank's Window: **Committed** (small, medium and la
 
 ### The Committed relay
 
-The **Committed relay** is a small push service that keeps Live rank current while the iPhone app is closed. It's the only server Committed uses, and it exists only for Live rank.
+The **Committed relay** is a small push service that keeps Live rank current while the iPhone app is closed. It's the only server Committed uses. It also answers the public rank reads behind **Committed for NZXT Kraken** (below).
 
 - **What it receives:** your GitHub username, the usernames on your board (visible people, in board order), Live rank's Window, your time zone, whether the build pushes through Apple's sandbox or production service, and the Apple push tokens for Live rank on that iPhone. Registration uses a random installation ID and secret kept in the iPhone's Keychain. There is no Committed account.
 - **What it never receives:** your GitHub token, which is sent only to GitHub. The relay reads the same public contribution pages as the apps, anonymously.
+- **The Kraken page's reads** send a username, its rivals, the Window and a time zone with each request. The relay stores nothing from them beyond the shared per-username contribution cache.
 - **When the iPhone updates it:** when you hide or show someone, change Live rank's Window, when a people sync changes who's on your board, when your time zone changes, and when Apple issues a new push token.
 - **Turning Live rank off or Disconnect GitHub** deletes the iPhone's registration and ends Live rank.
 - Crossing notifications still come only from the device; the relay sends Live rank updates, not notifications.
+
+### Committed for NZXT Kraken
+
+**gitcommitted.app/kraken** puts your rank on an NZXT Kraken cooler's LCD through NZXT CAM's Web Integration. It's a web page, not part of the apps, and needs no Committed app or GitHub connection.
+
+- **Setup:** in CAM, set the Kraken's mode to Web Integration and enter `https://gitcommitted.app/kraken`. CAM shows the page's setup view: enter a GitHub username, load the people that account follows (from GitHub's public API, anonymously), uncheck anyone to leave off, add anyone else by username, and pick **Today / 7 days / 30 days**. Up to 99 rivals. Settings save as you go in the browser's local storage, which CAM shares with the LCD view, so the LCD follows along without a reload. A link with the board in its query (`?login=&competitors=&window=`) works too, for setup done in another browser.
+- **The LCD** (CAM adds `?kraken=1`): the trophy and Window, your rank large in lime, "of N", your Contributions, the gap to pass the person ahead ("3 to pass alice", or "You're in first"), and how old the numbers are, over a field of contribution squares. It fits the 640 and 320 round screens and the 240 square one, from the size CAM reports. Empty states match Live rank ("Just you so far", "Waiting for your first count"). Twenty minutes past its data, the colors step down.
+- **Counts** come from the relay's `GET /v1/board`, polled every minute: the same public contribution graphs and ranking as the apps, through the relay's shared 5-minute cache. There's no today's movement. Its board is people you follow plus anyone added by hand; organization members and the apps' hide choices don't carry over.
 
 ## How it works
 
@@ -211,5 +221,6 @@ The app is intentionally **not sandboxed** to support its Sparkle update path. B
 | Streak | Consecutive days with at least one contribution, alive through today: a day with none yet doesn't end it until the day is over. Days are your device's, as for Today. Shown as "🔥 12" from 2 days, "365+" past GitHub's calendar. |
 | Refresh | Reloading contribution counts on a ~5-minute timer, stale menu-open, or stale window switch. Manual **Refresh** also reloads the people list. |
 | Live rank | The Live Activity that shows your current rank, your Contributions, and the people just above and below you in the Dynamic Island and on the Lock Screen, for a Window you choose in Settings. Say "Live rank", not "widget" or "Live Activity" in product copy. |
+| Trolling | A day over 100 contributions and more than 5 times the person's usual big day. Marked with the troll face and a red count; ranking is unchanged. |
 | Committed relay | The push service that keeps Live rank current with the iPhone app closed. It receives public GitHub usernames, Live rank's Window, the time zone, and Apple push tokens, never the GitHub token. Say "Committed relay" or "the relay", not "server", "backend", or "sync". |
 | Sample board | Committed running on built-in sample data instead of a connected GitHub account, opened with **Try a sample board** on the Connect GitHub screen. Everything works on it, and nothing leaves the device. Say "sample board", never "demo account", "guest", or "sign in". |

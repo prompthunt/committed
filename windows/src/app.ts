@@ -3,6 +3,7 @@ import { listen } from "@tauri-apps/api/event";
 import { GLYPH_PATH } from "../../site/lib/glyph";
 import type {
   Board,
+  Burst,
   DesktopSettings,
   Medal,
   Person,
@@ -18,6 +19,13 @@ const appIcon = new URL(
   "../../docs/design/committed-app-icon.svg",
   import.meta.url,
 ).href;
+const trollFace = new URL("./assets/troll.png", import.meta.url).href;
+/** "784 in one day, about 7 times their usual big day": the tooltip and spoken trolling note. */
+function trolling(burst: Burst): string {
+  const multiple =
+    burst.usual > 0 ? Math.floor(burst.count / burst.usual) : null;
+  return `${burst.count.toLocaleString()} in one day${multiple ? `, about ${multiple} times their usual big day` : ""}`;
+}
 const windows: [Window, string][] = [
   ["today", "Today"],
   ["week", "7 days"],
@@ -323,13 +331,13 @@ export async function start(
           .map((row) => {
             const streak = final ? null : streakText(row.streak);
             const medal = final && row.medal ? row.medal : null;
-            const spoken = `Rank ${row.rank}, ${name(row)}, ${row.contributions === null ? "Contributions unavailable" : `${row.contributions} Contributions`}${medal ? `, ${medal} medal` : ""}${streak ? `, ${streakSpoken(streak)}` : ""}${row.is_you ? ", you" : ""}`;
+            const spoken = `Rank ${row.rank}, ${name(row)}, ${row.contributions === null ? "Contributions unavailable" : `${row.contributions} Contributions`}${medal ? `, ${medal} medal` : ""}${streak ? `, ${streakSpoken(streak)}` : ""}${row.is_you ? ", you" : ""}${row.burst ? `, trolling: ${trolling(row.burst)}` : ""}`;
             const shade = Math.min(
               1,
               (row.contributions ?? 0) / maxContributions,
             );
             const squareColor = `rgb(${Math.round(156 - 110 * shade)}, ${Math.round(232 - 71 * shade)}, ${Math.round(168 - 102 * shade)})`;
-            return `<li class="${row.is_you ? "you" : ""}"><button class="standing" data-open-person="${escape(row.login)}" data-focus="row-${escape(row.login)}" aria-label="${escape(spoken)}"><span class="rank">#${row.rank}</span>${avatar(row)}${medal ? `<span class="medal" aria-hidden="true">${medals[medal]}</span>` : ""}<span class="identity"><strong title="${escape(name(row))}">${escape(row.login)}${row.is_you ? ' <span class="badge">you</span>' : ""}</strong>${row.status === "failed" ? "<small>Refresh failed</small>" : ""}</span>${!final && movementWindows.includes(selected) && row.movement ? `<span class="movement ${row.movement > 0 ? "up" : "down"}" aria-label="Moved ${row.movement > 0 ? "up" : "down"} ${Math.abs(row.movement)}">${row.movement > 0 ? "↑" : "↓"}${Math.abs(row.movement)}</span>` : ""}${streak ? `<span class="streak" aria-hidden="true">🔥 ${streak}</span>` : ""}<strong class="contributions">${count(row.contributions)}</strong><svg class="contribution-squares" viewBox="0 0 12 12" fill="${squareColor}" aria-hidden="true" ${row.contributions === null ? 'style="visibility:hidden"' : ""}><path d="M0 0h5v5H0zM7 0h5v5H7zM0 7h5v5H0zM7 7h5v5H7z" /></svg></button></li>`;
+            return `<li class="${row.is_you ? "you" : ""}"><button class="standing" data-open-person="${escape(row.login)}" data-focus="row-${escape(row.login)}" aria-label="${escape(spoken)}"><span class="rank">#${row.rank}</span>${avatar(row)}${medal ? `<span class="medal" aria-hidden="true">${medals[medal]}</span>` : ""}<span class="identity"><strong title="${escape(name(row))}">${escape(row.login)}${row.is_you ? ' <span class="badge">you</span>' : ""}</strong>${row.status === "failed" ? "<small>Refresh failed</small>" : ""}</span>${!final && movementWindows.includes(selected) && row.movement ? `<span class="movement ${row.movement > 0 ? "up" : "down"}" aria-label="Moved ${row.movement > 0 ? "up" : "down"} ${Math.abs(row.movement)}">${row.movement > 0 ? "↑" : "↓"}${Math.abs(row.movement)}</span>` : ""}${streak ? `<span class="streak" aria-hidden="true">🔥 ${streak}</span>` : ""}<strong class="contributions${row.burst ? " troll" : ""}">${count(row.contributions)}</strong>${row.burst ? `<span class="troll-face" style="--troll: url('${trollFace}')" title="${escape(`Problem? ${trolling(row.burst)}.`)}" aria-hidden="true"></span>` : `<svg class="contribution-squares" viewBox="0 0 12 12" fill="${squareColor}" aria-hidden="true" ${row.contributions === null ? 'style="visibility:hidden"' : ""}><path d="M0 0h5v5H0zM7 0h5v5H7zM0 7h5v5H7zM7 7h5v5H7z" /></svg>`}</button></li>`;
           })
           .join("")}</ol>
         ${first && !refreshing ? '<p class="muted">Fetching the first set of standings. Use Refresh to retry if GitHub is unavailable.</p>' : ""}

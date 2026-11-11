@@ -13,6 +13,7 @@ import tempfile
 
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument("--large-board", action="store_true", help="Seed 19 people to verify scrolling and lower-ranked rows")
+parser.add_argument("--troll", action="store_true", help="Give hubot a trolling day (784 more today) to show the troll face")
 parser.add_argument("--bundle-id", default="com.digg.committed.flowcapture", help="Use a separate app identity for concurrent previews")
 args = parser.parse_args()
 repo = pathlib.Path(__file__).resolve().parents[1]
@@ -54,9 +55,9 @@ app_file.write_text(r'''import SwiftUI
         s.updateHistories(Dictionary(uniqueKeysWithValues: loaded.map { ($0.username, captureHistory($0.username, asOf: now)) }))
         for window in ContributionWindow.allCases {
             for entry in loaded {
-                s.updateStanding(Standing(username: entry.username,
-                    contributions: captureHistory(entry.username, asOf: now).total(for: window, asOf: now),
-                    window: window, lastUpdated: now, state: .loaded))
+                let counts = StandingCounts(history: captureHistory(entry.username, asOf: now), window: window, asOf: now)
+                s.updateStanding(Standing(username: entry.username, contributions: counts.contributions,
+                    window: window, lastUpdated: now, state: .loaded, burst: counts.burst))
             }
         }
         // `-CaptureWindow month` opens the board on that Window (a ContributionWindow raw value).
@@ -147,13 +148,13 @@ private func captureNow() -> Date {
 
 private struct CaptureCounts: ContributionsFetching {
     func standingCounts(for username: String, window: ContributionWindow, asOf reference: Date) async -> Result<StandingCounts, ContributionsError> {
-        let history = captureHistory(username, asOf: reference)
-        return .success(StandingCounts(contributions: history.total(for: window, asOf: reference), history: history))
+        .success(StandingCounts(history: captureHistory(username, asOf: reference), window: window, asOf: reference))
     }
 }
 
 /// A made-up year of days: a fixed count a day, a streak of the listed length (nothing the day
 /// before it), then most days. monalisa's runs the whole calendar ("365+"); defunkt has none.
+/// With `--troll`, hubot has 784 more today: the real trolling rule marks the row.
 private func captureHistory(_ username: String, asOf reference: Date) -> ContributionHistory {
     let perDay = ["octocat": 5, "hubot": 4, "monalisa": 3, "defunkt": 2, "mojombo": 1][username] ?? 1
     let streak = ["octocat": 14, "hubot": 6, "monalisa": 371, "defunkt": 0, "mojombo": 2][username] ?? 1
@@ -166,10 +167,13 @@ private func captureHistory(_ username: String, asOf reference: Date) -> Contrib
         let active = offset < streak || (offset > max(streak, 1) && offset % 5 != 0)
         days[ContributionHistory.key(for: day, in: calendar)] = active ? perDay * (1 + offset % 3) : 0
     }
+    if TROLL_FIXTURE, username == "hubot" {
+        days[ContributionHistory.key(for: today, in: calendar), default: 0] += 784
+    }
     return ContributionHistory(days: days, timeZone: .current)
 }
 
-enum MenuPopoverLayout'''.replace('LARGE_BOARD', str(args.large_board).lower()) + helpers)
+enum MenuPopoverLayout'''.replace('LARGE_BOARD', str(args.large_board).lower()).replace('TROLL_FIXTURE', str(args.troll).lower()) + helpers)
 info = destination / "CommitStandings/Info.plist"
 with info.open("rb") as stream:
     data = plistlib.load(stream)

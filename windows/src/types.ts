@@ -17,6 +17,14 @@ export interface Row extends Person {
   status: "loaded" | "loading" | "cached" | "failed" | "missing";
   /** Only on Final standings rows: ranks 1–3 of a finished month whose total was above zero. */
   medal?: Medal | null;
+  /** The window's trolling day, if any: far above their usual, so the row wears the troll face. */
+  burst?: Burst | null;
+}
+export interface Burst {
+  date: string;
+  count: number;
+  /** Their usual big day before it: the count 9 in 10 of their earlier active days stay under. */
+  usual: number;
 }
 export type Medal = "gold" | "silver" | "bronze";
 /** A finished month's ranks among the people on the board now; rows carry the month's total. */

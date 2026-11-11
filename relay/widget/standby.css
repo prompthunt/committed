@@ -1,0 +1,695 @@
+/*
+ * Committed's StandBy pair for other screens. Runs on Chromium 76 (Samsung Frame): no flex gap,
+ * inset, aspect-ratio, clamp/min/max, CSS variables, gradients, shadows or blur, and only opacity
+ * and transform animate. test/widget-runtime.test.ts checks these rules.
+ *
+ * Every size is in rem. standby.js sets the root font size from the box the page is given, so the
+ * whole layout scales to fill it. Colors are Committed's palette (CommittedTheme.swift):
+ * ink #050505, tile #0e100b, raised #1b1d17, lime #c8ff2e, limeDeep #8bc41a, onLime #1e2410,
+ * muted #8e9288, soft #d6d9d0.
+ */
+
+@font-face {
+  font-family: "Inter Tight";
+  src: url(/v1/widget/fonts/InterTight-Regular.ttf) format("truetype");
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Inter Tight";
+  src: url(/v1/widget/fonts/InterTight-ExtraBold.ttf) format("truetype");
+  font-weight: 800;
+  font-display: swap;
+}
+
+/* The eyebrows' monospace: JetBrains Mono Medium, subset to Basic Latin (the TV has no monospace). */
+@font-face {
+  font-family: "JetBrains Mono";
+  src: url(/v1/widget/fonts/JetBrainsMono-Medium.ttf) format("truetype");
+  font-weight: 500;
+  font-display: swap;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #050505;
+  color: #ffffff;
+  font-family: "Inter Tight", sans-serif;
+  font-weight: 400;
+  -webkit-font-smoothing: antialiased;
+}
+
+html {
+  font-size: 24px; /* replaced by standby.js */
+}
+
+/* Embedded in another screen's frame (Glance's tile), the host's tile color shows through. */
+html.embedded,
+html.embedded body {
+  background: transparent;
+}
+
+.defs {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+}
+
+.widget {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  padding: 1.1rem 1.15rem;
+  overflow: hidden;
+}
+
+/* MARK: Panes: the hero card beside the board (a tall box stacks them) */
+
+.panes {
+  display: flex;
+  flex-direction: row;
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+}
+
+/* The whole board fits with room to spare: the pair sits in the middle of the box. It can still
+   shrink to the box, so a tall card never pushes past it. */
+.compact .panes {
+  flex: 0 1 auto;
+}
+
+.compact .rows {
+  flex: 0 0 auto;
+}
+
+.board {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-width: 0;
+  margin-left: 0.8rem;
+  padding-top: 0.95rem;
+  overflow: hidden;
+}
+
+.stacked .panes {
+  flex-direction: column;
+}
+
+.stacked .board {
+  flex: 1 1 auto;
+  margin-left: 0;
+  margin-top: 0.8rem;
+  padding-top: 0;
+  min-height: 0;
+}
+
+/* The Committed mark, in the message screens and the card's no-rank state. */
+.trophy {
+  flex: 0 0 auto;
+  color: #c8ff2e;
+}
+
+/* MARK: Eyebrows: the site's monospace labels ("01 · TODAY", "12 PEOPLE · TODAY") */
+
+.eyebrow {
+  font-family: "JetBrains Mono", monospace;
+  font-weight: 500;
+  font-size: 0.55rem;
+  line-height: 1.25;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.list-head {
+  flex: 0 0 auto;
+  padding: 0 0.55rem 0.5rem;
+  overflow: hidden;
+  color: #8e9288;
+}
+
+/* MARK: The hero card (BoardSummaryView): Committed's tile with a hairline */
+
+.card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  flex: 0 0 42%;
+  width: 42%;
+  min-width: 0;
+  box-sizing: border-box;
+  padding: 0.95rem 1rem;
+  overflow: hidden;
+  background: #0e100b;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 0.8rem;
+}
+
+.stacked .card {
+  flex: 0 0 auto;
+  width: 100%;
+}
+
+/* The app's square field, drawn still by standby.js for the card's size (no runtime gradients:
+   its masks are folded into each square's opacity). */
+.field {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.field i {
+  position: absolute;
+  border-radius: 22%;
+}
+
+[data-state="stale"] .field {
+  opacity: 0.6;
+}
+
+.folio,
+.who,
+.hero,
+.news {
+  position: relative;
+}
+
+.folio {
+  display: flex;
+  flex-direction: row;
+  flex: 0 0 auto;
+  padding-bottom: 0.4rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  color: #d6d9d0;
+  overflow: hidden;
+}
+
+.folio-title {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.folio-label {
+  flex: 0 0 auto;
+  margin-left: auto;
+  padding-left: 0.5rem;
+}
+
+/* Too narrow for both: the number and Window alone, as the app's FolioRow falls back. */
+.no-label .folio-label {
+  display: none;
+}
+
+/* Who you are: avatar with a lime ring, your first name over @login (or @login alone). */
+
+.who {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  flex: 0 0 auto;
+  margin-top: 0.85rem;
+  min-width: 0;
+}
+
+.loading .who,
+.no-who .who {
+  display: none;
+}
+
+.who .who-avatar {
+  width: 1.85rem;
+  height: 1.85rem;
+  margin: 0 0.5rem 0 0;
+  border: 2px solid rgba(200, 255, 46, 0.6);
+}
+
+.who-avatar .initials {
+  font-size: 0.6rem;
+  line-height: 1.7rem;
+}
+
+.who-text {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.who-name {
+  font-size: 0.95rem;
+  line-height: 1.15;
+  font-weight: 800;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.who-handle {
+  font-size: 0.76rem;
+  line-height: 1.25;
+  color: #d6d9d0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.who-handle:empty {
+  display: none;
+}
+
+/* Your rank, huge, with "of N" beside it; the trophy when there's no rank. */
+
+.hero {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  flex: 1 1 auto;
+  min-height: 0;
+  margin: 0.9rem 0;
+}
+
+.stacked .hero {
+  flex: 0 0 auto;
+}
+
+.rank-line {
+  display: flex;
+  flex-direction: row;
+  align-items: baseline;
+  white-space: nowrap;
+}
+
+.rank {
+  flex: 0 0 auto;
+  font-weight: 800;
+  font-size: 7rem; /* fitted to the card by standby.js */
+  line-height: 0.9;
+  letter-spacing: -0.04em;
+  color: #ffffff;
+}
+
+/* Before the first board: a quiet placeholder, never a fake rank. */
+.loading .rank {
+  font-size: 4rem;
+  color: #8e9288;
+}
+
+.rank-of {
+  flex: 0 0 auto;
+  margin-left: 0.4rem;
+  font-size: 1.1rem;
+  color: #d6d9d0;
+}
+
+.rank-of:empty {
+  display: none;
+}
+
+.solo {
+  display: none;
+  flex-direction: row;
+  align-items: center;
+}
+
+.unranked .rank-line {
+  display: none;
+}
+
+.unranked .solo {
+  display: flex;
+}
+
+.trophy-mark {
+  width: 3.4rem;
+  height: 3.4rem;
+}
+
+.solo-count {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  flex: 0 1 auto;
+  min-width: 0;
+  margin-left: auto;
+  padding-left: 0.6rem;
+}
+
+.waiting .solo-count {
+  display: none;
+}
+
+.count {
+  font-weight: 800;
+  font-size: 3rem;
+  line-height: 0.95;
+  letter-spacing: -0.04em;
+  white-space: nowrap;
+  color: #c8ff2e;
+  transform-origin: 100% 50%;
+  transition: transform 0.25s ease-out;
+}
+
+.count.bump {
+  transform: scale(1.08);
+}
+
+.count-label {
+  margin-top: 0.25rem;
+  color: #d6d9d0;
+}
+
+/* The news, then the age: "Up 2 today", "5 to pass mossbyte", "Updated 6 min ago". */
+
+.news {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.movement-line {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  font-size: 0.8rem;
+  line-height: 1.3;
+  font-weight: 800;
+  color: #c8ff2e;
+  overflow: hidden;
+}
+
+.movement-line:empty,
+.no-move .movement-line {
+  display: none;
+}
+
+.movement-line svg {
+  flex: 0 0 auto;
+  width: 0.72rem;
+  height: 0.72rem;
+  margin-right: 0.3rem;
+}
+
+.movement-line[data-direction="down"] {
+  color: #d6d9d0;
+}
+
+.status {
+  font-size: 0.8rem;
+  line-height: 1.3;
+  font-weight: 800;
+  color: #c8ff2e;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.status:empty {
+  display: none;
+}
+
+.status.quiet {
+  font-weight: 400;
+  color: #d6d9d0;
+}
+
+.age {
+  margin-top: 0.15rem;
+  font-size: 0.73rem;
+  line-height: 1.3;
+  color: #d6d9d0;
+  overflow: hidden;
+}
+
+.age:empty,
+.no-age .age {
+  display: none;
+}
+
+/* MARK: Board rows (StandingRowStyle.liveRank) */
+
+.rows {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  margin: 0.5rem 0 0 0;
+  padding: 0;
+  list-style: none;
+  overflow: hidden;
+}
+
+.row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  height: 2.3rem;
+  margin-bottom: 0.25rem;
+  padding: 0 0.55rem;
+  box-sizing: border-box;
+  border: 1px solid transparent;
+  border-radius: 0.55rem;
+  white-space: nowrap;
+  color: #ffffff;
+  transition: transform 0.6s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.45s ease-out;
+}
+
+.row.entering {
+  opacity: 0;
+}
+
+.row[data-self="true"] {
+  background: rgba(200, 255, 46, 0.08);
+  border-color: rgba(200, 255, 46, 0.32);
+}
+
+.row-rank {
+  flex: 0 0 auto;
+  width: 1.9rem;
+  text-align: right;
+  font-size: 0.85rem;
+  color: #8e9288;
+}
+
+.avatar {
+  position: relative;
+  flex: 0 0 auto;
+  width: 1.4rem;
+  height: 1.4rem;
+  margin: 0 0.55rem;
+  border-radius: 50%;
+  box-sizing: border-box;
+  overflow: hidden;
+  background: #1b1d17;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  text-align: center;
+}
+
+.initials {
+  display: block;
+  font-size: 0.5rem;
+  line-height: 1.32rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  color: #d6d9d0;
+}
+
+.avatar img {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  transition: opacity 0.4s ease-out;
+}
+
+.avatar.loaded img {
+  opacity: 1;
+}
+
+.name-wrap {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.name {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 1.05rem;
+}
+
+.row[data-self="true"] .name {
+  font-weight: 800;
+}
+
+.badge {
+  flex: 0 0 auto;
+  margin-left: 0.35rem;
+  padding: 0 0.32rem;
+  border-radius: 0.5rem;
+  font-size: 0.62rem;
+  line-height: 0.95rem;
+  font-weight: 800;
+  background: #c8ff2e;
+  color: #1e2410;
+}
+
+.movement {
+  flex: 0 0 auto;
+  display: block;
+  width: 0.8rem;
+  height: 0.8rem;
+  margin-left: 0.5rem;
+  color: #c8ff2e;
+  transition: opacity 0.5s ease-out, transform 0.5s ease-out;
+}
+
+.movement svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.movement[data-direction="down"] {
+  color: #d6d9d0;
+}
+
+.movement[data-direction="down"] svg {
+  transform: scaleY(-1);
+}
+
+.movement.appearing {
+  opacity: 0;
+  transform: translateY(0.3rem);
+}
+
+.movement[data-direction="down"].appearing {
+  transform: translateY(-0.3rem);
+}
+
+.row-count {
+  flex: 0 0 auto;
+  min-width: 1.7rem;
+  margin-left: 0.35rem;
+  text-align: right;
+  font-size: 1.15rem;
+}
+
+.row[data-self="true"] .row-count {
+  font-weight: 800;
+  color: #c8ff2e;
+}
+
+/* The rows' 2×2 squares glyph, by SquareRamp level (Palette.rowGlyphs). */
+.glyph {
+  position: relative;
+  flex: 0 0 auto;
+  display: block;
+  width: 0.8rem;
+  height: 0.8rem;
+  margin-left: 0.55rem;
+}
+
+.glyph i {
+  position: absolute;
+  width: 45%;
+  height: 45%;
+  border-radius: 22%;
+  background: #8e9288;
+}
+
+.glyph i:nth-child(1) { left: 0; top: 0; }
+.glyph i:nth-child(2) { right: 0; top: 0; }
+.glyph i:nth-child(3) { left: 0; bottom: 0; }
+.glyph i:nth-child(4) { right: 0; bottom: 0; }
+
+.glyph[data-level="1"] i { background: #4f8a14; }
+.glyph[data-level="2"] i { background: #6aa81a; }
+.glyph[data-level="3"] i { background: #7ab61a; }
+.glyph[data-level="4"] i { background: #8bc41a; }
+.glyph.empty { opacity: 0; }
+
+/* MARK: Stale (data more than 20 minutes old): colors step down, as Live rank's do */
+
+[data-state="stale"] .trophy { color: #8bc41a; }
+[data-state="stale"] .rank { color: #8e9288; }
+[data-state="stale"] .count { color: #8bc41a; }
+[data-state="stale"] .status { color: #8bc41a; }
+[data-state="stale"] .status.quiet { color: #d6d9d0; }
+[data-state="stale"] .movement-line { color: #8bc41a; }
+[data-state="stale"] .movement-line[data-direction="down"] { color: #8e9288; }
+[data-state="stale"] .who .who-avatar { border-color: rgba(139, 196, 26, 0.6); }
+[data-state="stale"] .row { color: #d6d9d0; }
+[data-state="stale"] .row[data-self="true"] {
+  background: rgba(139, 196, 26, 0.08);
+  border-color: rgba(139, 196, 26, 0.32);
+}
+[data-state="stale"] .row[data-self="true"] .row-count { color: #8bc41a; }
+[data-state="stale"] .badge { background: #8bc41a; }
+[data-state="stale"] .movement { color: #8bc41a; }
+[data-state="stale"] .movement[data-direction="down"] { color: #8e9288; }
+
+/* MARK: Messages in place of the board: revoked, gone, not set up */
+
+.message {
+  display: none;
+  flex: 1 1 auto;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.message .head {
+  display: flex;
+  margin-bottom: 1rem;
+}
+
+.message .trophy {
+  width: 1.6rem;
+  height: 1.6rem;
+}
+
+.message-title {
+  margin: 0;
+  font-size: 1.9rem;
+  line-height: 1.15;
+  font-weight: 800;
+  color: #ffffff;
+}
+
+.message-detail {
+  margin: 0.7rem 0 0 0;
+  font-size: 1rem;
+  line-height: 1.35;
+  color: #d6d9d0;
+}
+
+[data-state="revoked"] .panes,
+[data-state="gone"] .panes,
+[data-state="setup"] .panes {
+  display: none;
+}
+
+[data-state="revoked"] .message,
+[data-state="gone"] .message,
+[data-state="setup"] .message {
+  display: flex;
+}
