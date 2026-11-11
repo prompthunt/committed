@@ -1,4 +1,4 @@
-import { DAY_COUNT, type Window } from "./ranking";
+import { addDays, windowStart, type Window } from "./ranking";
 
 /**
  * TypeScript port of `ContributionsParser` (CommitStandings/Services/ContributionsParser.swift).
@@ -60,9 +60,9 @@ export function parseDays(html: string): Days {
   return result;
 }
 
-/** Sum of the window ending on `today` (inclusive), today and the prior `dayCount − 1` days. */
+/** Sum of the Window ending on `today` (inclusive), from its `windowStart`. */
 export function sum(days: Days, window: Window, today: string): number {
-  const earliest = addDays(today, -(DAY_COUNT[window] - 1));
+  const earliest = windowStart(window, today);
   let total = 0;
   for (const [date, count] of Object.entries(days)) {
     if (date >= earliest && date <= today) total += count;
@@ -107,12 +107,6 @@ export function isValidTimeZone(timeZone: string): boolean {
   } catch {
     return false;
   }
-}
-
-function addDays(date: string, delta: number): string {
-  const [year, month, day] = date.split("-").map(Number);
-  const shifted = new Date(Date.UTC(year!, month! - 1, day! + delta));
-  return shifted.toISOString().slice(0, 10);
 }
 
 function extractTooltipCounts(html: string): Map<string, number> {

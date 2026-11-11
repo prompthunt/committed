@@ -67,8 +67,11 @@ final class FakeLiveRankActivities: LiveRankActivities {
 @MainActor
 final class FakeLiveRankRelay: LiveRankRegistrar {
     var pushUpdates: LiveRankPushUpdates = .none
+    /// Windows this relay can't rank, as a relay from before This month can't.
+    var unservedWindows: Set<ContributionWindow> = []
     private(set) var configurations: [LiveRankConfiguration?] = []
     private(set) var retries = 0
+    func serves(_ window: ContributionWindow) -> Bool { !unservedWindows.contains(window) }
     func liveRankDidChange(_ configuration: LiveRankConfiguration?) async {
         configurations.append(configuration)
     }
@@ -288,24 +291,43 @@ struct LiveRankLifecycleTests {
         #expect(preferences.load().window == .monthly)
     }
 
-    /// This month isn't offered for Live rank until the relay ranks it (#97): choosing it changes
-    /// nothing, and neither the activity nor the relay ever hears "month". A "month" saved by a
-    /// later build falls back to Today.
-    @Test func thisMonthIsNotOfferedForLiveRankYet() async {
-        #expect(!ContributionWindow.liveRankChoices.contains(.month))
+    /// This month is one of Live rank's Windows (#97): the activity and the relay take it, and it's
+    /// still chosen after a relaunch.
+    @Test func liveRankOffersThisMonth() async {
         let (model, _) = makeModel()
         await model.sceneDidBecomeActive()
 
         await model.setLiveRankWindow(.month)
 
-        #expect(model.liveRank.window == .daily)
-        #expect(activities.states.map(\.window) == ["daily"])
-        #expect(preferences.load().window == .daily)
-        #expect(!relay.configurations.contains { $0?.window == .month })
+        #expect(model.liveRank.window == .month)
+        #expect(activities.running.count == 1)
+        #expect(activities.states.first?.window == "month")
+        #expect(activities.states.first?.contributions == 3)
+        #expect(preferences.load().window == .month)
+        #expect(relay.configurations.last??.window == .month)
 
-        preferences.save(LiveRankPreferences(isEnabled: true, window: .month))
         let (relaunched, _) = makeModel()
-        #expect(relaunched.liveRank.window == .daily)
+        #expect(relaunched.liveRank.window == .month)
+    }
+
+    /// On This month, Live rank's chevrons are This month's movement since the day's first ranking,
+    /// whatever Window the Board shows.
+    @Test func liveRankOnThisMonthShowsThisMonthsMovement() async {
+        preferences.save(LiveRankPreferences(isEnabled: true, window: .month))
+        let (model, contributions) = makeModel()
+        model.store.selectedWindow = .weekly
+        await model.sceneDidBecomeActive()
+        #expect(activities.states.first?.rank == 2)
+
+        await contributions.set("me", 9)          // you pass ada
+        clock.advance(300)
+        await model.pullToRefresh()
+
+        #expect(activities.states.first?.window == "month")
+        #expect(activities.states.first?.rank == 1)
+        #expect(activities.states.first?.movementToday == 1)
+        #expect(activities.states.first?.below?.login == "ada")
+        #expect(activities.states.first?.below?.movementToday == -1)
     }
 
     @Test func turningOffEndsItAndTurningOnStartsAgain() async {

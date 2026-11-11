@@ -28,7 +28,11 @@ struct SampleBoardSurfaces {
     /// Starts the Sample board on a not-connected app, then (by default) pulls to refresh once, so
     /// Ari Linden has just passed Ezra Q: #3 with a +1 chevron. `refreshed: false` keeps the first
     /// load (#4). The clock is real, so "updated" ages read "now".
-    static func load(refreshed: Bool = true) async throws -> SampleBoardSurfaces {
+    ///
+    /// `window` is Live rank's (and so the widgets') Window, chosen in Settings before the refresh.
+    /// `justYou` then hides everyone else, as Live rank shows a board with no rivals.
+    static func load(refreshed: Bool = true, window: ContributionWindow = .daily,
+                     justYou: Bool = false) async throws -> SampleBoardSurfaces {
         let activities = FakeLiveRankActivities()
         let widgets = RecordingWidgets()
         let notConnected = CommittedServices(
@@ -40,7 +44,14 @@ struct SampleBoardSurfaces {
             liveRankActivities: activities, widgets: widgets.publisher
         )
         await model.startSampleBoard()
+        if window != model.liveRank.window { await model.setLiveRankWindow(window) }
         if refreshed { await model.pullToRefresh() }
+        if justYou {
+            for competitor in model.store.visibleCompetitors where !competitor.isSelf {
+                model.store.setHidden(true, username: competitor.username)
+            }
+            await model.visibilityDidChange()
+        }
         guard let snapshot = widgets.last, let activity = activities.running.first else {
             throw SurfaceRenderError.noSampleBoard
         }

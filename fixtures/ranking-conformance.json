@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "about": "Shared ranking conformance cases. Consumed by CommitStandingsTests/RankingConformanceTests.swift (Ranking.order + LiveRankState.derive), relay/test/ranking.test.ts (Ranking port + LiveRankState) and windows/core/tests/conformance.rs (order and streaks; Windows has no Live rank). Expected values are worked by hand from the rules in CommitStandings/Store/Ranking.swift: contributions descending, a missing standing (or one for a different window) sorts last below a real 0, ties keep competitor order, ranks start at 1. LiveRankState's movementToday, yours and each neighbor's, is that login's rankDeltas entry on daily, else 0. A case gives either `standings` (counts) or `days` (calendars). With `days` ({login: {YYYY-MM-DD: n}}), `timeZone` and `asOf` (the local day at `now` in `timeZone`), each runner derives standings from the days through its own history code (Swift ContributionHistory, relay sum, Rust history::total), checks `asOf` against its own local-day resolution where it has one, and computes each person's current streak (ContributionHistory.currentStreak: today and the days before it with a contribution; while today has none, counted back from yesterday; a missing or later day never counts). `expected.streaks` lists the raw streak of everyone in `days`; LiveRankState carries `streak` for you (with a count) and each neighbor, and omits it for anyone without a calendar. A login missing from `days` has no data. See relay/README.md#conformance-fixture.",
+  "about": "Shared ranking conformance cases. Consumed by CommitStandingsTests/RankingConformanceTests.swift (Ranking.order + LiveRankState.derive), relay/test/ranking.test.ts (Ranking port + LiveRankState) and windows/core/tests/conformance.rs (order and streaks; Windows has no Live rank). Expected values are worked by hand from the rules in CommitStandings/Store/Ranking.swift: contributions descending, a missing standing (or one for a different window) sorts last below a real 0, ties keep competitor order, ranks start at 1. LiveRankState's movementToday, yours and each neighbor's, is that login's rankDeltas entry on daily and month (This month), else 0. Windows: daily (Today), weekly and monthly (the trailing 7 and 30 days), and month (This month: the 1st of the local month through today, so it starts again at local midnight on the 1st). A case gives either `standings` (counts) or `days` (calendars). With `days` ({login: {YYYY-MM-DD: n}}), `timeZone` and `asOf` (the local day at `now` in `timeZone`), each runner derives standings from the days through its own history code (Swift ContributionHistory, relay sum, Rust history::total), checks `asOf` against its own local-day resolution where it has one, and computes each person's current streak (ContributionHistory.currentStreak: today and the days before it with a contribution; while today has none, counted back from yesterday; a missing or later day never counts). `expected.streaks` lists the raw streak of everyone in `days`; LiveRankState carries `streak` for you (with a count) and each neighbor, and omits it for anyone without a calendar. A login missing from `days` has no data. See relay/README.md#conformance-fixture.",
   "cases": [
     {
       "name": "descending by contributions, self in the middle",
@@ -408,6 +408,79 @@
           "movementToday": 0,
           "streak": 2,
           "updatedAt": 1798734600
+        }
+      }
+    },
+    {
+      "name": "This month: the 1st in Tokyo starts from zero while UTC is still on the 30th; movement shows",
+      "input": {
+        "self": "me",
+        "competitors": ["me", "alice", "bob", "cara"],
+        "window": "month",
+        "timeZone": "Asia/Tokyo",
+        "asOf": "2026-12-01",
+        "now": 1796054400,
+        "rankDeltas": { "me": 1, "alice": -1 },
+        "days": {
+          "me": { "2026-11-29": 3, "2026-11-30": 5, "2026-12-01": 2 },
+          "alice": { "2026-11-30": 20, "2026-12-01": 1 },
+          "bob": { "2026-11-15": 40, "2026-12-01": 0 }
+        }
+      },
+      "expected": {
+        "order": [
+          { "login": "me", "rank": 1 },
+          { "login": "alice", "rank": 2 },
+          { "login": "bob", "rank": 3 },
+          { "login": "cara", "rank": 4 }
+        ],
+        "streaks": { "me": 3, "alice": 2, "bob": 0 },
+        "liveRankState": {
+          "window": "month",
+          "rank": 1,
+          "competitorCount": 4,
+          "contributions": 2,
+          "above": null,
+          "below": { "login": "alice", "contributions": 1, "movementToday": -1, "streak": 2 },
+          "movementToday": 1,
+          "streak": 3,
+          "updatedAt": 1796054400
+        }
+      }
+    },
+    {
+      "name": "This month: Los Angeles is still on the 30th while UTC is on the 1st, so November counts",
+      "input": {
+        "self": "me",
+        "competitors": ["me", "alice", "bob"],
+        "window": "month",
+        "timeZone": "America/Los_Angeles",
+        "asOf": "2026-11-30",
+        "now": 1796104800,
+        "rankDeltas": { "me": -1, "alice": 1 },
+        "days": {
+          "me": { "2026-10-31": 40, "2026-11-01": 10, "2026-11-30": 1, "2026-12-01": 50 },
+          "alice": { "2026-11-15": 8, "2026-11-29": 2, "2026-11-30": 0, "2026-12-01": 60 },
+          "bob": { "2026-11-20": 3, "2026-11-30": 3 }
+        }
+      },
+      "expected": {
+        "order": [
+          { "login": "me", "rank": 1 },
+          { "login": "alice", "rank": 2 },
+          { "login": "bob", "rank": 3 }
+        ],
+        "streaks": { "me": 1, "alice": 1, "bob": 1 },
+        "liveRankState": {
+          "window": "month",
+          "rank": 1,
+          "competitorCount": 3,
+          "contributions": 11,
+          "above": null,
+          "below": { "login": "alice", "contributions": 10, "movementToday": 1, "streak": 1 },
+          "movementToday": -1,
+          "streak": 1,
+          "updatedAt": 1796104800
         }
       }
     }

@@ -84,6 +84,19 @@ struct RelayActivityReport: Equatable, Sendable, Encodable {
 enum LiveRankRelayError: Error, Equatable {
     /// The relay answered with this HTTP status.
     case status(Int)
+    /// 400 `invalid_window`: the relay doesn't rank the registration's Window, as a relay from
+    /// before This month doesn't rank `"month"`.
+    case invalidWindow
+
+    /// The error for a relay's non-2xx answer, from its status and its `{"error": "<code>"}` body.
+    init(status: Int, body: Data) {
+        struct Answer: Decodable { let error: String }
+        if status == 400, (try? JSONDecoder().decode(Answer.self, from: body))?.error == "invalid_window" {
+            self = .invalidWindow
+        } else {
+            self = .status(status)
+        }
+    }
 }
 
 /// The relay's device API (see `relay/README.md`). Every call authenticates with the
@@ -111,6 +124,12 @@ protocol LiveRankTokenReceiving: AnyObject {
 /// board. A failed call leaves the work pending; the next trigger or `retryPendingWork()` tries
 /// again. Nothing is sent when nothing changed, which keeps well inside the relay's 30 writes per
 /// 10 minutes.
+///
+/// A relay older than the app can reject the Window (`invalid_window`, This month on a relay from
+/// before it). Then the registrar stops asking, deletes the registration it had, so the relay
+/// stops pushing (or push-to-starting) another Window's rank on this phone, and holds back push
+/// tokens: the app keeps Live rank current itself (`serves`). Another Window, or the next launch,
+/// asks again, which is how an updated relay is found.
 @MainActor
 final class RelayLiveRankRegistrar: LiveRankRegistrar, LiveRankTokenReceiving {
     private let api: any LiveRankRelayAPI
@@ -126,6 +145,9 @@ final class RelayLiveRankRegistrar: LiveRankRegistrar, LiveRankTokenReceiving {
     private var pushToStartToken: String?
     /// The last registration the relay accepted in this process.
     private var lastRegistered: RelayRegistration?
+    /// The Window the relay rejected with `invalid_window` in this process, until Live rank moves
+    /// to another Window.
+    private var rejectedWindow: ContributionWindow?
     /// Activity push tokens waiting for a registration (activity ID → token), in arrival order.
     private var pendingActivities: [(id: String, token: String)] = []
     private var reportedActivities: [String: String] = [:]
@@ -161,10 +183,13 @@ final class RelayLiveRankRegistrar: LiveRankRegistrar, LiveRankTokenReceiving {
 
     var pushUpdates: LiveRankPushUpdates { .token }
 
+    func serves(_ window: ContributionWindow) -> Bool { window != rejectedWindow }
+
     func liveRankDidChange(_ configuration: LiveRankConfiguration?) async {
         self.configuration = configuration
         isTurnedOff = configuration == nil
         if isTurnedOff { pendingActivities.removeAll() }
+        if let window = configuration?.window, window != rejectedWindow { rejectedWindow = nil }
         await flush()
     }
 
@@ -182,7 +207,7 @@ final class RelayLiveRankRegistrar: LiveRankRegistrar, LiveRankTokenReceiving {
     func activityPushTokenDidChange(activityID: String, token: Data) async {
         // Live rank is off: the relay has no registration to attach it to. Before the controller
         // has reported at all (a cold launch), hold the token until the board is known.
-        guard !isTurnedOff else { return }
+        guard !isTurnedOff, configuration.map({ serves($0.window) }) ?? true else { return }
         let hex = token.lowercaseHex
         guard reportedActivities[activityID] != hex else { return }
         pendingActivities.removeAll { $0.id == activityID }
@@ -222,6 +247,8 @@ final class RelayLiveRankRegistrar: LiveRankRegistrar, LiveRankTokenReceiving {
             return
         }
         if let configuration {
+            // The relay can't rank this Window: nothing to register or report until it changes.
+            guard serves(configuration.window) else { return }
             guard await register(configuration) else { return }
         } else {
             // No board yet: a background launch, for example when the relay started an activity by
@@ -271,6 +298,12 @@ final class RelayLiveRankRegistrar: LiveRankRegistrar, LiveRankTokenReceiving {
         guard registration != lastRegistered || !installation.isRegistered else { return true }
         do {
             try await api.register(registration, as: installation.credentials)
+        } catch LiveRankRelayError.invalidWindow {
+            LiveRankLog.relay.info("relay doesn't rank \(registration.window, privacy: .public): Live rank updates from the app")
+            rejectedWindow = configuration.window
+            pendingActivities.removeAll()
+            await unregisterIfNeeded()
+            return false
         } catch {
             LiveRankLog.relay.error("register failed: \(String(describing: error), privacy: .public)")
             return false

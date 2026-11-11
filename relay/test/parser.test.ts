@@ -85,6 +85,22 @@ describe("sum (port of ContributionsParser.sum)", () => {
     expect(sum(days, "monthly", "2026-05-30")).toBe(6);
   });
 
+  it("This month runs from the 1st of today's month to today", () => {
+    const days = {
+      "2026-10-31": 100, // last month
+      "2026-11-01": 1,
+      "2026-11-09": 2,
+      "2026-11-10": 3,
+      "2026-11-11": 100, // future
+    };
+    expect(sum(days, "month", "2026-11-10")).toBe(6);
+  });
+
+  it("This month on the 1st counts only the 1st", () => {
+    expect(sum({ "2026-11-30": 40, "2026-12-01": 2 }, "month", "2026-12-01")).toBe(2);
+    expect(sum({ "2026-12-31": 40, "2027-01-01": 0 }, "month", "2027-01-01")).toBe(0);
+  });
+
   it("windows cross month and year boundaries", () => {
     expect(sum({ "2025-12-31": 4, "2026-01-01": 1 }, "weekly", "2026-01-02")).toBe(5);
   });

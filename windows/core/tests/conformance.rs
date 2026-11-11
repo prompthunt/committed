@@ -58,6 +58,7 @@ fn window(raw: &str) -> Option<Window> {
         "daily" => Some(Window::Today),
         "weekly" => Some(Window::Week),
         "monthly" => Some(Window::Monthly),
+        "month" => Some(Window::ThisMonth),
         _ => None,
     }
 }

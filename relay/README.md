@@ -79,7 +79,7 @@ Registers or updates. `{id}` is 8 to 64 characters of `[A-Za-z0-9-]`; a UUID wor
   "pushToStartToken": "hex…",        // or null
   "login": "addisonk",
   "competitors": ["addisonk", "alice", "bob"],  // visible board, in board order (ties)
-  "window": "daily",                 // "daily" | "weekly" | "monthly"
+  "window": "daily",                 // "daily" | "weekly" | "monthly" | "month" (This month)
   "timeZone": "America/New_York",    // IANA
   "apnsEnvironment": "sandbox"       // "sandbox" | "production"
 }
@@ -90,7 +90,11 @@ Registers or updates. `{id}` is 8 to 64 characters of `[A-Za-z0-9-]`; a UUID wor
 - At most 1,000 competitors, self included.
 - Returns `201` on creation, `200` on update.
 - A changed competitor list resets today's movement baseline, as a visibility change does in
-  `RefreshCoordinator`.
+  `RefreshCoordinator`. So does a changed `window`: the baseline holds that Window's ranks.
+- A `window` the relay doesn't know gets `400 {"error":"invalid_window"}`. The iPhone app reads
+  that error (a relay from before This month answers it for `"month"`): it stops registering that
+  Window, deletes its registration, and keeps Live rank current itself until Live rank's Window
+  changes or the app relaunches.
 
 ### `PUT /v1/installations/{id}/activity`
 
@@ -119,13 +123,15 @@ registration. Returns `204`.
    are kept with their real age, so a hiccup doesn't zero anyone. A login never fetched has no
    data and shows as a placeholder.
 2. **Windows.** Today, 7 days, and 30 days are summed against the installation's local
-   calendar date in its IANA time zone, not UTC.
+   calendar date in its IANA time zone, not UTC. This month (`"month"`) sums the 1st of that
+   local month through today, so it starts again at local midnight on the 1st.
 3. **Ranking.** `src/ranking.ts` ports `Ranking.order`. `src/liveRank.ts` derives
    `LiveRankState`, matching `LiveRankAttributes.ContentState`. `updatedAt` is when your own
    count was fetched, or the run time when you have no data.
-4. **Today's movement.** This mirrors `RefreshCoordinator.updateDailyRankDeltas`. The first run
-   of each local day captures the daily ranks of rows that have data. Later runs report
-   `baseline − current` for you, on the Today window only.
+4. **Today's movement.** This mirrors `RefreshCoordinator.updateTodaysRankDeltas`. On Today and
+   This month, the first run of each local day captures that Window's ranks of rows that have
+   data. Later runs report `baseline − current` for you and your neighbors. Other Windows show
+   no movement.
 5. **Pushes.**
    - It pushes `update` only when the state (ignoring `updatedAt`) changed.
    - It also sends a heartbeat when the last push is within 5 minutes of its stale date and

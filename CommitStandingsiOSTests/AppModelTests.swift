@@ -17,6 +17,9 @@ actor FakeContributions: ContributionsFetching {
 
     func total() -> Int { calls.values.reduce(0, +) }
 
+    /// A new count for `username`, as if they contributed since the last fetch.
+    func set(_ username: String, _ count: Int) { counts[username] = count }
+
     func standingCounts(for username: String, window: ContributionWindow, asOf reference: Date)
         async -> Result<StandingCounts, ContributionsError> {
         calls[username, default: 0] += 1
