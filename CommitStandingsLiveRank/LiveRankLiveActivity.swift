@@ -95,14 +95,16 @@ extension LiveRankState {
 struct LiveRankWindowLabel: View {
     let state: LiveRankState
     var accessibilityName = "Live rank"
+    /// 16 pt everywhere but the StandBy board's footer line.
+    var size: CGFloat = 16
     @Environment(\.liveRankIsStale) private var isStale
 
     var body: some View {
-        HStack(spacing: 6) {
-            TrophyMark(size: 17, color: isStale ? .limeDeep : .lime)
+        HStack(spacing: size * 6 / 16) {
+            TrophyMark(size: size + 1, color: isStale ? .limeDeep : .lime)
             if let window = state.contributionWindow {
                 Text(window.shortTitle)
-                    .font(.system(size: 16))
+                    .font(.system(size: size))
                     .foregroundStyle(Color.soft)
                     .fixedSize()
             }
@@ -118,12 +120,14 @@ struct LiveRankWindowLabel: View {
 /// (`showsUpdateAge`), where a still frozen at one moment would mislead.
 struct UpdateAge: View {
     let date: Date
+    /// 12 pt everywhere but the StandBy board's footer line.
+    var size: CGFloat = 12
     @Environment(\.showsUpdateAge) private var showsUpdateAge
 
     var body: some View {
         if showsUpdateAge {
             Text(date, style: .relative)
-                .font(.system(size: 12))
+                .font(.system(size: size))
                 .monospacedDigit()
                 .foregroundStyle(Color.soft)
                 .multilineTextAlignment(.trailing)
