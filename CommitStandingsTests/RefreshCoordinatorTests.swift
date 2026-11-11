@@ -724,3 +724,75 @@ struct RefreshDailyCountsTests {
         #expect(store.standing(for: "alice", window: .month)?.contributions == 9)
     }
 }
+
+/// Each person's streak comes from the days their last page brought back, as of the clock.
+@MainActor
+struct RefreshStreakTests {
+    private let clock = MutableClock(Date(timeIntervalSince1970: 1_779_969_600)) // 2026-05-28 12:00 UTC
+    private static let utc = TimeZone(identifier: "UTC")!
+    /// Contributed the last three days, today included.
+    private let me = ContributionHistory(days: ["2026-05-25": 0, "2026-05-26": 2, "2026-05-27": 1, "2026-05-28": 3], timeZone: utc)
+    /// Nothing yet today, but every day of the week before.
+    private let alice = ContributionHistory(
+        days: ["2026-05-21": 1, "2026-05-22": 1, "2026-05-23": 4, "2026-05-24": 1, "2026-05-25": 2,
+               "2026-05-26": 1, "2026-05-27": 5, "2026-05-28": 0],
+        timeZone: utc)
+
+    private func makeStore() -> StandingsStore {
+        let store = StandingsStore(persistence: InMemoryCompetitorPersistence())
+        store.replaceRoster(owner: "me", members: ["alice", "bob"])
+        return store
+    }
+
+    @Test func rowsGetStreaksFromTheFetchedCalendars() async {
+        let store = makeStore()
+        let clock = clock
+        let refresh = RefreshCoordinator(store: store, client: CalendarFetcher(["me": me, "alice": alice]),
+                                         interval: 99999, now: { clock.date })
+        #expect(refresh.streak(for: "me") == nil) // nothing fetched yet
+
+        await refresh.refreshAll(reason: .manual)
+
+        #expect(refresh.streak(for: "me") == 3)
+        #expect(refresh.streak(for: "alice") == 7) // alive through today
+        #expect(refresh.streak(for: "bob") == nil) // failed with nothing cached: no streak, not 0
+    }
+
+    @Test func aStreakBreaksAtMidnightAfterAnEmptyDay() async {
+        let store = makeStore()
+        let clock = clock
+        let refresh = RefreshCoordinator(store: store, client: CalendarFetcher(["me": me, "alice": alice]),
+                                         interval: 99999, now: { clock.date })
+        await refresh.refreshAll(reason: .manual)
+
+        clock.date = clock.date.addingTimeInterval(13 * 3600) // 2026-05-29 01:00 UTC
+        #expect(refresh.streak(for: "me") == 3) // the 28th had contributions: still alive
+        #expect(refresh.streak(for: "alice") == 0) // the 28th ended empty
+    }
+
+    @Test func aFailedRefreshKeepsTheLastStreak() async {
+        let store = makeStore()
+        let fetcher = CalendarFetcher(["me": me, "alice": alice])
+        let clock = clock
+        let refresh = RefreshCoordinator(store: store, client: fetcher, interval: 99999, now: { clock.date })
+        await refresh.refreshAll(reason: .manual)
+
+        await fetcher.set(nil, for: "alice")
+        clock.date = clock.date.addingTimeInterval(600)
+        await refresh.refreshAll(reason: .timer)
+
+        #expect(refresh.streak(for: "alice") == 7)
+    }
+
+    @Test func savedCalendarsShowStreaksBeforeTheFirstRefresh() {
+        let people = InMemoryCompetitorPersistence()
+        people.save([Competitor(username: "me", isSelf: true)])
+        let saved = InMemoryContributionHistoryPersistence()
+        saved.save(["me": me])
+        let store = StandingsStore(persistence: people, historyPersistence: saved)
+        let clock = clock
+        let refresh = RefreshCoordinator(store: store, client: CalendarFetcher([:]), interval: 99999, now: { clock.date })
+        #expect(refresh.streak(for: "me") == 3)
+    }
+}
+

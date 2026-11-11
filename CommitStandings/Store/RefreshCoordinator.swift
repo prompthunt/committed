@@ -379,6 +379,13 @@ final class RefreshCoordinator {
         }
     }
 
+    /// `username`'s current streak from the days their last successful page brought back (saved
+    /// across relaunches), as of now; nil before any page has. A row shows it only beside a loaded
+    /// count (`StandingRow.streakText`), and only from 2 days.
+    func streak(for username: String) -> Int? {
+        store.history(for: username)?.currentStreak(asOf: now())
+    }
+
     func refreshOne(username: String, reason: RefreshReason) async {
         guard store.visibleCompetitors.contains(where: { $0.username == username }) else { return }
         let requestGeneration = generation

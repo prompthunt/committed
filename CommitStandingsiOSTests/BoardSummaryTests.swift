@@ -16,13 +16,13 @@ struct BoardSummaryTests {
 
     private func summary(
         _ competitors: [Competitor], _ standings: [Standing], window: ContributionWindow = .daily,
-        displayName: String? = "Addison Kowalski", deltas: [String: Int] = [:]
+        displayName: String? = "Addison Kowalski", deltas: [String: Int] = [:], streaks: [String: Int] = [:]
     ) -> BoardSummary? {
         BoardSummary.make(
             competitors: competitors,
             standings: Dictionary(uniqueKeysWithValues: standings.map { ($0.username, $0) }),
             window: window, displayName: displayName,
-            rankDelta: { deltas[$0] }, lastUpdated: loadedAt
+            rankDelta: { deltas[$0] }, streak: { streaks[$0] }, lastUpdated: loadedAt
         )
     }
 
@@ -116,4 +116,27 @@ struct BoardSummaryTests {
         #expect(summary([], []) == nil)
         #expect(summary([ada], [standing("ada", 1)]) == nil)
     }
+
+    @Test func showsYourStreakOnEveryWindow() {
+        let today = summary([me, ada], [standing("me", 9), standing("ada", 4)], deltas: ["me": 1], streaks: ["me": 12])
+        #expect(today?.streak == 12)
+        #expect(today?.accessibilityDescription == "You, @me, rank 1 of 2, 9 contributions for today, 12-day streak, up 1 place today")
+        let week = summary([me, ada], [standing("me", 9, .weekly), standing("ada", 4, .weekly)],
+                           window: .weekly, streaks: ["me": 400])
+        #expect(week?.streak == 400)
+        #expect(week?.accessibilityDescription.contains("365-plus-day streak") == true)
+    }
+
+    @Test func aOneDayStreakIsNotRead() {
+        let result = summary([me], [standing("me", 3)], streaks: ["me": 1])
+        #expect(result?.accessibilityDescription.contains("streak") == false)
+    }
+
+    /// A failed or first load is no count, so it can't say anything about your streak.
+    @Test func noStreakBeforeYourContributionsLoad() {
+        let result = summary([me, ada], [standing("ada", 4), standing("me", 0, loaded: false)], streaks: ["me": 12])
+        #expect(result?.streak == nil)
+        #expect(result?.accessibilityDescription == "You, @me, contributions not loaded yet")
+    }
 }
+

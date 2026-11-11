@@ -1,9 +1,10 @@
 import SwiftUI
 
 /// You first, as the site's hero: a folio ("01 · TODAY"), your rank set huge over a lit field of
-/// contribution squares, your Contributions for the Window in lime, today's movement, the gap to
-/// pass the person ahead, and how long ago the numbers refreshed. People sync shows under the card
-/// only while it's running or has failed. When your rank improves, squares burst out of it.
+/// contribution squares, your Contributions for the Window in lime, your streak, today's movement,
+/// the gap to pass the person ahead, and how long ago the numbers refreshed. People sync shows
+/// under the card only while it's running or has failed. When your rank improves, squares burst
+/// out of it.
 ///
 /// Text on the card is white, soft, or lime, never muted: the field can sit under any of it
 /// (`FieldTone.hero`, checked in `ThemeTests`). Every size follows Dynamic Type; at accessibility
@@ -27,6 +28,7 @@ struct BoardSummaryView: View {
             window: store.selectedWindow,
             displayName: auth.displayName,
             rankDelta: { [window = store.selectedWindow] in refresh.rankDelta(for: $0, in: window) },
+            streak: { refresh.streak(for: $0) },
             lastUpdated: store.lastUpdated
         )
     }
@@ -167,9 +169,15 @@ struct BoardSummaryView: View {
             let news = dynamicTypeSize.isAccessibilitySize
                 ? AnyLayout(VStackLayout(alignment: .leading, spacing: 4))
                 : AnyLayout(HStackLayout(alignment: .firstTextBaseline, spacing: 14))
-            // The news (movement, the gap to pass), then how fresh the numbers are.
+            // The news (your streak, movement, the gap to pass), then how fresh the numbers are.
             VStack(alignment: .leading, spacing: 4) {
                 news {
+                    if let streak = StreakLabel.text(summary.streak) {
+                        Text(streak)
+                            .fontWeight(.semibold)
+                            .foregroundStyle(.white)
+                            .monospacedDigit()
+                    }
                     if let movement = summary.movementToday {
                         HStack(spacing: 4) {
                             Image(systemName: movement > 0 ? "chevron.up" : "chevron.down")

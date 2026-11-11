@@ -17,6 +17,9 @@ struct BoardSummary: Equatable {
     /// Places moved since the start of today (+ up, − down); Today and This month only, nil when
     /// unmoved.
     let movementToday: Int?
+    /// Your current streak, on every Window. nil until your Contributions have loaded, so a failed
+    /// or first load never reads as a broken streak. Shown from 2 days (`StreakLabel`).
+    let streak: Int?
     /// "2 to pass odile-m", Live rank's line: the gap to the person directly above you. nil in
     /// first place, or when either count hasn't loaded.
     let passLine: String?
@@ -31,6 +34,7 @@ struct BoardSummary: Equatable {
         window: ContributionWindow,
         displayName: String?,
         rankDelta: (String) -> Int?,
+        streak: (String) -> Int? = { _ in nil },
         lastUpdated: Date?,
         today: Date = Date(),
         calendar: Calendar = .current
@@ -50,6 +54,7 @@ struct BoardSummary: Equatable {
             competitorCount: live.competitorCount,
             contributions: live.contributions,
             movementToday: live.movementToday == 0 ? nil : live.movementToday,
+            streak: live.contributions == nil ? nil : streak(me.username),
             passLine: live.passLine,
             window: window,
             dayOfMonth: window.dayOfMonth(asOf: today, calendar: calendar),
@@ -67,6 +72,7 @@ struct BoardSummary: Equatable {
             parts.append("contributions not loaded yet")
         }
         if let dayOfMonth { parts.append(dayOfMonth.lowercased()) }
+        if let spoken = StreakLabel.spoken(streak) { parts.append(spoken) }
         if let movementToday {
             let places = movementToday.magnitude == 1 ? "place" : "places"
             parts.append("\(movementToday > 0 ? "up" : "down") \(movementToday.magnitude) \(places) today")

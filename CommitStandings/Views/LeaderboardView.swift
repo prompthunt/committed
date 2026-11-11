@@ -72,7 +72,8 @@ struct LeaderboardView: View {
             standing: store.standing(for: item.competitor.username, window: store.selectedWindow),
             window: store.selectedWindow,
             maxContributions: maxContributions,
-            rankDelta: rankDelta(for: item.competitor.username)
+            rankDelta: rankDelta(for: item.competitor.username),
+            streak: refresh.streak(for: item.competitor.username)
         )
     }
 

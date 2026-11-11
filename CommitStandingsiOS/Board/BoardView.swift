@@ -353,7 +353,8 @@ private struct RankedBoard {
             .map(\.contributions).max() ?? 0
     }
 
-    /// The shared row for `entry`, with today's movement on Today and This month.
+    /// The shared row for `entry`, with today's movement on Today and This month, and the person's
+    /// streak.
     func row(_ entry: Ranking.Entry, store: StandingsStore, refresh: RefreshCoordinator) -> StandingRow {
         StandingRow(
             rank: entry.rank,
@@ -361,7 +362,8 @@ private struct RankedBoard {
             standing: store.standing(for: entry.competitor.username, window: window),
             window: window,
             maxContributions: maxContributions,
-            rankDelta: refresh.rankDelta(for: entry.competitor.username, in: window)
+            rankDelta: refresh.rankDelta(for: entry.competitor.username, in: window),
+            streak: refresh.streak(for: entry.competitor.username)
         )
     }
 }

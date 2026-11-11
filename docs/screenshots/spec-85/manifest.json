@@ -187,6 +187,28 @@
         "fixture": true
       },
       "notes": "Windows board, not WebView2 on Windows: the real app UI (windows/src/app.ts and style.css) served by vite and fed the Sample board through windows/fixture.html (mocked Tauri IPC, data in windows/src/sample-board.ts) with ?date=2026-11-01, so the fixture's today is the 1st. macOS system fonts instead of Segoe UI; no window chrome or tray. October finishes: ines-volk 212 gold; ari-linden (you) 160 silver, winning the tie with odile-m 160 bronze; ezra-q 98; bram-ott 0 (no medal); niko-vane no calendar (last, no medal). No before capture: Final standings is new, and the board on other days is unchanged (see 96/). Recipe: cd windows && npm run dev -- --port <port>, open /fixture.html?view=board&date=2026-11-01."
+    },
+    {
+      "file": "92/iphone-board.png",
+      "caption": "#92 iPhone Board, Today: your summary reads 🔥 14 beside today's movement; rows show 🔥 47, 🔥 365+ (a run past GitHub's calendar), 🔥 14 (you) and 🔥 3; bram-ott (nothing yesterday or today) shows none",
+      "capture": {
+        "device": "iPhone Duo Simulator (closed)",
+        "os": "iOS 27.1",
+        "sourceCommit": "50653afb286c7fb8ff796104d41d8d8d91e0530c",
+        "fixture": true
+      },
+      "notes": "Runtime capture (xcrun simctl io screenshot --display=1) of a Debug build on the persistent iPhone Duo, launched with -ScreenshotFixture -ScreenshotTab board: the Sample board's made-up calendars, refreshed twice so Today moves. Your own row truncates to \"ari...en\" with the chevron, streak and badge beside it on the closed Duo: narrow-row placement is left to design review per the ticket. No before capture of this exact board; docs/screenshots/sample-board/board.png shows the Sample board without streaks. Captured on branch spec-85/92-streaks before it merged #95, so the Window switch has no This month yet."
+    },
+    {
+      "file": "92/mac-board.png",
+      "caption": "#92 Mac popover, Today: your summary card shows 🔥 14 under your handle; rows show 🔥 14, 🔥 6, 🔥 365+ and 🔥 2; defunkt (no streak) shows none",
+      "capture": {
+        "device": "MacBook Pro, fixture host (scripts/build-flow-capture.py)",
+        "os": "macOS 27.0.1",
+        "sourceCommit": "50653afb286c7fb8ff796104d41d8d8d91e0530c",
+        "fixture": true
+      },
+      "notes": "Board surface of the fixture host, light, with made-up calendars for the fixture's GitHub handles. The host drew its own window into a PNG (NSView cacheDisplay, the technique the script's -CaptureSnapshot uses) because the capturing shell has no Screen Recording permission. No before capture. Captured on branch spec-85/92-streaks before it merged #95, so the Window switch has no This month yet."
     }
   ]
 }
