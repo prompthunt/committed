@@ -484,6 +484,83 @@
         "fixture": true
       },
       "notes": "Runtime capture (xcrun simctl io screenshot --display=1) of a Debug build on the persistent iPhone Duo (closed), launched with -ScreenshotFixture -ScreenshotTab board -ScreenshotPerson <login> (opens the person view as a tap on the row would): the Sample board's made-up calendars, real clock (November 10, 2026), so This month is 10 days in. niko-vane always fails in the fixture, so Final standings count 6 people. The iPhone app is dark only (RootView forces .preferredColorScheme(.dark)), so there is no light capture. Not captured: the second pane on the open iPhone Duo. simctl can't fold the Duo, the Device Hub Open pose needs the GUI, and Xcode's device-interaction tools need an approval this session couldn't give; the pane-vs-sheet rule is covered by BoardArrangementTests. No before capture: the person view is new."
+    },
+    {
+      "file": "102/person-light.png",
+      "caption": "#102 Mac person window, light: hubot's streaks, active days, November's bars over October's in grey with today selected, and past months with medals",
+      "capture": {
+        "device": "Mac Studio (M1 Max), fixture host (scripts/build-flow-capture.py)",
+        "os": "macOS 27.0.1",
+        "sourceCommit": "909b34248faaaecfae3a9169b50f9820cd442892",
+        "fixture": true
+      },
+      "notes": "Fixture-host capture: scripts/build-flow-capture.py's host (current tracked views, in-memory store, made-up calendars for the fixture's GitHub handles), launched with -CaptureDate 2026-11-22T18:00:00Z -CaptureSurface Person -CapturePerson <login> -CaptureSnapshot <file>; the host draws its own window into a PNG (NSView cacheDisplay) because the capturing shell has no Screen Recording permission. The Person surface is the real PersonWindowView (the person window's content) at the window's default 460 x 640 pt; the title is the window title the person window sets. No before capture: the person window is new. Not captured: a row click opening the window, or a second click focusing it (the shell can't click); that is the singleton Window mechanism the People window uses, and PersonWindowModelTests covers which person it shows."
+    },
+    {
+      "file": "102/person-dark.png",
+      "caption": "#102 Mac person window, dark: the same view in Dark Mode",
+      "capture": {
+        "device": "Mac Studio (M1 Max), fixture host (scripts/build-flow-capture.py)",
+        "os": "macOS 27.0.1",
+        "sourceCommit": "909b34248faaaecfae3a9169b50f9820cd442892",
+        "fixture": true
+      },
+      "notes": "Fixture-host capture: scripts/build-flow-capture.py's host (current tracked views, in-memory store, made-up calendars for the fixture's GitHub handles), launched with -CaptureDate 2026-11-22T18:00:00Z -CaptureSurface Person -CapturePerson <login> -CaptureSnapshot <file>; the host draws its own window into a PNG (NSView cacheDisplay) because the capturing shell has no Screen Recording permission. The Person surface is the real PersonWindowView (the person window's content) at the window's default 460 x 640 pt; the title is the window title the person window sets. No before capture: the person window is new. Not captured: a row click opening the window, or a second click focusing it (the shell can't click); that is the singleton Window mechanism the People window uses, and PersonWindowModelTests covers which person it shows. Also -CaptureAppearance dark."
+    },
+    {
+      "file": "102/person-selected-bar.png",
+      "caption": "#102 Mac person window with another bar selected: November 8 · 12 contributions beside October 8",
+      "capture": {
+        "device": "Mac Studio (M1 Max), fixture host (scripts/build-flow-capture.py)",
+        "os": "macOS 27.0.1",
+        "sourceCommit": "909b34248faaaecfae3a9169b50f9820cd442892",
+        "fixture": true
+      },
+      "notes": "Fixture-host capture: scripts/build-flow-capture.py's host (current tracked views, in-memory store, made-up calendars for the fixture's GitHub handles), launched with -CaptureDate 2026-11-22T18:00:00Z -CaptureSurface Person -CapturePerson <login> -CaptureSnapshot <file>; the host draws its own window into a PNG (NSView cacheDisplay) because the capturing shell has no Screen Recording permission. The Person surface is the real PersonWindowView (the person window's content) at the window's default 460 x 640 pt; the title is the window title the person window sets. No before capture: the person window is new. Not captured: a row click opening the window, or a second click focusing it (the shell can't click); that is the singleton Window mechanism the People window uses, and PersonWindowModelTests covers which person it shows. Also -CapturePersonDay 8 (selects that bar, as a click on it would)."
+    },
+    {
+      "file": "102/person-waiting.png",
+      "caption": "#102 Mac person window waiting: mojombo's count hasn't loaded, so it says it's waiting instead of drawing zeros",
+      "capture": {
+        "device": "Mac Studio (M1 Max), fixture host (scripts/build-flow-capture.py)",
+        "os": "macOS 27.0.1",
+        "sourceCommit": "909b34248faaaecfae3a9169b50f9820cd442892",
+        "fixture": true
+      },
+      "notes": "Fixture-host capture: scripts/build-flow-capture.py's host (current tracked views, in-memory store, made-up calendars for the fixture's GitHub handles), launched with -CaptureDate 2026-11-22T18:00:00Z -CaptureSurface Person -CapturePerson <login> -CaptureSnapshot <file>; the host draws its own window into a PNG (NSView cacheDisplay) because the capturing shell has no Screen Recording permission. The Person surface is the real PersonWindowView (the person window's content) at the window's default 460 x 640 pt; the title is the window title the person window sets. No before capture: the person window is new. Not captured: a row click opening the window, or a second click focusing it (the shell can't click); that is the singleton Window mechanism the People window uses, and PersonWindowModelTests covers which person it shows. Also -CaptureWaiting mojombo (leaves their calendar unloaded)."
+    },
+    {
+      "file": "102/person-you.png",
+      "caption": "#102 Mac person window for yourself: octocat with the you badge; the window is titled Your month",
+      "capture": {
+        "device": "Mac Studio (M1 Max), fixture host (scripts/build-flow-capture.py)",
+        "os": "macOS 27.0.1",
+        "sourceCommit": "909b34248faaaecfae3a9169b50f9820cd442892",
+        "fixture": true
+      },
+      "notes": "Fixture-host capture: scripts/build-flow-capture.py's host (current tracked views, in-memory store, made-up calendars for the fixture's GitHub handles), launched with -CaptureDate 2026-11-22T18:00:00Z -CaptureSurface Person -CapturePerson <login> -CaptureSnapshot <file>; the host draws its own window into a PNG (NSView cacheDisplay) because the capturing shell has no Screen Recording permission. The Person surface is the real PersonWindowView (the person window's content) at the window's default 460 x 640 pt; the title is the window title the person window sets. No before capture: the person window is new. Not captured: a row click opening the window, or a second click focusing it (the shell can't click); that is the singleton Window mechanism the People window uses, and PersonWindowModelTests covers which person it shows."
+    },
+    {
+      "file": "102/person-you-end.png",
+      "caption": "#102 Mac person window for yourself, scrolled to the end: past months back to December 2025, the private-contributions tip (always shown here) and What this number can't show (#89)",
+      "capture": {
+        "device": "Mac Studio (M1 Max), fixture host (scripts/build-flow-capture.py)",
+        "os": "macOS 27.0.1",
+        "sourceCommit": "909b34248faaaecfae3a9169b50f9820cd442892",
+        "fixture": true
+      },
+      "notes": "Fixture-host capture: scripts/build-flow-capture.py's host (current tracked views, in-memory store, made-up calendars for the fixture's GitHub handles), launched with -CaptureDate 2026-11-22T18:00:00Z -CaptureSurface Person -CapturePerson <login> -CaptureSnapshot <file>; the host draws its own window into a PNG (NSView cacheDisplay) because the capturing shell has no Screen Recording permission. The Person surface is the real PersonWindowView (the person window's content) at the window's default 460 x 640 pt; the title is the window title the person window sets. No before capture: the person window is new. Not captured: a row click opening the window, or a second click focusing it (the shell can't click); that is the singleton Window mechanism the People window uses, and PersonWindowModelTests covers which person it shows. Also -CapturePersonScrolledToEnd YES. The snapshot doesn't draw the title bar's scroll-edge blur, so the Past months heading shows through the title bar; on screen it is blurred."
+    },
+    {
+      "file": "102/person-nobody.png",
+      "caption": "#102 Mac person window with nobody chosen (before any row is clicked, or once that person leaves the board)",
+      "capture": {
+        "device": "Mac Studio (M1 Max), fixture host (scripts/build-flow-capture.py)",
+        "os": "macOS 27.0.1",
+        "sourceCommit": "909b34248faaaecfae3a9169b50f9820cd442892",
+        "fixture": true
+      },
+      "notes": "Fixture-host capture: scripts/build-flow-capture.py's host (current tracked views, in-memory store, made-up calendars for the fixture's GitHub handles), launched with -CaptureDate 2026-11-22T18:00:00Z -CaptureSurface Person -CapturePerson <login> -CaptureSnapshot <file>; the host draws its own window into a PNG (NSView cacheDisplay) because the capturing shell has no Screen Recording permission. The Person surface is the real PersonWindowView (the person window's content) at the window's default 460 x 640 pt; the title is the window title the person window sets. No before capture: the person window is new. Not captured: a row click opening the window, or a second click focusing it (the shell can't click); that is the singleton Window mechanism the People window uses, and PersonWindowModelTests covers which person it shows. -CapturePerson nobody (not on the board)."
     }
   ]
 }
