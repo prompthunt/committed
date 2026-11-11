@@ -88,9 +88,12 @@ app_file.write_text(r'''import SwiftUI
                 case "Sign in": SignInView().environment(signedOut).padding(28).frame(width: 516, height: 476)
                 case "People": FullRankingsView().frame(width: 420, height: 480)
                 case "Help": ContributionsExplainerView()
-                // `-CapturePersonDay 8` selects that day's bar instead of today's.
-                case "Person": PersonWindowView(initialDay: UserDefaults.standard.object(forKey: "CapturePersonDay") as? Int)
-                    .frame(width: PersonWindow.defaultWidth, height: 640)
+                // `-CapturePersonDay 8` selects that day's bar instead of today's;
+                // `-CapturePersonScrolledToEnd YES` shows the bottom (your view's tip and note).
+                case "Person": PersonWindowView(
+                    initialDay: UserDefaults.standard.string(forKey: "CapturePersonDay").flatMap { Int($0) },
+                    scrollAnchor: UserDefaults.standard.bool(forKey: "CapturePersonScrolledToEnd") ? .bottom : .top
+                ).frame(width: PersonWindow.defaultWidth, height: 640)
                 case "Signed-out popover": MenuContentView(updater: updater).environment(signedOut)
                 default: MenuContentView(updater: updater)
                 }

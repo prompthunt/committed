@@ -7,6 +7,8 @@ struct PersonWindowView: View {
     @Environment(PersonWindowModel.self) private var model
     /// The bar selected when a person opens; nil = today. Only the capture host sets it.
     var initialDay: Int?
+    /// Where the view starts scrolled; only the capture host starts at the bottom.
+    var scrollAnchor: UnitPoint = .top
 
     var body: some View {
         Group {
@@ -15,6 +17,7 @@ struct PersonWindowView: View {
                     PersonViewContent(person: person, initialDay: initialDay)
                         .padding(20)
                 }
+                .defaultScrollAnchor(scrollAnchor)
                 // A different person starts on their own today.
                 .id(person.login)
                 .navigationTitle(person.isYou ? "Your month" : "\(person.login)’s month")
