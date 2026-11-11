@@ -70,7 +70,9 @@ Tapping someone on the iPhone Board (any row: the list, "Around you", or the 1st
 - **On iPhone** it's a sheet over the Board, with **Done**. On iPhone Duo open with the panes side by side, it takes the second pane in place of your summary, with **Your standing** to go back; closing the Duo turns it back into a sheet, and opening it again moves it to the pane. It closes if that person leaves the board.
 - **Sample board** shows it for everyone, from the made-up calendars.
 
-The Mac's and Windows' person views show the same content in their own window.
+- **On the Mac** clicking a row in the popover (the live board or the 1st's Final standings) opens the person view in its own **Person** window, titled "<login>'s month" or "Your month", like **People…**. There is one: clicking someone else switches it to them, and clicking the person it shows brings it forward. Past months have no share button there (Share board is iPhone only). If that person leaves the board, it says to click someone on the board.
+
+The Windows person view shows the same content in its own window.
 
 ### Refresh behavior the user notices
 
