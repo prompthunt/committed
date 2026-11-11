@@ -14,7 +14,7 @@ IMAGES = {'.png', '.jpg', '.jpeg', '.webp', '.heic'}
 # Keep exceptions explicit; never exempt docs/screenshots/.
 ASSETS = ('appstore/screenshots/public/', 'CommitStandings/Assets.xcassets/', 'CommitStandingsiOS/Assets.xcassets/',
           'CommitStandingsLiveRank/Assets.xcassets/', 'docs/design/', 'fixtures/',
-          'site/public/', 'site/src/assets/', 'video/', 'windows/src-tauri/icons/')
+          'site/public/', 'site/src/assets/', 'video/', 'windows/src-tauri/icons/', 'windows/src/assets/')
 
 
 def check(root, added):

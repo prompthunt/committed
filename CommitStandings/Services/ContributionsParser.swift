@@ -53,6 +53,27 @@ enum ContributionsParser {
         return sum
     }
 
+    /// The window's biggest trolling day, if any. Each day is judged against the person's own
+    /// history before it, so every device and window agree on the same day.
+    static func burst(days: [Date: Int], window: ContributionWindow, asOf reference: Date) -> Burst? {
+        let calendar = contributionCalendar()
+        let today = calendar.startOfDay(for: reference)
+        guard let earliest = calendar.date(byAdding: .day, value: -(window.dayCount - 1), to: today) else {
+            return nil
+        }
+        let history = days.sorted { $0.key < $1.key }
+        var biggest: Burst?
+        for (index, entry) in history.enumerated()
+        where entry.key >= earliest && entry.key <= today && entry.value > TrollCheck.floor {
+            let usual = TrollCheck.usualBigDay(history[..<index].map(\.value))
+            guard TrollCheck.isTrolling(count: entry.value, usual: usual) else { continue }
+            if entry.value > (biggest?.count ?? 0) {
+                biggest = Burst(day: entry.key, count: entry.value, usual: usual)
+            }
+        }
+        return biggest
+    }
+
     // MARK: - Internals
 
     static func contributionCalendar() -> Calendar {
@@ -177,5 +198,25 @@ enum ContributionsParser {
             return nil
         }
         return ns.substring(with: m.range(at: 1))
+    }
+}
+
+/// When a day counts as trolling. Tuned on a year of real boards: it caught a 784-contribution day
+/// against a usual big day of 102, while flagging an ordinary heavy committer about once a month.
+enum TrollCheck {
+    /// A trolling day is more than this many times the person's usual big day…
+    static let multiple = 5
+    /// …and more than this many contributions, so quiet accounts' first busy day isn't trolling.
+    static let floor = 100
+
+    static func isTrolling(count: Int, usual: Int) -> Bool {
+        count > max(floor, multiple * usual)
+    }
+
+    /// The count 9 in 10 of these days' active (non-zero) days stay under; 0 with no active days.
+    static func usualBigDay(_ counts: [Int]) -> Int {
+        let active = counts.filter { $0 > 0 }.sorted()
+        guard !active.isEmpty else { return 0 }
+        return active[min(active.count - 1, Int(Double(active.count) * 0.9))]
     }
 }

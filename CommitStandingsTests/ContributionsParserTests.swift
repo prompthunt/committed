@@ -106,6 +106,75 @@ struct ContributionsParserTests {
 
     // MARK: - Helpers
 
+    // MARK: - Trolling
+
+    /// Sixty days before May 28 at a steady 20 a day, so their usual big day is 20.
+    private func steadyHistory(_ count: Int = 20) -> [Date: Int] {
+        var days: [Date: Int] = [:]
+        for offset in 1...60 {
+            days[ContributionsParser.isoCalendar().date(byAdding: .day, value: -offset, to: ymd(2026, 5, 28))!] = count
+        }
+        return days
+    }
+
+    @Test func trolling_flagsADayFarAboveTheirUsualBigDay() {
+        var days = steadyHistory()
+        days[ymd(2026, 5, 28)] = 784
+        let burst = ContributionsParser.burst(days: days, window: .daily, asOf: ymd(2026, 5, 28))
+        #expect(burst == Burst(day: ymd(2026, 5, 28), count: 784, usual: 20))
+        #expect(burst?.multiple == 39)
+    }
+
+    @Test func trolling_ignoresABusyDayUnderFiveTimesTheirUsual() {
+        var days = steadyHistory(40)
+        days[ymd(2026, 5, 28)] = 200 // exactly 5×: not over the line
+        #expect(ContributionsParser.burst(days: days, window: .daily, asOf: ymd(2026, 5, 28)) == nil)
+    }
+
+    @Test func trolling_needsMoreThanAHundred() {
+        var days = steadyHistory(2)
+        days[ymd(2026, 5, 28)] = 100 // 50× a quiet account's usual, but not over the floor
+        #expect(ContributionsParser.burst(days: days, window: .daily, asOf: ymd(2026, 5, 28)) == nil)
+        days[ymd(2026, 5, 28)] = 101
+        #expect(ContributionsParser.burst(days: days, window: .daily, asOf: ymd(2026, 5, 28))?.count == 101)
+    }
+
+    @Test func trolling_newAccountOverTheFloorIsTrolling() {
+        let days = [ymd(2026, 5, 28): 150]
+        let burst = ContributionsParser.burst(days: days, window: .daily, asOf: ymd(2026, 5, 28))
+        #expect(burst == Burst(day: ymd(2026, 5, 28), count: 150, usual: 0))
+        #expect(burst?.multiple == nil)
+    }
+
+    @Test func trolling_staysInLongerWindowsUntilTheDayLeaves() {
+        var days = steadyHistory()
+        days[ymd(2026, 5, 25)] = 500
+        days[ymd(2026, 5, 28)] = 20
+        let asOf = ymd(2026, 5, 28)
+        #expect(ContributionsParser.burst(days: days, window: .daily, asOf: asOf) == nil)
+        #expect(ContributionsParser.burst(days: days, window: .weekly, asOf: asOf)?.count == 500)
+        #expect(ContributionsParser.burst(days: days, window: .monthly, asOf: asOf)?.day == ymd(2026, 5, 25))
+    }
+
+    @Test func trolling_judgesEachDayOnlyAgainstTheDaysBeforeIt() {
+        var days = steadyHistory()
+        days[ymd(2026, 5, 27)] = 300
+        days[ymd(2026, 5, 28)] = 5_000
+        // The later huge day doesn't raise the bar for the earlier one…
+        #expect(ContributionsParser.burst(days: days, window: .daily, asOf: ymd(2026, 5, 27))
+            == Burst(day: ymd(2026, 5, 27), count: 300, usual: 20))
+        // …and a window with two reports the bigger.
+        #expect(ContributionsParser.burst(days: days, window: .weekly, asOf: ymd(2026, 5, 28))
+            == Burst(day: ymd(2026, 5, 28), count: 5_000, usual: 20))
+    }
+
+    @Test func usualBigDay_isTheNinetiethPercentileOfActiveDays() {
+        #expect(TrollCheck.usualBigDay([]) == 0)
+        #expect(TrollCheck.usualBigDay([0, 0]) == 0)
+        #expect(TrollCheck.usualBigDay(Array(1...10)) == 10)
+        #expect(TrollCheck.usualBigDay([0] + Array(1...20)) == 19)
+    }
+
     func ymd(_ y: Int, _ m: Int, _ d: Int) -> Date {
         let cal = ContributionsParser.isoCalendar()
         return cal.date(from: DateComponents(year: y, month: m, day: d))!

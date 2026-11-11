@@ -13,6 +13,7 @@ import tempfile
 
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument("--large-board", action="store_true", help="Seed 19 people to verify scrolling and lower-ranked rows")
+parser.add_argument("--troll", action="store_true", help="Give hubot a trolling day (784 more today) to show the troll face")
 parser.add_argument("--bundle-id", default="com.digg.committed.flowcapture", help="Use a separate app identity for concurrent previews")
 args = parser.parse_args()
 repo = pathlib.Path(__file__).resolve().parents[1]
@@ -51,6 +52,13 @@ app_file.write_text(r'''import SwiftUI
                     window: window, lastUpdated: Date(), state: .loaded))
             }
         }
+        if TROLL_FIXTURE {
+            let burst = Burst(day: Calendar.current.startOfDay(for: Date()), count: 784, usual: 102)
+            for window in ContributionWindow.allCases {
+                s.updateStanding(Standing(username: "hubot", contributions: 784 + 32*window.dayCount, window: window,
+                    lastUpdated: Date(), state: .loaded, burst: burst))
+            }
+        }
         let sources = GitHubRosterSnapshot(owner: "octocat", sources: [
             GitHubRosterSource(id: "org:github", title: "github", members: ["octocat", "hubot", "monalisa"]),
             GitHubRosterSource(id: "following", title: "People you follow", members: s.rivals.filter { $0.username != "monalisa" }.map(\.username))
@@ -79,6 +87,7 @@ app_file.write_text(r'''import SwiftUI
             .environment(store).environment(refresh).environment(auth).environment(roster).environment(notifications)
             .preferredColorScheme(.light)
             .task { await roster.refresh() }
+            .task { await snapshotIfRequested() }
         }
         .windowResizability(.contentSize)
         .commands {
@@ -98,13 +107,30 @@ app_file.write_text(r'''import SwiftUI
     }
 }
 
+/// `-CaptureSnapshot <file.png>`: after the board settles, the host writes its own window's
+/// contents to that PNG and quits, for captures where the shell can't record the screen.
+@MainActor private func snapshotIfRequested() async {
+    guard let path = UserDefaults.standard.string(forKey: "CaptureSnapshot") else { return }
+    try? await Task.sleep(for: .seconds(4))
+    guard let view = NSApp.windows.first(where: \.isVisible)?.contentView?.superview,
+          let rep = view.bitmapImageRepForCachingDisplay(in: view.bounds) else { return }
+    view.cacheDisplay(in: view.bounds, to: rep)
+    try? rep.representation(using: .png, properties: [:])?.write(to: URL(fileURLWithPath: path))
+    NSApp.terminate(nil)
+}
+
 private struct CaptureCounts: ContributionsFetching {
     func standingCounts(for username: String, window: ContributionWindow, asOf reference: Date) async -> Result<StandingCounts, ContributionsError> {
-        .success(StandingCounts(contributions: (["octocat":40,"hubot":32,"monalisa":24,"defunkt":16,"mojombo":8][username] ?? 4) * window.dayCount))
+        let count = (["octocat":40,"hubot":32,"monalisa":24,"defunkt":16,"mojombo":8][username] ?? 4) * window.dayCount
+        if TROLL_FIXTURE, username == "hubot" {
+            let burst = Burst(day: Calendar.current.startOfDay(for: reference), count: 784, usual: 102)
+            return .success(StandingCounts(contributions: count + 784, burst: burst))
+        }
+        return .success(StandingCounts(contributions: count))
     }
 }
 
-enum MenuPopoverLayout'''.replace('LARGE_BOARD', str(args.large_board).lower()) + helpers)
+enum MenuPopoverLayout'''.replace('LARGE_BOARD', str(args.large_board).lower()).replace('TROLL_FIXTURE', str(args.troll).lower()) + helpers)
 info = destination / "CommitStandings/Info.plist"
 with info.open("rb") as stream:
     data = plistlib.load(stream)

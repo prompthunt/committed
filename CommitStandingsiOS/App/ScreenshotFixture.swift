@@ -8,7 +8,8 @@ import UIKit
 ///     xcrun simctl launch <udid> com.addisonk.CommitStandings.iOS -ScreenshotFixture
 ///
 /// Optional, after `-ScreenshotFixture`: `-ScreenshotTab people|settings` opens on that tab,
-/// `-ScreenshotHide <login>` hides that person before the first refresh (so Today still moves), and
+/// `-ScreenshotHide <login>` hides that person before the first refresh (so Today still moves),
+/// `-ScreenshotTroll <login>` gives that person a trolling day (784 more, the troll face),
 /// `-LiveRankPayload <file.json>` shows a Live Activity push payload's content state in Live rank,
 /// and `-RelayDisclosureAccepted` starts with the Committed relay disclosure already accepted (for
 /// builds with `COMMITTED_RELAY_URL`; without it, a relay build shows the disclosure sheet).
@@ -152,7 +153,8 @@ enum ScreenshotFixture {
         let services = SampleServices.make(SampleServices.Options(
             extraPeople: extraPeople,
             includesFailingCompetitor: failingCompetitor,
-            restrictedOrganizations: value(after: "-ScreenshotRestrictedOrg").map { [$0] }
+            restrictedOrganizations: value(after: "-ScreenshotRestrictedOrg").map { [$0] },
+            trollPerson: value(after: "-ScreenshotTroll")
         ))
         let hide = value(after: "-ScreenshotHide")
         Task {

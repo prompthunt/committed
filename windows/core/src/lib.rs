@@ -112,6 +112,8 @@ pub struct Row {
     pub is_you: bool,
     pub movement: i32,
     pub status: String,
+    /// The window's trolling day, if any: the row wears the troll face. Ranking ignores it.
+    pub burst: Option<parser::Burst>,
 }
 #[derive(Clone, Debug, Serialize)]
 pub struct Board {
@@ -342,6 +344,7 @@ fn ranked_rows(state: &State, window: Window, today: NaiveDate, now: i64) -> Vec
                 person: person.clone(),
                 rank: 0,
                 contributions: snapshot.map(|s| parser::sum(&s.days, window.days(), today)),
+                burst: snapshot.and_then(|s| parser::burst(&s.days, window.days(), today)),
                 is_you: state.saved.owner.as_ref() == Some(&person.login),
                 movement: 0,
                 status: if state.failed.contains_key(&person.login) {
