@@ -351,7 +351,7 @@ final class RefreshCoordinator {
     /// first successful refresh after a month ends, once per month per account on this device. The
     /// month counts as announced even when notifications are off (only posting needs them on), so
     /// switching them on later doesn't bring up old news; an account never announced anything
-    /// starts quietly, its first refresh recording last month without a notice. It waits while
+    /// starts quietly, its first successful refresh recording last month without a notice. It waits while
     /// anyone with a saved calendar failed this refresh, so it never reports a place from stale
     /// numbers. The Windows core's `month_final` follows the same rules.
     private func announceMonthFinal(window: ContributionWindow, reference: Date) {
@@ -359,6 +359,8 @@ final class RefreshCoordinator {
         let month = CalendarMonth(containing: reference, in: calendar).previous
         var announced = announcedMonths.load()
         guard let last = announced[owner].flatMap(CalendarMonth.init(key:)) else {
+            // Once your own calendar has loaded: the first successful refresh.
+            guard store.history(for: owner) != nil else { return }
             announced[owner] = month.key
             announcedMonths.save(announced)
             return

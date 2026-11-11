@@ -227,7 +227,15 @@ struct MonthFinalTests {
     /// a notification, so it never hears old news. The next month's end is announced as usual.
     @Test func aNeverAnnouncedAccountRecordsLastMonthWithoutANotice() async {
         let announced = InMemoryAnnouncedMonthPersistence()
-        let board = await Self.board(at: Self.november2, announced: announced)
+        let october31 = Self.november1.addingTimeInterval(-86_400)
+        let board = await Self.board(at: october31, announced: announced)
+        // Not before a refresh succeeds: with your own page failing on October 31, nothing is
+        // recorded (not even September), so November's first refresh records October quietly.
+        await board.client.setResponse(.failure(.network("offline")), for: "me")
+        await board.refresh.refreshAll(reason: .manual)
+        #expect(announced.load().isEmpty)
+        board.clock.date = Self.november2
+        await Self.setCalendars(board.client, through: Self.november2)
         await board.refresh.refreshAll(reason: .manual)
         #expect(board.spy.monthFinals.isEmpty)
         #expect(announced.load() == ["me": "2026-10"])

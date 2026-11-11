@@ -239,6 +239,7 @@ test("without a public name the card shows your @login alone", async ({ page }) 
 for (const [windowName, number, title] of [
   ["weekly", "02", "7 days"],
   ["monthly", "03", "30 days"],
+  ["month", "04", "This month"],
 ] as const) {
   test(`the ${windowName} window titles the folio and the list as the app does (${title})`, async ({ page }) => {
     const harness = await open(

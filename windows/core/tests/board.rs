@@ -999,6 +999,24 @@ async fn a_never_announced_account_records_last_month_without_a_notice() {
     *f.clock.0.lock().unwrap() = noon(2026, 11, 1);
     october_board(&f).await;
     f.core.set_setting("notifications", true).unwrap();
+    // Not before a refresh succeeds: with your own page failing on October 31, nothing is
+    // recorded (not even September), so November's first refresh records October quietly.
+    *f.clock.0.lock().unwrap() = noon(2026, 10, 31);
+    f.http.0.lock().unwrap().insert(
+        "https://github.com/users/octocat/contributions".into(),
+        Err("offline".into()),
+    );
+    f.core.refresh(RefreshReason::Manual).await.unwrap();
+    *f.clock.0.lock().unwrap() = noon(2026, 11, 1);
+    f.contributions(
+        "octocat",
+        &cells(&[
+            ("2026-09-27", 50),
+            ("2026-10-01", 2),
+            ("2026-10-31", 10),
+            ("2026-11-01", 0),
+        ]),
+    );
     f.core.refresh(RefreshReason::Manual).await.unwrap();
     assert!(f.notifications.0.lock().unwrap().is_empty());
     *f.clock.0.lock().unwrap() = noon(2026, 12, 1);

@@ -8,14 +8,9 @@
  * pages can't be read from a browser (no CORS), and the relay already reads and caches them.
  */
 
-export type KrakenWindow = "daily" | "weekly" | "monthly" | "month";
+export type KrakenWindow = "daily" | "weekly" | "monthly";
 
-export const WINDOW_LABELS: Record<KrakenWindow, string> = {
-  daily: "Today",
-  weekly: "7 days",
-  monthly: "30 days",
-  month: "This month",
-};
+export const WINDOW_LABELS: Record<KrakenWindow, string> = { daily: "Today", weekly: "7 days", monthly: "30 days" };
 
 export interface Person {
   login: string;
@@ -101,7 +96,7 @@ export function settingsFromQuery(params: URLSearchParams): KrakenSettings | nul
     avatar: "",
     people: [],
     competitors,
-    window: window !== null && window in WINDOW_LABELS ? (window as KrakenWindow) : "daily",
+    window: window === "weekly" || window === "monthly" ? window : "daily",
     timeZone: params.get("tz") ?? localTimeZone(),
   };
 }

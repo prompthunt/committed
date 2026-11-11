@@ -182,8 +182,8 @@
     // Rank only: with a rank, your count lives on your row, not on the card.
     setCount(state.rank === null ? state.contributions : null, animate);
 
-    // The relay reports movement on Today and This month only, 0 on the others.
-    renderMovement(state.movementToday || 0);
+    // Movement on Today and This month only, as the app's showsTodaysMovement.
+    renderMovement(state.window === "daily" || state.window === "month" ? state.movementToday || 0 : 0);
 
     var status = byId("status");
     var line = emptyStateLine(state);

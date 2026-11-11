@@ -31,12 +31,16 @@ pub(crate) fn finish_refresh(state: &mut State, today: NaiveDate, now: i64) -> V
 /// first refresh where every saved calendar reloads.
 /// The month counts as handled even with Leaderboard Notifications off, so turning them on later
 /// in the month doesn't send a stale result; only the posting needs them on. An account never
-/// announced anything starts quietly: its first refresh records last month without a notice.
+/// announced anything starts quietly: its first successful refresh records last month without a
+/// notice.
 fn month_final(state: &mut State, today: NaiveDate) -> Option<Notification> {
     let owner = state.saved.owner.clone()?;
     let month = previous_month(today);
     let Some(&last) = state.saved.announced.get(&owner) else {
-        state.saved.announced.insert(owner, month);
+        // Once your own calendar has loaded: the first successful refresh.
+        if state.saved.counts.contains_key(&owner) {
+            state.saved.announced.insert(owner, month);
+        }
         return None;
     };
     if last >= month {
