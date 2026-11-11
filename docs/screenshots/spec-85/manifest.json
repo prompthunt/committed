@@ -187,6 +187,50 @@
         "fixture": true
       },
       "notes": "Windows board, not WebView2 on Windows: the real app UI (windows/src/app.ts and style.css) served by vite and fed the Sample board through windows/fixture.html (mocked Tauri IPC, data in windows/src/sample-board.ts) with ?date=2026-11-01, so the fixture's today is the 1st. macOS system fonts instead of Segoe UI; no window chrome or tray. October finishes: ines-volk 212 gold; ari-linden (you) 160 silver, winning the tie with odile-m 160 bronze; ezra-q 98; bram-ott 0 (no medal); niko-vane no calendar (last, no medal). No before capture: Final standings is new, and the board on other days is unchanged (see 96/). Recipe: cd windows && npm run dev -- --port <port>, open /fixture.html?view=board&date=2026-11-01."
+    },
+    {
+      "file": "103/person-light.png",
+      "caption": "#103 Windows person view for odile-m, light: November's bars over October's grey ones, today (Nov 22) selected, streaks, \"Active days 22 of 22\", past months with medals, GitHub profile link",
+      "capture": {
+        "device": "Chromium (in-app browser) on macOS, mocked Tauri IPC, 460×640 person window at 2x",
+        "os": "macOS 27.0",
+        "sourceCommit": "414f41299b0ba9dda63665a8b79f33ac23800617",
+        "fixture": true
+      },
+      "notes": "Windows person window, not WebView2 on Windows: the real app UI (windows/src/app.ts and style.css) served by vite and fed the Sample people through windows/fixture.html (mocked Tauri IPC, data from samplePerson in windows/src/sample-board.ts) with ?view=person&date=2026-11-22, so the fixture's today is November 22. macOS system fonts instead of Segoe UI; no window chrome. No before capture: the person view is new (rows used to open the GitHub profile). Recipe: cd windows && npm run dev -- --port <port>, open /fixture.html?view=person&date=2026-11-22&login=<login>. Screen-reader chart summary: \"22 active days this month, most on November 18 with 28\"; each day is a focusable bar labelled \"November 22: 9 contributions. October 22: 12\"."
+    },
+    {
+      "file": "103/person-selected-bar-dark.png",
+      "caption": "#103 Windows person view for odile-m, dark: November 18 selected with the arrow keys (focus ring), caption shows its date, count and October 18's",
+      "capture": {
+        "device": "Chromium (in-app browser) on macOS, mocked Tauri IPC, 460×640 person window at 2x",
+        "os": "macOS 27.0",
+        "sourceCommit": "414f41299b0ba9dda63665a8b79f33ac23800617",
+        "fixture": true
+      },
+      "notes": "Windows person window, not WebView2 on Windows: the real app UI (windows/src/app.ts and style.css) served by vite and fed the Sample people through windows/fixture.html (mocked Tauri IPC, data from samplePerson in windows/src/sample-board.ts) with ?view=person&date=2026-11-22, so the fixture's today is November 22. macOS system fonts instead of Segoe UI; no window chrome. No before capture: the person view is new (rows used to open the GitHub profile). Recipe: cd windows && npm run dev -- --port <port>, open /fixture.html?view=person&date=2026-11-22&login=<login>. Selected by focusing today's bar and pressing ArrowLeft four times."
+    },
+    {
+      "file": "103/person-waiting-dark.png",
+      "caption": "#103 Windows person view for niko-vane, dark: his count never loaded, so it says it's waiting instead of drawing zero bars",
+      "capture": {
+        "device": "Chromium (in-app browser) on macOS, mocked Tauri IPC, 460×640 person window at 2x",
+        "os": "macOS 27.0",
+        "sourceCommit": "414f41299b0ba9dda63665a8b79f33ac23800617",
+        "fixture": true
+      },
+      "notes": "Windows person window, not WebView2 on Windows: the real app UI (windows/src/app.ts and style.css) served by vite and fed the Sample people through windows/fixture.html (mocked Tauri IPC, data from samplePerson in windows/src/sample-board.ts) with ?view=person&date=2026-11-22, so the fixture's today is November 22. macOS system fonts instead of Segoe UI; no window chrome. No before capture: the person view is new (rows used to open the GitHub profile). Recipe: cd windows && npm run dev -- --port <port>, open /fixture.html?view=person&date=2026-11-22&login=<login>. niko-vane's refresh failed and he has no saved calendar, so get_person returns history null."
+    },
+    {
+      "file": "103/person-you-tip-light.png",
+      "caption": "#103 Windows person view for you (ari-linden), light, window resized taller: \"Active days 18 of 22\", past finishes with gold and silver, and the private-contributions tip at the bottom",
+      "capture": {
+        "device": "Chromium (in-app browser) on macOS, mocked Tauri IPC, 460×980 person window at 2x",
+        "os": "macOS 27.0",
+        "sourceCommit": "414f41299b0ba9dda63665a8b79f33ac23800617",
+        "fixture": true
+      },
+      "notes": "Windows person window, not WebView2 on Windows: the real app UI (windows/src/app.ts and style.css) served by vite and fed the Sample people through windows/fixture.html (mocked Tauri IPC, data from samplePerson in windows/src/sample-board.ts) with ?view=person&date=2026-11-22, so the fixture's today is November 22. macOS system fonts instead of Segoe UI; no window chrome. No before capture: the person view is new (rows used to open the GitHub profile). Recipe: cd windows && npm run dev -- --port <port>, open /fixture.html?view=person&date=2026-11-22&login=<login>. Your own view always shows the private-contributions tip (Mac copy), even after the board's tip is dismissed (the fixture has it dismissed). The window is resizable; 980 px tall shows the whole view without scrolling."
     }
   ]
 }
