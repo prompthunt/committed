@@ -2,8 +2,8 @@ import SwiftUI
 
 /// The person above you, you, and the person below (whichever exist), drawn with the board's own
 /// `StandingRow` (never forked): `#rank`, avatar, login, the "you" badge, today's chevron, the
-/// count, and the squares glyph. The expanded Dynamic Island and the Lock Screen show these; both
-/// are capped at about 160 pt, so the full board doesn't fit.
+/// streak ("🔥 12", from 2 days), the count, and the squares glyph. The expanded Dynamic Island
+/// and the Lock Screen show these; both are capped at about 160 pt, so the full board doesn't fit.
 ///
 /// Avatars come from the App Group (`AvatarCache`): the app saves them on each refresh, since this
 /// process can't load network images. Someone without a saved avatar gets initials.
@@ -19,6 +19,7 @@ struct LiveRankRows: View {
         let contributions: Int
         let movement: Int
         let isSelf: Bool
+        var streak: Int? = nil
     }
 
     /// Empty without a rank: then there's nobody to stand between (see `emptyStateLine`).
@@ -28,13 +29,13 @@ struct LiveRankRows: View {
         // Ranks are consecutive (`Ranking.order`), so your neighbors sit at rank ± 1.
         if let above = state.above {
             rows.append(Row(rank: rank - 1, login: above.login, contributions: above.contributions,
-                            movement: above.movementToday, isSelf: false))
+                            movement: above.movementToday, isSelf: false, streak: above.streak))
         }
         rows.append(Row(rank: rank, login: selfLogin, contributions: contributions,
-                        movement: state.movementToday, isSelf: true))
+                        movement: state.movementToday, isSelf: true, streak: state.streak))
         if let below = state.below {
             rows.append(Row(rank: rank + 1, login: below.login, contributions: below.contributions,
-                            movement: below.movementToday, isSelf: false))
+                            movement: below.movementToday, isSelf: false, streak: below.streak))
         }
         return rows
     }
@@ -54,7 +55,8 @@ struct LiveRankRows: View {
                                        lastUpdated: state.updatedDate, state: .loaded),
                     window: window,
                     maxContributions: busiest,
-                    rankDelta: row.movement
+                    rankDelta: row.movement,
+                    streak: row.streak
                 )
             }
         }
@@ -96,6 +98,9 @@ extension StandingRowStyle {
             movementUpColor: accent,
             movementDownColor: stale ? .muted : .soft,
             movementFont: .caption2.weight(.heavy),
+            // Quieter than the counts beside it, like the Board's (`StandingRowStyle.committed`).
+            streakFont: CommittedType.numeral(13, relativeTo: .footnote),
+            streakColor: stale ? .muted : .soft,
             squares: .shadedSymbol(Color.rowGlyphs)
         )
     }

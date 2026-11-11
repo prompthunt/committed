@@ -13,6 +13,9 @@ struct LiveRankState: Codable, Hashable, Sendable {
         /// Their places moved since the day's baseline (+ up, − down), like yours. Today only;
         /// otherwise 0. Absent from older pushes and saved states, which decode it as 0.
         var movementToday: Int = 0
+        /// Their current streak (`ContributionHistory.currentStreak`), like yours. nil without
+        /// their calendar, and in pushes and saved states from before streaks.
+        var streak: Int? = nil
     }
 
     /// `ContributionWindow` raw value: "daily", "weekly", or "monthly".
@@ -29,21 +32,27 @@ struct LiveRankState: Codable, Hashable, Sendable {
     var below: Neighbor?
     /// Places moved since the day's baseline (+ up, − down). Today only; otherwise 0.
     var movementToday: Int
+    /// Your current streak (`ContributionHistory.currentStreak`), the raw count: rows show it from
+    /// 2 days (`StreakLabel`). nil without your count or your calendar, and in pushes and saved
+    /// states from before streaks. Left out of the JSON when nil, as the relay leaves it out.
+    var streak: Int? = nil
     /// Unix seconds of the data, not of the update that carried it.
     var updatedAt: Int
 }
 
 extension LiveRankState.Neighbor {
-    private enum CodingKeys: String, CodingKey { case login, contributions, movementToday }
+    private enum CodingKeys: String, CodingKey { case login, contributions, movementToday, streak }
 
-    /// Tolerates a missing `movementToday` (added for #53), so a push from an older relay or a
-    /// state an older build saved still decodes. Encoding stays synthesized and always writes it.
+    /// Tolerates a missing `movementToday` (added for #53) and `streak` (#94), so a push from an
+    /// older relay or a state an older build saved still decodes. Encoding stays synthesized: it
+    /// always writes `movementToday`, and `streak` only when known.
     init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         self.init(
             login: try container.decode(String.self, forKey: .login),
             contributions: try container.decode(Int.self, forKey: .contributions),
-            movementToday: try container.decodeIfPresent(Int.self, forKey: .movementToday) ?? 0
+            movementToday: try container.decodeIfPresent(Int.self, forKey: .movementToday) ?? 0,
+            streak: try container.decodeIfPresent(Int.self, forKey: .streak)
         )
     }
 }

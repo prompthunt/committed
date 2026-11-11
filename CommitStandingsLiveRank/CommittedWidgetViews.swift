@@ -10,8 +10,8 @@ import SwiftUI
 // and how long ago the numbers were updated ("13 min, 36 sec") counting up at 12 pt on the right,
 // or, where a small widget has no room beside the Window, on its own line.
 
-/// Small (also CarPlay and StandBy): the Window, your rank big, your count, then the age.
-/// Read at a glance from the driver's seat, so no rows.
+/// Small (also CarPlay and StandBy): the Window, your rank big, your count and streak, then the
+/// age. Read at a glance from the driver's seat, so no rows.
 struct CommittedWidgetSmall: View {
     let snapshot: WidgetSnapshot
     @Environment(\.liveRankIsStale) private var isStale
@@ -37,9 +37,18 @@ struct CommittedWidgetSmall: View {
                     .foregroundStyle(isStale ? Color.limeDeep : Color.lime)
                 ContributionSquare(level: state.contributions.map { $0 > 0 ? (isStale ? 3 : 4) : 0 } ?? 0,
                                    size: ranked ? 12 : 18)
+                // Your streak on the count's line, so the card keeps its four lines. Only beside
+                // your count (`state.streak` is nil without it), from 2 days.
+                if let streak = StreakLabel.text(state.streak) {
+                    Spacer(minLength: 4)
+                    Text(streak)
+                        .font(CommittedType.numeral(ranked ? 15 : 17, relativeTo: .subheadline))
+                        .foregroundStyle(isStale ? Color.muted : Color.soft)
+                        .fixedSize()
+                }
             }
             .accessibilityElement(children: .ignore)
-            .accessibilityLabel(LiveRankText.countAccessibility(state))
+            .accessibilityLabel(LiveRankText.countAccessibility(state, streak: true))
             WidgetStatusLine(state: state)
         }
         .lineLimit(1)
@@ -206,7 +215,8 @@ private struct WidgetBoardRow: View {
             },
             window: window,
             maxContributions: busiest,
-            rankDelta: row.movement
+            rankDelta: row.movement,
+            streak: row.streak
         )
     }
 }

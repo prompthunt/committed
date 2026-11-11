@@ -15,6 +15,9 @@ struct WidgetSnapshot: Codable, Equatable, Sendable {
         /// Places moved today (+ up, − down). 0 outside Today.
         var movement: Int
         var isSelf: Bool
+        /// Their current streak, shown from 2 days beside a loaded count (`StreakLabel`). nil
+        /// without their calendar, and in snapshots from before streaks.
+        var streak: Int? = nil
     }
 
     /// Your GitHub login.
@@ -59,7 +62,7 @@ struct WidgetSnapshot: Codable, Equatable, Sendable {
     var selfRow: Row? {
         guard let rank = state.rank, let contributions = state.contributions else { return nil }
         return Row(rank: rank, login: selfLogin, contributions: contributions,
-                   movement: state.movementToday, isSelf: true)
+                   movement: state.movementToday, isSelf: true, streak: state.streak)
     }
 
     /// Whether you're among `top`.
@@ -75,7 +78,7 @@ struct WidgetSnapshot: Codable, Equatable, Sendable {
         var rows = Array(top.prefix(max(count - 2, 0)))
         if let above = state.above, me.rank - 1 > (rows.last?.rank ?? 0) {
             rows.append(Row(rank: me.rank - 1, login: above.login, contributions: above.contributions,
-                            movement: above.movementToday, isSelf: false))
+                            movement: above.movementToday, isSelf: false, streak: above.streak))
         } else if rows.count < count - 1, let next = top.dropFirst(rows.count).first {
             rows.append(next)
         }
@@ -92,7 +95,12 @@ extension WidgetSnapshot {
     /// except on Today after midnight, when yesterday's count would be wrong: they show no data.
     /// Today's movement carries on from the saved board (the day's baseline is the saved movement
     /// plus the saved rank) and starts again at 0 on a new day.
-    func refreshed(counts: [String: Int], now: Date, calendar: Calendar = .current) -> WidgetSnapshot {
+    ///
+    /// `streaks` come from the calendars just fetched. Anyone missing from it keeps their saved
+    /// streak the same day; after midnight it may have grown or broken, so they show none rather
+    /// than a wrong one.
+    func refreshed(counts: [String: Int], streaks: [String: Int] = [:], now: Date,
+                   calendar: Calendar = .current) -> WidgetSnapshot {
         guard let people, let window = state.contributionWindow else { return self }
         let saved = Dictionary((board ?? top).map { ($0.login, $0) }, uniquingKeysWith: { first, _ in first })
         let sameDay = calendar.isDate(state.updatedDate, inSameDayAs: now)
@@ -103,6 +111,12 @@ extension WidgetSnapshot {
             guard let count = counts[login] ?? (keepsOldCounts ? saved[login]?.contributions : nil) else { continue }
             standings[login] = Standing(username: login, contributions: count, window: window,
                                         lastUpdated: now, state: .loaded)
+        }
+        var streakOf: [String: Int] = [:]
+        for login in people {
+            if let streak = streaks[login] ?? (sameDay && counts[login] == nil ? saved[login]?.streak : nil) {
+                streakOf[login] = streak
+            }
         }
         let competitors = people.map { Competitor(username: $0, isSelf: $0 == selfLogin) }
         let ranked = Ranking.order(competitors: competitors, standings: standings, window: window)
@@ -117,11 +131,11 @@ extension WidgetSnapshot {
         let rows = ranked.map { entry in
             let login = entry.competitor.username
             return Row(rank: entry.rank, login: login, contributions: standings[login]?.contributions,
-                       movement: deltas[login] ?? 0, isSelf: entry.competitor.isSelf)
+                       movement: deltas[login] ?? 0, isSelf: entry.competitor.isSelf, streak: streakOf[login])
         }
         var next = self
         next.state = LiveRankState.derive(competitors: competitors, standings: standings, window: window,
-                                          rankDeltas: deltas, now: now)
+                                          rankDeltas: deltas, streaks: streakOf, now: now)
         next.top = Array(rows.prefix(Self.topCount))
         next.board = rows
         return next
@@ -167,17 +181,17 @@ extension WidgetSnapshot {
             selfLogin: "ari-linden",
             state: LiveRankState(
                 window: ContributionWindow.daily.rawValue, rank: 3, competitorCount: 8, contributions: 12,
-                above: .init(login: "odile-m", contributions: 15, movementToday: 1),
-                below: .init(login: "ezra-q", contributions: 9, movementToday: -1),
-                movementToday: 1, updatedAt: updatedAt
+                above: .init(login: "odile-m", contributions: 15, movementToday: 1, streak: 6),
+                below: .init(login: "ezra-q", contributions: 9, movementToday: -1, streak: 3),
+                movementToday: 1, streak: 14, updatedAt: updatedAt
             ),
             top: [
-                Row(rank: 1, login: "ines-volk", contributions: 21, movement: 0, isSelf: false),
-                Row(rank: 2, login: "odile-m", contributions: 15, movement: 1, isSelf: false),
-                Row(rank: 3, login: "ari-linden", contributions: 12, movement: 1, isSelf: true),
-                Row(rank: 4, login: "ezra-q", contributions: 9, movement: -1, isSelf: false),
-                Row(rank: 5, login: "bram-ott", contributions: 6, movement: 0, isSelf: false),
-                Row(rank: 6, login: "niko-vane", contributions: 4, movement: -1, isSelf: false),
+                Row(rank: 1, login: "ines-volk", contributions: 21, movement: 0, isSelf: false, streak: 47),
+                Row(rank: 2, login: "odile-m", contributions: 15, movement: 1, isSelf: false, streak: 6),
+                Row(rank: 3, login: "ari-linden", contributions: 12, movement: 1, isSelf: true, streak: 14),
+                Row(rank: 4, login: "ezra-q", contributions: 9, movement: -1, isSelf: false, streak: 3),
+                Row(rank: 5, login: "bram-ott", contributions: 6, movement: 0, isSelf: false, streak: 0),
+                Row(rank: 6, login: "niko-vane", contributions: 4, movement: -1, isSelf: false, streak: 1),
             ]
         )
     }

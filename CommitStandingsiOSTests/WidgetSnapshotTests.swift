@@ -22,9 +22,10 @@ struct WidgetSnapshotTests {
     let activities = FakeLiveRankActivities()
     let widgets = RecordingWidgets()
 
-    private func makeModel(signedIn: Bool = true, counts: [String: Int] = ["me": 3, "ada": 5, "bo": 1])
+    private func makeModel(signedIn: Bool = true, counts: [String: Int] = ["me": 3, "ada": 5, "bo": 1],
+                           histories: [String: ContributionHistory] = [:])
         -> (AppModel, FakeContributions) {
-        let contributions = FakeContributions(counts)
+        let contributions = FakeContributions(counts, histories: histories)
         let session: URLSession = {
             let config = URLSessionConfiguration.ephemeral
             config.protocolClasses = [ApprovingGitHubProtocol.self]
@@ -68,6 +69,28 @@ struct WidgetSnapshotTests {
         #expect(snapshot.state.rank == 2)
         #expect(snapshot.state.passLine == "2 to pass ada")
         #expect(snapshot.selfIsInTop)
+    }
+
+    /// Streaks from each person's calendar, on the rows and in Live rank's state (yours and your
+    /// neighbors'), so the widgets show them and their own refresh can carry them on.
+    @Test func aRefreshPublishesStreaksOnRowsAndInState() async throws {
+        let utc = TimeZone(identifier: "UTC")! // the clock reads 2033-05-18 03:33 UTC
+        let (model, _) = makeModel(histories: [
+            "me": ContributionHistory(days: ["2033-05-16": 0, "2033-05-17": 2, "2033-05-18": 1], timeZone: utc),
+            "ada": ContributionHistory(days: ["2033-05-14": 1, "2033-05-15": 1, "2033-05-16": 1, "2033-05-17": 1, "2033-05-18": 5], timeZone: utc),
+            "bo": ContributionHistory(days: ["2033-05-17": 0, "2033-05-18": 0], timeZone: utc),
+        ])
+
+        await model.sceneDidBecomeActive()
+
+        let snapshot = try #require(widgets.last)
+        #expect(snapshot.top.map(\.login) == ["ada", "me", "bo"])
+        #expect(snapshot.top.map(\.streak) == [5, 2, 0])
+        #expect(snapshot.board?.map(\.streak) == [5, 2, 0])
+        #expect(snapshot.state.streak == 2)
+        #expect(snapshot.state.above?.streak == 5)
+        #expect(snapshot.state.below?.streak == 0)
+        #expect(snapshot.selfRow?.streak == 2)
     }
 
     @Test func notConnectedPublishesNothing() async {
@@ -137,7 +160,8 @@ struct WidgetSnapshotTests {
         snapshot.state.contributions = 12
 
         #expect(!snapshot.selfIsInTop)
-        #expect(snapshot.selfRow == .init(rank: 9, login: "ari-linden", contributions: 12, movement: 1, isSelf: true))
+        snapshot.state.streak = 14
+        #expect(snapshot.selfRow == .init(rank: 9, login: "ari-linden", contributions: 12, movement: 1, isSelf: true, streak: 14))
     }
 
     // MARK: Board list (StandBy)
@@ -153,12 +177,15 @@ struct WidgetSnapshotTests {
         snapshot.top = (1...6).map { .init(rank: $0, login: "p\($0)", contributions: 40 - $0, movement: 0, isSelf: false) }
         snapshot.state.rank = 9
         snapshot.state.contributions = 12
-        snapshot.state.above = .init(login: "taylor", contributions: 13, movementToday: 0)
+        snapshot.state.above = .init(login: "taylor", contributions: 13, movementToday: 0, streak: 21)
+        snapshot.state.streak = 6
 
         let rows = snapshot.boardRows()
 
         #expect(rows.map(\.login) == ["p1", "p2", "taylor", "ari-linden"])
         #expect(rows.map(\.rank) == [1, 2, 8, 9])
+        // The rows rebuilt from Live rank's state keep their streaks.
+        #expect(rows.suffix(2).map(\.streak) == [21, 6])
     }
 
     @Test func justBelowTheLeadersTheListDoesNotRepeatAnyone() {

@@ -501,9 +501,13 @@ enum LiveRankText {
         return state.competitorCount > 1 ? "Rank not loaded" : "Live rank"
     }
 
-    static func countAccessibility(_ state: LiveRankState) -> String {
+    /// "12 contributions", and with `streak`, ", 5-day streak" when your streak shows (the small
+    /// widget, which shows it beside your count).
+    static func countAccessibility(_ state: LiveRankState, streak: Bool = false) -> String {
         guard let contributions = state.contributions else { return "Contributions not loaded" }
-        return contributions == 1 ? "1 contribution" : "\(contributions) contributions"
+        let count = contributions == 1 ? "1 contribution" : "\(contributions) contributions"
+        guard streak, let spoken = StreakLabel.spoken(state.streak) else { return count }
+        return "\(count), \(spoken)"
     }
 }
 
