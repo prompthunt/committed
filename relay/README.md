@@ -294,7 +294,9 @@ card (`BoardSummaryView`, rank only) beside the board list. Glance on the office
   ignored. It sets one class on `<html>` beside `embedded`: `rendering-full-color` (the default,
   with no message, unframed, and with older hosts), `rendering-accented` or `rendering-vibrant`.
   All the styling is in `standby.css`, keyed off that class, so re-renders pick it up. For tests and
-  TV captures, `?renderingMode=<mode>` in the query forces a mode (the fragment holds the token).
+  TV captures, `?renderingMode=<mode>` in the query forces a mode (the fragment holds the token)
+  and pins it: the host's messages no longer change it, so a capture can show Night Mode while
+  Glance posts `fullColor` by day. An unknown value pins nothing.
   - `fullColor`: the look above, unchanged.
   - `accented` (the tinted Home Screen): lime and deep lime go white, the supporting text stays
     `label-secondary`, the rank card, your row and the avatars' circles use `fill-secondary`

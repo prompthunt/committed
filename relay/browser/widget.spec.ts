@@ -652,7 +652,7 @@ const FILL_SECONDARY = "rgba(255, 255, 255, 0.07)";
  * The widget in Glance's place: a host page frames it and, like Glance, posts the rendering mode
  * on the frame's load. Returns the widget's frame once the board is on screen.
  */
-async function framed(page: Page, reply: Reply, renderingMode?: unknown) {
+async function framed(page: Page, reply: Reply, renderingMode?: unknown, src = WIDGET_URL) {
   const HOST = "https://host.test/";
   const post =
     renderingMode === undefined
@@ -662,7 +662,7 @@ async function framed(page: Page, reply: Reply, renderingMode?: unknown) {
     route.fulfill({
       status: 200,
       contentType: "text/html",
-      body: `<!doctype html><body style="margin:0;background:#141416"><iframe id="w" src="${WIDGET_URL}"${post} style="border:0;width:1280px;height:1080px"></iframe></body>`,
+      body: `<!doctype html><body style="margin:0;background:#141416"><iframe id="w" src="${src}"${post} style="border:0;width:1280px;height:1080px"></iframe></body>`,
     })
   );
   await open(page, reply, HOST);
@@ -800,6 +800,23 @@ test("?renderingMode= forces a mode on the page's own address, the token still i
   await page.evaluate(() => window.postMessage({ type: "glance:rendering-mode", renderingMode: "vibrant" }, "*"));
   await page.waitForTimeout(50);
   expect(await htmlClasses(page)).toEqual(["rendering-accented"]);
+});
+
+test("?renderingMode= pins the mode: Glance's messages don't override it", async ({ page }) => {
+  // A TV capture forces Night Mode by day, while Glance posts fullColor on load and on changes.
+  const src = `${ORIGIN}/v1/widget?size=medium&renderingMode=vibrant#installation=${INSTALLATION}&token=${TOKEN}`;
+  const widget = await framed(page, { status: 200, body: board() }, "fullColor", src);
+  const seen = await countModeMessages(widget);
+  await hostPosts(page, { type: "glance:rendering-mode", renderingMode: "accented" });
+  await hostPosts(page, { type: "glance:rendering-mode", renderingMode: "fullColor" });
+  await expect.poll(seen).toBe(2);
+  expect(await htmlClasses(widget)).toEqual(["embedded", "rendering-vibrant"]);
+});
+
+test("an unknown ?renderingMode= pins nothing: Glance's message still sets the mode", async ({ page }) => {
+  const src = `${ORIGIN}/v1/widget?size=medium&renderingMode=night#installation=${INSTALLATION}&token=${TOKEN}`;
+  const widget = await framed(page, { status: 200, body: board() }, "accented", src);
+  await expect.poll(() => htmlClasses(widget)).toEqual(["embedded", "rendering-accented"]);
 });
 
 test("an unknown ?renderingMode= falls back to fullColor", async ({ page }) => {

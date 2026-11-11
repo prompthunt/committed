@@ -62,6 +62,8 @@
   var whoLogin = null;
   /** fullColor until the host (or the ?renderingMode= test hook) says otherwise. */
   var renderingMode = "fullColor";
+  /** Set by a known ?renderingMode=: the forced mode wins over the host's messages (TV captures). */
+  var renderingModePinned = false;
 
   function byId(id) {
     return doc.getElementById(id);
@@ -728,14 +730,18 @@
     root.className = (stacked ? "stacked " : "") + (embedded ? "embedded " : "") + RENDERING_MODES[renderingMode];
   }
 
-  /** A known mode replaces the current one; anything else is ignored. */
+  /** A known mode replaces the current one; anything else is ignored. Returns whether it applied. */
   function setRenderingMode(mode) {
-    if (typeof mode !== "string" || !RENDERING_MODES.hasOwnProperty(mode)) return;
+    if (typeof mode !== "string" || !RENDERING_MODES.hasOwnProperty(mode)) return false;
     renderingMode = mode;
     applyClasses();
+    return true;
   }
 
-  /** The test hook: ?renderingMode=<mode> in the query (the fragment holds the token). */
+  /**
+   * The test hook: ?renderingMode=<mode> in the query (the fragment holds the token). A known mode
+   * pins it, so a TV capture can force Night Mode while Glance posts fullColor by day.
+   */
   function readQuery(search) {
     var parts = (search || "").replace(/^\?/, "").split("&");
     for (var i = 0; i < parts.length; i++) {
@@ -745,9 +751,9 @@
     return null;
   }
 
-  /** Glance's message, only from the page that frames this one. */
+  /** Glance's message, only from the page that frames this one, unless the address pinned a mode. */
   function onMessage(event) {
-    if (event.source !== window.parent || window.parent === window) return;
+    if (renderingModePinned || event.source !== window.parent || window.parent === window) return;
     var data = event.data;
     if (!data || typeof data !== "object" || data.type !== "glance:rendering-mode") return;
     setRenderingMode(data.renderingMode);
@@ -772,7 +778,7 @@
   // MARK: - Start
 
   setText(byId("folio"), WINDOW_NUMBERS[windowName] + " · " + WINDOW_TITLES[windowName]);
-  setRenderingMode(readQuery(location.search));
+  renderingModePinned = setRenderingMode(readQuery(location.search));
   window.addEventListener("message", onMessage);
   fit();
   window.addEventListener("resize", fit);
