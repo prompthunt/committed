@@ -323,3 +323,64 @@ fn days_in_month_for_day_x_of_y() {
         assert_eq!(history::days_in_month(*today), *expected, "{today}");
     }
 }
+
+#[test]
+fn a_finished_month_totals_the_whole_month() {
+    let calendar = days(&[
+        (d(2026, 9, 30), 50), // the day before October
+        (d(2026, 10, 1), 1),
+        (d(2026, 10, 15), 2),
+        (d(2026, 10, 31), 4), // last day of a 31-day month
+        (d(2026, 11, 1), 8),  // the day after
+        (d(2027, 2, 28), 3),
+        (d(2028, 2, 29), 6), // leap day
+        (d(2028, 3, 1), 9),
+    ]);
+    let cases: &[(&str, NaiveDate, u32)] = &[
+        ("October from its 1st", d(2026, 10, 1), 7),
+        ("any day names its month", d(2026, 10, 20), 7),
+        ("a 28-day February", d(2027, 2, 1), 3),
+        ("a 29-day February includes the leap day", d(2028, 2, 1), 6),
+        ("a month with no cells is 0", d(2026, 12, 1), 0),
+    ];
+    for (name, month, expected) in cases {
+        assert_eq!(history::month_total(&calendar, *month), *expected, "{name}");
+    }
+    assert_eq!(
+        history::month_range(d(2028, 2, 10)),
+        d(2028, 2, 1)..=d(2028, 2, 29)
+    );
+    assert_eq!(
+        history::month_range(d(2026, 12, 31)),
+        d(2026, 12, 1)..=d(2026, 12, 31)
+    );
+}
+
+/// GitHub's calendar starts on a Sunday about a year back and the parser keeps every rendered
+/// cell, zeros included, so the calendar's first key is the first day it covers. A month counts
+/// as finished-and-offered only from the first month the calendar covers in full.
+#[test]
+fn the_first_full_month_is_the_first_month_the_calendar_covers_from_its_1st() {
+    type Case<'a> = (&'a str, &'a [(NaiveDate, u32)], Option<NaiveDate>);
+    let cases: &[Case] = &[
+        ("no calendar", &[], None),
+        (
+            "starts mid-month: the next month",
+            &[(d(2025, 11, 9), 0), (d(2026, 11, 1), 3)],
+            Some(d(2025, 12, 1)),
+        ),
+        (
+            "starts on a 1st: that month",
+            &[(d(2025, 11, 1), 0), (d(2026, 11, 1), 3)],
+            Some(d(2025, 11, 1)),
+        ),
+        (
+            "starts on Dec 31: next January",
+            &[(d(2025, 12, 31), 0)],
+            Some(d(2026, 1, 1)),
+        ),
+    ];
+    for (name, cells, expected) in cases {
+        assert_eq!(history::first_full_month(&days(cells)), *expected, "{name}");
+    }
+}

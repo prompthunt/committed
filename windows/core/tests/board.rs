@@ -861,3 +861,278 @@ async fn this_month_movement_compares_this_months_ranks_since_the_first_refresh_
         .iter()
         .all(|row| row.movement == 0));
 }
+
+/// `<td>` cells for dated counts: `("2026-10-01", 3)`.
+fn cells(days: &[(&str, u32)]) -> String {
+    days.iter()
+        .map(|(day, count)| format!(r#"<td data-date="{day}" data-count="{count}"></td>"#))
+        .collect()
+}
+
+/// You, alice, bob and an offline friend, with October finished. Calendars start Sunday
+/// 2026-09-27, so October is the first full month. October: alice 30, you 12, bob 12 (you win the
+/// tie), offline never loads. November so far: bob 9.
+async fn october_board(f: &Fixture) {
+    f.connect().await;
+    f.response(
+        "https://api.github.com/user/following?per_page=100&page=1",
+        r#"[{"login":"alice"},{"login":"bob"},{"login":"offline"}]"#,
+    );
+    f.contributions(
+        "octocat",
+        &cells(&[
+            ("2026-09-27", 50),
+            ("2026-10-01", 2),
+            ("2026-10-31", 10),
+            ("2026-11-01", 0),
+        ]),
+    );
+    f.contributions(
+        "alice",
+        &cells(&[("2026-09-27", 0), ("2026-10-15", 30), ("2026-11-01", 0)]),
+    );
+    f.contributions(
+        "bob",
+        &cells(&[("2026-09-27", 0), ("2026-10-02", 12), ("2026-11-01", 9)]),
+    );
+}
+
+fn finals(board: &Board) -> Vec<(String, usize, Option<u32>, Option<Medal>)> {
+    board
+        .final_standings
+        .as_ref()
+        .expect("final standings on the 1st")
+        .rows
+        .iter()
+        .map(|row| {
+            (
+                row.person.login.clone(),
+                row.rank,
+                row.contributions,
+                row.medal,
+            )
+        })
+        .collect()
+}
+
+#[tokio::test]
+async fn the_first_offers_last_months_final_standings_with_medals_all_day() {
+    use Medal::*;
+    let f = Fixture::new();
+    *f.clock.0.lock().unwrap() = noon(2026, 11, 1);
+    october_board(&f).await;
+    f.core.refresh(RefreshReason::Manual).await.unwrap();
+    for window in [Window::Today, Window::ThisMonth] {
+        let board = f.core.board(window);
+        let standings = board.final_standings.as_ref().unwrap();
+        assert_eq!(
+            standings.month,
+            chrono::NaiveDate::from_ymd_opt(2026, 10, 1).unwrap()
+        );
+        assert_eq!(standings.month_name, "October");
+        assert_eq!(
+            finals(&board),
+            [
+                ("alice".into(), 1, Some(30), Some(Gold)),
+                ("octocat".into(), 2, Some(12), Some(Silver)),
+                ("bob".into(), 3, Some(12), Some(Bronze)),
+                ("offline".into(), 4, None, None),
+            ]
+        );
+        // The live board never shows medals.
+        assert!(board.rows.iter().all(|row| row.medal.is_none()));
+    }
+    // Late on the 1st it's still offered; on the 2nd it isn't.
+    *f.clock.0.lock().unwrap() = noon(2026, 11, 1) + 11 * 3600 + 59 * 60;
+    assert!(f.core.board(Window::ThisMonth).final_standings.is_some());
+    *f.clock.0.lock().unwrap() = noon(2026, 11, 2);
+    assert!(f.core.board(Window::ThisMonth).final_standings.is_none());
+    // Any finished month stays available on demand, recomputed for the people shown now.
+    let october = chrono::NaiveDate::from_ymd_opt(2026, 10, 1).unwrap();
+    assert_eq!(f.core.finished_months(), [october]);
+    f.core.set_hidden("alice", true).unwrap();
+    let standings = f.core.final_standings(october).unwrap();
+    let ranks: Vec<_> = standings
+        .rows
+        .iter()
+        .map(|row| (row.person.login.as_str(), row.rank, row.medal))
+        .collect();
+    assert_eq!(
+        ranks,
+        [
+            ("octocat", 1, Some(Gold)),
+            ("bob", 2, Some(Silver)),
+            ("offline", 3, None)
+        ]
+    );
+}
+
+#[tokio::test]
+async fn months_before_the_calendars_first_full_month_are_not_offered() {
+    let f = Fixture::new();
+    *f.clock.0.lock().unwrap() = noon(2026, 10, 1);
+    october_board(&f).await;
+    f.core.refresh(RefreshReason::Manual).await.unwrap();
+    // September started before the calendar did.
+    assert!(f.core.board(Window::ThisMonth).final_standings.is_none());
+    assert!(f.core.finished_months().is_empty());
+    let september = chrono::NaiveDate::from_ymd_opt(2026, 9, 1).unwrap();
+    assert!(f.core.final_standings(september).is_none());
+    // Neither are this month nor a month in the future.
+    let october = chrono::NaiveDate::from_ymd_opt(2026, 10, 1).unwrap();
+    assert!(f.core.final_standings(october).is_none());
+}
+
+fn october_final() -> Notification {
+    Notification {
+        title: "October final".into(),
+        body: "You finished #2 of 4".into(),
+    }
+}
+
+#[tokio::test]
+async fn the_first_refresh_of_a_month_announces_your_finish_once_even_after_a_relaunch() {
+    let f = Fixture::new();
+    *f.clock.0.lock().unwrap() = noon(2026, 11, 1);
+    october_board(&f).await;
+    f.core.set_setting("notifications", true).unwrap();
+    f.core.refresh(RefreshReason::Manual).await.unwrap();
+    assert_eq!(
+        f.notifications.0.lock().unwrap().as_slice(),
+        [october_final()]
+    );
+    // Again on the 1st, on the 2nd, and after relaunching: nothing more for October.
+    f.core.refresh(RefreshReason::Manual).await.unwrap();
+    *f.clock.0.lock().unwrap() = noon(2026, 11, 2);
+    f.core.refresh(RefreshReason::Manual).await.unwrap();
+    let relaunched = BoardCore::new(
+        f.http.clone(),
+        f.clock.clone(),
+        f.storage.clone(),
+        f.credentials.clone(),
+        f.notifications.clone(),
+    )
+    .unwrap();
+    relaunched.refresh(RefreshReason::Manual).await.unwrap();
+    assert_eq!(f.notifications.0.lock().unwrap().len(), 1);
+    // December 1st announces November. bob's 9 wins it; nobody else contributed.
+    *f.clock.0.lock().unwrap() = noon(2026, 12, 1);
+    relaunched.refresh(RefreshReason::Manual).await.unwrap();
+    assert_eq!(
+        f.notifications.0.lock().unwrap().last().unwrap(),
+        &Notification {
+            title: "November final".into(),
+            body: "You finished #2 of 4".into(),
+        }
+    );
+    assert_eq!(f.notifications.0.lock().unwrap().len(), 2);
+}
+
+#[tokio::test]
+async fn the_month_final_is_its_own_notice_beside_rank_changes() {
+    let f = Fixture::new();
+    *f.clock.0.lock().unwrap() = noon(2026, 11, 1);
+    october_board(&f).await;
+    f.response(
+        "https://api.github.com/user/following?per_page=100&page=1",
+        r#"[{"login":"alice"},{"login":"bob"},{"login":"offline"},{"login":"carol"}]"#,
+    );
+    for login in ["offline", "carol"] {
+        f.contributions(login, &cells(&[("2026-09-27", 0), ("2026-11-01", 0)]));
+    }
+    f.core.set_setting("notifications", true).unwrap();
+    // Everyone loads on Oct 31 (September isn't offered, so nothing to announce).
+    *f.clock.0.lock().unwrap() = noon(2026, 10, 31);
+    f.core.refresh(RefreshReason::Manual).await.unwrap();
+    // On Nov 1 bob's page fails at first, which holds the October final back.
+    *f.clock.0.lock().unwrap() = noon(2026, 11, 1);
+    f.http.0.lock().unwrap().insert(
+        "https://github.com/users/bob/contributions".into(),
+        Err("offline".into()),
+    );
+    f.core.refresh(RefreshReason::Manual).await.unwrap();
+    assert!(f.notifications.0.lock().unwrap().is_empty());
+    // Next refresh: bob loads and three people pass you today. Three rank changes stay three
+    // (a fourth would make them a summary) and the October final comes first, on its own.
+    f.contributions(
+        "bob",
+        &cells(&[("2026-09-27", 0), ("2026-10-02", 12), ("2026-11-01", 9)]),
+    );
+    for login in ["alice", "offline", "carol"] {
+        f.contributions(
+            login,
+            &cells(&[
+                ("2026-09-27", 0),
+                ("2026-10-15", if login == "alice" { 30 } else { 0 }),
+                ("2026-11-01", 50),
+            ]),
+        );
+    }
+    f.contributions(
+        "octocat",
+        &cells(&[
+            ("2026-09-27", 50),
+            ("2026-10-01", 2),
+            ("2026-10-31", 10),
+            ("2026-11-01", 1),
+        ]),
+    );
+    f.core.refresh(RefreshReason::Manual).await.unwrap();
+    let posted = f.notifications.0.lock().unwrap().clone();
+    assert_eq!(posted.len(), 4, "{posted:?}");
+    assert_eq!(
+        posted[0],
+        Notification {
+            title: "October final".into(),
+            body: "You finished #2 of 5".into(),
+        }
+    );
+    assert!(
+        posted[1..].iter().all(|n| n.title.contains("passed you")),
+        "{posted:?}"
+    );
+}
+
+#[tokio::test]
+async fn no_month_final_with_notifications_off_and_not_later_that_month_either() {
+    let f = Fixture::new();
+    *f.clock.0.lock().unwrap() = noon(2026, 11, 1);
+    october_board(&f).await;
+    f.core.refresh(RefreshReason::Manual).await.unwrap();
+    assert!(f.notifications.0.lock().unwrap().is_empty());
+    // Turning notifications on later in November doesn't send a stale October final.
+    f.core.set_setting("notifications", true).unwrap();
+    *f.clock.0.lock().unwrap() = noon(2026, 11, 20);
+    f.core.refresh(RefreshReason::Manual).await.unwrap();
+    assert!(f.notifications.0.lock().unwrap().is_empty());
+}
+
+#[tokio::test]
+async fn the_month_final_waits_for_a_refresh_where_every_saved_calendar_reloads() {
+    let f = Fixture::new();
+    *f.clock.0.lock().unwrap() = noon(2026, 11, 1);
+    october_board(&f).await;
+    f.core.set_setting("notifications", false).unwrap();
+    // A first load (notifications off) on Oct 31 saves bob's calendar.
+    *f.clock.0.lock().unwrap() = noon(2026, 10, 31);
+    f.core.refresh(RefreshReason::Manual).await.unwrap();
+    f.core.set_setting("notifications", true).unwrap();
+    // Nov 1: bob's page fails, so his October may be incomplete. No final yet.
+    *f.clock.0.lock().unwrap() = noon(2026, 11, 1);
+    f.http.0.lock().unwrap().insert(
+        "https://github.com/users/bob/contributions".into(),
+        Err("offline".into()),
+    );
+    f.core.refresh(RefreshReason::Manual).await.unwrap();
+    assert!(f.notifications.0.lock().unwrap().is_empty());
+    // The next refresh loads bob and announces.
+    f.contributions(
+        "bob",
+        &cells(&[("2026-09-27", 0), ("2026-10-02", 12), ("2026-11-01", 9)]),
+    );
+    f.core.refresh(RefreshReason::Manual).await.unwrap();
+    assert_eq!(
+        f.notifications.0.lock().unwrap().as_slice(),
+        [october_final()]
+    );
+}

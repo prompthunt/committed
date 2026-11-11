@@ -145,6 +145,50 @@
       "notes": "#95 This month. iPhone: runtime captures (xcrun simctl io screenshot --display=primary) of a Debug build on the persistent iPhone Duo, launched with -ScreenshotFixture -ScreenshotWindow month|daily -dismissedPrivateContribTip YES (Sample board data; the fixture refreshes twice, so both Windows show movement). Mac: the scripts/build-flow-capture.py fixture host, launched with -CaptureWindow month|daily -CaptureSnapshot <file> (the host writes its own window's contents; this shell has no Screen Recording permission). The share story is a render, not runtime capture: BoardShareTests.thisMonthStoryFromTheSampleBoard renders the real BoardShareRenderer from AppModel.boardToShare() on the Sample board, on a disposable iPhone Duo via scripts/ios_check.py ios. No before captures: the three-segment baseline was not recaptured. All captured on 2026-11-10 (Day 10 of 30)."
     },
     {
+      "file": "99/final-standings-light.png",
+      "caption": "#99 Windows board on the 1st, light: opens on October's Final standings, 🥇🥈🥉 on the top three, \"October final · You finished #2 of 6\", your October total in the summary; no Window selected",
+      "capture": {
+        "device": "Chromium (in-app browser) on macOS, mocked Tauri IPC, 380×620 board at 2x",
+        "os": "macOS 27.0",
+        "sourceCommit": "04a851e29279afdd8eda96b726823ff621f9e29c",
+        "fixture": true
+      },
+      "notes": "Windows board, not WebView2 on Windows: the real app UI (windows/src/app.ts and style.css) served by vite and fed the Sample board through windows/fixture.html (mocked Tauri IPC, data in windows/src/sample-board.ts) with ?date=2026-11-01, so the fixture's today is the 1st. macOS system fonts instead of Segoe UI; no window chrome or tray. October finishes: ines-volk 212 gold; ari-linden (you) 160 silver, winning the tie with odile-m 160 bronze; ezra-q 98; bram-ott 0 (no medal); niko-vane no calendar (last, no medal). No before capture: Final standings is new, and the board on other days is unchanged (see 96/). Recipe: cd windows && npm run dev -- --port <port>, open /fixture.html?view=board&date=2026-11-01."
+    },
+    {
+      "file": "99/final-standings-dark.png",
+      "caption": "#99 Windows board on the 1st, dark: the same Final standings with medals, pressed toggle readable on the dark surface",
+      "capture": {
+        "device": "Chromium (in-app browser) on macOS, mocked Tauri IPC, 380×620 board at 2x",
+        "os": "macOS 27.0",
+        "sourceCommit": "04a851e29279afdd8eda96b726823ff621f9e29c",
+        "fixture": true
+      },
+      "notes": "Windows board, not WebView2 on Windows: the real app UI (windows/src/app.ts and style.css) served by vite and fed the Sample board through windows/fixture.html (mocked Tauri IPC, data in windows/src/sample-board.ts) with ?date=2026-11-01, so the fixture's today is the 1st. macOS system fonts instead of Segoe UI; no window chrome or tray. October finishes: ines-volk 212 gold; ari-linden (you) 160 silver, winning the tie with odile-m 160 bronze; ezra-q 98; bram-ott 0 (no medal); niko-vane no calendar (last, no medal). No before capture: Final standings is new, and the board on other days is unchanged (see 96/). Recipe: cd windows && npm run dev -- --port <port>, open /fixture.html?view=board&date=2026-11-01."
+    },
+    {
+      "file": "99/live-board-toggle-off-dark.png",
+      "caption": "#99 Windows board on the 1st, dark: toggle released, back to the live Today board (streaks and movement, no medals); the October final standings button stays offered all day",
+      "capture": {
+        "device": "Chromium (in-app browser) on macOS, mocked Tauri IPC, 380×620 board at 2x",
+        "os": "macOS 27.0",
+        "sourceCommit": "04a851e29279afdd8eda96b726823ff621f9e29c",
+        "fixture": true
+      },
+      "notes": "Windows board, not WebView2 on Windows: the real app UI (windows/src/app.ts and style.css) served by vite and fed the Sample board through windows/fixture.html (mocked Tauri IPC, data in windows/src/sample-board.ts) with ?date=2026-11-01, so the fixture's today is the 1st. macOS system fonts instead of Segoe UI; no window chrome or tray. October finishes: ines-volk 212 gold; ari-linden (you) 160 silver, winning the tie with odile-m 160 bronze; ezra-q 98; bram-ott 0 (no medal); niko-vane no calendar (last, no medal). No before capture: Final standings is new, and the board on other days is unchanged (see 96/). Recipe: cd windows && npm run dev -- --port <port>, open /fixture.html?view=board&date=2026-11-01."
+    },
+    {
+      "file": "99/final-standings-light-340.png",
+      "caption": "#99 Windows board on the 1st at the 340 px minimum width, light: toggle, status and medal rows fit without wrapping",
+      "capture": {
+        "device": "Chromium (in-app browser) on macOS, mocked Tauri IPC, 340×620 board at 2x",
+        "os": "macOS 27.0",
+        "sourceCommit": "04a851e29279afdd8eda96b726823ff621f9e29c",
+        "fixture": true
+      },
+      "notes": "Windows board, not WebView2 on Windows: the real app UI (windows/src/app.ts and style.css) served by vite and fed the Sample board through windows/fixture.html (mocked Tauri IPC, data in windows/src/sample-board.ts) with ?date=2026-11-01, so the fixture's today is the 1st. macOS system fonts instead of Segoe UI; no window chrome or tray. October finishes: ines-volk 212 gold; ari-linden (you) 160 silver, winning the tie with odile-m 160 bronze; ezra-q 98; bram-ott 0 (no medal); niko-vane no calendar (last, no medal). No before capture: Final standings is new, and the board on other days is unchanged (see 96/). Recipe: cd windows && npm run dev -- --port <port>, open /fixture.html?view=board&date=2026-11-01."
+    },
+    {
       "file": "92/iphone-board.png",
       "caption": "#92 iPhone Board, Today: your summary reads 🔥 14 beside today's movement; rows show 🔥 47, 🔥 365+ (a run past GitHub's calendar), 🔥 14 (you) and 🔥 3; bram-ott (nothing yesterday or today) shows none",
       "capture": {

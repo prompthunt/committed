@@ -1,8 +1,8 @@
 //! Pure calculations over one person's daily contribution counts: the Windows mirror of Swift's
 //! `ContributionHistory`. Keys are GitHub's civil days and `today` is the local day from the
-//! `Clock`, so nothing here reads the time or a time zone. Later tickets add active days and
-//! month series beside `total`, `current_streak` and `days_in_month`, with the same names as the
-//! Swift functions.
+//! `Clock`, so nothing here reads the time or a time zone. Finished months (`month_range`,
+//! `month_total`, `first_full_month`) feed Final standings; the Swift functions share these names
+//! in camelCase.
 use crate::Window;
 use chrono::{Datelike, Duration, NaiveDate};
 use std::collections::BTreeMap;
@@ -46,6 +46,35 @@ pub fn current_streak(days: &BTreeMap<NaiveDate, u32>, today: NaiveDate) -> u32 
         day -= Duration::days(1);
     }
     streak
+}
+
+/// Every day of the month that contains `month` (any day of it names the month), 1st to last.
+/// Final standings use it for a finished month; This month is `range(Window::ThisMonth, today)`.
+pub fn month_range(month: NaiveDate) -> RangeInclusive<NaiveDate> {
+    let first = month.with_day(1).expect("every month has a 1st");
+    let last = first + Duration::days(i64::from(days_in_month(first)) - 1);
+    first..=last
+}
+
+/// Contributions in the whole month that contains `month`; a day missing from the calendar adds 0.
+pub fn month_total(days: &BTreeMap<NaiveDate, u32>, month: NaiveDate) -> u32 {
+    days.range(month_range(month)).map(|(_, count)| count).sum()
+}
+
+/// The 1st of the first month this calendar covers in full: the calendar's first month when it
+/// starts on a 1st, otherwise the month after. Earlier months aren't offered as finished months,
+/// because part of them is missing. `None` for an empty calendar. GitHub renders every day of the
+/// calendar, zeros included, so the first key is the first day it covers.
+pub fn first_full_month(days: &BTreeMap<NaiveDate, u32>) -> Option<NaiveDate> {
+    let first = *days.keys().next()?;
+    let start = first.with_day(1).expect("every month has a 1st");
+    Some(if first == start {
+        start
+    } else {
+        start
+            .checked_add_months(chrono::Months::new(1))
+            .expect("a month after a calendar day")
+    })
 }
 
 /// How many days `today`'s month has (28 to 31): the "30" in "Day 10 of 30".
