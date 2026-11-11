@@ -418,6 +418,72 @@
         "fixture": true
       },
       "notes": "Runtime capture (xcrun simctl io screenshot --display=1) of a Debug build on the persistent iPhone Duo, launched with -ScreenshotFixture -ScreenshotTab board -ScreenshotDate 2026-11-01T18:00:00Z -ScreenshotShare (opens the sheet as tapping Share would). The screenshot fixture's data includes niko-vane, who always fails to load and ranks 6th with \"—\"; the fixture's clock differs from the unit test's, so counts differ slightly from the renders. On the 2nd the sheet offers only the four live styles (BoardShareTests.afterThe1stTheBoardOffersOnlyTheLiveStyles)."
+    },
+    {
+      "file": "101/person-sheet.png",
+      "caption": "#101 iPhone person view as a sheet over the Board (closed Duo): ines-volk's streaks, active days 10 of 10, November's bars over October's in grey, today's bar selected",
+      "capture": {
+        "device": "iPhone Duo Simulator (persistent, closed)",
+        "os": "iOS 27.1",
+        "sourceCommit": "6f2ec4d0b1999eaa60172ce61051e776a822eb7c",
+        "fixture": true
+      },
+      "notes": "Runtime capture (xcrun simctl io screenshot --display=1) of a Debug build on the persistent iPhone Duo (closed), launched with -ScreenshotFixture -ScreenshotTab board -ScreenshotPerson <login> (opens the person view as a tap on the row would): the Sample board's made-up calendars, real clock (November 10, 2026), so This month is 10 days in. niko-vane always fails in the fixture, so Final standings count 6 people. The iPhone app is dark only (RootView forces .preferredColorScheme(.dark)), so there is no light capture. Not captured: the second pane on the open iPhone Duo. simctl can't fold the Duo, the Device Hub Open pose needs the GUI, and Xcode's device-interaction tools need an approval this session couldn't give; the pane-vs-sheet rule is covered by BoardArrangementTests. No before capture: the person view is new."
+    },
+    {
+      "file": "101/person-selected-bar.png",
+      "caption": "#101 iPhone person view, another bar selected: November 4 · 10 contributions beside October 4 · 2; weekly day ticks; past months with medals and share buttons",
+      "capture": {
+        "device": "iPhone Duo Simulator (persistent, closed)",
+        "os": "iOS 27.1",
+        "sourceCommit": "6f2ec4d0b1999eaa60172ce61051e776a822eb7c",
+        "fixture": true
+      },
+      "notes": "Runtime capture (xcrun simctl io screenshot --display=1) of a Debug build on the persistent iPhone Duo (closed), launched with -ScreenshotFixture -ScreenshotTab board -ScreenshotPerson <login> (opens the person view as a tap on the row would): the Sample board's made-up calendars, real clock (November 10, 2026), so This month is 10 days in. niko-vane always fails in the fixture, so Final standings count 6 people. The iPhone app is dark only (RootView forces .preferredColorScheme(.dark)), so there is no light capture. Not captured: the second pane on the open iPhone Duo. simctl can't fold the Duo, the Device Hub Open pose needs the GUI, and Xcode's device-interaction tools need an approval this session couldn't give; the pane-vs-sheet rule is covered by BoardArrangementTests. No before capture: the person view is new. Also -ScreenshotPersonDay 4 (selects the 4th's bar, as a tap would)."
+    },
+    {
+      "file": "101/person-waiting.png",
+      "caption": "#101 iPhone person view waiting for a count: niko-vane never loads, so it says it's waiting (GitHub didn't answer) instead of drawing zeros",
+      "capture": {
+        "device": "iPhone Duo Simulator (persistent, closed)",
+        "os": "iOS 27.1",
+        "sourceCommit": "6f2ec4d0b1999eaa60172ce61051e776a822eb7c",
+        "fixture": true
+      },
+      "notes": "Runtime capture (xcrun simctl io screenshot --display=1) of a Debug build on the persistent iPhone Duo (closed), launched with -ScreenshotFixture -ScreenshotTab board -ScreenshotPerson <login> (opens the person view as a tap on the row would): the Sample board's made-up calendars, real clock (November 10, 2026), so This month is 10 days in. niko-vane always fails in the fixture, so Final standings count 6 people. The iPhone app is dark only (RootView forces .preferredColorScheme(.dark)), so there is no light capture. Not captured: the second pane on the open iPhone Duo. simctl can't fold the Duo, the Device Hub Open pose needs the GUI, and Xcode's device-interaction tools need an approval this session couldn't give; the pane-vs-sheet rule is covered by BoardArrangementTests. No before capture: the person view is new."
+    },
+    {
+      "file": "101/person-you.png",
+      "caption": "#101 iPhone person view of yourself: the you badge, 14-day current and 24-day longest streak, October bronze",
+      "capture": {
+        "device": "iPhone Duo Simulator (persistent, closed)",
+        "os": "iOS 27.1",
+        "sourceCommit": "6f2ec4d0b1999eaa60172ce61051e776a822eb7c",
+        "fixture": true
+      },
+      "notes": "Runtime capture (xcrun simctl io screenshot --display=1) of a Debug build on the persistent iPhone Duo (closed), launched with -ScreenshotFixture -ScreenshotTab board -ScreenshotPerson <login> (opens the person view as a tap on the row would): the Sample board's made-up calendars, real clock (November 10, 2026), so This month is 10 days in. niko-vane always fails in the fixture, so Final standings count 6 people. The iPhone app is dark only (RootView forces .preferredColorScheme(.dark)), so there is no light capture. Not captured: the second pane on the open iPhone Duo. simctl can't fold the Duo, the Device Hub Open pose needs the GUI, and Xcode's device-interaction tools need an approval this session couldn't give; the pane-vs-sheet rule is covered by BoardArrangementTests. No before capture: the person view is new."
+    },
+    {
+      "file": "101/person-you-end.png",
+      "caption": "#101 iPhone person view of yourself, scrolled to the end: past months back to December 2025, the private-contributions tip (always shown here) and What this number can't show (#89)",
+      "capture": {
+        "device": "iPhone Duo Simulator (persistent, closed)",
+        "os": "iOS 27.1",
+        "sourceCommit": "6f2ec4d0b1999eaa60172ce61051e776a822eb7c",
+        "fixture": true
+      },
+      "notes": "Runtime capture (xcrun simctl io screenshot --display=1) of a Debug build on the persistent iPhone Duo (closed), launched with -ScreenshotFixture -ScreenshotTab board -ScreenshotPerson <login> (opens the person view as a tap on the row would): the Sample board's made-up calendars, real clock (November 10, 2026), so This month is 10 days in. niko-vane always fails in the fixture, so Final standings count 6 people. The iPhone app is dark only (RootView forces .preferredColorScheme(.dark)), so there is no light capture. Not captured: the second pane on the open iPhone Duo. simctl can't fold the Duo, the Device Hub Open pose needs the GUI, and Xcode's device-interaction tools need an approval this session couldn't give; the pane-vs-sheet rule is covered by BoardArrangementTests. No before capture: the person view is new. Also -ScreenshotPersonEnd (opens scrolled to the end). The Done button floats over the scrolled list, as iOS 27's glass toolbar does."
+    },
+    {
+      "file": "101/person-streak-365.png",
+      "caption": "#101 iPhone person view past GitHub's calendar: odile-m's current and longest streaks read 365+ days",
+      "capture": {
+        "device": "iPhone Duo Simulator (persistent, closed)",
+        "os": "iOS 27.1",
+        "sourceCommit": "6f2ec4d0b1999eaa60172ce61051e776a822eb7c",
+        "fixture": true
+      },
+      "notes": "Runtime capture (xcrun simctl io screenshot --display=1) of a Debug build on the persistent iPhone Duo (closed), launched with -ScreenshotFixture -ScreenshotTab board -ScreenshotPerson <login> (opens the person view as a tap on the row would): the Sample board's made-up calendars, real clock (November 10, 2026), so This month is 10 days in. niko-vane always fails in the fixture, so Final standings count 6 people. The iPhone app is dark only (RootView forces .preferredColorScheme(.dark)), so there is no light capture. Not captured: the second pane on the open iPhone Duo. simctl can't fold the Duo, the Device Hub Open pose needs the GUI, and Xcode's device-interaction tools need an approval this session couldn't give; the pane-vs-sheet rule is covered by BoardArrangementTests. No before capture: the person view is new."
     }
   ]
 }
