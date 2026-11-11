@@ -16,17 +16,10 @@ final class FakeRelayAPI: LiveRankRelayAPI, @unchecked Sendable {
     var failure: (any Error)?
     /// What `reportActivity` answers when the relay has no registration (404 `not_registered`).
     var activityFailure: (any Error)?
-    /// Windows this relay doesn't know, like one from before This month: it answers 400
-    /// `invalid_window` for them.
-    var rejectedWindows: Set<String> = []
-    /// Every registration sent, accepted or not.
-    private(set) var registerAttempts = 0
 
     func register(_ registration: RelayRegistration, as installation: RelayInstallation.Credentials) async throws {
         installations.append(installation)
-        registerAttempts += 1
         if let failure { throw failure }
-        if rejectedWindows.contains(registration.window) { throw LiveRankRelayError.invalidWindow }
         calls.append(.register(registration))
     }
 
@@ -287,76 +280,6 @@ struct RelayLiveRankRegistrarTests {
         #expect(api.registrations.count == 1)
     }
 
-    // MARK: A relay older than This month
-
-    private let monthBoard = LiveRankConfiguration(selfLogin: "me", competitors: ["me", "ada", "bo"], window: .month)
-
-    /// A relay from before This month answers 400 `invalid_window`. The app stops asking, takes back
-    /// the registration it had (so the relay stops pushing another Window's rank, or starting one,
-    /// on this phone), and holds back push tokens: the app keeps Live rank up to date itself.
-    @Test func aRelayThatDoesNotKnowTheWindowIsLeftAlone() async {
-        let registrar = makeRegistrar()
-        await registrar.liveRankDidChange(board)
-        api.rejectedWindows = ["month"]
-        #expect(registrar.serves(.month))
-
-        await registrar.liveRankDidChange(monthBoard)
-
-        #expect(!registrar.serves(.month))
-        #expect(registrar.serves(.daily))
-        #expect(api.calls.last == .unregister)
-        #expect(installationStore.load()?.isRegistered == false)
-
-        let attempts = api.registerAttempts
-        await registrar.retryPendingWork()
-        await registrar.pushToStartTokenDidChange(Data([0xAB]))
-        await registrar.activityPushTokenDidChange(activityID: "M", token: Data([0x02]))
-        await registrar.retryPendingWork()
-
-        #expect(api.registerAttempts == attempts)
-        #expect(api.calls.last == .unregister)
-    }
-
-    /// Back on a Window the relay knows, it takes over again, and This month is asked about afresh.
-    @Test func aWindowTheRelayKnowsRegistersAgain() async {
-        let registrar = makeRegistrar()
-        api.rejectedWindows = ["month"]
-        await registrar.liveRankDidChange(monthBoard)
-        #expect(!registrar.serves(.month))
-
-        await registrar.liveRankDidChange(board)
-
-        #expect(registrar.serves(.month))
-        #expect(api.registrations.last?.window == "daily")
-        #expect(installationStore.load()?.isRegistered == true)
-    }
-
-    /// Once the relay is updated, the next launch's registration for This month goes through.
-    @Test func theNextLaunchAsksAgain() async {
-        api.rejectedWindows = ["month"]
-        await makeRegistrar().liveRankDidChange(monthBoard)
-
-        api.rejectedWindows = []
-        let relaunched = makeRegistrar()
-        await relaunched.liveRankDidChange(monthBoard)
-
-        #expect(api.registrations.last?.window == "month")
-        #expect(relaunched.serves(.month))
-    }
-
-    /// Any other rejection isn't about the Window: it's retried later, as before.
-    @Test func anotherBadRequestIsRetried() async {
-        let registrar = makeRegistrar()
-        api.failure = LiveRankRelayError.status(400)
-        await registrar.liveRankDidChange(monthBoard)
-        #expect(registrar.serves(.month))
-
-        api.failure = nil
-        await registrar.retryPendingWork()
-
-        #expect(api.registrations.map(\.window) == ["month"])
-    }
-
     @Test func aFailedUnregistrationIsRetriedLater() async {
         let registrar = makeRegistrar()
         await registrar.liveRankDidChange(board)
@@ -420,28 +343,6 @@ struct LiveRankRelayRequestTests {
         #expect(request.httpBody == nil)
     }
 
-    /// The relay's error body says when the Window is what it rejected: `invalid_window` from a relay
-    /// older than This month. Other failures keep their status.
-    @Test func readsInvalidWindowFromTheRelaysAnswer() async throws {
-        let config = URLSessionConfiguration.ephemeral
-        config.protocolClasses = [RejectingRelay.self]
-        let api = URLSessionLiveRankRelayAPI(baseURL: base, session: URLSession(configuration: config))
-        func registration(_ window: String) -> RelayRegistration {
-            RelayRegistration(pushToStartToken: nil, login: "me", competitors: ["me"], window: window,
-                              timeZone: "UTC", apnsEnvironment: "sandbox")
-        }
-
-        await #expect(throws: LiveRankRelayError.invalidWindow) {
-            try await api.register(registration("month"), as: self.credentials)
-        }
-        await #expect(throws: LiveRankRelayError.status(400)) {
-            try await api.register(registration("weekly"), as: self.credentials)
-        }
-        await #expect(throws: LiveRankRelayError.status(429)) {
-            try await api.register(registration("daily"), as: self.credentials)
-        }
-    }
-
     @Test func aBaseURLWithAPathKeepsIt() throws {
         let request = try URLSessionLiveRankRelayAPI.request(
             .unregister, baseURL: URL(string: "https://relay.example.com/staging/")!, installation: credentials
@@ -473,40 +374,5 @@ struct LiveRankRelaySettingsTests {
 
     @Test func onlyHTTPURLsCount() {
         #expect(LiveRankRelaySettings(info: ["CommittedRelayURL": "localhost:8787"]).baseURL == nil)
-    }
-}
-
-/// A relay that rejects registrations by Window: "month" as one from before This month does
-/// (400 `invalid_window`), "weekly" with another 400, anything else rate limited (429).
-private final class RejectingRelay: URLProtocol {
-    override class func canInit(with request: URLRequest) -> Bool { true }
-    override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
-    override func startLoading() {
-        let body = request.httpBody ?? request.httpBodyStream.map(Self.read) ?? Data()
-        let window = (try? JSONSerialization.jsonObject(with: body) as? [String: Any])?["window"] as? String
-        let (status, error) = switch window {
-        case "month": (400, "invalid_window")
-        case "weekly": (400, "invalid_time_zone")
-        default: (429, "rate_limited")
-        }
-        let response = HTTPURLResponse(url: request.url!, statusCode: status, httpVersion: nil,
-                                       headerFields: ["Content-Type": "application/json"])!
-        client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
-        client?.urlProtocol(self, didLoad: Data(#"{"error":"\#(error)"}"#.utf8))
-        client?.urlProtocolDidFinishLoading(self)
-    }
-    override func stopLoading() {}
-
-    private static func read(_ stream: InputStream) -> Data {
-        stream.open()
-        defer { stream.close() }
-        var data = Data()
-        var buffer = [UInt8](repeating: 0, count: 4096)
-        while stream.hasBytesAvailable {
-            let count = stream.read(&buffer, maxLength: buffer.count)
-            guard count > 0 else { break }
-            data.append(buffer, count: count)
-        }
-        return data
     }
 }

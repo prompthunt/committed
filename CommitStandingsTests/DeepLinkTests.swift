@@ -8,7 +8,6 @@ struct DeepLinkTests {
         ("committed://board?window=daily", ContributionWindow.daily),
         ("committed://board?window=weekly", .weekly),
         ("committed://board?window=monthly", .monthly),
-        ("committed://board?window=month", .month),
     ])
     func boardLinkOpensTheRequestedWindow(url: String, window: ContributionWindow) {
         #expect(DeepLink(url: URL(string: url)!) == .board(window: window))

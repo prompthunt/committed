@@ -82,11 +82,6 @@ final class LiveRankController {
     /// The Committed relay keeps Live rank current with the app closed (phase 2).
     var isRelayConfigured: Bool { relay.pushUpdates == .token }
 
-    /// The relay keeps Live rank's Window current with the app closed. False on a Window the relay
-    /// can't rank (This month, on a relay from before it): then the app keeps Live rank up to date
-    /// on its own refreshes, as without a relay.
-    var isRelayKeepingCurrent: Bool { isRelayConfigured && relay.serves(window) }
-
     /// Turning Live rank on needs the relay disclosure first.
     var requiresRelayDisclosure: Bool {
         isRelayConfigured && !preferences.relayDisclosureAccepted
@@ -219,13 +214,10 @@ final class LiveRankController {
             return
         }
         let attributes = LiveRankAttributes(selfLogin: me, isSampleBoard: isSampleBoard ? true : nil)
-        // A relay that can't rank this Window (it answered `tellRelay` above) gets no push token:
-        // the app's own refreshes keep the activity current.
-        let pushUpdates = relay.serves(window) ? relay.pushUpdates : .none
         do {
-            _ = try activities.start(attributes, state: state, pushUpdates: pushUpdates)
+            _ = try activities.start(attributes, state: state, pushUpdates: relay.pushUpdates)
             status = .live
-        } catch where pushUpdates == .token {
+        } catch where relay.pushUpdates == .token {
             // iOS refused a push-token activity (for example, no Push Notifications entitlement):
             // fall back to phase 1, updated by the app's own refreshes.
             do {

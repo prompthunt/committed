@@ -14,8 +14,7 @@ import Foundation
 ///   live in memory. Leaderboard Notifications keep their real on/off setting.
 ///
 /// `make` is inert: the board loads when something refreshes it (`AppModel.sceneDidBecomeActive`,
-/// pull to refresh). Today and This month move between the first two fetches: Ari Linden passes
-/// Ezra Q.
+/// pull to refresh). Today moves between the first two fetches: Ari Linden passes Ezra Q.
 @MainActor
 enum SampleServices {
     /// "You" on the Sample board.
@@ -68,9 +67,9 @@ enum SampleServices {
     }
 
     /// Made-up calendars, about a year long like GitHub's, ending today in the device's time zone.
-    /// Each person's totals per Window stay fixed (This month's too, from mid-month, when there are
-    /// enough days for it); each fetch sets today's baseline; from the second on, Ari Linden has 2
-    /// more today (and so this month) and passes Ezra Q on both. Streaks: Odile M has contributed
+    /// Each person's totals per Window stay fixed (and the month so far too, from mid-month, when
+    /// there are enough days for it, for the person view); each fetch sets today's baseline; from
+    /// the second on, Ari Linden has 2 more today and passes Ezra Q. Streaks: Odile M has contributed
     /// every day of the calendar ("365+"), Ines Volk 47 days, Ari Linden 14, Ezra Q 3, and Bram Ott,
     /// with nothing yesterday or today, none. Extra people have only today, counting down from 39.
     private actor SampleContributions: ContributionsFetching {
@@ -134,7 +133,7 @@ enum SampleServices {
 
 /// One Sample board person's made-up calendar: `length` days ending today, with exactly `today`
 /// today, `week` over 7 days and `month` over 30, and a current streak of `streak` days (counted
-/// from yesterday when today is 0). This month adds up to `thisMonth` whenever the month so far
+/// from yesterday when today is 0). The month so far adds up to `thisMonth` whenever it
 /// has room for it between the 7- and 30-day totals (the 8th to the 29th); on other days it's
 /// whatever its days add up to. Every other day is filled from `seed`, so a person's
 /// calendar is the same on every fetch.
@@ -162,7 +161,7 @@ struct SampleCalendar {
         var counts = Array(repeating: 0, count: Self.length)
         counts[0] = today
         Self.spread(week - today, over: Array(1..<7), active: active, into: &counts, random: &random)
-        // Days 7…29 back, split at the 1st of this month when This month's total fits there.
+        // Days 7…29 back, split at the 1st of this month when the month so far's total fits there.
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = timeZone
         let monthStart = calendar.component(.day, from: reference) // offsets 0..<monthStart are this month

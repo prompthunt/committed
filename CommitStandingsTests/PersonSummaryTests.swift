@@ -3,7 +3,7 @@ import Foundation
 @testable import CommitStandings
 
 /// The person view's content (`StandingsStore.person`): one Competitor's month day by day beside
-/// last month, their streaks, active days and past finishes, from saved calendars. The iPhone sheet
+/// last month, their streaks and active days, from saved calendars. The iPhone sheet
 /// or pane and the Mac window (#102) draw exactly this; the Windows core's `BoardCore::person`
 /// follows the same rules.
 @MainActor
@@ -28,9 +28,20 @@ struct PersonSummaryTests {
         return store
     }
 
+    /// A UTC calendar with every day from `first` through `last` (zeros included, as GitHub's has),
+    /// and `counts` on top.
     static func history(from first: String = "2026-09-14", through last: String, _ counts: [String: Int])
         -> ContributionHistory {
-        FinalStandingsTests.history(from: first, through: last, counts)
+        let format = Date.ISO8601FormatStyle().year().month().day()
+        var day = try! format.parse(first)
+        let end = try! format.parse(last)
+        var days: [String: Int] = [:]
+        while day <= end {
+            days[ContributionHistory.key(for: day, in: utc)] = 0
+            day = utc.date(byAdding: .day, value: 1, to: day)!
+        }
+        days.merge(counts) { _, new in new }
+        return ContributionHistory(days: days, timeZone: .gmt)
     }
 
     /// November 22: Ana's November so far beside her whole October.
@@ -54,7 +65,7 @@ struct PersonSummaryTests {
         #expect(days.lastMonth.count == 31)
         #expect(days.lastMonth.first == 7)
         #expect(days.lastMonth.suffix(3) == [1, 4, 5])
-        #expect(days.thisMonth.reduce(0, +) == 50) // the row's This month count
+        #expect(days.thisMonth.reduce(0, +) == 50)
         #expect(days.lastMonth.reduce(0, +) == 17)
         #expect(days.currentStreak == 3)
         #expect(days.longestStreak == 4) // October 29 through November 1
@@ -86,27 +97,6 @@ struct PersonSummaryTests {
         let person = try #require(store.person("me", asOf: Self.noon("2026-11-03"), calendar: Self.utc))
         #expect(person.chartSummary == "1 active day this month, most on November 2 with 1")
         #expect(person.bar(day: 2)?.value == "1 contribution. October 2: 0")
-    }
-
-    @Test func pastFinishesNewestFirstWithMedalsAndTheYearWhenItDiffers() throws {
-        let store = Self.store(rivals: ["ana"], histories: [
-            "me": Self.history(from: "2025-11-20", through: "2026-02-10", ["2025-12-05": 10, "2026-01-05": 5]),
-            "ana": Self.history(from: "2025-11-20", through: "2026-02-10", ["2025-12-06": 20]),
-        ])
-        let me = try #require(store.person("me", asOf: Self.noon("2026-02-10"), calendar: Self.utc))
-        let finishes = try #require(me.days?.finishes)
-        #expect(finishes.map(\.month) == [CalendarMonth(year: 2026, month: 1), CalendarMonth(year: 2025, month: 12)])
-        #expect(finishes.map { me.finishName($0) } == ["January", "December 2025"])
-        #expect(finishes.map(\.rank) == [1, 2])
-        #expect(finishes.map(\.of) == [2, 2])
-        #expect(finishes.map(\.contributions) == [5, 10])
-        #expect(finishes.map(\.medal) == [.gold, .silver])
-        #expect(me.finishSpoken(finishes[1]) == "December 2025: #2 of 2, 10 contributions, silver medal")
-
-        let ana = try #require(store.person("ana", asOf: Self.noon("2026-02-10"), calendar: Self.utc))
-        // A zero month ranks but never earns a medal.
-        #expect(ana.days?.finishes.map(\.medal) == [nil, .gold])
-        #expect(ana.finishSpoken(try #require(ana.days?.finishes.first)) == "January: #2 of 2, 0 contributions")
     }
 
     @Test func waitsInsteadOfDrawingZerosBeforeTheCountLoads() throws {

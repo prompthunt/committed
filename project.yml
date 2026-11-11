@@ -93,7 +93,6 @@ targets:
       - path: CommitStandings/Views/ContributionWindowPicker.swift
       - path: CommitStandings/Views/PrivateContributionsTip.swift
       - path: CommitStandings/Views/ContributionsExplainerView.swift
-      - path: CommitStandings/Views/FinalStandingsViews.swift
       - path: CommitStandings/Views/PersonViewContent.swift
     dependencies:
       - target: CommitStandingsLiveRank
@@ -144,8 +143,6 @@ targets:
       - path: CommitStandings/Store/WidgetRefresh.swift
       - path: CommitStandings/Store/Ranking.swift
       - path: CommitStandings/Store/LiveRankDerivation.swift
-      # Medals on the shared row.
-      - path: CommitStandings/Store/FinalStandings.swift
       - path: CommitStandings/Services/ContributionsClient.swift
       - path: CommitStandings/Services/ContributionsParser.swift
       - path: CommitStandings/Services/ContributionHistory.swift

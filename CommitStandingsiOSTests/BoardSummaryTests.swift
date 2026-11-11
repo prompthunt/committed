@@ -89,25 +89,6 @@ struct BoardSummaryTests {
         #expect(week?.movementToday == nil)
     }
 
-    /// This month gets Today's chevrons and says which day of the month it is (local calendar).
-    @Test func thisMonthShowsMovementAndWhichDayItIs() throws {
-        var calendar = Calendar(identifier: .gregorian)
-        calendar.timeZone = try #require(TimeZone(identifier: "America/Los_Angeles"))
-        // 03:00 UTC on December 1 is still November 30 in Los Angeles.
-        let today = Date(timeIntervalSince1970: 1_796_094_000)
-        let result = BoardSummary.make(
-            competitors: [me, ada],
-            standings: ["me": standing("me", 9, .month), "ada": standing("ada", 4, .month)],
-            window: .month, displayName: nil, rankDelta: { ["me": 1][$0] }, lastUpdated: loadedAt,
-            today: today, calendar: calendar
-        )
-        #expect(result?.movementToday == 1)
-        #expect(result?.dayOfMonth == "Day 30 of 30")
-        #expect(result?.accessibilityDescription
-            == "You, @me, rank 1 of 2, 9 contributions for this month, day 30 of 30, up 1 place today")
-        #expect(summary([me], [standing("me", 3)])?.dayOfMonth == nil)
-    }
-
     @Test func noProfileNameFallsBackToTheHandle() {
         #expect(summary([me], [], displayName: nil)?.firstName == nil)
     }
@@ -138,29 +119,4 @@ struct BoardSummaryTests {
         #expect(result?.streak == nil)
         #expect(result?.accessibilityDescription == "You, @me, contributions not loaded yet")
     }
-
-    /// On Final standings the card matches the Mac's: your total and where you finished in the
-    /// finished month, with your streak, and no movement or gap (the month is over).
-    @Test func finalStandingsShowYourTotalAndResultForTheMonth() {
-        let october = CalendarMonth(year: 2026, month: 10)
-        func history(_ total: Int) -> ContributionHistory {
-            ContributionHistory(days: ["2026-09-30": 0, "2026-10-01": 0, "2026-10-15": total, "2026-11-01": 4],
-                                timeZone: .gmt)
-        }
-        let finals = FinalStandings(month: october, competitors: [me, ada, lin],
-                                    histories: ["me": history(30), "ada": history(51), "lin": history(10)])
-        let result = BoardSummary.make(finals: finals, displayName: "Addison Kowalski", streak: { ["me": 12][$0] },
-                                       lastUpdated: loadedAt)
-        #expect(result?.rank == 2)
-        #expect(result?.competitorCount == 3)
-        #expect(result?.contributions == 30)
-        #expect(result?.period == "October")
-        #expect(result?.streak == 12)
-        #expect(result?.movementToday == nil)
-        #expect(result?.passLine == nil)
-        #expect(result?.dayOfMonth == nil)
-        #expect(result?.accessibilityDescription
-            == "You, @me, finished 2 of 3 in October, 30 contributions in October, 12-day streak")
-    }
 }
-

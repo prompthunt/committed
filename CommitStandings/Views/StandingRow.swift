@@ -13,10 +13,6 @@ struct StandingRow: View {
     /// Days in a row with a contribution (`ContributionHistory.currentStreak`). Shown as "🔥 12"
     /// from 2 days, and only once this row's count has loaded. nil ⇒ no history yet.
     var streak: Int? = nil
-    /// A finished month's medal, shown before the name (Final standings only).
-    var medal: Medal? = nil
-    /// What the count covers when it isn't `window` ("October" on Final standings), for VoiceOver.
-    var period: String? = nil
     /// Grows with Dynamic Type on iPhone so "#12" never truncates; stays 24pt on the Mac.
     @ScaledMetric(relativeTo: .caption) private var rankWidth: CGFloat = 24
     /// iPhone at accessibility text sizes wraps long usernames instead of truncating them.
@@ -32,11 +28,6 @@ struct StandingRow: View {
                 .frame(width: rankWidth * style.rankWidthScale, alignment: .trailing)
             AvatarView(username: competitor.username, size: style.avatarSize)
             HStack(spacing: 4) {
-                if let medal {
-                    Text(medal.emoji)
-                        .font(style.nameFont)
-                        .accessibilityHidden(true)
-                }
                 Text(competitor.username)
                     .font(competitor.isSelf ? style.selfNameFont : style.nameFont)
                     .lineLimit(dynamicTypeSize.isAccessibilitySize ? 2 : 1)
@@ -176,12 +167,7 @@ struct StandingRow: View {
         } ?? ""
         let streak = hasData ? StreakLabel.spoken(streak).map { ", " + $0 } ?? "" : ""
         let trolling = trollDescription.map { ", trolling: \($0)" } ?? ""
-        return standingDescription + streak + movement + (medal.map { ", \($0) medal" } ?? "") + trolling
-    }
-
-    /// "for today", or "in October" on Final standings.
-    private var periodDescription: String {
-        period.map { "in \($0)" } ?? "for \(window.accessibilityDescription)"
+        return standingDescription + streak + movement + trolling
     }
 
     /// "🔥 12" beside the count, or nil: under 2 days, or no count loaded (a failed or first load
@@ -207,11 +193,11 @@ struct StandingRow: View {
         case .failed(let message) where !hasData:
             return "rank \(rank), \(who), no data: \(message)"
         case .failed(let message):
-            return "rank \(rank), \(who), stale, \(contributionsText) contributions \(periodDescription). Refresh failed: \(message)"
+            return "rank \(rank), \(who), stale, \(contributionsText) contributions for \(window.accessibilityDescription). Refresh failed: \(message)"
         case .loading where !hasData:
             return "rank \(rank), \(who), loading"
         default:
-            return "rank \(rank), \(who), \(contributionsText) contributions \(periodDescription)"
+            return "rank \(rank), \(who), \(contributionsText) contributions for \(window.accessibilityDescription)"
         }
     }
 

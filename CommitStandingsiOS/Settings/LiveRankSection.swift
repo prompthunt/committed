@@ -46,14 +46,9 @@ struct LiveRankSection: View {
         case .waiting:
             return "Your rank appears in the Dynamic Island once your board loads with Committed open."
         case .live:
-            if liveRank.isRelayKeepingCurrent {
-                return "Your rank is in the Dynamic Island and on the Lock Screen. The Committed relay keeps it current, even with Committed closed."
-            }
-            if liveRank.isRelayConfigured {
-                // A relay from before This month can't rank it yet.
-                return "Your rank is in the Dynamic Island and on the Lock Screen. The Committed relay can’t keep \(liveRank.window.shortTitle) current yet, so it updates when Committed refreshes."
-            }
-            return "Your rank is in the Dynamic Island and on the Lock Screen. It updates when Committed refreshes."
+            return liveRank.isRelayConfigured
+                ? "Your rank is in the Dynamic Island and on the Lock Screen. The Committed relay keeps it current, even with Committed closed."
+                : "Your rank is in the Dynamic Island and on the Lock Screen. It updates when Committed refreshes."
         case .disabledInSystem:
             return "Live Activities are off for Committed in iOS Settings."
         case .failed(let message):

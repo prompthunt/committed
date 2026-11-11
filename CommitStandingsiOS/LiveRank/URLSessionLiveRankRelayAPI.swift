@@ -49,9 +49,9 @@ struct URLSessionLiveRankRelayAPI: LiveRankRelayAPI {
 
     private func send(_ call: Call, as installation: RelayInstallation.Credentials) async throws {
         let request = try Self.request(call, baseURL: baseURL, installation: installation)
-        let (data, response) = try await session.data(for: request)
+        let (_, response) = try await session.data(for: request)
         let status = (response as? HTTPURLResponse)?.statusCode ?? 0
-        guard (200 ..< 300).contains(status) else { throw LiveRankRelayError(status: status, body: data) }
+        guard (200 ..< 300).contains(status) else { throw LiveRankRelayError.status(status) }
     }
 
     static func request(_ call: Call, baseURL: URL, installation: RelayInstallation.Credentials) throws -> URLRequest {

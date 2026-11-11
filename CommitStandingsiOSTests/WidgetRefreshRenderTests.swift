@@ -40,16 +40,9 @@ struct WidgetRefreshRenderTests {
         }
     }
 
-    /// Live rank's Window set to This month (#97): the widgets and Live rank follow it.
-    @Test func thisMonth() async throws {
-        let (snapshot, live, me) = try await surfaces(age: Self.cases[0].age, window: .month)
-        try writeWidgets(snapshot, stale: false, name: "widgets-this-month")
-        try writeLiveRank(live, selfLogin: me, stale: false, name: "live-rank-this-month")
-    }
-
     /// Nobody else on the board: no rank or rows, and your streak beside your count (#94's gap).
     @Test func justYou() async throws {
-        for window in [ContributionWindow.daily, .month] {
+        for window in [ContributionWindow.daily, .monthly] {
             let (_, live, me) = try await surfaces(age: Self.cases[0].age, window: window, justYou: true)
             try writeLiveRank(live, selfLogin: me, stale: false, name: "live-rank-just-you-\(window.rawValue)")
         }

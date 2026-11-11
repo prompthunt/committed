@@ -6,18 +6,12 @@ import SwiftUI
 struct PersonScreen: View {
     @Environment(AppModel.self) private var model
     let person: PersonSummary
-    /// A past month's Final standings being shared, frozen when its share button is tapped.
-    @State private var sharing: BoardShareRequest?
 
     var body: some View {
         ScrollView {
             PersonViewContent(
                 person: person,
-                initialDay: Self.initialDay,
-                shareFinish: { month in
-                    sharing = model.finalStandingsToShare(for: month).map(BoardShareRequest.init(finals:))
-                },
-                canShareFinish: { model.finalStandingsToShare(for: $0) != nil }
+                initialDay: Self.initialDay
             ) {
                 PrivateWorkTip(dismissible: false)
             }
@@ -29,9 +23,6 @@ struct PersonScreen: View {
         .scrollContentBackground(.hidden)
         .background(Color.ink)
         .environment(\.personViewStyle, .committed)
-        .sheet(item: $sharing) { request in
-            BoardShareSheet(request: request)
-        }
         // A different person starts on their own today.
         .id(person.login)
     }
