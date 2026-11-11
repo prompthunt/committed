@@ -22,7 +22,7 @@ doesn't cover:
 - content rights: uses third-party content (GitHub usernames and avatars)
 - price: Free
 - availability: every territory, and new ones automatically
-- release type: manual, with no phased release
+- release type: after approval (Apple releases each version as soon as it's approved), with no phased release
 
 The App Review contact isn't in the repo. The script copies it from the app's TestFlight beta
 review details in App Store Connect.

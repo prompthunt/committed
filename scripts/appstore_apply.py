@@ -25,7 +25,7 @@ PLATFORM = 'IOS'
 LOCALE = 'en-US'
 COPYRIGHT = '2026 Prompt Hunt, Inc.'
 CONTENT_RIGHTS = 'USES_THIRD_PARTY_CONTENT'  # GitHub usernames and avatars, under GitHub's API terms
-RELEASE_TYPE = 'MANUAL'
+RELEASE_TYPE = 'AFTER_APPROVAL'
 INCLUDE = 'localizations,categories,age-rating,review-information'
 METADATA = Path(__file__).resolve().parent.parent / 'appstore' / 'metadata'
 
