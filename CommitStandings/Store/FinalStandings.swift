@@ -83,7 +83,7 @@ extension ContributionHistory {
 }
 
 /// Gold, silver or bronze: ranks 1 to 3 of a finished month, when that month's total is above zero.
-enum Medal: Int, Sendable, CustomStringConvertible {
+enum Medal: Int, Codable, Sendable, CustomStringConvertible {
     case gold = 1, silver, bronze
 
     init?(rank: Int, contributions: Int?) {

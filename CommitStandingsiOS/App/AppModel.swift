@@ -266,6 +266,24 @@ final class AppModel {
         return snapshot
     }
 
+    /// What Share board offers: the board as it stands, and on the 1st last month's Final standings
+    /// (when the Board offers them: you have rivals and a calendar covering the month), opening on
+    /// them while the Board shows them.
+    func boardShareRequest() -> BoardShareRequest? {
+        guard let snapshot = boardToShare() else { return nil }
+        let finals = store.rivals.isEmpty ? nil : refresh.offeredFinalStandings?.month
+        return BoardShareRequest(snapshot: snapshot, finals: finals.flatMap(finalStandingsToShare(for:)),
+                                 opensOnFinals: refresh.showsFinalStandings)
+    }
+
+    /// `month`'s Final standings for Share board, or nil when your calendar doesn't cover it. Open
+    /// them alone with `BoardShareSheet(finals:)` (the person view's past months).
+    func finalStandingsToShare(for month: CalendarMonth) -> FinalStandingsShare? {
+        store.finalStandings(for: month).flatMap {
+            FinalStandingsShare($0, isSampleBoard: mode == .sampleBoard, now: now())
+        }
+    }
+
     /// Saved avatars for the board, read before the network: none on the Sample board, whose
     /// made-up logins could match a real person's saved face. Its people show initials.
     var savedAvatars: AvatarCache? {

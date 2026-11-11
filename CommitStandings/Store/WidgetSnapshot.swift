@@ -18,6 +18,8 @@ struct WidgetSnapshot: Codable, Equatable, Sendable {
         /// Their current streak, shown from 2 days beside a loaded count (`StreakLabel`). nil
         /// without their calendar, and in snapshots from before streaks.
         var streak: Int? = nil
+        /// A finished month's medal, on Share board's Final standings only; nil on every live board.
+        var medal: Medal? = nil
     }
 
     /// Your GitHub login.
