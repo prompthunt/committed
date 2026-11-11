@@ -1,0 +1,159 @@
+{
+  "notes": "Removing the calendar-month race (This month, Final standings and medals, the month-final notification, the person view's Past months) on Mac, iPhone and Windows. Before states: docs/screenshots/spec-85 (#95-#103).",
+  "screenshots": [
+    {
+      "file": "windows/board-today-light.png",
+      "caption": "Windows board, Today, light, 380×620: three Windows (Today, 7 days, 30 days); Today's movement chevrons on ari-linden ↑1 and ezra-q ↓1; no Final standings toggle or medals",
+      "capture": {
+        "device": "Chromium (in-app browser) on macOS, mocked Tauri IPC, 380×620 board at 2x",
+        "os": "macOS 27.0.1",
+        "sourceCommit": "821637c693e337b48d3c8ba5af995598be9a2eb2",
+        "fixture": true
+      },
+      "notes": "Windows board, not WebView2 on Windows: the real app UI (windows/src/app.ts and style.css) served by vite and fed the Sample board through windows/fixture.html (mocked Tauri IPC, data in windows/src/sample-board.ts). macOS system fonts instead of Segoe UI; no window chrome or tray. The month race (This month, Final standings, medals, Past months) is removed; the picker is back to three Windows sharing the row equally. Recipe: cd windows && npm run dev, open http://127.0.0.1:1420/fixture.html?view=board&date=2026-11-10 (view=person, &login=odile-m for someone else), resize, set the color scheme."
+    },
+    {
+      "file": "windows/board-30-days-dark.png",
+      "caption": "Windows board, 30 days, dark, 380×620: 30 days selected, status '30 days · Updated 2 min ago', no movement chevrons outside Today",
+      "capture": {
+        "device": "Chromium (in-app browser) on macOS, mocked Tauri IPC, 380×620 board at 2x",
+        "os": "macOS 27.0.1",
+        "sourceCommit": "821637c693e337b48d3c8ba5af995598be9a2eb2",
+        "fixture": true
+      },
+      "notes": "Windows board, not WebView2 on Windows: the real app UI (windows/src/app.ts and style.css) served by vite and fed the Sample board through windows/fixture.html (mocked Tauri IPC, data in windows/src/sample-board.ts). macOS system fonts instead of Segoe UI; no window chrome or tray. The month race (This month, Final standings, medals, Past months) is removed; the picker is back to three Windows sharing the row equally. Recipe: cd windows && npm run dev, open http://127.0.0.1:1420/fixture.html?view=board&date=2026-11-10 (view=person, &login=odile-m for someone else), resize, set the color scheme."
+    },
+    {
+      "file": "windows/board-today-340-light.png",
+      "caption": "Windows board, Today, light, at the 340 px minimum width: the three labels fit on one line in equal thirds",
+      "capture": {
+        "device": "Chromium (in-app browser) on macOS, mocked Tauri IPC, 340×620 board at 2x",
+        "os": "macOS 27.0.1",
+        "sourceCommit": "821637c693e337b48d3c8ba5af995598be9a2eb2",
+        "fixture": true
+      },
+      "notes": "Windows board, not WebView2 on Windows: the real app UI (windows/src/app.ts and style.css) served by vite and fed the Sample board through windows/fixture.html (mocked Tauri IPC, data in windows/src/sample-board.ts). macOS system fonts instead of Segoe UI; no window chrome or tray. The month race (This month, Final standings, medals, Past months) is removed; the picker is back to three Windows sharing the row equally. Recipe: cd windows && npm run dev, open http://127.0.0.1:1420/fixture.html?view=board&date=2026-11-10 (view=person, &login=odile-m for someone else), resize, set the color scheme."
+    },
+    {
+      "file": "windows/board-30-days-340-dark.png",
+      "caption": "Windows board, 30 days, dark, at the 340 px minimum width: three equal Window buttons, three-digit counts still fit beside 🔥 365+",
+      "capture": {
+        "device": "Chromium (in-app browser) on macOS, mocked Tauri IPC, 340×620 board at 2x",
+        "os": "macOS 27.0.1",
+        "sourceCommit": "821637c693e337b48d3c8ba5af995598be9a2eb2",
+        "fixture": true
+      },
+      "notes": "Windows board, not WebView2 on Windows: the real app UI (windows/src/app.ts and style.css) served by vite and fed the Sample board through windows/fixture.html (mocked Tauri IPC, data in windows/src/sample-board.ts). macOS system fonts instead of Segoe UI; no window chrome or tray. The month race (This month, Final standings, medals, Past months) is removed; the picker is back to three Windows sharing the row equally. Recipe: cd windows && npm run dev, open http://127.0.0.1:1420/fixture.html?view=board&date=2026-11-10 (view=person, &login=odile-m for someone else), resize, set the color scheme."
+    },
+    {
+      "file": "windows/person-you-light.png",
+      "caption": "Windows person view, yours, light: November's bars over October's grey ones, streaks, Active days, then the private-contributions tip and 'What this number can’t show'; no Past months list",
+      "capture": {
+        "device": "Chromium (in-app browser) on macOS, mocked Tauri IPC, 420×900 person window at 2x (taller than the 460×640 default to show the whole view)",
+        "os": "macOS 27.0.1",
+        "sourceCommit": "821637c693e337b48d3c8ba5af995598be9a2eb2",
+        "fixture": true
+      },
+      "notes": "Windows board, not WebView2 on Windows: the real app UI (windows/src/app.ts and style.css) served by vite and fed the Sample board through windows/fixture.html (mocked Tauri IPC, data in windows/src/sample-board.ts). macOS system fonts instead of Segoe UI; no window chrome or tray. The month race (This month, Final standings, medals, Past months) is removed; the picker is back to three Windows sharing the row equally. Recipe: cd windows && npm run dev, open http://127.0.0.1:1420/fixture.html?view=board&date=2026-11-10 (view=person, &login=odile-m for someone else), resize, set the color scheme."
+    },
+    {
+      "file": "windows/person-odile-dark.png",
+      "caption": "Windows person view, someone else (odile-m), dark, 460×640: streaks, Active days and the bar chart end the view; no Past months list",
+      "capture": {
+        "device": "Chromium (in-app browser) on macOS, mocked Tauri IPC, 460×640 person window at 2x",
+        "os": "macOS 27.0.1",
+        "sourceCommit": "821637c693e337b48d3c8ba5af995598be9a2eb2",
+        "fixture": true
+      },
+      "notes": "Windows board, not WebView2 on Windows: the real app UI (windows/src/app.ts and style.css) served by vite and fed the Sample board through windows/fixture.html (mocked Tauri IPC, data in windows/src/sample-board.ts). macOS system fonts instead of Segoe UI; no window chrome or tray. The month race (This month, Final standings, medals, Past months) is removed; the picker is back to three Windows sharing the row equally. Recipe: cd windows && npm run dev, open http://127.0.0.1:1420/fixture.html?view=board&date=2026-11-10 (view=person, &login=odile-m for someone else), resize, set the color scheme."
+    },
+    {
+      "file": "mac/board-30-days-light.png",
+      "caption": "Mac popover, 30 days, light: the switch is Today · 7 days · 30 days again; no This month, no Day N of M under your count",
+      "capture": {
+        "device": "Mac Studio (M1 Max), fixture host (scripts/build-flow-capture.py)",
+        "os": "macOS 27.0.1",
+        "sourceCommit": "7ba37915c9fb017d507e0d9c218c02aa9452561d",
+        "fixture": true
+      },
+      "notes": "Fixture-host capture: scripts/build-flow-capture.py's host (current tracked views, in-memory store, made-up calendars for the fixture's GitHub handles), launched with -CaptureSnapshot <file> (the host draws its own window into a PNG; the capturing shell has no Screen Recording permission). Board: -CaptureWindow monthly|daily -CaptureAppearance light|dark. Person: -CaptureDate 2026-11-22T18:00:00Z -CaptureSurface Person -CapturePerson <login> (-CapturePersonScrolledToEnd YES for the end). Before: docs/screenshots/spec-85/95/mac-this-month.png (four Windows) and spec-85/102/person-you-end.png (Past months with medals)."
+    },
+    {
+      "file": "mac/board-today-dark.png",
+      "caption": "Mac popover, Today, dark: three Windows; streaks and rows unchanged",
+      "capture": {
+        "device": "Mac Studio (M1 Max), fixture host (scripts/build-flow-capture.py)",
+        "os": "macOS 27.0.1",
+        "sourceCommit": "7ba37915c9fb017d507e0d9c218c02aa9452561d",
+        "fixture": true
+      },
+      "notes": "Fixture-host capture: scripts/build-flow-capture.py's host (current tracked views, in-memory store, made-up calendars for the fixture's GitHub handles), launched with -CaptureSnapshot <file> (the host draws its own window into a PNG; the capturing shell has no Screen Recording permission). Board: -CaptureWindow monthly|daily -CaptureAppearance light|dark. Person: -CaptureDate 2026-11-22T18:00:00Z -CaptureSurface Person -CapturePerson <login> (-CapturePersonScrolledToEnd YES for the end). Before: docs/screenshots/spec-85/95/mac-this-month.png (four Windows) and spec-85/102/person-you-end.png (Past months with medals)."
+    },
+    {
+      "file": "mac/person-light.png",
+      "caption": "Mac person window (hubot), light: streaks, active days and November's bars over October's; no Past months section",
+      "capture": {
+        "device": "Mac Studio (M1 Max), fixture host (scripts/build-flow-capture.py)",
+        "os": "macOS 27.0.1",
+        "sourceCommit": "7ba37915c9fb017d507e0d9c218c02aa9452561d",
+        "fixture": true
+      },
+      "notes": "Fixture-host capture: scripts/build-flow-capture.py's host (current tracked views, in-memory store, made-up calendars for the fixture's GitHub handles), launched with -CaptureSnapshot <file> (the host draws its own window into a PNG; the capturing shell has no Screen Recording permission). Board: -CaptureWindow monthly|daily -CaptureAppearance light|dark. Person: -CaptureDate 2026-11-22T18:00:00Z -CaptureSurface Person -CapturePerson <login> (-CapturePersonScrolledToEnd YES for the end). Before: docs/screenshots/spec-85/95/mac-this-month.png (four Windows) and spec-85/102/person-you-end.png (Past months with medals)."
+    },
+    {
+      "file": "mac/person-you-end.png",
+      "caption": "Mac person window (you), scrolled to the end: the private-contributions tip and What this number can't show follow the chart directly; Past months with medals is gone",
+      "capture": {
+        "device": "Mac Studio (M1 Max), fixture host (scripts/build-flow-capture.py)",
+        "os": "macOS 27.0.1",
+        "sourceCommit": "7ba37915c9fb017d507e0d9c218c02aa9452561d",
+        "fixture": true
+      },
+      "notes": "Fixture-host capture: scripts/build-flow-capture.py's host (current tracked views, in-memory store, made-up calendars for the fixture's GitHub handles), launched with -CaptureSnapshot <file> (the host draws its own window into a PNG; the capturing shell has no Screen Recording permission). Board: -CaptureWindow monthly|daily -CaptureAppearance light|dark. Person: -CaptureDate 2026-11-22T18:00:00Z -CaptureSurface Person -CapturePerson <login> (-CapturePersonScrolledToEnd YES for the end). Before: docs/screenshots/spec-85/95/mac-this-month.png (four Windows) and spec-85/102/person-you-end.png (Past months with medals)."
+    },
+    {
+      "file": "iphone/board-today.png",
+      "caption": "iPhone Board on the Duo's outer screen, Today: the switch is three segments (Today · 7 days · 30 days) with room to spare",
+      "capture": {
+        "device": "iPhone Duo Simulator (persistent, closed)",
+        "os": "iOS 27.1",
+        "sourceCommit": "7ba37915c9fb017d507e0d9c218c02aa9452561d",
+        "fixture": true
+      },
+      "notes": "Runtime capture (xcrun simctl io screenshot --display=1) of a Debug build on the persistent iPhone Duo (closed: the narrow outer screen), launched with -ScreenshotFixture -dismissedPrivateContribTip YES -ScreenshotTab board and -ScreenshotWindow daily|monthly, -ScreenshotPerson ari-linden -ScreenshotPersonEnd, or -ScreenshotShare: Sample board data, real clock (November 10, 2026). The app is dark only. Before: docs/screenshots/spec-85/95/iphone-this-month.png (four segments filling the outer screen) and spec-85/101/person-you-end.png (Past months with medals). The Done button floats over the scrolled person view as iOS 27's glass toolbar does, as before this change."
+    },
+    {
+      "file": "iphone/board-30-days.png",
+      "caption": "iPhone Board, 30 days: summary heading 03 · 30 days with no day of the month; no This month segment",
+      "capture": {
+        "device": "iPhone Duo Simulator (persistent, closed)",
+        "os": "iOS 27.1",
+        "sourceCommit": "7ba37915c9fb017d507e0d9c218c02aa9452561d",
+        "fixture": true
+      },
+      "notes": "Runtime capture (xcrun simctl io screenshot --display=1) of a Debug build on the persistent iPhone Duo (closed: the narrow outer screen), launched with -ScreenshotFixture -dismissedPrivateContribTip YES -ScreenshotTab board and -ScreenshotWindow daily|monthly, -ScreenshotPerson ari-linden -ScreenshotPersonEnd, or -ScreenshotShare: Sample board data, real clock (November 10, 2026). The app is dark only. Before: docs/screenshots/spec-85/95/iphone-this-month.png (four segments filling the outer screen) and spec-85/101/person-you-end.png (Past months with medals). The Done button floats over the scrolled person view as iOS 27's glass toolbar does, as before this change."
+    },
+    {
+      "file": "iphone/person-you-end.png",
+      "caption": "iPhone person view of yourself, scrolled to the end: the chart, then the private-contributions tip and What this number can't show; Past months with medals is gone",
+      "capture": {
+        "device": "iPhone Duo Simulator (persistent, closed)",
+        "os": "iOS 27.1",
+        "sourceCommit": "7ba37915c9fb017d507e0d9c218c02aa9452561d",
+        "fixture": true
+      },
+      "notes": "Runtime capture (xcrun simctl io screenshot --display=1) of a Debug build on the persistent iPhone Duo (closed: the narrow outer screen), launched with -ScreenshotFixture -dismissedPrivateContribTip YES -ScreenshotTab board and -ScreenshotWindow daily|monthly, -ScreenshotPerson ari-linden -ScreenshotPersonEnd, or -ScreenshotShare: Sample board data, real clock (November 10, 2026). The app is dark only. Before: docs/screenshots/spec-85/95/iphone-this-month.png (four segments filling the outer screen) and spec-85/101/person-you-end.png (Past months with medals). The Done button floats over the scrolled person view as iOS 27's glass toolbar does, as before this change."
+    },
+    {
+      "file": "iphone/share-sheet.png",
+      "caption": "Share board on 30 days: four styles (Board, Your race, Rank, Top 4), no Final standings page",
+      "capture": {
+        "device": "iPhone Duo Simulator (persistent, closed)",
+        "os": "iOS 27.1",
+        "sourceCommit": "7ba37915c9fb017d507e0d9c218c02aa9452561d",
+        "fixture": true
+      },
+      "notes": "Runtime capture (xcrun simctl io screenshot --display=1) of a Debug build on the persistent iPhone Duo (closed: the narrow outer screen), launched with -ScreenshotFixture -dismissedPrivateContribTip YES -ScreenshotTab board and -ScreenshotWindow daily|monthly, -ScreenshotPerson ari-linden -ScreenshotPersonEnd, or -ScreenshotShare: Sample board data, real clock (November 10, 2026). The app is dark only. Before: docs/screenshots/spec-85/95/iphone-this-month.png (four segments filling the outer screen) and spec-85/101/person-you-end.png (Past months with medals). The Done button floats over the scrolled person view as iOS 27's glass toolbar does, as before this change."
+    }
+  ]
+}
