@@ -48,7 +48,9 @@ struct WidgetSnapshotTests {
         )
         let model = AppModel(
             services: services, backgroundTime: FakeBackgroundTime(),
-            liveRankActivities: activities, widgets: widgets.publisher
+            liveRankActivities: activities, widgets: widgets.publisher,
+            // The same clock as the services', so streaks are worked out on the test's day.
+            now: { clock.now }
         )
         return (model, contributions)
     }
