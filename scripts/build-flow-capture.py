@@ -29,7 +29,8 @@ helpers = app_file.read_text().split("enum MenuPopoverLayout", 1)[1]
 app_file.write_text(r'''import SwiftUI
 
 @main struct FlowCaptureApp: App {
-    @State private var surface = "Board"
+    // `-CaptureSurface Person` starts on that Captures entry (for `-CaptureSnapshot`).
+    @State private var surface = UserDefaults.standard.string(forKey: "CaptureSurface") ?? "Board"
     @State private var store: StandingsStore
     @State private var refresh: RefreshCoordinator
     @State private var roster: GitHubRoster
@@ -37,6 +38,7 @@ app_file.write_text(r'''import SwiftUI
     @State private var signedOut = AuthModel(credentials: InMemoryGitHubCredentialStore(), auth: GitHubAuth(clientID: "fixture", scope: ""))
     @State private var notifications = NotificationService()
     @State private var updater = AppUpdater(startingUpdater: false)
+    @State private var personWindow: PersonWindowModel
 
     init() {
         let s = StandingsStore(persistence: InMemoryCompetitorPersistence())
@@ -46,9 +48,12 @@ app_file.write_text(r'''import SwiftUI
             for number in 1...14 { try! s.addRival(username: "sample-rival-\(number)") }
         }
         let now = captureNow()
-        s.updateHistories(Dictionary(uniqueKeysWithValues: s.competitors.map { ($0.username, captureHistory($0.username, asOf: now)) }))
+        // `-CaptureWaiting <login>` leaves that person's count unloaded: their row and person view wait.
+        let waiting = UserDefaults.standard.string(forKey: "CaptureWaiting")
+        let loaded = s.competitors.filter { $0.username != waiting }
+        s.updateHistories(Dictionary(uniqueKeysWithValues: loaded.map { ($0.username, captureHistory($0.username, asOf: now)) }))
         for window in ContributionWindow.allCases {
-            for entry in s.competitors {
+            for entry in loaded {
                 s.updateStanding(Standing(username: entry.username,
                     contributions: captureHistory(entry.username, asOf: now).total(for: window, asOf: now),
                     window: window, lastUpdated: now, state: .loaded))
@@ -67,6 +72,10 @@ app_file.write_text(r'''import SwiftUI
         })
         _roster = State(initialValue: roster)
         _store = State(initialValue: s)
+        // `-CapturePerson <login>` is who the person window shows (as if their row was clicked).
+        let personWindow = PersonWindowModel(store: s, now: captureNow)
+        personWindow.show(UserDefaults.standard.string(forKey: "CapturePerson") ?? "hubot")
+        _personWindow = State(initialValue: personWindow)
         _refresh = State(initialValue: RefreshCoordinator(store: s, client: CaptureCounts(), now: captureNow, beforeRefresh: { reason in
             await roster.refresh(force: reason == .manual)
         }))
@@ -79,12 +88,17 @@ app_file.write_text(r'''import SwiftUI
                 case "Sign in": SignInView().environment(signedOut).padding(28).frame(width: 516, height: 476)
                 case "People": FullRankingsView().frame(width: 420, height: 480)
                 case "Help": ContributionsExplainerView()
+                // `-CapturePersonDay 8` selects that day's bar instead of today's.
+                case "Person": PersonWindowView(initialDay: UserDefaults.standard.object(forKey: "CapturePersonDay") as? Int)
+                    .frame(width: PersonWindow.defaultWidth, height: 640)
                 case "Signed-out popover": MenuContentView(updater: updater).environment(signedOut)
                 default: MenuContentView(updater: updater)
                 }
             }
             .environment(store).environment(refresh).environment(auth).environment(roster).environment(notifications)
-            .preferredColorScheme(.light)
+            .environment(personWindow)
+            // `-CaptureAppearance dark` captures in Dark Mode.
+            .preferredColorScheme(UserDefaults.standard.string(forKey: "CaptureAppearance") == "dark" ? .dark : .light)
             .task { await roster.refresh() }
             .task { await snapshotIfRequested() }
         }
@@ -96,6 +110,7 @@ app_file.write_text(r'''import SwiftUI
                 Button("Sign in") { surface = "Sign in" }.keyboardShortcut("3")
                 Button("Help") { surface = "Help" }.keyboardShortcut("4")
                 Button("Signed-out popover") { surface = "Signed-out popover" }.keyboardShortcut("5")
+                Button("Person") { surface = "Person" }.keyboardShortcut("6")
             }
         }
         Window("People", id: FullRankingsWindow.id) {
@@ -103,6 +118,10 @@ app_file.write_text(r'''import SwiftUI
         }.defaultSize(width: 420, height: 480).windowResizability(.contentMinSize).windowToolbarStyle(.unifiedCompact)
         Window("How contributions are counted", id: ExplainerWindow.id) { ContributionsExplainerView() }
             .windowResizability(.contentSize)
+        // Clicking a Board row opens the real person window, as in the app.
+        Window("Person", id: PersonWindow.id) { PersonWindowView().environment(personWindow) }
+            .defaultSize(width: PersonWindow.defaultWidth, height: 640).windowResizability(.contentMinSize)
+            .windowToolbarStyle(.unifiedCompact)
     }
 }
 

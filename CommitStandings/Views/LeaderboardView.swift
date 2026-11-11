@@ -53,12 +53,16 @@ struct LeaderboardView: View {
                         .padding(.bottom, 4)
                 }
                 LazyVStack(spacing: 0) {
-                    ForEach(finals.entries) { finals.row($0) }
+                    ForEach(finals.entries) { entry in
+                        PersonWindowRowButton(login: entry.competitor.username) { finals.row(entry) }
+                    }
                 }
             } else {
                 LazyVStack(spacing: 0) {
                     ForEach(entries) { item in
-                        row(for: item, maxContributions: maxContributions)
+                        PersonWindowRowButton(login: item.competitor.username) {
+                            row(for: item, maxContributions: maxContributions)
+                        }
                     }
                 }
             }
