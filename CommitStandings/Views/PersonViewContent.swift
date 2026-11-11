@@ -288,7 +288,8 @@ struct PersonViewContent<Tip: View>: View {
             }
         }
         .chartXScale(domain: 1...max(2, days), range: .plotDimension(endPadding: 88))
-        .chartYScale(domain: 0...max(1, race.theirTotal, race.yourTotal))
+        // Headroom above the leader so the top label stays inside the chart, clear of the story.
+        .chartYScale(domain: 0...(Double(max(1, race.theirTotal, race.yourTotal)) * 1.3))
         .chartXAxis {
             AxisMarks(values: [1, days]) { _ in
                 AxisValueLabel()
