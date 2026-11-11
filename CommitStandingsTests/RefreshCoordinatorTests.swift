@@ -42,6 +42,7 @@ final class SpyNotifier: RankChangeNotifying {
     var posted: [[RankChangeEvent]] = []
     var allEvents: [RankChangeEvent] { posted.flatMap { $0 } }
     func post(_ events: [RankChangeEvent]) { posted.append(events) }
+    func postMonthFinal(id: String, title: String, body: String) -> Bool { true }
 }
 
 /// A mutable clock so a single coordinator can be driven across a day boundary in one test.

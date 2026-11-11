@@ -33,7 +33,7 @@ Clicking the menu-bar icon opens a popover with your contribution summary and a 
 - **Contributions** — the single ranking metric: the GitHub contribution-graph "green squares" count for the selected window. Rows are sorted by contributions, highest first.
 - **Your summary** — your avatar, name or handle, and contribution count appear above the list. Your rank also appears in the menu bar when you have visible rivals.
 - **Today's movement** — small chevrons show rank changes since the first refresh of the day. Hiding or showing people starts a new movement baseline.
-- **Leaderboard Notifications** — opt in through `⋯` to receive a notification when someone passes you or you pass them.
+- **Leaderboard Notifications** — opt in through `⋯` to receive a notification when someone passes you or you pass them, and when a month ends ("October final: You finished #3 of 8").
 
 ### Time windows
 
@@ -45,6 +45,15 @@ A segmented control at the top switches the window; the contribution count recom
 - **This month** — your local calendar month so far (Mac and iPhone; Windows doesn't have it yet). It resets to zero for everyone at local midnight on the 1st. Beside it, the board says which day of the month it is ("Day 10 of 30"): on the Mac under your count, on iPhone in your summary's heading. Today's movement chevrons work on it as on Today: each person's places moved since the day's first This month ranking.
 
 Every window is available once the contribution data loads; there is no history-building or backfill period. The app sums the daily counts for the selected range, in the device's time zone. Choosing 30 days is saved as it always was, so existing settings are unaffected.
+
+### Final standings and medals
+
+When a month ends, its **Final standings** are last month's ranks among the people currently on your board, worked out from each person's GitHub calendar with the board's own ranking (you win ties). The top three earn a **medal**, 🥇 gold, 🥈 silver and 🥉 bronze, when their total for the month was above zero. Someone whose calendar hasn't loaded ranks last with no medal.
+
+- **On the 1st** the board (Mac popover and iPhone Board) opens on last month's Final standings for the whole day, behind a **🏅 October final standings** switch, with "October final · You finished #2 of 6" over the rows and the medal before each winner's name. Picking a Window, or the switch, returns to the live board; the next 1st opens on the new month's. On the Mac your summary shows your total for that month while they're up.
+- **Recomputed, not frozen.** Hiding or showing someone changes past months' Final standings the same way it changes the board. Months before your own calendar's first full month aren't offered.
+- **Notification.** The first successful refresh after a month ends sends one Leaderboard Notification, "October final" / "You finished #3 of 8", only when Leaderboard Notifications are on. Each month is announced once per account on each device; it counts as announced even with notifications off, so switching them on later doesn't bring up old news. It waits while someone with a saved calendar fails to refresh, so it never reports a place from stale numbers. The Committed relay doesn't send it: on iPhone it comes when the app next refreshes, including background app refresh.
+- **Sample board** shows the same, from its made-up calendars.
 
 ### Refresh behavior the user notices
 
@@ -175,6 +184,8 @@ The app is intentionally **not sandboxed** to support its Sparkle update path. B
 | Connect GitHub | Authorizing Committed's read-only GitHub access (`read:user read:org`) through GitHub's device flow. It does not create a Committed account; the token stays in the Mac's or iPhone's Keychain or Windows Credential Manager and is sent only to GitHub, never to the Committed relay. Say "Connect GitHub" and "Disconnect GitHub", not "sign in", "sign up", "log out", or "create an account". |
 | Window | The time range the board is computed over: Today, 7 days, 30 days (trailing), or This month. |
 | This month | A Window for the calendar month to date, in the device's time zone. It resets to zero on the 1st. Say "This month", not "monthly" or "30 days" (a different, trailing Window). |
+| Final standings | A finished month's ranks among the people currently on your board, recomputed from GitHub's calendar (you win ties), not frozen. Shown on the board all day on the 1st. Say "Final standings", not "results" or "archive". |
+| Medal | Gold, silver or bronze for ranks 1 to 3 of a finished month's Final standings, only for a total above zero. |
 | Contributions | The count behind GitHub's contribution graph ("green squares") for the window. The single ranking metric. |
 | Refresh | Reloading contribution counts on a ~5-minute timer, stale menu-open, or stale window switch. Manual **Refresh** also reloads the people list. |
 | Live rank | The Live Activity that shows your current rank, your Contributions, and the people just above and below you in the Dynamic Island and on the Lock Screen, for a Window you choose in Settings. Say "Live rank", not "widget" or "Live Activity" in product copy. |

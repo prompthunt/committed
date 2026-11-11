@@ -145,3 +145,36 @@ final class InMemoryHiddenPeoplePersistence: HiddenPeoplePersistence, @unchecked
     func load() -> [String: Set<String>] { storage }
     func save(_ hiddenByAccount: [String: Set<String>]) { storage = hiddenByAccount }
 }
+
+// MARK: - Month-final notification
+
+/// The last finished month announced per account (`owner login → "YYYY-MM"`), so the month-final
+/// Leaderboard Notification goes out once per month on this device. Kept apart from the board, so
+/// disconnecting and hiding or showing people never reset it.
+protocol AnnouncedMonthPersistence: Sendable {
+    func load() -> [String: String]
+    func save(_ announced: [String: String])
+}
+
+final class UserDefaultsAnnouncedMonthPersistence: AnnouncedMonthPersistence, @unchecked Sendable {
+    private let defaults: UserDefaults
+    private let key = "announcedMonthFinalByAccount.v1"
+
+    init(defaults: UserDefaults = .standard) { self.defaults = defaults }
+
+    func load() -> [String: String] {
+        guard let data = defaults.data(forKey: key) else { return [:] }
+        return (try? JSONDecoder().decode([String: String].self, from: data)) ?? [:]
+    }
+
+    func save(_ announced: [String: String]) {
+        guard let data = try? JSONEncoder().encode(announced) else { return }
+        defaults.set(data, forKey: key)
+    }
+}
+
+final class InMemoryAnnouncedMonthPersistence: AnnouncedMonthPersistence, @unchecked Sendable {
+    private var storage: [String: String] = [:]
+    func load() -> [String: String] { storage }
+    func save(_ announced: [String: String]) { storage = announced }
+}

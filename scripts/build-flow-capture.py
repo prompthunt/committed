@@ -51,6 +51,8 @@ app_file.write_text(r'''import SwiftUI
                     window: window, lastUpdated: Date(), state: .loaded))
             }
         }
+        // Made-up calendars for last month's Final standings: octocat finishes second.
+        s.updateHistories(captureHistories(asOf: captureNow()))
         // `-CaptureWindow month` opens the board on that Window (a ContributionWindow raw value).
         if let window = UserDefaults.standard.string(forKey: "CaptureWindow").flatMap(ContributionWindow.init(rawValue:)) {
             s.selectedWindow = window
@@ -64,7 +66,7 @@ app_file.write_text(r'''import SwiftUI
         })
         _roster = State(initialValue: roster)
         _store = State(initialValue: s)
-        _refresh = State(initialValue: RefreshCoordinator(store: s, client: CaptureCounts(), beforeRefresh: { reason in
+        _refresh = State(initialValue: RefreshCoordinator(store: s, client: CaptureCounts(), now: captureNow, beforeRefresh: { reason in
             await roster.refresh(force: reason == .manual)
         }))
     }
@@ -113,6 +115,30 @@ app_file.write_text(r'''import SwiftUI
     view.cacheDisplay(in: view.bounds, to: rep)
     try? rep.representation(using: .png, properties: [:])?.write(to: URL(fileURLWithPath: path))
     NSApp.terminate(nil)
+}
+
+/// `-CaptureDate 2026-11-01T10:00:00Z` sets the host's clock, so the 1st's Final standings show.
+private func captureNow() -> Date {
+    UserDefaults.standard.string(forKey: "CaptureDate").flatMap { try? Date($0, strategy: .iso8601) } ?? Date()
+}
+
+/// A calendar ending on `reference`'s day, about a year long, with last month's total on its 15th.
+private func captureHistories(asOf reference: Date) -> [String: ContributionHistory] {
+    let calendar = Calendar.current
+    let last = CalendarMonth(containing: reference, in: calendar).previous
+    let totals = ["octocat": 212, "hubot": 240, "monalisa": 212, "defunkt": 98, "mojombo": 0]
+    var result: [String: ContributionHistory] = [:]
+    for (login, total) in totals {
+        var days: [String: Int] = [:]
+        for offset in 0..<371 {
+            if let day = calendar.date(byAdding: .day, value: -offset, to: reference) {
+                days[ContributionHistory.key(for: day, in: calendar)] = 0
+            }
+        }
+        days[ContributionHistory.key(year: last.year, month: last.month, day: 15)] = total
+        result[login] = ContributionHistory(days: days, timeZone: calendar.timeZone)
+    }
+    return result
 }
 
 /// Made-up counts grow with the Window, so 30 days reads bigger than This month or Today.

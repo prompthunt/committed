@@ -80,14 +80,26 @@ final class RefreshCoordinator {
     /// 1st is also This month's reset).
     private var todaysBaselines: [ContributionWindow: (date: Date, ranks: [String: Int])] = [:]
 
+    /// The device's calendar, which decides when a month ends and which day is the 1st.
+    private let calendar: Calendar
+    /// The last finished month announced, per account, so each is announced once on this device.
+    private let announcedMonths: any AnnouncedMonthPersistence
+    /// The finished month whose Final standings the person put away (by picking a Window); the
+    /// Board opens on the next one again.
+    private(set) var dismissedFinalStandings: CalendarMonth?
+
     init(
         store: StandingsStore,
         client: ContributionsFetching,
         interval: TimeInterval = 300,
         now: @Sendable @escaping () -> Date = { Date() },
         notifier: RankChangeNotifying? = nil,
+        calendar: Calendar = .current,
+        announcedMonths: any AnnouncedMonthPersistence = InMemoryAnnouncedMonthPersistence(),
         beforeRefresh: @escaping @MainActor (RefreshReason) async -> Void = { _ in }
     ) {
+        self.calendar = calendar
+        self.announcedMonths = announcedMonths
         self.beforeRefresh = beforeRefresh
         self.store = store
         self.client = client
@@ -130,6 +142,7 @@ final class RefreshCoordinator {
             baselineVisibilityRevision = store.visibilityRevision
         }
         notifyPositionChanges(window: window, reference: reference)
+        announceMonthFinal(window: window, reference: reference)
         updateTodaysRankDeltas(window: window, reference: reference)
 
         for extra in extras {
@@ -305,6 +318,54 @@ final class RefreshCoordinator {
         if current[selfUsername] != nil {
             previousRanking[window] = (reference, current)
         }
+    }
+
+    // MARK: - Final standings
+
+    /// Last month's Final standings, offered on the Board all day on the 1st (in the device's
+    /// calendar) so the result isn't hidden behind an empty new month. nil on other days, or when
+    /// your saved calendar doesn't cover last month.
+    var offeredFinalStandings: FinalStandings? {
+        let today = now()
+        guard calendar.component(.day, from: today) == 1 else { return nil }
+        return store.finalStandings(for: CalendarMonth(containing: today, in: calendar).previous)
+    }
+
+    /// Whether the Board shows the offered Final standings instead of the live board: it opens on
+    /// them each 1st, until a Window is picked or they're switched off.
+    var showsFinalStandings: Bool {
+        guard let month = offeredFinalStandings?.month else { return false }
+        return dismissedFinalStandings != month
+    }
+
+    /// The Final standings switch; picking a Window passes false.
+    func showFinalStandings(_ show: Bool) {
+        if show {
+            dismissedFinalStandings = nil
+        } else if let month = offeredFinalStandings?.month {
+            dismissedFinalStandings = month
+        }
+    }
+
+    /// The month-final Leaderboard Notification ("October final" / "You finished #2 of 8"), on the
+    /// first successful refresh after a month ends, once per month per account on this device. The
+    /// month counts as announced even when notifications are off (only posting needs them on), so
+    /// switching them on later doesn't bring up old news. It waits while anyone with a saved
+    /// calendar failed this refresh, so it never reports a place from stale numbers.
+    private func announceMonthFinal(window: ContributionWindow, reference: Date) {
+        guard let owner = store.selfCompetitor?.username else { return }
+        let month = CalendarMonth(containing: reference, in: calendar).previous
+        var announced = announcedMonths.load()
+        if let last = announced[owner].flatMap(CalendarMonth.init(key:)), last >= month { return }
+        let stale = store.visibleCompetitors.contains { person in
+            guard store.history(for: person.username) != nil,
+                  case .failed = store.standing(for: person.username, window: window)?.state else { return false }
+            return true
+        }
+        guard !stale, let finals = store.finalStandings(for: month), let result = finals.result else { return }
+        announced[owner] = month.key
+        announcedMonths.save(announced)
+        notifier?.postMonthFinal(id: "monthfinal.\(month.key)", title: result.title, body: result.body)
     }
 
     /// Whether two dates fall in the same reset period for `window` — so a snapshot taken in one

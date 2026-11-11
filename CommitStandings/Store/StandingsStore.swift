@@ -335,3 +335,31 @@ extension LiveRankState {
         )
     }
 }
+
+// MARK: - Final standings
+
+extension StandingsStore {
+    /// A finished month's Final standings among the people visible now, from saved calendars. nil
+    /// when `month` isn't offered: before your own calendar's first full month, or not yet over by
+    /// your calendar's latest day. #100's share image and #101's past finishes read this.
+    func finalStandings(for month: CalendarMonth) -> FinalStandings? {
+        guard let me = selfCompetitor?.username, let mine = history(for: me),
+              let first = mine.firstFullMonth, let latest = mine.latestMonth,
+              month >= first, month < latest else { return nil }
+        return FinalStandings(month: month, competitors: visibleCompetitors, histories: histories)
+    }
+
+    /// The finished months on offer as of `reference`, newest first: from your own calendar's first
+    /// full month through last month in `calendar` (the device's). For the person view's past
+    /// finishes (#101).
+    func finishedMonths(asOf reference: Date, calendar: Calendar) -> [CalendarMonth] {
+        guard let me = selfCompetitor?.username, let first = history(for: me)?.firstFullMonth else { return [] }
+        var months: [CalendarMonth] = []
+        var month = CalendarMonth(containing: reference, in: calendar).previous
+        while month >= first {
+            if finalStandings(for: month) != nil { months.append(month) }
+            month = month.previous
+        }
+        return months
+    }
+}

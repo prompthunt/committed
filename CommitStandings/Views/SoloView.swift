@@ -8,6 +8,12 @@ import SwiftUI
 struct HeroCard: View {
     @Environment(StandingsStore.self) private var store
     @Environment(AuthModel.self) private var auth
+    @Environment(RefreshCoordinator.self) private var refresh
+
+    /// Last month's Final standings while the board shows them: the card shows your total for it.
+    private var finals: FinalStandings? {
+        refresh.showsFinalStandings && !store.rivals.isEmpty ? refresh.offeredFinalStandings : nil
+    }
 
     var body: some View {
         if let me = store.selfCompetitor {
@@ -48,7 +54,14 @@ struct HeroCard: View {
                         .textCase(.uppercase)
                         .foregroundStyle(.secondary)
                     // This month: "Day 10 of 30", so you know how much race is left.
-                    if let day = store.selectedWindow.dayOfMonth(asOf: Date()) {
+                    if let finals {
+                        Text("in \(finals.month.name)")
+                            .font(.system(size: 8, weight: .medium, design: .monospaced))
+                            .tracking(8 * 0.14)
+                            .textCase(.uppercase)
+                            .foregroundStyle(.tint)
+                            .padding(.top, 2)
+                    } else if let day = store.selectedWindow.dayOfMonth(asOf: Date()) {
                         Text(day)
                             .font(.system(size: 8, weight: .medium, design: .monospaced))
                             .tracking(8 * 0.14)
@@ -72,6 +85,7 @@ struct HeroCard: View {
 
     /// The contribution count once it has actually loaded (nil while first loading / on failure).
     private func value(for standing: Standing?) -> Int? {
+        if let finals { return finals.you?.contributions }
         guard let standing, standing.lastUpdated != .distantPast else { return nil }
         return standing.contributions
     }
@@ -84,6 +98,9 @@ struct HeroCard: View {
         let who = store.selfCompetitor.map { "@\($0.username)" } ?? "you"
         guard let value = value(for: standing) else {
             return "\(who), no contributions data yet"
+        }
+        if let finals {
+            return "\(who), \(value) contributions in \(finals.month.name)"
         }
         let day = store.selectedWindow.dayOfMonth(asOf: Date()).map { ", \($0.lowercased())" } ?? ""
         return "\(who), \(value) contributions for \(store.selectedWindow.accessibilityDescription)\(day)"

@@ -61,6 +61,8 @@ struct BoardView: View {
             .refreshable { await model.pullToRefresh() }
         }
         .onChange(of: store.selectedWindow) {
+            // Picking a Window goes back to the live board.
+            model.refresh.showFinalStandings(false)
             Task { await model.windowDidChange() }
         }
     }
@@ -106,7 +108,32 @@ struct BoardLeaderboard: View {
                     .listRowSeparator(.hidden)
                     .listRowBackground(Color.clear)
                 }
-            } else {
+            } else if !store.rivals.isEmpty, let finals = refresh.offeredFinalStandings {
+                // On the 1st: last month's Final standings, which the board opens on.
+                Section {
+                    FinalStandingsToggle(finals: finals)
+                        .buttonStyle(.bordered)
+                        .controlSize(.large)
+                        .tint(.lime)
+                        .listRowSeparator(.hidden)
+                        .listRowBackground(Color.clear)
+                        .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 0, trailing: 16))
+                }
+                if refresh.showsFinalStandings {
+                    Section {
+                        ForEach(finals.entries) { entry in
+                            finals.row(entry)
+                                .listRowSeparator(.hidden)
+                                .listRowBackground(Color.clear)
+                                .listRowInsets(EdgeInsets(top: 1, leading: 8, bottom: 1, trailing: 8))
+                        }
+                    } header: {
+                        FolioHeader(finals.statusLine ?? "\(finals.month.name) final")
+                            .padding(.top, 6)
+                    }
+                }
+            }
+            if store.hasSelf, !(refresh.showsFinalStandings && !store.rivals.isEmpty) {
                 Section {
                     if isInitialLoad(entries: entries) {
                         InitialLoadRow()

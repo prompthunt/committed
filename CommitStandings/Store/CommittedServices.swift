@@ -46,6 +46,8 @@ final class CommittedServices {
             try await GitHubAccountClient(token: $0).roster()
         },
         refreshInterval: TimeInterval = 300,
+        calendar: Calendar = .current,
+        announcedMonths: any AnnouncedMonthPersistence = InMemoryAnnouncedMonthPersistence(),
         now: @escaping @Sendable () -> Date = { Date() }
     ) {
         let roster = GitHubRoster(
@@ -57,6 +59,7 @@ final class CommittedServices {
         let refresh = RefreshCoordinator(
             store: store, client: contributions, interval: refreshInterval, now: now,
             notifier: notifications,
+            calendar: calendar, announcedMonths: announcedMonths,
             beforeRefresh: { reason in await roster.refresh(force: reason == .manual) }
         )
         let hooks = Hooks()
@@ -104,7 +107,8 @@ final class CommittedServices {
             ),
             credentials: KeychainGitHubCredentialStore(),
             rosterPersistence: UserDefaultsGitHubRosterPersistence(),
-            legacyBackup: legacyBackup
+            legacyBackup: legacyBackup,
+            announcedMonths: UserDefaultsAnnouncedMonthPersistence()
         )
     }
 }

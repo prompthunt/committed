@@ -45,9 +45,21 @@ struct LeaderboardView: View {
             .padding(.horizontal, 8)
             .padding(.bottom, 6)
 
-            LazyVStack(spacing: 0) {
-                ForEach(entries) { item in
-                    row(for: item, maxContributions: maxContributions)
+            if refresh.showsFinalStandings, let finals = refresh.offeredFinalStandings {
+                if let status = finals.statusLine {
+                    Text(status)
+                        .font(.caption.weight(.medium))
+                        .padding(.horizontal, 8)
+                        .padding(.bottom, 4)
+                }
+                LazyVStack(spacing: 0) {
+                    ForEach(finals.entries) { finals.row($0) }
+                }
+            } else {
+                LazyVStack(spacing: 0) {
+                    ForEach(entries) { item in
+                        row(for: item, maxContributions: maxContributions)
+                    }
                 }
             }
         }
