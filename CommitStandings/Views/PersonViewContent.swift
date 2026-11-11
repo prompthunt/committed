@@ -144,21 +144,27 @@ struct PersonViewContent<Tip: View>: View {
     @ViewBuilder
     private func statBoxes(_ days: PersonSummary.Days) -> some View {
         // One streak box: the longest shows in its caption only when it differs.
-        stat("🔥 Streak", PersonSummary.streakValue(days.currentStreak),
+        stat("Streak", PersonSummary.streakValue(days.currentStreak), marked: true,
              caption: PersonSummary.streakCaption(current: days.currentStreak, longest: days.longestStreak),
              spoken: "Streak",
              spokenValue: PersonSummary.streakSpoken(current: days.currentStreak, longest: days.longestStreak))
         stat("Active days", person.activeDaysText ?? "", caption: "This month", spoken: "Active days this month")
     }
 
-    private func stat(_ label: String, _ value: String, caption: String, spoken: String? = nil,
+    /// `marked` puts the streak mark before the label, as the rows show a streak.
+    private func stat(_ label: String, _ value: String, marked: Bool = false, caption: String, spoken: String? = nil,
                       spokenValue: String? = nil) -> some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text(label)
-                .font(style.statLabelFont)
-                .foregroundStyle(secondary)
-                .lineLimit(2)
-                .fixedSize(horizontal: false, vertical: true)
+            HStack(alignment: .firstTextBaseline, spacing: 4) {
+                if marked {
+                    StreakMark(size: 11, relativeTo: .caption, color: style.accent)
+                }
+                Text(label)
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .font(style.statLabelFont)
+            .foregroundStyle(secondary)
             Spacer(minLength: 0)
             VStack(alignment: .leading, spacing: 1) {
                 Text(value)

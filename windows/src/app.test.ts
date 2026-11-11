@@ -173,21 +173,24 @@ test("streaks show on rows and your summary from 2 days, read as N-day streak", 
   expect(label("octocat")).toBe(
     "Rank 1, Mona, 12 Contributions, 12-day streak, you",
   );
-  expect(flame("octocat")).toBe("🔥 12");
-  expect(document.querySelector(".summary .streak")?.textContent).toBe("🔥 12");
+  expect(flame("octocat")).toBe("12");
+  expect(document.querySelector(".summary .streak")?.textContent).toBe("12");
   const summaryStreak = document.querySelector(".summary .streak");
   expect(summaryStreak?.getAttribute("role")).toBe("img");
   expect(summaryStreak?.getAttribute("aria-label")).toBe("12-day streak");
-  expect(flame("year")).toBe("🔥 365+");
+  expect(flame("year")).toBe("365+");
   expect(label("year")).toContain("3 Contributions, 365-plus-day streak");
-  expect(flame("exactly")).toBe("🔥 365");
+  expect(flame("exactly")).toBe("365");
   expect(label("exactly")).toContain("365-day streak");
-  expect(flame("pair")).toBe("🔥 2");
+  expect(flame("pair")).toBe("2");
+  // Committed's own streak mark, not an emoji, before every number.
+  expect(document.querySelectorAll(".streak .streak-mark")).toHaveLength(5);
+  expect(document.body.innerHTML).not.toContain("🔥");
   for (const login of ["single", "broken", "unloaded"]) {
     expect(flame(login)).toBeUndefined();
     expect(label(login)).not.toContain("streak");
   }
-  // The flame is decoration; the row's label carries the streak.
+  // The mark is decoration; the row's label carries the streak.
   expect(
     document
       .querySelector('[data-open-person="octocat"] .streak')
@@ -208,9 +211,48 @@ test("the fixture page's Sample board renders every streak case", async () => {
   const flames = [...document.querySelectorAll(".standing .streak")].map(
     (flame) => flame.textContent,
   );
-  expect(flames).toEqual(["🔥 365+", "🔥 23", "🔥 12", "🔥 2"]);
-  expect(document.querySelector(".summary .streak")?.textContent).toBe("🔥 12");
+  expect(flames).toEqual(["365+", "23", "12", "2"]);
+  expect(document.querySelector(".summary .streak")?.textContent).toBe("12");
   dispose();
+});
+test("your row drops the badge, then your streak, then wraps, before it loses your name", async () => {
+  // jsdom has no layout: a name 200 wide in a 150 slot, which fits once the badge is gone.
+  const proto = HTMLElement.prototype;
+  const scroll = Object.getOwnPropertyDescriptor(proto, "scrollWidth");
+  const client = Object.getOwnPropertyDescriptor(proto, "clientWidth");
+  let fitsAfter = "no-badge";
+  Object.defineProperty(proto, "scrollWidth", {
+    configurable: true,
+    get(this: HTMLElement) {
+      return this.closest(`li.${fitsAfter}`) ? 150 : 200;
+    },
+  });
+  Object.defineProperty(proto, "clientWidth", {
+    configurable: true,
+    get: () => 150,
+  });
+  try {
+    const rows = [{ ...board.rows[0], streak: 12 }];
+    let dispose = await mount({ ...board, rows });
+    let you = document.querySelector("li.you")!;
+    expect([...you.classList]).toEqual(["you", "no-badge"]);
+    dispose();
+    fitsAfter = "never";
+    dispose = await mount({ ...board, rows });
+    you = document.querySelector("li.you")!;
+    expect([...you.classList]).toEqual([
+      "you",
+      "no-badge",
+      "no-streak",
+      "wraps",
+    ]);
+    // Your summary keeps the streak; only the row lets it go.
+    expect(document.querySelector(".summary .streak")?.textContent).toBe("12");
+    dispose();
+  } finally {
+    if (scroll) Object.defineProperty(proto, "scrollWidth", scroll);
+    if (client) Object.defineProperty(proto, "clientWidth", client);
+  }
 });
 test("the picker offers three Windows and keyboard navigation wraps across them", async () => {
   const dispose = await mount(board);

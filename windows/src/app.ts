@@ -1,6 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
-import { GLYPH_PATH } from "../../site/lib/glyph";
+import { GLYPH_PATH, STREAK_PATH } from "../../site/lib/glyph";
 import type {
   Board,
   Burst,
@@ -15,6 +15,8 @@ import type {
 
 // Reuse the site's trophy and the approved app tile instead of drawing substitutes.
 const brandMark = `<svg class="brand-mark" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="${GLYPH_PATH}" /></svg>`;
+// The streak mark, drawn in its own color (`--streak-mark`) beside the streak's number.
+const streakMark = `<svg class="streak-mark" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="${STREAK_PATH}" /></svg>`;
 const appIcon = new URL(
   "../../docs/design/committed-app-icon.svg",
   import.meta.url,
@@ -244,7 +246,7 @@ function personHtml(view: PersonView, selected: number) {
     ${view.status === "failed" ? '<p class="muted">Refresh failed · showing saved counts</p>' : ""}
     ${view.race ? raceCard(view, view.race) : ""}
     <dl class="person-stats">
-      <div><dt><span aria-hidden="true">🔥 </span>Streak</dt><dd>${streakValue(history.current_streak)}<small>${streakCaption(history.current_streak, history.longest_streak)}</small></dd></div>
+      <div><dt>${streakMark}Streak</dt><dd>${streakValue(history.current_streak)}<small>${streakCaption(history.current_streak, history.longest_streak)}</small></dd></div>
       <div><dt>Active days</dt><dd>${history.active_days} of ${view.day_of_month}<small>This month</small></dd></div>
     </dl>
     <section class="month" aria-labelledby="month-title"><div class="month-head"><h2 id="month-title">${escape(view.month_name)}</h2><p class="legend"><span class="key now" aria-hidden="true"></span>${escape(view.month_name)} <strong>${total(history.this_month).toLocaleString()}</strong><span class="key past" aria-hidden="true"></span>${escape(view.last_month_name)} <strong>${total(history.last_month).toLocaleString()}</strong></p></div>
@@ -415,7 +417,7 @@ export async function start(
       );
       const statusText = `${windows.find((w) => w[0] === selected)![1]} · ${refreshing ? (first ? "Fetching the first set of standings" : "Updating Contributions…") : board.error ? "Refresh finished with errors." : age(board.last_updated)}`;
       replace(`<header><h1>${brandMark} Committed</h1>${menu(board)}</header><div class="board-content">
-        ${me ? `<section class="summary">${avatar(me)}<div><strong>${escape(name(me))}</strong><small>@${escape(me.login)} · you${myStreak ? ` · <span class="streak" role="img" aria-label="${streakSpoken(myStreak)}">🔥 ${myStreak}</span>` : ""}</small></div><div class="summary-count">${count(me.contributions)}<small>Contributions</small></div></section>` : "<p>Connect GitHub to load your board.</p>"}
+        ${me ? `<section class="summary">${avatar(me)}<div><strong>${escape(name(me))}</strong><small>@${escape(me.login)} · you${myStreak ? ` · <span class="streak" role="img" aria-label="${streakSpoken(myStreak)}">${streakMark}${myStreak}</span>` : ""}</small></div><div class="summary-count">${count(me.contributions)}<small>Contributions</small></div></section>` : "<p>Connect GitHub to load your board.</p>"}
         <div class="windows" role="radiogroup" aria-label="Time range">${windows.map(([value, label]) => `<button role="radio" aria-checked="${selected === value}" tabindex="${selected === value ? 0 : -1}" data-window="${value}" data-focus="window-${value}">${label}</button>`).join("")}</div>
         <p class="status">${statusText}</p>
         <div class="tracking"><small>Tracking ${rows.length} people</small><button data-action="people">People…</button></div>
@@ -428,7 +430,7 @@ export async function start(
               (row.contributions ?? 0) / maxContributions,
             );
             const squareColor = `rgb(${Math.round(156 - 110 * shade)}, ${Math.round(232 - 71 * shade)}, ${Math.round(168 - 102 * shade)})`;
-            return `<li class="${row.is_you ? "you" : ""}"><button class="standing" data-open-person="${escape(row.login)}" data-focus="row-${escape(row.login)}" aria-label="${escape(spoken)}"><span class="rank">#${row.rank}</span>${avatar(row)}<span class="identity"><strong title="${escape(name(row))}">${escape(row.login)}${row.is_you ? ' <span class="badge">you</span>' : ""}</strong>${row.status === "failed" ? "<small>Refresh failed</small>" : ""}</span>${row.movement ? `<span class="movement ${row.movement > 0 ? "up" : "down"}" aria-label="Moved ${row.movement > 0 ? "up" : "down"} ${Math.abs(row.movement)}">${row.movement > 0 ? "↑" : "↓"}${Math.abs(row.movement)}</span>` : ""}${streak ? `<span class="streak" aria-hidden="true">🔥 ${streak}</span>` : ""}<strong class="contributions${row.burst ? " troll" : ""}">${count(row.contributions)}</strong>${row.burst ? `<span class="troll-face" style="--troll: url('${trollFace}')" title="${escape(`Problem? ${trolling(row.burst)}.`)}" aria-hidden="true"></span>` : `<svg class="contribution-squares" viewBox="0 0 12 12" fill="${squareColor}" aria-hidden="true" ${row.contributions === null ? 'style="visibility:hidden"' : ""}><path d="M0 0h5v5H0zM7 0h5v5H7zM0 7h5v5H7zM7 7h5v5H7z" /></svg>`}</button></li>`;
+            return `<li class="${row.is_you ? "you" : ""}"><button class="standing" data-open-person="${escape(row.login)}" data-focus="row-${escape(row.login)}" aria-label="${escape(spoken)}"><span class="rank">#${row.rank}</span>${avatar(row)}<span class="identity"><strong title="${escape(name(row))}">${escape(row.login)}${row.is_you ? ' <span class="badge">you</span>' : ""}</strong>${row.status === "failed" ? "<small>Refresh failed</small>" : ""}</span>${row.movement ? `<span class="movement ${row.movement > 0 ? "up" : "down"}" aria-label="Moved ${row.movement > 0 ? "up" : "down"} ${Math.abs(row.movement)}">${row.movement > 0 ? "↑" : "↓"}${Math.abs(row.movement)}</span>` : ""}${streak ? `<span class="streak" aria-hidden="true">${streakMark}${streak}</span>` : ""}<strong class="contributions${row.burst ? " troll" : ""}">${count(row.contributions)}</strong>${row.burst ? `<span class="troll-face" style="--troll: url('${trollFace}')" title="${escape(`Problem? ${trolling(row.burst)}.`)}" aria-hidden="true"></span>` : `<svg class="contribution-squares" viewBox="0 0 12 12" fill="${squareColor}" aria-hidden="true" ${row.contributions === null ? 'style="visibility:hidden"' : ""}><path d="M0 0h5v5H0zM7 0h5v5H7zM0 7h5v5H7zM7 7h5v5H7z" /></svg>`}</button></li>`;
           })
           .join("")}</ol>
         ${first && !refreshing ? '<p class="muted">Fetching the first set of standings. Use Refresh to retry if GitHub is unavailable.</p>' : ""}
@@ -438,10 +440,25 @@ export async function start(
         <p id="update-status" role="status">${escape(status)}</p><button id="install-update" data-action="install-update" ${updateReady ? "" : "hidden"}>Restart to update</button>${alert()}</div>`);
     }
     if (view === "board") {
+      fitYourRow();
       const message = root.querySelector(".status")?.textContent ?? "";
       if (announcer.textContent !== message) announcer.textContent = message;
     }
   }
+  // Your row never loses your name: when it doesn't fit whole, the "you" badge goes first (the
+  // row's highlight already says it's you), then your streak (the summary still has it), and last
+  // the name wraps. The Mac and iPhone rows (`StandingRow`) drop in the same order.
+  function fitYourRow() {
+    const row = root.querySelector<HTMLElement>(".standings li.you");
+    const label = row?.querySelector<HTMLElement>(".identity strong");
+    if (!row || !label) return;
+    row.classList.remove("no-badge", "no-streak", "wraps");
+    for (const step of ["no-badge", "no-streak", "wraps"]) {
+      if (label.scrollWidth <= label.clientWidth) return;
+      row.classList.add(step);
+    }
+  }
+  const onResize = () => fitYourRow();
   function renderPerson() {
     replace(
       `<div class="person">${personView ? personHtml(personView, selectedBar) : '<p class="muted">Pick someone on the board to see their month.</p>'}${alert()}</div>`,
@@ -649,6 +666,7 @@ export async function start(
   root.addEventListener("change", onChange);
   root.addEventListener("input", input);
   root.addEventListener("keydown", keydown);
+  window.addEventListener("resize", onResize);
   const unlisten = await listen("board-changed", () => {
     void load().catch((error) => showError(String(error)));
   });
@@ -678,5 +696,6 @@ export async function start(
     root.removeEventListener("change", onChange);
     root.removeEventListener("input", input);
     root.removeEventListener("keydown", keydown);
+    window.removeEventListener("resize", onResize);
   };
 }
