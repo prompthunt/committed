@@ -156,8 +156,10 @@ struct CommittedWidgetBoardSmall: View {
                     .foregroundStyle(Color.soft)
             } else {
                 VStack(spacing: 2) {
+                    // No streaks: beside whole counts, the small widget's rows have no room for them.
                     ForEach(rows, id: \.rank) { row in
-                        WidgetBoardRow(row: row, window: window, updated: state.updatedDate, busiest: busiest)
+                        WidgetBoardRow(row: row, window: window, updated: state.updatedDate, busiest: busiest,
+                                       showsStreak: false)
                     }
                 }
                 .padding(.horizontal, -6)
@@ -199,12 +201,14 @@ extension StandingRowStyle {
     }
 }
 
-/// One board row through the shared `StandingRow` (never forked).
+/// One board row through the shared `StandingRow` (never forked), with its streak unless the row
+/// is too narrow for one.
 private struct WidgetBoardRow: View {
     let row: WidgetSnapshot.Row
     let window: ContributionWindow
     let updated: Date
     let busiest: Int
+    var showsStreak = true
 
     var body: some View {
         StandingRow(
@@ -216,7 +220,7 @@ private struct WidgetBoardRow: View {
             window: window,
             maxContributions: busiest,
             rankDelta: row.movement,
-            streak: row.streak
+            streak: showsStreak ? row.streak : nil
         )
     }
 }
