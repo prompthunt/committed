@@ -55,6 +55,8 @@ export default function Privacy() {
         <p>Every 5 minutes, the relay reads the public contribution pages of the usernames it has, anonymously, and keeps the daily counts in a cache shared by everyone. It ranks your board and sends Live rank updates through Apple’s push service. It doesn’t send notifications. The relay runs on Cloudflare.</p>
         <h3>Stopping it</h3>
         <p>Turning Live rank off in Settings, or <strong>Disconnect GitHub</strong>, deletes your iPhone’s registration from the relay. The relay keeps a registration until then, so do one of these before you delete the app.</p>
+        <h3>Committed for NZXT Kraken</h3>
+        <p>The <a href="/kraken">Kraken page</a> asks the relay for your rank once a minute. Each request carries a GitHub username, the usernames you’re racing, the Window and your time zone. The relay doesn’t store them; it keeps only the shared cache of public daily counts. The page keeps your settings in your browser, and loads the people you follow from GitHub’s public API.</p>
       </Section>
 
       <Section id="sample-board" title="The Sample board">

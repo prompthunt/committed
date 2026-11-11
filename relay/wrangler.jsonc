@@ -16,6 +16,8 @@
       "migrations_dir": "migrations"
     }
   ],
+  // Per-IP limit on the public GET /v1/board read (the Kraken LCD page polls once a minute).
+  "ratelimits": [{ "name": "BOARD_LIMITER", "namespace_id": "1001", "simple": { "limit": 20, "period": 60 } }],
   "vars": {
     // iOS app bundle id; the APNs topic is `${APNS_BUNDLE_ID}.push-type.liveactivity`.
     "APNS_BUNDLE_ID": "com.addisonk.CommitStandings.iOS"
