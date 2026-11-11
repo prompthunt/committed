@@ -106,7 +106,7 @@ struct PersonSummaryTests {
         let ana = try #require(store.person("ana", asOf: Self.noon("2026-02-10"), calendar: Self.utc))
         // A zero month ranks but never earns a medal.
         #expect(ana.days?.finishes.map(\.medal) == [nil, .gold])
-        #expect(ana.finishSpoken(try #require(ana.days?.finishes.first)) == "January: #2 of 2, 0 contributions")
+        #expect(ana.finishSpoken(try #require(ana.days?.finishes.first)) == "January: #2 of 2, 0 contributions, you finished #1")
     }
 
     @Test func waitsInsteadOfDrawingZerosBeforeTheCountLoads() throws {
