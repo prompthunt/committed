@@ -26,7 +26,7 @@ export function competitorsOf(row: InstallationRow): string[] {
   return selfFirst(row.login, JSON.parse(row.competitors_json) as string[]);
 }
 
-function standingsFor(
+export function standingsFor(
   competitors: readonly string[],
   data: ReadonlyMap<string, LoginData>,
   window: Window,

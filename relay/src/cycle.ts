@@ -165,7 +165,11 @@ async function send(
 }
 
 /** Days per login, from the shared 5-minute cache or a fresh anonymous fetch. */
-async function loadContributions(logins: string[], deps: CycleDeps, now: number): Promise<Map<string, LoginData>> {
+export async function loadContributions(
+  logins: string[],
+  deps: Pick<CycleDeps, "store" | "github" | "log">,
+  now: number,
+): Promise<Map<string, LoginData>> {
   const result = new Map<string, LoginData>();
   const queue = [...logins];
   const worker = async () => {

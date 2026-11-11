@@ -2,6 +2,7 @@ import { endPayload, type ApnsEnvironment, type ApnsSender } from "./apns";
 import { boardError, competitorsOf, loginData, readBoard, type LoginData } from "./board";
 import { Store, type InstallationRow, type Registration } from "./db";
 import { runCycle } from "./cycle";
+import { boardState, parseBoardQuery } from "./publicBoard";
 import type { LiveRankState } from "./liveRank";
 import { isValidTimeZone } from "./parser";
 import { selfFirst, WINDOWS, type Window } from "./ranking";
@@ -28,6 +29,8 @@ export interface RelayDeps {
   now: () => number;
   bundleId: string;
   log?: Log;
+  /** Per-IP limiter for `GET /v1/board` (Workers rate limiting binding). Absent = unlimited. */
+  boardLimiter?: { limit(options: { key: string }): Promise<{ success: boolean }> };
 }
 
 export const MAX_COMPETITORS = 1000;
@@ -52,6 +55,7 @@ export function createRelay(deps: RelayDeps) {
   async function fetchHandler(request: Request): Promise<Response> {
     const url = new URL(request.url);
     if (url.pathname === "/" && request.method === "GET") return text(200, "Committed relay");
+    if (url.pathname === "/v1/board") return board(request, url);
 
     const widget = widgetResponse(request, url);
     if (widget) return widget;
@@ -132,6 +136,24 @@ export function createRelay(deps: RelayDeps) {
     const board = readBoard(row, data, window, deps.now());
     // Private and keyed by the token: a shared cache must never hand one screen's board to another.
     return Response.json(board, { headers: { "cache-control": "private, max-age=60", vary: "Authorization" } });
+  }
+
+  /** Public read for the NZXT Kraken LCD page. Any origin may read it: it serves public counts only. */
+  async function board(request: Request, url: URL): Promise<Response> {
+    const cors = { "access-control-allow-origin": "*" };
+    if (request.method === "OPTIONS") {
+      return new Response(null, { status: 204, headers: { ...cors, "access-control-allow-methods": "GET" } });
+    }
+    if (request.method !== "GET") return json(405, { error: "method_not_allowed" }, cors);
+    if (deps.boardLimiter) {
+      const ip = request.headers.get("cf-connecting-ip") ?? "unknown";
+      if (!(await deps.boardLimiter.limit({ key: ip })).success) return json(429, { error: "rate_limited" }, cors);
+    }
+    const query = parseBoardQuery(url.searchParams, normalizeLogin);
+    if (typeof query === "string") return json(400, { error: query }, cors);
+    const state = await boardState(query, { store, github: deps.github, log, now: deps.now() });
+    log("board_read", { competitors: query.competitors.length });
+    return json(200, state, { ...cors, "cache-control": "public, max-age=60" });
   }
 
   async function allowWrite(row: InstallationRow): Promise<boolean> {
@@ -271,8 +293,8 @@ async function sameHash(a: string, b: string): Promise<boolean> {
   return left.byteLength === right.byteLength && crypto.subtle.timingSafeEqual(left, right);
 }
 
-function json(status: number, body: unknown): Response {
-  return Response.json(body, { status });
+function json(status: number, body: unknown, headers?: Record<string, string>): Response {
+  return Response.json(body, { status, headers });
 }
 
 /** `window` query value, defaulting to daily; null when it isn't a window. */

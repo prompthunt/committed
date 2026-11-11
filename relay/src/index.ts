@@ -42,6 +42,7 @@ function relayFor(env: Env) {
     githubName: fetchGitHubName,
     now: nowSeconds,
     bundleId: env.APNS_BUNDLE_ID,
+    boardLimiter: env.BOARD_LIMITER,
   });
 }
 
