@@ -114,6 +114,9 @@ const LIME = "rgb(200, 255, 46)";
 const LIME_DEEP = "rgb(139, 196, 26)";
 const SOFT = "rgb(214, 217, 208)";
 const MUTED = "rgb(142, 146, 136)";
+/** Apple's vibrant tokens (dark), as plain alpha white: what the page draws with when framed. */
+const LABEL_SECONDARY = "rgba(255, 255, 255, 0.6)";
+const SEPARATOR = "rgba(255, 255, 255, 0.1)";
 const color = (locator: ReturnType<Page["locator"]>) => locator.evaluate((el) => getComputedStyle(el).color);
 
 test("first load shows placeholders, never zero", async ({ page }) => {
@@ -512,11 +515,59 @@ for (const [name, width, height] of [
   });
 }
 
+/** The colours a framed page's tones are checked on: each text role, the card and your row. */
+async function tones(frame: { evaluate: Page["evaluate"] }) {
+  return frame.evaluate(() => {
+    const q = (selector: string) => document.querySelector(selector)!;
+    const fg = (selector: string) => getComputedStyle(q(selector)).color;
+    const card = getComputedStyle(q('[data-testid="card"]'));
+    const self = getComputedStyle(q('[data-testid="row"][data-self="true"]'));
+    return {
+      secondary: {
+        listHead: fg('[data-testid="list-head"]'),
+        rowRank: fg('[data-testid="row"]:not([data-self="true"]) .row-rank'),
+        selfRowRank: fg('[data-testid="row"][data-self="true"] .row-rank'),
+        folio: fg('[data-testid="folio"]'),
+        folioLabel: fg('[data-testid="folio-label"]'),
+        whoHandle: fg('[data-testid="who-handle"]'),
+        rankOf: fg('[data-testid="rank-of"]'),
+        age: fg('[data-testid="age"]'),
+        rowMovementDown: fg('[data-testid="row"] [data-testid="movement"][data-direction="down"]'),
+      },
+      login: fg('[data-testid="row"]:not([data-self="true"]) .name'),
+      lime: {
+        movementUp: fg('[data-testid="movement-line"]'),
+        status: fg('[data-testid="status"]'),
+        selfCount: fg('[data-testid="row"][data-self="true"] .row-count'),
+        badge: getComputedStyle(q('[data-testid="row"][data-self="true"] .badge')).backgroundColor,
+      },
+      card: { bg: card.backgroundColor, border: card.borderTopColor },
+      folioRule: getComputedStyle(q('[data-testid="card"] .folio')).borderBottomColor,
+      selfRow: { bg: self.backgroundColor, border: self.borderTopColor },
+      avatar: getComputedStyle(q(".row .avatar")).backgroundColor,
+    };
+  });
+}
+
 test("on its own the page paints Committed's ink background", async ({ page }) => {
   await open(page, { status: 200, body: board() });
   await expect(rank(page)).toHaveText("#3");
   const bg = await page.evaluate(() => getComputedStyle(document.body).backgroundColor);
   expect(bg).toBe("rgb(5, 5, 5)");
+});
+
+test("on its own the page keeps Committed's fixed greys and its solid card", async ({ page }) => {
+  await open(page, { status: 200, body: board() });
+  await expect(rank(page)).toHaveText("#3");
+  const t = await tones(page);
+  expect(t.secondary.listHead).toBe(MUTED);
+  expect(t.secondary.rowRank).toBe(MUTED);
+  expect(t.secondary.selfRowRank).toBe(MUTED);
+  for (const key of ["folio", "folioLabel", "whoHandle", "rankOf", "age", "rowMovementDown"] as const) {
+    expect(t.secondary[key], key).toBe(SOFT);
+  }
+  expect(t.card.bg).toBe("rgb(14, 16, 11)");
+  expect(t.selfRow).toEqual({ bg: "rgba(200, 255, 46, 0.08)", border: "rgba(200, 255, 46, 0.32)" });
 });
 
 test("embedded in another screen's frame, the page is transparent so the host's tile shows through", async ({ page }) => {
@@ -537,4 +588,47 @@ test("embedded in another screen's frame, the page is transparent so the host's 
     getComputedStyle(document.body).backgroundColor,
   ]);
   expect(bgs).toEqual(["rgba(0, 0, 0, 0)", "rgba(0, 0, 0, 0)"]);
+
+  // Glance's tile may be flat or glass, so the page draws with Apple's vibrant tokens, not fixed
+  // greys (Glance's ADR 0004): label-secondary for supporting text, label-primary for the rest,
+  // separator for hairlines.
+  const t = await tones(widget);
+  for (const [role, value] of Object.entries(t.secondary)) expect(value, role).toBe(LABEL_SECONDARY);
+  expect(t.login).toBe("rgb(255, 255, 255)");
+  expect(t.card.border).toBe(SEPARATOR);
+  expect(t.folioRule).toBe(SEPARATOR);
+  // The card's solid tile becomes a translucent dark (fill-secondary's white lit it too much on
+  // glass), so the surface shows through it.
+  expect(t.card.bg).toBe("rgba(0, 0, 0, 0.25)");
+  // Committed's lime, your row's highlight and the avatars are unchanged.
+  expect(t.lime).toEqual({ movementUp: LIME, status: LIME, selfCount: LIME, badge: LIME });
+  expect(t.selfRow).toEqual({ bg: "rgba(200, 255, 46, 0.08)", border: "rgba(200, 255, 46, 0.32)" });
+  expect(t.avatar).toBe("rgb(27, 29, 23)");
+});
+
+test("embedded and stale, the stepped-down colours are label-secondary too", async ({ page }) => {
+  const HOST = "https://host.test/";
+  await page.route(HOST, (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "text/html",
+      body: `<!doctype html><body style="margin:0;background:#141416"><iframe id="w" src="${WIDGET_URL}" style="border:0;width:1280px;height:1080px"></iframe></body>`,
+    })
+  );
+  await open(page, { status: 200, body: board({ updatedAt: NOW - 45 * 60 }) }, HOST);
+  await expect(page.frameLocator("#w").getByTestId("rank")).toHaveText("#3");
+  const widget = page.frames().find((f) => f.url().startsWith(ORIGIN))!;
+  await expect.poll(() => widget.evaluate(() => document.documentElement.getAttribute("data-state"))).toBe("stale");
+  const stale = await widget.evaluate(() => {
+    const fg = (selector: string) => getComputedStyle(document.querySelector(selector)!).color;
+    return {
+      rank: fg('[data-testid="rank"]'),
+      row: fg('[data-testid="row"]:not([data-self="true"])'),
+      rowRank: fg('[data-testid="row"]:not([data-self="true"]) .row-rank'),
+      rowMovementDown: fg('[data-testid="row"] [data-testid="movement"][data-direction="down"]'),
+      status: fg('[data-testid="status"]'),
+    };
+  });
+  for (const key of ["rank", "row", "rowRank", "rowMovementDown"] as const) expect(stale[key], key).toBe(LABEL_SECONDARY);
+  expect(stale.status).toBe(LIME_DEEP);
 });
