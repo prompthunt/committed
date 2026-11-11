@@ -1,22 +1,27 @@
 import { parse } from "acorn";
 import { describe, expect, it } from "vitest";
-import { standbyCss, standbyHtml, standbyJs } from "../src/widget";
+import { standbyCss, standbyHtml, standbyJs, unsupportedHtml } from "../src/widget";
 
 /**
  * The widget runs on the Samsung Frame's browser, Chromium 76 (ADR 0001 in addisonk/glance).
  * These checks read the exact files the route serves, so they can't drift from what's deployed.
+ * The "size not supported" page is served too, so it's checked alongside the StandBy page.
  */
+
+const pages = [standbyHtml, unsupportedHtml];
 
 function parsesAsEs5(source: string): void {
   parse(source, { ecmaVersion: 5, sourceType: "script" });
 }
 
 /** CSS with comments removed, plus every inline `style="…"` in the page. */
-const css = [standbyCss, ...[...standbyHtml.matchAll(/style="([^"]*)"/g)].map((m) => m[1]!)]
+const css = [standbyCss, ...pages.flatMap((html) => [...html.matchAll(/style="([^"]*)"/g)].map((m) => m[1]!))]
   .join("\n")
   .replace(/\/\*[\s\S]*?\*\//g, "");
 
-const inlineScripts = [...standbyHtml.matchAll(/<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/g)].map((m) => m[1]!);
+const inlineScripts = pages.flatMap((html) =>
+  [...html.matchAll(/<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/g)].map((m) => m[1]!),
+);
 
 describe("widget runtime limits (Chromium 76)", () => {
   it("parses its JavaScript as ES5", () => {
@@ -87,12 +92,14 @@ describe("widget runtime limits (Chromium 76)", () => {
 
   it("loads fonts and icons from the relay, and only avatars from GitHub", () => {
     for (const m of css.matchAll(/url\(\s*['"]?([^'")]+)/g)) expect(m[1]).toMatch(/^\/v1\/widget\//);
-    for (const source of [standbyHtml, standbyCss, standbyJs]) {
+    for (const source of [...pages, standbyCss, standbyJs]) {
       for (const m of source.matchAll(/(?:https?:)?\/\/[\w.-]+\.[a-z]{2,}[^\s"')]*/g)) {
         expect(m[0]).toMatch(/^https:\/\/(github\.com|avatars\.githubusercontent\.com)\//);
       }
     }
     // The page's own files, or a reference inside the page (the trophy symbol).
-    for (const m of standbyHtml.matchAll(/(?:src|href)="([^"]+)"/g)) expect(m[1]).toMatch(/^(\/v1\/widget\/|#)/);
+    for (const html of pages) {
+      for (const m of html.matchAll(/(?:src|href)="([^"]+)"/g)) expect(m[1]).toMatch(/^(\/v1\/widget\/|#)/);
+    }
   });
 });

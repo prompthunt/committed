@@ -69,7 +69,7 @@ interface Harness {
   reply: (next: Reply) => void;
 }
 
-async function open(page: Page, first: Reply, url = WIDGET_URL): Promise<Harness> {
+async function open(page: Page, first: Reply, url = WIDGET_URL, html?: string): Promise<Harness> {
   const harness: Harness = { requests: [], reply: () => {} };
   let current = first;
   harness.reply = (next) => {
@@ -82,6 +82,9 @@ async function open(page: Page, first: Reply, url = WIDGET_URL): Promise<Harness
   await page.route(/^https:\/\/(github\.com|avatars\.githubusercontent\.com)\//, (route) => route.abort());
   await page.route(`${ORIGIN}/**`, async (route: Route) => {
     const { pathname } = new URL(route.request().url());
+    if (pathname === "/v1/widget" && html !== undefined) {
+      return route.fulfill({ status: 200, contentType: "text/html; charset=utf-8", body: html });
+    }
     const file = FILES[pathname];
     if (file) {
       return route.fulfill({ status: 200, contentType: file[1], body: readFileSync(path.join(WIDGET_DIR, file[0])) });
@@ -394,6 +397,19 @@ test("a missing fragment says how to set the page up, without calling the relay"
   const harness = await open(page, { status: 200, body: board() }, `${ORIGIN}/v1/widget`);
   await expect(page.getByText("installation=")).toBeVisible();
   expect(harness.requests.filter((r) => r.url.includes("/board"))).toHaveLength(0);
+});
+
+test("an unsupported size says so, hides the board and never calls the relay", async ({ page }) => {
+  // The relay serves this page, already marked unsupported, for any size but medium (src/widget.ts).
+  const html = readFileSync(path.join(WIDGET_DIR, "standby.html"), "utf8")
+    .replace('data-state="loading"', 'data-state="unsupported"')
+    .replace('<p class="message-title" id="message-title"></p>', '<p class="message-title" id="message-title">Size not supported</p>');
+  const harness = await open(page, { status: 200, body: board() }, WIDGET_URL.replace("size=medium", "size=large"), html);
+  await expect(page.getByText("Size not supported")).toBeVisible();
+  await expect(page.locator(".panes")).toBeHidden();
+  await page.clock.runFor(6 * 60 * 1000);
+  expect(harness.requests.filter((r) => r.url.includes("/board"))).toHaveLength(0);
+  await screenshot(page, "unsupported");
 });
 
 test("a rank change ticks your row's count up and swaps rows with transforms", async ({ page }) => {
