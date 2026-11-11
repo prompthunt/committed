@@ -8,10 +8,10 @@
       "capture": {
         "device": "iPhone Duo Simulator (closed)",
         "os": "iOS 27.1",
-        "sourceCommit": "0937cdae57cf71cc872f7ff778b19d247ea6118c",
+        "sourceCommit": "8cb920a173c91ca0e9464f29c9241ae7b77f3ae9",
         "fixture": true
       },
-      "notes": "Runtime capture (xcrun simctl io screenshot --display=1) of a Debug build on the persistent iPhone Duo, launched with -ScreenshotFixture. Before: docs/screenshots/spec-85/92/iphone-board.png (your row truncated to \"ari...en\")."
+      "notes": "Runtime capture (xcrun simctl io screenshot --display=1) of a Debug build on the persistent iPhone Duo, launched with -ScreenshotFixture. Before: docs/screenshots/spec-85/92/iphone-board.png (your row truncated to \"ari...en\"). Captured on the branch before it was rebased onto #109 (person view only); this surface's code is identical at the source commit."
     },
     {
       "file": "mac-board.png",
@@ -19,18 +19,18 @@
       "capture": {
         "device": "MacBook Pro, fixture host (scripts/build-flow-capture.py)",
         "os": "macOS 27.0",
-        "sourceCommit": "0937cdae57cf71cc872f7ff778b19d247ea6118c",
+        "sourceCommit": "8cb920a173c91ca0e9464f29c9241ae7b77f3ae9",
         "fixture": true
       },
-      "notes": "Fixture host, which draws light; the host drew its own window with -CaptureSnapshot. Before: docs/screenshots/spec-85/92/mac-board.png."
+      "notes": "Fixture host, which draws light; the host drew its own window with -CaptureSnapshot. Before: docs/screenshots/spec-85/92/mac-board.png. Captured on the branch before it was rebased onto #109 (person view only); this surface's code is identical at the source commit."
     },
     {
       "file": "mac-person.png",
-      "caption": "Mac person view (hubot): the streak mark before \"Current streak\"",
+      "caption": "Mac person view (hubot): the streak mark before the Streak tile (after #109's person view)",
       "capture": {
         "device": "MacBook Pro, fixture host (scripts/build-flow-capture.py)",
         "os": "macOS 27.0",
-        "sourceCommit": "0937cdae57cf71cc872f7ff778b19d247ea6118c",
+        "sourceCommit": "8cb920a173c91ca0e9464f29c9241ae7b77f3ae9",
         "fixture": true
       },
       "notes": "Fixture host, Person surface, forced Aqua, -CaptureSnapshot."
@@ -41,10 +41,10 @@
       "capture": {
         "device": "iPhone Duo Simulator (render)",
         "os": "iOS 27.1",
-        "sourceCommit": "0937cdae57cf71cc872f7ff778b19d247ea6118c",
+        "sourceCommit": "8cb920a173c91ca0e9464f29c9241ae7b77f3ae9",
         "fixture": true
       },
-      "notes": "Render, not runtime capture: the real widget and Live Activity views drawn with ImageRenderer by CommitStandingsiOSTests/WidgetRefreshRenderTests on the disposable iPhone Duo / iOS 27.1 test simulator (TEST_RUNNER_RENDER_DIR through scripts/ios_check.py ios), fed what the real AppModel published on the Sample board (made-up calendars, so the streaks are made up too). The Simulator can't draw widgets on a Home Screen, a Live Activity or the Dynamic Island. Before: docs/screenshots/spec-85/94/."
+      "notes": "Render, not runtime capture: the real widget and Live Activity views drawn with ImageRenderer by CommitStandingsiOSTests/WidgetRefreshRenderTests on the disposable iPhone Duo / iOS 27.1 test simulator (TEST_RUNNER_RENDER_DIR through scripts/ios_check.py ios), fed what the real AppModel published on the Sample board (made-up calendars, so the streaks are made up too). The Simulator can't draw widgets on a Home Screen, a Live Activity or the Dynamic Island. Before: docs/screenshots/spec-85/94/. Captured on the branch before it was rebased onto #109 (person view only); this surface's code is identical at the source commit."
     },
     {
       "file": "widgets-stale.png",
@@ -52,10 +52,10 @@
       "capture": {
         "device": "iPhone Duo Simulator (render)",
         "os": "iOS 27.1",
-        "sourceCommit": "0937cdae57cf71cc872f7ff778b19d247ea6118c",
+        "sourceCommit": "8cb920a173c91ca0e9464f29c9241ae7b77f3ae9",
         "fixture": true
       },
-      "notes": "Render, not runtime capture: the real widget and Live Activity views drawn with ImageRenderer by CommitStandingsiOSTests/WidgetRefreshRenderTests on the disposable iPhone Duo / iOS 27.1 test simulator (TEST_RUNNER_RENDER_DIR through scripts/ios_check.py ios), fed what the real AppModel published on the Sample board (made-up calendars, so the streaks are made up too). The Simulator can't draw widgets on a Home Screen, a Live Activity or the Dynamic Island. Before: docs/screenshots/spec-85/94/."
+      "notes": "Render, not runtime capture: the real widget and Live Activity views drawn with ImageRenderer by CommitStandingsiOSTests/WidgetRefreshRenderTests on the disposable iPhone Duo / iOS 27.1 test simulator (TEST_RUNNER_RENDER_DIR through scripts/ios_check.py ios), fed what the real AppModel published on the Sample board (made-up calendars, so the streaks are made up too). The Simulator can't draw widgets on a Home Screen, a Live Activity or the Dynamic Island. Before: docs/screenshots/spec-85/94/. Captured on the branch before it was rebased onto #109 (person view only); this surface's code is identical at the source commit."
     },
     {
       "file": "live-rank-fresh.png",
@@ -63,10 +63,10 @@
       "capture": {
         "device": "iPhone Duo Simulator (render)",
         "os": "iOS 27.1",
-        "sourceCommit": "0937cdae57cf71cc872f7ff778b19d247ea6118c",
+        "sourceCommit": "8cb920a173c91ca0e9464f29c9241ae7b77f3ae9",
         "fixture": true
       },
-      "notes": "Render, not runtime capture: the real widget and Live Activity views drawn with ImageRenderer by CommitStandingsiOSTests/WidgetRefreshRenderTests on the disposable iPhone Duo / iOS 27.1 test simulator (TEST_RUNNER_RENDER_DIR through scripts/ios_check.py ios), fed what the real AppModel published on the Sample board (made-up calendars, so the streaks are made up too). The Simulator can't draw widgets on a Home Screen, a Live Activity or the Dynamic Island. Before: docs/screenshots/spec-85/94/."
+      "notes": "Render, not runtime capture: the real widget and Live Activity views drawn with ImageRenderer by CommitStandingsiOSTests/WidgetRefreshRenderTests on the disposable iPhone Duo / iOS 27.1 test simulator (TEST_RUNNER_RENDER_DIR through scripts/ios_check.py ios), fed what the real AppModel published on the Sample board (made-up calendars, so the streaks are made up too). The Simulator can't draw widgets on a Home Screen, a Live Activity or the Dynamic Island. Before: docs/screenshots/spec-85/94/. Captured on the branch before it was rebased onto #109 (person view only); this surface's code is identical at the source commit."
     },
     {
       "file": "live-rank-stale.png",
@@ -74,10 +74,10 @@
       "capture": {
         "device": "iPhone Duo Simulator (render)",
         "os": "iOS 27.1",
-        "sourceCommit": "0937cdae57cf71cc872f7ff778b19d247ea6118c",
+        "sourceCommit": "8cb920a173c91ca0e9464f29c9241ae7b77f3ae9",
         "fixture": true
       },
-      "notes": "Render, not runtime capture: the real widget and Live Activity views drawn with ImageRenderer by CommitStandingsiOSTests/WidgetRefreshRenderTests on the disposable iPhone Duo / iOS 27.1 test simulator (TEST_RUNNER_RENDER_DIR through scripts/ios_check.py ios), fed what the real AppModel published on the Sample board (made-up calendars, so the streaks are made up too). The Simulator can't draw widgets on a Home Screen, a Live Activity or the Dynamic Island. Before: docs/screenshots/spec-85/94/."
+      "notes": "Render, not runtime capture: the real widget and Live Activity views drawn with ImageRenderer by CommitStandingsiOSTests/WidgetRefreshRenderTests on the disposable iPhone Duo / iOS 27.1 test simulator (TEST_RUNNER_RENDER_DIR through scripts/ios_check.py ios), fed what the real AppModel published on the Sample board (made-up calendars, so the streaks are made up too). The Simulator can't draw widgets on a Home Screen, a Live Activity or the Dynamic Island. Before: docs/screenshots/spec-85/94/. Captured on the branch before it was rebased onto #109 (person view only); this surface's code is identical at the source commit."
     },
     {
       "file": "your-row.png",
@@ -85,10 +85,10 @@
       "capture": {
         "device": "iPhone Duo Simulator (render)",
         "os": "iOS 27.1",
-        "sourceCommit": "0937cdae57cf71cc872f7ff778b19d247ea6118c",
+        "sourceCommit": "8cb920a173c91ca0e9464f29c9241ae7b77f3ae9",
         "fixture": true
       },
-      "notes": "Render, not runtime capture: the shared StandingRow with the iPhone style, drawn with ImageRenderer by WidgetRefreshRenderTests.yourRowKeepsYourName from hand-built rows (logins chosen to exercise each step of the rule). GitHub's 39-character maximum still elides its middle on two lines."
+      "notes": "Render, not runtime capture: the shared StandingRow with the iPhone style, drawn with ImageRenderer by WidgetRefreshRenderTests.yourRowKeepsYourName from hand-built rows (logins chosen to exercise each step of the rule). GitHub's 39-character maximum still elides its middle on two lines. Captured on the branch before it was rebased onto #109 (person view only); this surface's code is identical at the source commit."
     },
     {
       "file": "windows-board-light.png",
@@ -96,10 +96,10 @@
       "capture": {
         "device": "In-app browser (Chromium), Windows fixture page",
         "os": "macOS 27.0",
-        "sourceCommit": "0937cdae57cf71cc872f7ff778b19d247ea6118c",
+        "sourceCommit": "8cb920a173c91ca0e9464f29c9241ae7b77f3ae9",
         "fixture": true
       },
-      "notes": "Runtime capture of windows/fixture.html (the real windows/src/app.ts and style.css on the Sample board via mocked Tauri commands) in T3 Code's in-app browser, served by the Vite dev server. Not the Tauri WebView2 shell."
+      "notes": "Runtime capture of windows/fixture.html (the real windows/src/app.ts and style.css on the Sample board via mocked Tauri commands) in T3 Code's in-app browser, served by the Vite dev server. Not the Tauri WebView2 shell. Captured on the branch before it was rebased onto #109 (person view only); this surface's code is identical at the source commit."
     },
     {
       "file": "windows-board-dark.png",
@@ -107,10 +107,10 @@
       "capture": {
         "device": "In-app browser (Chromium), Windows fixture page",
         "os": "macOS 27.0",
-        "sourceCommit": "0937cdae57cf71cc872f7ff778b19d247ea6118c",
+        "sourceCommit": "8cb920a173c91ca0e9464f29c9241ae7b77f3ae9",
         "fixture": true
       },
-      "notes": "Runtime capture of windows/fixture.html (the real windows/src/app.ts and style.css on the Sample board via mocked Tauri commands) in T3 Code's in-app browser, served by the Vite dev server. Not the Tauri WebView2 shell."
+      "notes": "Runtime capture of windows/fixture.html (the real windows/src/app.ts and style.css on the Sample board via mocked Tauri commands) in T3 Code's in-app browser, served by the Vite dev server. Not the Tauri WebView2 shell. Captured on the branch before it was rebased onto #109 (person view only); this surface's code is identical at the source commit."
     },
     {
       "file": "windows-your-row-narrow.png",
@@ -118,18 +118,18 @@
       "capture": {
         "device": "In-app browser (Chromium), Windows fixture page",
         "os": "macOS 27.0",
-        "sourceCommit": "0937cdae57cf71cc872f7ff778b19d247ea6118c",
+        "sourceCommit": "8cb920a173c91ca0e9464f29c9241ae7b77f3ae9",
         "fixture": true
       },
-      "notes": "Runtime capture of windows/fixture.html (the real windows/src/app.ts and style.css on the Sample board via mocked Tauri commands) in T3 Code's in-app browser, served by the Vite dev server. Not the Tauri WebView2 shell. The shipped window is 380 px wide; 270 px is only to show the rule."
+      "notes": "Runtime capture of windows/fixture.html (the real windows/src/app.ts and style.css on the Sample board via mocked Tauri commands) in T3 Code's in-app browser, served by the Vite dev server. Not the Tauri WebView2 shell. The shipped window is 380 px wide; 270 px is only to show the rule. Captured on the branch before it was rebased onto #109 (person view only); this surface's code is identical at the source commit."
     },
     {
       "file": "windows-person.png",
-      "caption": "Windows person view: the mark before \"Current streak\"",
+      "caption": "Windows person view: the mark before the Streak tile (after #109's person view)",
       "capture": {
         "device": "In-app browser (Chromium), Windows fixture page",
         "os": "macOS 27.0",
-        "sourceCommit": "0937cdae57cf71cc872f7ff778b19d247ea6118c",
+        "sourceCommit": "8cb920a173c91ca0e9464f29c9241ae7b77f3ae9",
         "fixture": true
       },
       "notes": "Runtime capture of windows/fixture.html (the real windows/src/app.ts and style.css on the Sample board via mocked Tauri commands) in T3 Code's in-app browser, served by the Vite dev server. Not the Tauri WebView2 shell."
