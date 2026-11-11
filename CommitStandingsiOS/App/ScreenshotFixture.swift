@@ -11,9 +11,9 @@ import UIKit
 /// `-ScreenshotHide <login>` hides that person before the first refresh (so Today still moves),
 /// `-ScreenshotWindow <raw value>` opens the board on that Window (`month` for This month),
 /// `-ScreenshotDate <ISO 8601>` sets the app's clock (`2026-11-01T10:00:00Z` shows the 1st's Final
-/// standings), and
+/// standings), `-ScreenshotShare` opens Share board once the board has loaded,
 /// `-ScreenshotPerson <login>` opens that person's view (a sheet, or the second pane on the open
-/// iPhone Duo) and `-ScreenshotPersonDay <n>` selects that day's bar instead of today's,
+/// iPhone Duo) and `-ScreenshotPersonDay <n>` selects that day's bar instead of today's, and
 /// `-LiveRankPayload <file.json>` shows a Live Activity push payload's content state in Live rank,
 /// and `-RelayDisclosureAccepted` starts with the Committed relay disclosure already accepted (for
 /// builds with `COMMITTED_RELAY_URL`; without it, a relay build shows the disclosure sheet).
@@ -56,6 +56,13 @@ enum ScreenshotFixture {
     /// for a real device code; nothing connects unless someone approves it.
     static var startsConnect: Bool {
         ProcessInfo.processInfo.arguments.contains("-ScreenshotConnect")
+    }
+
+    /// `-ScreenshotShare`: open Share board a few seconds after launch, once the first refresh has
+    /// loaded the board, as tapping Share would, so captures can show the sheet (with
+    /// `-ScreenshotDate`, the 1st's Final standings). Honored on any Debug launch.
+    static var opensShare: Bool {
+        ProcessInfo.processInfo.arguments.contains("-ScreenshotShare")
     }
 
     /// Live rank settings for the fixture, in memory: never chosen, or accepted and on with

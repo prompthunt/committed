@@ -46,6 +46,8 @@ struct PersonViewContent<Tip: View>: View {
     let person: PersonSummary
     /// Called with a past month to share its Final standings; nil hides the share buttons.
     var shareFinish: ((CalendarMonth) -> Void)?
+    /// Which past months can be shared, when `shareFinish` is set.
+    var canShareFinish: (CalendarMonth) -> Bool
     private let privateTip: Tip
     @Environment(\.personViewStyle) private var style
     /// The selected bar's day of the month: today until another is picked.
@@ -53,9 +55,11 @@ struct PersonViewContent<Tip: View>: View {
     @State private var touchedBar: String?
 
     init(person: PersonSummary, initialDay: Int? = nil, shareFinish: ((CalendarMonth) -> Void)? = nil,
+         canShareFinish: @escaping (CalendarMonth) -> Bool = { _ in true },
          @ViewBuilder privateTip: () -> Tip) {
         self.person = person
         self.shareFinish = shareFinish
+        self.canShareFinish = canShareFinish
         self.privateTip = privateTip()
         _selectedDay = State(initialValue: initialDay ?? person.dayOfMonth)
     }
@@ -296,7 +300,7 @@ struct PersonViewContent<Tip: View>: View {
                 .font(style.bodyFont.weight(.semibold))
                 .monospacedDigit()
                 .frame(minWidth: 40, alignment: .trailing)
-            if let shareFinish {
+            if let shareFinish, canShareFinish(finish.month) {
                 Button("Share \(person.finishName(finish)) final standings", systemImage: "square.and.arrow.up") {
                     shareFinish(finish.month)
                 }
@@ -307,7 +311,7 @@ struct PersonViewContent<Tip: View>: View {
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 10)
-        .accessibilityElement(children: shareFinish == nil ? .ignore : .contain)
+        .accessibilityElement(children: shareFinish != nil && canShareFinish(finish.month) ? .contain : .ignore)
         .accessibilityLabel(person.finishSpoken(finish))
     }
 
@@ -340,8 +344,9 @@ struct PersonViewContent<Tip: View>: View {
 
 extension PersonViewContent where Tip == PrivateContributionsTip {
     /// The person view with the Mac's private-contributions tip, always shown on your own view.
-    init(person: PersonSummary, initialDay: Int? = nil, shareFinish: ((CalendarMonth) -> Void)? = nil) {
-        self.init(person: person, initialDay: initialDay, shareFinish: shareFinish) {
+    init(person: PersonSummary, initialDay: Int? = nil, shareFinish: ((CalendarMonth) -> Void)? = nil,
+         canShareFinish: @escaping (CalendarMonth) -> Bool = { _ in true }) {
+        self.init(person: person, initialDay: initialDay, shareFinish: shareFinish, canShareFinish: canShareFinish) {
             PrivateContributionsTip(dismissible: false)
         }
     }

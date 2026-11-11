@@ -4,13 +4,21 @@ import SwiftUI
 /// ink, with the iPhone's private-contributions tip on your own view. `BoardView` shows it in a
 /// sheet, or in the second pane on iPhone Duo when the panes sit side by side.
 struct PersonScreen: View {
+    @Environment(AppModel.self) private var model
     let person: PersonSummary
+    /// A past month's Final standings being shared, frozen when its share button is tapped.
+    @State private var sharing: BoardShareRequest?
 
     var body: some View {
         ScrollView {
-            // #100 hook: pass `shareFinish:` here to share a past month's Final standings once the
-            // Final standings share image lands (it opens Share board on that month).
-            PersonViewContent(person: person, initialDay: Self.initialDay) {
+            PersonViewContent(
+                person: person,
+                initialDay: Self.initialDay,
+                shareFinish: { month in
+                    sharing = model.finalStandingsToShare(for: month).map(BoardShareRequest.init(finals:))
+                },
+                canShareFinish: { model.finalStandingsToShare(for: $0) != nil }
+            ) {
                 PrivateWorkTip(dismissible: false)
             }
             .padding(16)
@@ -20,6 +28,9 @@ struct PersonScreen: View {
         .scrollContentBackground(.hidden)
         .background(Color.ink)
         .environment(\.personViewStyle, .committed)
+        .sheet(item: $sharing) { request in
+            BoardShareSheet(request: request)
+        }
         // A different person starts on their own today.
         .id(person.login)
     }

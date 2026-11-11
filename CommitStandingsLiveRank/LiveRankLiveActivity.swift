@@ -95,20 +95,22 @@ extension LiveRankState {
 struct LiveRankWindowLabel: View {
     let state: LiveRankState
     var accessibilityName = "Live rank"
+    /// Said in place of the Window ("October final"); nil for the Window.
+    var title: String? = nil
     @Environment(\.liveRankIsStale) private var isStale
 
     var body: some View {
         HStack(spacing: 6) {
             TrophyMark(size: 17, color: isStale ? .limeDeep : .lime)
-            if let window = state.contributionWindow {
-                Text(window.shortTitle)
+            if let text = title ?? state.contributionWindow?.shortTitle {
+                Text(text)
                     .font(.system(size: 16))
                     .foregroundStyle(Color.soft)
                     .fixedSize()
             }
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(state.contributionWindow.map { "\(accessibilityName), \($0.accessibilityDescription)" } ?? accessibilityName)
+        .accessibilityLabel((title ?? state.contributionWindow?.accessibilityDescription).map { "\(accessibilityName), \($0)" } ?? accessibilityName)
     }
 }
 
@@ -138,10 +140,11 @@ struct UpdateAge: View {
 struct LiveRankHeader: View {
     let state: LiveRankState
     var accessibilityName = "Live rank"
+    var title: String? = nil
 
     var body: some View {
         HStack(alignment: .firstTextBaseline, spacing: 8) {
-            LiveRankWindowLabel(state: state, accessibilityName: accessibilityName)
+            LiveRankWindowLabel(state: state, accessibilityName: accessibilityName, title: title)
             Spacer(minLength: 8)
             UpdateAge(date: state.updatedDate)
         }

@@ -54,18 +54,25 @@ struct BoardView: View {
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Share board", systemImage: "square.and.arrow.up") {
-                        sharing = model.boardToShare().map(BoardShareRequest.init)
+                        sharing = model.boardShareRequest()
                     }
                     .disabled(!store.hasSelf)
                 }
             }
             .sheet(item: $sharing) { request in
-                BoardShareSheet(snapshot: request.snapshot)
+                BoardShareSheet(request: request)
             }
             .sheet(item: personSheet) { _ in
                 PersonSheet()
             }
             .refreshable { await model.pullToRefresh() }
+            #if DEBUG
+            .task {
+                guard ScreenshotFixture.opensShare else { return }
+                try? await Task.sleep(for: .seconds(3))
+                sharing = model.boardShareRequest()
+            }
+            #endif
         }
         .onChange(of: store.selectedWindow) {
             Task { await model.windowDidChange() }
@@ -103,12 +110,6 @@ struct BoardView: View {
 struct PersonRequest: Identifiable {
     let login: String
     var id: String { login }
-}
-
-/// A board to share, with an identity for `.sheet(item:)`.
-struct BoardShareRequest: Identifiable {
-    let id = UUID()
-    let snapshot: WidgetSnapshot
 }
 
 /// The ranked list, headed by your summary whenever the summary has no pane of its own.

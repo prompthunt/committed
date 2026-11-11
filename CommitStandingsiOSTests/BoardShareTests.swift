@@ -11,7 +11,7 @@ import UIKit
 struct BoardShareTests {
     private let renderDirectory = ProcessInfo.processInfo.environment["RENDER_DIR"].map(URL.init(fileURLWithPath:))
 
-    @Test(arguments: BoardShareStyle.allCases, BoardShareFormat.allCases)
+    @Test(arguments: BoardShareStyle.live, BoardShareFormat.allCases)
     func rendersAtThePostedSize(style: BoardShareStyle, format: BoardShareFormat) throws {
         let image = try #require(BoardShareRenderer.image(Self.board, style: style, format: format))
         let pixels = CGSize(width: image.size.width * image.scale, height: image.size.height * image.scale)
@@ -105,6 +105,100 @@ struct BoardShareTests {
         let image = try #require(BoardShareRenderer.image(snapshot, style: .board, format: .story))
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         try #require(image.pngData()).write(to: directory.appendingPathComponent("share-board-this-month-story.png"))
+    }
+
+    // MARK: - Final standings
+
+    /// The Sample board at noon on the `day`th of November 2026, after its first refresh.
+    private func sampleBoard(onNovember day: Int) async throws -> AppModel {
+        let date = try #require(Calendar.current.date(from: DateComponents(year: 2026, month: 11, day: day, hour: 12)))
+        let model = AppModel(services: SampleServices.make(now: { date }), backgroundTime: ImmediateBackgroundTime())
+        await model.sceneDidBecomeActive()
+        return model
+    }
+
+    private static let october = CalendarMonth(year: 2026, month: 10)
+
+    @Test func theBoardOffersLastMonthsFinalStandingsOnThe1st() async throws {
+        let model = try await sampleBoard(onNovember: 1)
+        let request = try #require(model.boardShareRequest())
+        #expect(request.styles == [.final, .board, .race, .rank, .list])
+        // The Board opens on the Final standings on the 1st, and so does its share.
+        #expect(request.initialStyle == .final)
+        let finals = try #require(request.finals)
+        #expect(finals.month == Self.october)
+        #expect(finals.title == "October final")
+        // The large widget's rows, medals on the top three, no streaks or movement.
+        #expect(finals.snapshot.top.map(\.medal) == [.gold, .silver, .bronze, nil, nil])
+        #expect(finals.snapshot.top.map(\.rank) == [1, 2, 3, 4, 5])
+        #expect(finals.snapshot.top.allSatisfy { $0.streak == nil && $0.movement == 0 })
+        #expect(finals.snapshot.top.first(where: \.isSelf)?.login == SampleServices.owner)
+        #expect(finals.snapshot.state.competitorCount == 5)
+    }
+
+    @Test func switchedOffTheShareOpensOnTheLiveBoard() async throws {
+        let model = try await sampleBoard(onNovember: 1)
+        model.refresh.showFinalStandings(false)
+        let request = try #require(model.boardShareRequest())
+        #expect(request.styles.contains(.final))
+        #expect(request.initialStyle == .board)
+    }
+
+    @Test func afterThe1stTheBoardOffersOnlyTheLiveStyles() async throws {
+        let model = try await sampleBoard(onNovember: 2)
+        let request = try #require(model.boardShareRequest())
+        #expect(request.finals == nil)
+        #expect(request.styles == [.board, .race, .rank, .list])
+        #expect(request.initialStyle == .board)
+    }
+
+    /// A past month's Final standings, as the person view's past months share them: that style alone.
+    @Test func aPastMonthSharesOnItsOwn() async throws {
+        let model = try await sampleBoard(onNovember: 2)
+        let finals = try #require(model.finalStandingsToShare(for: Self.october))
+        #expect(finals.snapshot.top.map(\.medal) == [.gold, .silver, .bronze, nil, nil])
+        let request = BoardShareRequest(finals: finals)
+        #expect(request.styles == [.final])
+        #expect(request.initialStyle == .final)
+        // A month before your calendar starts has nothing to share.
+        #expect(model.finalStandingsToShare(for: CalendarMonth(year: 2020, month: 1)) == nil)
+    }
+
+    @Test(arguments: BoardShareFormat.allCases)
+    func finalStandingsRenderAtThePostedSize(format: BoardShareFormat) async throws {
+        let model = try await sampleBoard(onNovember: 1)
+        let finals = try #require(model.boardShareRequest()?.finals)
+        let image = try #require(BoardShareRenderer.image(finals, format: format))
+        let pixels = CGSize(width: image.size.width * image.scale, height: image.size.height * image.scale)
+        #expect(pixels == format.pixelSize)
+        if let renderDirectory {
+            try FileManager.default.createDirectory(at: renderDirectory, withIntermediateDirectories: true)
+            try #require(image.pngData()).write(to: renderDirectory.appendingPathComponent("share-final-\(format.rawValue).png"))
+        }
+    }
+
+    @Test func finalStandingsFileIsNamedForTheMonth() async throws {
+        let model = try await sampleBoard(onNovember: 1)
+        let finals = try #require(model.boardShareRequest()?.finals)
+        let url = try BoardShareRenderer.file(finals, format: .square)
+        #expect(url.lastPathComponent == "Committed-October-final-square.png")
+        #expect(try Data(contentsOf: url).starts(with: [0x89, 0x50, 0x4E, 0x47]))
+    }
+
+    /// The sheet as the Board opens it on the 1st (on Final standings), for review.
+    @Test(.enabled(if: ProcessInfo.processInfo.environment["RENDER_DIR"] != nil), arguments: BoardShareFormat.allCases)
+    func sheetOnThe1st(format: BoardShareFormat) async throws {
+        let model = try await sampleBoard(onNovember: 1)
+        let request = try #require(model.boardShareRequest())
+        let window = try makeWindow(UIHostingController(rootView: BoardShareSheet(request: request, initialFormat: format)))
+        try await save(window, name: "share-sheet-final-\(format.rawValue)")
+    }
+
+    @Test func finalStandingsCopyNamesTheMonth() {
+        #expect(BoardShareCard.headline(Self.october) == "Who shipped more in October?")
+        // A finished month's numbers are final, not "as of" a moment.
+        #expect(BoardShareCard.finalLine(Self.october) == "Final · October 2026")
+        #expect(BoardShareStyle.final.title == "Final standings")
     }
 
     private func makeWindow(_ controller: UIViewController) throws -> UIWindow {

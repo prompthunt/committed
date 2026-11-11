@@ -385,6 +385,39 @@
         "fixture": true
       },
       "notes": "Same launch with -ScreenshotDate 2026-11-02T18:00:00Z, as the after-the-1st baseline. \"Updated 8 days ago\" is the fixed past clock, as above."
+    },
+    {
+      "file": "100/share-final-square.png",
+      "caption": "#100 Share board's Final standings, Square (1080 × 1080): the large widget headed \"October final\", 🥇🥈🥉 before the top three names, no counting-up age, \"Final · October 2026\" under it",
+      "capture": {
+        "device": "iPhone Simulator (CommittedAgent iPhone Duo, iOS 27.1), ImageRenderer",
+        "os": "iOS 27.1",
+        "sourceCommit": "1ba535fd445a66f101b9f3e9c29ddaaf14744cca",
+        "fixture": true
+      },
+      "notes": "Render, not runtime capture: BoardShareTests.finalStandingsRenderAtThePostedSize renders BoardShareCard with ImageRenderer at 1080 px from the Sample board's AppModel at noon on 2026-11-01 (model.boardShareRequest().finals), run by `TEST_RUNNER_RENDER_DIR=… python3 scripts/ios_check.py ios`. The share image is always dark (the card fixes its appearance), so there is no light variant."
+    },
+    {
+      "file": "100/share-final-story.png",
+      "caption": "#100 Share board's Final standings, Story (1080 × 1920): \"Who shipped more in October?\" over the same widget",
+      "capture": {
+        "device": "iPhone Simulator (CommittedAgent iPhone Duo, iOS 27.1), ImageRenderer",
+        "os": "iOS 27.1",
+        "sourceCommit": "1ba535fd445a66f101b9f3e9c29ddaaf14744cca",
+        "fixture": true
+      },
+      "notes": "Render, not runtime capture: BoardShareTests.finalStandingsRenderAtThePostedSize renders BoardShareCard with ImageRenderer at 1080 px from the Sample board's AppModel at noon on 2026-11-01 (model.boardShareRequest().finals), run by `TEST_RUNNER_RENDER_DIR=… python3 scripts/ios_check.py ios`. The share image is always dark (the card fixes its appearance), so there is no light variant."
+    },
+    {
+      "file": "100/iphone-share-sheet-final.png",
+      "caption": "#100 iPhone Share board on the 1st: the sheet opens on Final standings (first of five pages, then Board, Your race, Rank, Top 4), Square selected",
+      "capture": {
+        "device": "iPhone Duo Simulator (closed)",
+        "os": "iOS 27.1",
+        "sourceCommit": "1ba535fd445a66f101b9f3e9c29ddaaf14744cca",
+        "fixture": true
+      },
+      "notes": "Runtime capture (xcrun simctl io screenshot --display=1) of a Debug build on the persistent iPhone Duo, launched with -ScreenshotFixture -ScreenshotTab board -ScreenshotDate 2026-11-01T18:00:00Z -ScreenshotShare (opens the sheet as tapping Share would). The screenshot fixture's data includes niko-vane, who always fails to load and ranks 6th with \"—\"; the fixture's clock differs from the unit test's, so counts differ slightly from the renders. On the 2nd the sheet offers only the four live styles (BoardShareTests.afterThe1stTheBoardOffersOnlyTheLiveStyles)."
     }
   ]
 }

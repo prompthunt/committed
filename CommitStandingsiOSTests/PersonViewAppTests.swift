@@ -77,6 +77,16 @@ struct PersonViewAppTests {
         #expect(golds.values.allSatisfy { $0.count == 1 })
     }
 
+    @Test func everyPastMonthInThePersonViewCanBeShared() async throws {
+        let model = await sampleBoard()
+        model.showPerson("ines-volk")
+        let finishes = try #require(model.shownPerson?.days?.finishes)
+        #expect(!finishes.isEmpty)
+        #expect(finishes.allSatisfy { model.finalStandingsToShare(for: $0.month) != nil })
+        // A month before your calendar's first full month isn't shared.
+        #expect(model.finalStandingsToShare(for: CalendarMonth(year: 2025, month: 10)) == nil)
+    }
+
     @Test func yourOwnViewIsMarkedAsYours() async throws {
         let model = await sampleBoard()
         model.showPerson(SampleServices.owner)
