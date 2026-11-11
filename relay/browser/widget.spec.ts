@@ -13,7 +13,7 @@ import { expect, test, type Page, type Route } from "@playwright/test";
 const ORIGIN = "https://relay.test";
 const INSTALLATION = "inst-widget-0001";
 const TOKEN = "a1".repeat(32);
-const WIDGET_URL = `${ORIGIN}/v1/widget?layout=standby#installation=${INSTALLATION}&token=${TOKEN}`;
+const WIDGET_URL = `${ORIGIN}/v1/widget?size=medium#installation=${INSTALLATION}&token=${TOKEN}`;
 const WIDGET_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "widget");
 const T0 = new Date("2026-11-10T18:00:00Z");
 const NOW = T0.getTime() / 1000;

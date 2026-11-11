@@ -743,11 +743,15 @@
     });
   }
 
+  // The relay served this page for a size it doesn't have: it says so (already in the page) and
+  // never asks for a board.
+  if (root.getAttribute("data-state") === "unsupported") return;
+
   if (!config.installation || !config.token) {
     showMessage(
       "setup",
       "Add this screen's board token",
-      "Open this page as /v1/widget#installation=…&token=… with your installation ID and a board read token."
+      "Open this page as /v1/widget?size=medium#installation=…&token=… with your installation ID and a board read token."
     );
     return;
   }

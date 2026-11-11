@@ -232,14 +232,19 @@ A revoked token gets `403` from then on.
 Committed's StandBy pair as a web page, so any screen can show your board: the iPhone app's hero
 card (`BoardSummaryView`, rank only) beside the board list. Glance on the office Frame iframes it (ticket #83; ADR 0001 in `addisonk/glance`).
 
-### `GET /v1/widget?layout=standby`
+### `GET /v1/widget?size=medium`
 
 - **Public, static, no data.** `widget/standby.html`, `standby.css`, `standby.js`, the Inter
   Tight Regular and ExtraBold fonts and JetBrains Mono Medium (the eyebrows' monospace; the TV has
   none), subset to Basic Latin, `·`, `–` and `…` (about 10 KB), are bundled into the Worker (the `rules` in
-  `wrangler.jsonc`) and served by `src/widget.ts` under `/v1/widget/`. `layout` defaults to
-  `standby`, the only layout; any other is a `404`. The page may be framed from any origin.
-- **Address:** `https://committed-relay.prompt-hunt.workers.dev/v1/widget?layout=standby#installation=<id>&token=<board read token>`.
+  `wrangler.jsonc`) and served by `src/widget.ts` under `/v1/widget/`. The page may be framed from any origin.
+- **Size:** the widget is asked for by tile size, Apple's widget sizes (ADR 0002 in `addisonk/glance`,
+  matching the iPhone widget families). `size=medium` is the StandBy pair, and the default with no
+  `size`. Any other `size` (`small`, `large`, `extraLarge`, …) gets `200` with the same page in a
+  quiet "Size not supported" state that never asks for a board; the asked-for size isn't echoed.
+  `layout=standby`, the address from before sizes, still serves the pair; another `layout` is a
+  `404`. With both, `size` decides.
+- **Address:** `https://committed-relay.prompt-hunt.workers.dev/v1/widget?size=medium#installation=<id>&token=<board read token>`.
   The installation ID and token are in the **fragment**, which browsers never send to a server.
   The page calls `GET /v1/installations/{id}/board?window=daily` on the same origin (no CORS)
   with `Authorization: Bearer <token>`; the token never appears in a request URL. Add
@@ -257,6 +262,7 @@ card (`BoardSummaryView`, rank only) beside the board list. Glance on the office
   | `401` / `403` | "This screen's access was revoked" |
   | `404` | "Live rank is off on your iPhone" |
   | No fragment | How to add the installation ID and token |
+  | A `size` other than `medium` | "Size not supported", and how to ask for medium |
 
 - **The card:** a folio ("01 · TODAY", "02 · 7 DAYS", "03 · 30 DAYS" … "YOUR RANK") over a
   hairline; your avatar with a lime ring, your first name (`displayName`'s first word, as the app
