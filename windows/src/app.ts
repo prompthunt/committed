@@ -6,6 +6,7 @@ import type {
   DesktopSettings,
   Medal,
   Person,
+  PersonView,
   PersonVisibility,
   Settings,
   Window,
@@ -53,6 +54,93 @@ const age = (timestamp: number | null) =>
   timestamp === null
     ? "Not refreshed yet"
     : `Updated ${Math.max(0, Math.floor((Date.now() / 1000 - timestamp) / 60))} min ago`;
+const plural = (n: number, word: string) =>
+  `${n.toLocaleString()} ${word}${n === 1 ? "" : "s"}`;
+// The person view's streak stats read in days; past GitHub's year it's "365+ days".
+const streakDays = (n: number) => (n > 365 ? "365+ days" : plural(n, "day"));
+const medalNames: Record<Medal, string> = {
+  gold: "gold",
+  silver: "silver",
+  bronze: "bronze",
+};
+/** "18 active days this month, most on November 8 with 41": the chart's screen-reader summary. */
+function chartSummary(view: PersonView, days: number[]) {
+  const active = days.filter((n) => n > 0).length;
+  if (!active) return "No contributions yet this month";
+  const most = Math.max(...days);
+  return `${plural(active, "active day")} this month, most on ${view.month_name} ${days.indexOf(most) + 1} with ${most.toLocaleString()}`;
+}
+/**
+ * This month's bars (one per day so far, each reachable by keyboard and screen reader) in front
+ * of last month's in grey, drawn as plain SVG. `selected` is the day shown in the caption.
+ */
+function chart(view: PersonView, selected: number) {
+  const { this_month: now, last_month: past } = view.history!;
+  const slots = Math.max(view.days_in_month, past.length);
+  const slot = 10;
+  const height = 120;
+  const top = Math.max(1, ...now, ...past);
+  const barHeight = (n: number) => (n / top) * (height - 4);
+  const pastBars = past
+    .map((n, i) => {
+      const h = barHeight(n);
+      return `<rect class="past-bar" x="${i * slot + 1}" y="${height - h}" width="${slot - 2}" height="${h}" rx="1.5" />`;
+    })
+    .join("");
+  const days = now
+    .map((n, i) => {
+      const day = i + 1;
+      const h = Math.max(2, barHeight(n));
+      const last = past[i];
+      const label = `${view.month_name} ${day}: ${plural(n, "contribution")}${last === undefined ? "" : `. ${view.last_month_name} ${day}: ${last.toLocaleString()}`}`;
+      return `<g class="day ${day === selected ? "selected" : ""} ${n ? "" : "zero"}" data-day="${day}" data-focus="day-${day}" tabindex="${day === selected ? 0 : -1}" role="img" aria-label="${escape(label)}"><rect class="hit" x="${i * slot}" y="0" width="${slot}" height="${height}" /><rect class="bar" x="${i * slot + 2.5}" y="${height - h}" width="${slot - 5}" height="${h}" rx="1.5" /></g>`;
+    })
+    .join("");
+  const ticks = [1, 8, 15, 22, 29]
+    .filter((day) => day <= slots)
+    .map(
+      (day) =>
+        `<text x="${(day - 0.5) * slot}" y="${height + 13}">${day}</text>`,
+    )
+    .join("");
+  return `<svg class="chart" viewBox="0 0 ${slots * slot} ${height + 16}" role="group" aria-label="${escape(chartSummary(view, now))}"><g aria-hidden="true">${pastBars}</g>${days}<g class="ticks" aria-hidden="true">${ticks}</g></svg>`;
+}
+function selectedDay(view: PersonView, day: number) {
+  const { this_month: now, last_month: past } = view.history!;
+  const last = past[day - 1];
+  return `<p class="selected-day"><strong>${view.month_name} ${day}</strong> · ${plural(now[day - 1], "contribution")}${last === undefined ? "" : ` <span class="muted">· ${view.last_month_name} ${day} · ${last.toLocaleString()}</span>`}</p>`;
+}
+function finishMonth(view: PersonView, month: string, monthName: string) {
+  const year = month.slice(0, 4);
+  return year === view.month.slice(0, 4) ? monthName : `${monthName} ${year}`;
+}
+/** The private-contributions tip, as on the Mac: always shown on your own person view. */
+const privateTip = `<aside class="tip person-tip"><div><p><strong>Want your private work to count?</strong></p><p>Include private repo and org activity: on your GitHub profile, above the green squares, choose <strong>Contribution settings → Private contributions</strong>.</p><p>Only daily counts are shared. Your code and repo details stay private.</p><button data-action="contributions">Open GitHub profile settings</button></div></aside>`;
+function personHtml(view: PersonView, selected: number) {
+  const history = view.history;
+  const header = `<header class="person-header">${avatar(view)}<div class="identity"><h1>${escape(name(view))}</h1><small>@${escape(view.login)}${view.is_you ? " · you" : ""}</small></div><button data-action="github" data-login="${escape(view.login)}">GitHub profile</button></header>`;
+  if (!history)
+    return `${header}<section class="waiting" role="status"><p><strong>Waiting for ${escape(name(view))}’s count</strong></p><p class="muted">${view.status === "failed" ? "GitHub didn’t answer the last refresh. Committed tries again on the next one." : "Their month appears once the next refresh loads it."}</p></section>${view.is_you ? privateTip : ""}`;
+  const total = (days: number[]) => days.reduce((a, b) => a + b, 0);
+  const finishes = history.finishes
+    .map((finish) => {
+      const month = finishMonth(view, finish.month, finish.month_name);
+      const spoken = `${month}: #${finish.rank} of ${finish.of}, ${plural(finish.total, "contribution")}${finish.medal ? `, ${medalNames[finish.medal]} medal` : ""}`;
+      return `<li aria-label="${escape(spoken)}"><span class="medal" aria-hidden="true">${finish.medal ? medals[finish.medal] : ""}</span><span class="finish-month" aria-hidden="true">${escape(month)}</span><span class="finish-rank" aria-hidden="true">#${finish.rank} of ${finish.of}</span><strong class="finish-total" aria-hidden="true">${finish.total.toLocaleString()}</strong></li>`;
+    })
+    .join("");
+  return `${header}
+    ${view.status === "failed" ? '<p class="muted">Refresh failed · showing saved counts</p>' : ""}
+    <dl class="person-stats">
+      <div><dt><span aria-hidden="true">🔥 </span>Current streak</dt><dd>${streakDays(history.current_streak)}</dd></div>
+      <div><dt>Longest streak</dt><dd>${streakDays(history.longest_streak)}</dd></div>
+      <div><dt>Active days</dt><dd>${history.active_days} of ${view.day_of_month}</dd></div>
+    </dl>
+    <section class="month" aria-labelledby="month-title"><div class="month-head"><h2 id="month-title">${escape(view.month_name)}</h2><p class="legend"><span class="key now" aria-hidden="true"></span>${escape(view.month_name)} <strong>${total(history.this_month).toLocaleString()}</strong><span class="key past" aria-hidden="true"></span>${escape(view.last_month_name)} <strong>${total(history.last_month).toLocaleString()}</strong></p></div>
+      ${selectedDay(view, selected)}${chart(view, selected)}</section>
+    <section aria-labelledby="finishes-title"><h2 id="finishes-title">Past months</h2>${finishes ? `<ol class="finishes">${finishes}</ol>` : '<p class="muted">No finished months yet.</p>'}</section>
+    ${view.is_you ? privateTip : ""}`;
+}
 function avatar(person: Person) {
   return `<span class="avatar fallback" data-avatar="${escape(person.login)}" aria-hidden="true">${escape(name(person).slice(0, 1).toUpperCase())}</span>`;
 }
@@ -73,6 +161,9 @@ export async function start(
   let updateReady = false;
   let loadRevision = 0;
   let errorMessage = "";
+  // The person view's data and its selected bar (today until you pick another day).
+  let personView: PersonView | null = null;
+  let selectedBar = 0;
   let settings: Settings;
   let desktop: DesktopSettings;
   const avatars = new Map<string, Promise<string | null>>();
@@ -189,6 +280,17 @@ export async function start(
         ${board.people_error ? `<p class="error" role="status">${escape(board.people_error)}</p>` : ""}
         <ul class="people-list">${people.map(({ person, hidden, is_you }) => `<li>${avatar(person)}<span class="identity"><strong>${escape(name(person))}</strong><small>@${escape(person.login)} ${is_you ? "· you" : ""}</small></span><button class="visibility" ${is_you ? "disabled" : ""} data-person="${escape(person.login)}" data-hidden="${!hidden}" data-focus="person-${escape(person.login)}" aria-label="${hidden ? "Show" : "Hide"} ${escape(name(person))}" aria-pressed="${!hidden}"><span aria-hidden="true">${hidden ? "◌" : "◉"}</span> ${hidden ? "Show" : "Hide"}</button></li>`).join("")}</ul>
         ${people.length ? "" : '<p class="muted">No people match this search.</p>'}${alert()}`);
+    } else if (view === "person") {
+      const next = await invoke<PersonView | null>("get_person");
+      if (disposed || revision !== loadRevision) return;
+      // Stay on a picked day across refreshes; otherwise follow today, including past midnight.
+      const days = next?.history?.this_month.length ?? 0;
+      const onToday =
+        selectedBar === (personView?.history?.this_month.length ?? 0);
+      if (next?.login !== personView?.login || onToday || selectedBar > days)
+        selectedBar = days;
+      personView = next;
+      renderPerson();
     } else if (view === "setup") {
       if (!root.querySelector("#connect"))
         replace(
@@ -227,7 +329,7 @@ export async function start(
               (row.contributions ?? 0) / maxContributions,
             );
             const squareColor = `rgb(${Math.round(156 - 110 * shade)}, ${Math.round(232 - 71 * shade)}, ${Math.round(168 - 102 * shade)})`;
-            return `<li class="${row.is_you ? "you" : ""}"><button class="standing" data-profile="${escape(row.login)}" data-focus="row-${escape(row.login)}" aria-label="${escape(spoken)}"><span class="rank">#${row.rank}</span>${avatar(row)}${medal ? `<span class="medal" aria-hidden="true">${medals[medal]}</span>` : ""}<span class="identity"><strong title="${escape(name(row))}">${escape(row.login)}${row.is_you ? ' <span class="badge">you</span>' : ""}</strong>${row.status === "failed" ? "<small>Refresh failed</small>" : ""}</span>${!final && movementWindows.includes(selected) && row.movement ? `<span class="movement ${row.movement > 0 ? "up" : "down"}" aria-label="Moved ${row.movement > 0 ? "up" : "down"} ${Math.abs(row.movement)}">${row.movement > 0 ? "↑" : "↓"}${Math.abs(row.movement)}</span>` : ""}${streak ? `<span class="streak" aria-hidden="true">🔥 ${streak}</span>` : ""}<strong class="contributions">${count(row.contributions)}</strong><svg class="contribution-squares" viewBox="0 0 12 12" fill="${squareColor}" aria-hidden="true" ${row.contributions === null ? 'style="visibility:hidden"' : ""}><path d="M0 0h5v5H0zM7 0h5v5H7zM0 7h5v5H0zM7 7h5v5H7z" /></svg></button></li>`;
+            return `<li class="${row.is_you ? "you" : ""}"><button class="standing" data-open-person="${escape(row.login)}" data-focus="row-${escape(row.login)}" aria-label="${escape(spoken)}"><span class="rank">#${row.rank}</span>${avatar(row)}${medal ? `<span class="medal" aria-hidden="true">${medals[medal]}</span>` : ""}<span class="identity"><strong title="${escape(name(row))}">${escape(row.login)}${row.is_you ? ' <span class="badge">you</span>' : ""}</strong>${row.status === "failed" ? "<small>Refresh failed</small>" : ""}</span>${!final && movementWindows.includes(selected) && row.movement ? `<span class="movement ${row.movement > 0 ? "up" : "down"}" aria-label="Moved ${row.movement > 0 ? "up" : "down"} ${Math.abs(row.movement)}">${row.movement > 0 ? "↑" : "↓"}${Math.abs(row.movement)}</span>` : ""}${streak ? `<span class="streak" aria-hidden="true">🔥 ${streak}</span>` : ""}<strong class="contributions">${count(row.contributions)}</strong><svg class="contribution-squares" viewBox="0 0 12 12" fill="${squareColor}" aria-hidden="true" ${row.contributions === null ? 'style="visibility:hidden"' : ""}><path d="M0 0h5v5H0zM7 0h5v5H7zM0 7h5v5H0zM7 7h5v5H7z" /></svg></button></li>`;
           })
           .join("")}</ol>
         ${first && !refreshing ? '<p class="muted">Fetching the first set of standings. Use Refresh to retry if GitHub is unavailable.</p>' : ""}
@@ -240,6 +342,18 @@ export async function start(
       const message = root.querySelector(".status")?.textContent ?? "";
       if (announcer.textContent !== message) announcer.textContent = message;
     }
+  }
+  function renderPerson() {
+    replace(
+      `<div class="person">${personView ? personHtml(personView, selectedBar) : '<p class="muted">Pick someone on the board to see their month.</p>'}${alert()}</div>`,
+    );
+  }
+  function selectDay(day: number) {
+    const days = personView?.history?.this_month.length ?? 0;
+    if (!days) return;
+    selectedBar = Math.min(days, Math.max(1, day));
+    renderPerson();
+    root.querySelector<SVGElement>(`[data-day="${selectedBar}"]`)?.focus();
   }
   async function connect() {
     const button = root.querySelector<HTMLButtonElement>("#connect")!;
@@ -278,6 +392,11 @@ export async function start(
     }
   }
   const click = async (event: Event) => {
+    const day = (event.target as Element).closest<SVGElement>("[data-day]");
+    if (day) {
+      selectDay(Number(day.dataset.day));
+      return;
+    }
     const target = (event.target as HTMLElement).closest<HTMLElement>("button");
     if (!target) return;
     if (target.dataset.window) {
@@ -289,8 +408,8 @@ export async function start(
       root.querySelector<HTMLElement>(`[data-window="${selected}"]`)?.focus();
       return;
     }
-    if (target.dataset.profile) {
-      await act("open_profile", { login: target.dataset.profile });
+    if (target.dataset.openPerson) {
+      await act("open_person", { login: target.dataset.openPerson });
       return;
     }
     if (target.dataset.person) {
@@ -317,6 +436,9 @@ export async function start(
       case "final":
         showFinal = target.getAttribute("aria-pressed") !== "true";
         await load();
+        break;
+      case "github":
+        await act("open_profile", { login: target.dataset.login });
         break;
       case "people":
       case "about":
@@ -364,6 +486,19 @@ export async function start(
     }
   };
   const keydown = (event: KeyboardEvent) => {
+    const bar = (event.target as Element).closest<SVGElement>("[data-day]");
+    if (bar && ["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) {
+      event.preventDefault();
+      const day = Number(bar.dataset.day);
+      selectDay(
+        event.key === "Home"
+          ? 1
+          : event.key === "End"
+            ? Infinity
+            : day + (event.key === "ArrowRight" ? 1 : -1),
+      );
+      return;
+    }
     const row = (event.target as HTMLElement).closest<HTMLButtonElement>(
       ".standing",
     );

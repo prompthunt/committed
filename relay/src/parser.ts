@@ -1,4 +1,4 @@
-import { DAY_COUNT, type Window } from "./ranking";
+import { addDays, windowStart, type Window } from "./ranking";
 
 /**
  * TypeScript port of `ContributionsParser` (CommitStandings/Services/ContributionsParser.swift).
@@ -60,14 +60,32 @@ export function parseDays(html: string): Days {
   return result;
 }
 
-/** Sum of the window ending on `today` (inclusive), today and the prior `dayCount − 1` days. */
+/** Sum of the Window ending on `today` (inclusive), from its `windowStart`. */
 export function sum(days: Days, window: Window, today: string): number {
-  const earliest = addDays(today, -(DAY_COUNT[window] - 1));
+  const earliest = windowStart(window, today);
   let total = 0;
   for (const [date, count] of Object.entries(days)) {
     if (date >= earliest && date <= today) total += count;
   }
   return total;
+}
+
+/**
+ * Days in a row with at least one contribution as of `today`, the port of Swift's
+ * `ContributionHistory.currentStreak(asOf:)`. While today has none yet, the run counts back from
+ * yesterday, so a streak stays alive until today ends. A day missing from the calendar counts as
+ * none, so the run stops at the calendar's first day, and days after `today` never count. The raw
+ * count: the apps show it from 2, and past 365 as "365+".
+ */
+export function currentStreak(days: Days, today: string): number {
+  const contributed = (date: string) => (days[date] ?? 0) > 0;
+  let day = contributed(today) ? today : addDays(today, -1);
+  let streak = 0;
+  while (contributed(day)) {
+    streak += 1;
+    day = addDays(day, -1);
+  }
+  return streak;
 }
 
 /** The calendar date (`YYYY-MM-DD`) at `unixSeconds` in the IANA `timeZone`. */
@@ -89,12 +107,6 @@ export function isValidTimeZone(timeZone: string): boolean {
   } catch {
     return false;
   }
-}
-
-function addDays(date: string, delta: number): string {
-  const [year, month, day] = date.split("-").map(Number);
-  const shifted = new Date(Date.UTC(year!, month! - 1, day! + delta));
-  return shifted.toISOString().slice(0, 10);
 }
 
 function extractTooltipCounts(html: string): Map<string, number> {

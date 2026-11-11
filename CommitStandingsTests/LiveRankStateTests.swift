@@ -22,10 +22,11 @@ struct LiveRankStateTests {
 
     private func derive(
         _ logins: [String], _ standings: [String: Standing], window: ContributionWindow = .daily,
-        deltas: [String: Int] = [:], now: Date? = nil
+        deltas: [String: Int] = [:], streaks: [String: Int] = [:], now: Date? = nil
     ) -> LiveRankState {
         LiveRankState.derive(
-            competitors: board(logins), standings: standings, window: window, rankDeltas: deltas, now: now ?? data
+            competitors: board(logins), standings: standings, window: window, rankDeltas: deltas,
+            streaks: streaks, now: now ?? data
         )
     }
 
@@ -137,6 +138,64 @@ struct LiveRankStateTests {
         let state = try JSONDecoder().decode(LiveRankState.self, from: Data(json.utf8))
 
         #expect(state.above == LiveRankState.Neighbor(login: "alice", contributions: 9, movementToday: -1))
+    }
+
+    // MARK: Streaks
+
+    @Test func streaksForYouAndYourNeighbors() {
+        let state = derive(["me", "alice", "bob"], counts(["me": 5, "alice": 9, "bob": 1]),
+                           streaks: ["me": 4, "alice": 12, "bob": 0])
+
+        #expect(state.streak == 4)
+        #expect(state.above?.streak == 12)
+        #expect(state.below?.streak == 0)
+    }
+
+    /// A streak follows its count: none beside a count that hasn't loaded, and none without a calendar.
+    @Test func noStreakWithoutACountOrACalendar() {
+        let missingCount = derive(["me", "alice"], counts(["alice": 9]), streaks: ["me": 4, "alice": 2])
+        #expect(missingCount.streak == nil)
+
+        let noCalendar = derive(["me", "alice"], counts(["me": 5, "alice": 9]), streaks: ["me": 4])
+        #expect(noCalendar.streak == 4)
+        #expect(noCalendar.above?.streak == nil)
+    }
+
+    /// Pushes from a relay without streaks, and states saved by an older build, still decode.
+    @Test func decodesWithoutStreaks() throws {
+        let json = #"""
+        {"window":"daily","rank":2,"competitorCount":3,"contributions":5,
+         "above":{"login":"alice","contributions":9,"movementToday":0},"below":null,
+         "movementToday":1,"updatedAt":1793800000}
+        """#
+        let state = try JSONDecoder().decode(LiveRankState.self, from: Data(json.utf8))
+
+        #expect(state.streak == nil)
+        #expect(state.above?.streak == nil)
+    }
+
+    /// The neighbor's hand-written decoder reads its streak too.
+    @Test func decodesStreaksForYouAndYourNeighbors() throws {
+        let json = #"""
+        {"window":"daily","rank":2,"competitorCount":3,"contributions":5,"streak":7,
+         "above":{"login":"alice","contributions":9,"movementToday":0,"streak":12},
+         "below":{"login":"bob","contributions":1,"streak":0},
+         "movementToday":1,"updatedAt":1793800000}
+        """#
+        let state = try JSONDecoder().decode(LiveRankState.self, from: Data(json.utf8))
+
+        #expect(state.streak == 7)
+        #expect(state.above == LiveRankState.Neighbor(login: "alice", contributions: 9, movementToday: 0, streak: 12))
+        #expect(state.below?.streak == 0)
+    }
+
+    /// Like the relay, a streak that isn't known is left out of the JSON, not written as null.
+    @Test func encodesStreaksOnlyWhenKnown() throws {
+        let state = derive(["me", "alice"], counts(["me": 5, "alice": 9]), streaks: ["me": 3])
+        let json = try JSONSerialization.jsonObject(with: JSONEncoder().encode(state)) as? [String: Any]
+
+        #expect(json?["streak"] as? Int == 3)
+        #expect((json?["above"] as? [String: Any])?.keys.contains("streak") == false)
     }
 
     @Test func updatedAtIsWholeUnixSecondsOfTheData() {
@@ -268,6 +327,24 @@ struct LiveRankBoardTests {
 
         #expect(state.above?.movementToday == 1)
         #expect(state.below?.movementToday == 2)
+    }
+
+    /// Streaks from each person's saved calendar, as of the clock (not the data's date), like the
+    /// Board's rows.
+    @Test func streaksFromSavedCalendarsAsOfNow() {
+        let store = store(["me": 5, "alice": 9])
+        let utc = TimeZone(identifier: "UTC")!
+        // The data is from Nov 4; it's now Nov 5. Alice's run ended on Nov 3.
+        store.updateHistories([
+            "me": ContributionHistory(days: ["2026-11-03": 1, "2026-11-04": 2], timeZone: utc),
+            "alice": ContributionHistory(days: ["2026-11-03": 3, "2026-11-04": 0], timeZone: utc),
+        ])
+
+        let state = LiveRankState.board(store, window: .daily, rankDelta: { _ in nil },
+                                        now: data.addingTimeInterval(24 * 3600))
+
+        #expect(state.streak == 2)
+        #expect(state.above?.streak == 0)
     }
 
     @Test func updatedAtIsTheNewestDataNotTheClock() {

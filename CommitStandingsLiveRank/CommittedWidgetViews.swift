@@ -10,8 +10,8 @@ import SwiftUI
 // and how long ago the numbers were updated ("13 min, 36 sec") counting up at 12 pt on the right,
 // or, where a small widget has no room beside the Window, on its own line.
 
-/// Small (also CarPlay and StandBy): the Window, your rank big, your count, then the age.
-/// Read at a glance from the driver's seat, so no rows.
+/// Small (also CarPlay and StandBy): the Window, your rank big, your count and streak, then the
+/// age. Read at a glance from the driver's seat, so no rows.
 struct CommittedWidgetSmall: View {
     let snapshot: WidgetSnapshot
     @Environment(\.liveRankIsStale) private var isStale
@@ -37,9 +37,18 @@ struct CommittedWidgetSmall: View {
                     .foregroundStyle(isStale ? Color.limeDeep : Color.lime)
                 ContributionSquare(level: state.contributions.map { $0 > 0 ? (isStale ? 3 : 4) : 0 } ?? 0,
                                    size: ranked ? 12 : 18)
+                // Your streak on the count's line, so the card keeps its four lines. Only beside
+                // your count (`state.streak` is nil without it), from 2 days.
+                if let streak = StreakLabel.text(state.streak) {
+                    Spacer(minLength: 4)
+                    Text(streak)
+                        .font(CommittedType.numeral(ranked ? 15 : 17, relativeTo: .subheadline))
+                        .foregroundStyle(isStale ? Color.muted : Color.soft)
+                        .fixedSize()
+                }
             }
             .accessibilityElement(children: .ignore)
-            .accessibilityLabel(LiveRankText.countAccessibility(state))
+            .accessibilityLabel(LiveRankText.countAccessibility(state, streak: true))
             WidgetStatusLine(state: state)
         }
         .lineLimit(1)
@@ -147,8 +156,10 @@ struct CommittedWidgetBoardSmall: View {
                     .foregroundStyle(Color.soft)
             } else {
                 VStack(spacing: 2) {
+                    // No streaks: beside whole counts, the small widget's rows have no room for them.
                     ForEach(rows, id: \.rank) { row in
-                        WidgetBoardRow(row: row, window: window, updated: state.updatedDate, busiest: busiest)
+                        WidgetBoardRow(row: row, window: window, updated: state.updatedDate, busiest: busiest,
+                                       showsStreak: false)
                     }
                 }
                 .padding(.horizontal, -6)
@@ -190,12 +201,14 @@ extension StandingRowStyle {
     }
 }
 
-/// One board row through the shared `StandingRow` (never forked).
+/// One board row through the shared `StandingRow` (never forked), with its streak unless the row
+/// is too narrow for one.
 private struct WidgetBoardRow: View {
     let row: WidgetSnapshot.Row
     let window: ContributionWindow
     let updated: Date
     let busiest: Int
+    var showsStreak = true
 
     var body: some View {
         StandingRow(
@@ -206,7 +219,8 @@ private struct WidgetBoardRow: View {
             },
             window: window,
             maxContributions: busiest,
-            rankDelta: row.movement
+            rankDelta: row.movement,
+            streak: showsStreak ? row.streak : nil
         )
     }
 }

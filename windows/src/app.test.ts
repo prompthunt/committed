@@ -3,8 +3,8 @@ import { afterEach, expect, test, vi } from "vitest";
 import { mockIPC, clearMocks } from "@tauri-apps/api/mocks";
 import { emit } from "@tauri-apps/api/event";
 import { start } from "./app";
-import { sampleBoard } from "./sample-board";
-import type { Window } from "./types";
+import { sampleBoard, samplePeople, samplePerson } from "./sample-board";
+import type { PersonView, Window } from "./types";
 
 const board = {
   window: "today",
@@ -136,10 +136,11 @@ test("streaks show on rows and your summary from 2 days, read as N-day streak", 
   });
   const label = (login: string) =>
     document
-      .querySelector(`[data-profile="${login}"]`)
+      .querySelector(`[data-open-person="${login}"]`)
       ?.getAttribute("aria-label");
   const flame = (login: string) =>
-    document.querySelector(`[data-profile="${login}"] .streak`)?.textContent;
+    document.querySelector(`[data-open-person="${login}"] .streak`)
+      ?.textContent;
   expect(label("octocat")).toBe(
     "Rank 1, Mona, 12 Contributions, 12-day streak, you",
   );
@@ -160,7 +161,7 @@ test("streaks show on rows and your summary from 2 days, read as N-day streak", 
   // The flame is decoration; the row's label carries the streak.
   expect(
     document
-      .querySelector('[data-profile="octocat"] .streak')
+      .querySelector('[data-open-person="octocat"] .streak')
       ?.getAttribute("aria-hidden"),
   ).toBe("true");
   dispose();
@@ -377,4 +378,232 @@ test("each new 1st opens on Final standings again, even after picking a Window l
     "November final",
   );
   dispose();
+});
+
+const october = [
+  4, 0, 7, 12, 0, 3, 9, 1, 0, 0, 6, 2, 8, 0, 5, 1, 1, 0, 3, 0, 7, 2, 0, 4, 11,
+  0, 6, 0, 2, 3, 9,
+];
+const person: PersonView = {
+  login: "odile-m",
+  name: "Odile M.",
+  avatar_url: null,
+  is_you: false,
+  status: "loaded",
+  month: "2026-11-01",
+  month_name: "November",
+  last_month: "2026-10-01",
+  last_month_name: "October",
+  day_of_month: 4,
+  days_in_month: 30,
+  history: {
+    this_month: [3, 0, 41, 5],
+    last_month: october,
+    current_streak: 2,
+    longest_streak: 371,
+    active_days: 3,
+    finishes: [
+      {
+        month: "2026-10-01",
+        month_name: "October",
+        rank: 1,
+        of: 6,
+        total: 105,
+        medal: "gold",
+      },
+      {
+        month: "2025-12-01",
+        month_name: "December",
+        rank: 4,
+        of: 6,
+        total: 40,
+        medal: null,
+      },
+    ],
+  },
+};
+async function mountPerson(
+  view: PersonView | null,
+  calls: [string, unknown][] = [],
+) {
+  mockIPC((command, args) => {
+    calls.push([command, args]);
+    if (command === "get_person") return view;
+    if (command === "get_board") return board;
+    if (command === "get_settings")
+      return {
+        notifications: false,
+        automatic_updates: true,
+        private_tip_dismissed: true,
+      };
+    if (command === "get_desktop_settings")
+      return { launch_at_login: false, version: "0.1.50" };
+    if (command === "plugin:event|listen") return 1;
+    return null;
+  });
+  document.body.innerHTML = '<main id="app"></main>';
+  return start(document.querySelector("main")!, "person");
+}
+const caption = () =>
+  document.querySelector(".selected-day")?.textContent?.replace(/\s+/g, " ");
+
+test("clicking a row opens that person's view in its own window", async () => {
+  const calls: [string, unknown][] = [];
+  mockIPC((command, args) => {
+    calls.push([command, args]);
+    if (command === "get_board") return sampleBoard("today", 1779969600);
+    if (command === "get_settings")
+      return {
+        notifications: false,
+        automatic_updates: true,
+        private_tip_dismissed: true,
+      };
+    if (command === "get_desktop_settings")
+      return { launch_at_login: false, version: "0.1.50" };
+    if (command === "plugin:event|listen") return 1;
+    return null;
+  });
+  document.body.innerHTML = '<main id="app"></main>';
+  const dispose = await start(document.querySelector("main")!, "board");
+  document
+    .querySelector<HTMLButtonElement>('[data-open-person="odile-m"]')!
+    .click();
+  await vi.waitFor(() =>
+    expect(calls).toContainEqual(["open_person", { login: "odile-m" }]),
+  );
+  expect(calls.some(([command]) => command === "open_profile")).toBe(false);
+  dispose();
+});
+
+test("the person view shows this month's bars over last month's, streaks, active days and finishes", async () => {
+  const dispose = await mountPerson(person);
+  expect(document.querySelector("h1")?.textContent).toContain("Odile M.");
+  const chart = document.querySelector("svg.chart")!;
+  expect(chart.getAttribute("aria-label")).toBe(
+    "3 active days this month, most on November 3 with 41",
+  );
+  // One reachable bar per day so far; last month's 31 days in grey behind them.
+  const days = document.querySelectorAll("[data-day]");
+  expect(days).toHaveLength(4);
+  expect(days[2].getAttribute("aria-label")).toBe(
+    "November 3: 41 contributions. October 3: 7",
+  );
+  expect(document.querySelectorAll(".past-bar")).toHaveLength(31);
+  // Today is selected to start with, and only it is in the tab order.
+  expect(caption()).toContain("November 4 · 5 contributions");
+  expect(Array.from(days).map((day) => day.getAttribute("tabindex"))).toEqual([
+    "-1",
+    "-1",
+    "-1",
+    "0",
+  ]);
+  const stats = document.querySelector(".person-stats")!.textContent!;
+  expect(stats).toMatch(/Current streak\s*2 days/);
+  expect(stats).toMatch(/Longest streak\s*365\+ days/);
+  expect(stats).toMatch(/Active days\s*3 of 4/);
+  const finishes = Array.from(document.querySelectorAll(".finishes li"), (li) =>
+    li.getAttribute("aria-label"),
+  );
+  expect(finishes).toEqual([
+    "October: #1 of 6, 105 contributions, gold medal",
+    "December 2025: #4 of 6, 40 contributions",
+  ]);
+  expect(document.querySelector(".finishes li")?.textContent).toContain("🥇");
+  dispose();
+});
+
+test("arrow keys, Home, End and clicks select a bar and show its date and count", async () => {
+  const dispose = await mountPerson(person);
+  const day = (n: number) =>
+    document.querySelector<SVGElement>(`[data-day="${n}"]`)!;
+  day(4).focus();
+  day(4).dispatchEvent(
+    new KeyboardEvent("keydown", { key: "ArrowLeft", bubbles: true }),
+  );
+  await vi.waitFor(() =>
+    expect(caption()).toContain("November 3 · 41 contributions"),
+  );
+  expect(caption()).toContain("October 3 · 7");
+  expect(document.activeElement).toBe(day(3));
+  expect(day(3).getAttribute("tabindex")).toBe("0");
+  day(3).dispatchEvent(
+    new KeyboardEvent("keydown", { key: "Home", bubbles: true }),
+  );
+  await vi.waitFor(() =>
+    expect(caption()).toContain("November 1 · 3 contributions"),
+  );
+  day(1).dispatchEvent(
+    new KeyboardEvent("keydown", { key: "End", bubbles: true }),
+  );
+  await vi.waitFor(() => expect(caption()).toContain("November 4"));
+  day(2).dispatchEvent(new MouseEvent("click", { bubbles: true }));
+  await vi.waitFor(() =>
+    expect(caption()).toContain("November 2 · 0 contributions"),
+  );
+  dispose();
+});
+
+test("before their count loads the person view says it's waiting instead of drawing zeros", async () => {
+  const dispose = await mountPerson({ ...person, history: null });
+  expect(document.querySelector(".waiting")?.textContent).toContain(
+    "Waiting for Odile M.’s count",
+  );
+  expect(document.querySelector("svg.chart")).toBeNull();
+  expect(document.querySelector(".person-stats")).toBeNull();
+  dispose();
+});
+
+test("the GitHub link opens their profile, and only your own view has the private-contributions tip", async () => {
+  const calls: [string, unknown][] = [];
+  let dispose = await mountPerson(person, calls);
+  expect(document.querySelector(".person-tip")).toBeNull();
+  document.querySelector<HTMLButtonElement>('[data-action="github"]')!.click();
+  await vi.waitFor(() =>
+    expect(calls).toContainEqual(["open_profile", { login: "odile-m" }]),
+  );
+  dispose();
+  dispose = await mountPerson({ ...person, is_you: true });
+  // Shown even after the board's tip was dismissed: this is where it matters.
+  expect(document.querySelector(".person-tip")?.textContent).toContain(
+    "Private contributions",
+  );
+  dispose();
+});
+
+test("the fixture's Sample people have consistent person views", () => {
+  const now = Math.floor(new Date("2026-11-22T12:00:00").getTime() / 1000);
+  for (const { login } of samplePeople) {
+    const view = samplePerson(login, now)!;
+    if (login === "niko-vane") {
+      expect(view.history).toBeNull();
+      continue;
+    }
+    const history = view.history!;
+    const board = sampleBoard("month", now);
+    const row = board.rows.find((r) => r.login === login)!;
+    expect(history.this_month).toHaveLength(22);
+    expect(history.this_month.reduce((a, b) => a + b, 0)).toBe(
+      row.contributions,
+    );
+    expect(history.this_month[21]).toBe(
+      sampleBoard("today", now).rows.find((r) => r.login === login)!
+        .contributions,
+    );
+    expect(history.last_month).toHaveLength(31);
+    expect(history.last_month.reduce((a, b) => a + b, 0)).toBe(
+      samplePeople.find((p) => p.login === login)!.lastMonth ?? 0,
+    );
+    expect(
+      [...history.this_month, ...history.last_month].every((n) => n >= 0),
+    ).toBe(true);
+    expect(history.active_days).toBe(
+      history.this_month.filter((n) => n > 0).length,
+    );
+    expect(history.current_streak).toBe(row.streak);
+    expect(history.longest_streak).toBeGreaterThanOrEqual(
+      history.current_streak,
+    );
+    expect(history.finishes[0].month_name).toBe("October");
+  }
+  expect(samplePerson("stranger", now)).toBeNull();
 });

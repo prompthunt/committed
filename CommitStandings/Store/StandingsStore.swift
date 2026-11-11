@@ -251,6 +251,12 @@ final class StandingsStore {
         histories[username]
     }
 
+    /// Everyone's current streak as of `reference`, from their saved calendars (`currentStreak`).
+    /// Nobody without a calendar is in it.
+    func streaks(asOf reference: Date) -> [String: Int] {
+        histories.mapValues { $0.currentStreak(asOf: reference) }
+    }
+
     /// Keep freshly fetched daily counts for people still on the board, saved once per batch.
     func updateHistories(_ updates: [String: ContributionHistory]) {
         let known = Set(competitors.map(\.username))
@@ -309,7 +315,8 @@ extension LiveRankState {
     /// Live rank for `window` from the board as it stands, so it never disagrees with the board:
     /// visible competitors only, and a row still loading for the first time (or failed with nothing
     /// cached, both `.distantPast`) counts as no data rather than a zero. `rankDelta` is the
-    /// Today board's movement (`RefreshCoordinator.rankDelta(for:)`). `updatedAt` is the newest
+    /// Today board's movement (`RefreshCoordinator.rankDelta(for:)`). Streaks come from each
+    /// person's saved calendar as of `now`, as the Board's rows show them. `updatedAt` is the newest
     /// count shown, or `now` when there's none.
     @MainActor
     static func board(
@@ -331,6 +338,7 @@ extension LiveRankState {
             standings: standings,
             window: window,
             rankDeltas: deltas,
+            streaks: store.streaks(asOf: now),
             now: standings.values.map(\.lastUpdated).max() ?? now
         )
     }

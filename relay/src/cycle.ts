@@ -9,8 +9,8 @@ import {
 } from "./apns";
 import type { InstallationRow, Store } from "./db";
 import { deriveLiveRankState, type LiveRankState } from "./liveRank";
-import { localDate, parseDays, sum, type Days } from "./parser";
-import { order, selfFirst, type Standing } from "./ranking";
+import { currentStreak, localDate, parseDays, sum, type Days } from "./parser";
+import { order, selfFirst, showsTodaysMovement, type Standing } from "./ranking";
 import type { GitHubFetch, Log } from "./relay";
 
 export interface CycleDeps {
@@ -65,31 +65,41 @@ async function runInstallation(
   const competitors = competitorsOf(row);
   const today = localDate(now, row.time_zone);
 
-  // Today's movement: mirror RefreshCoordinator.updateDailyRankDeltas. The day's first run
-  // captures the baseline (ranks of rows with data); later runs report baseline − current.
-  const daily = standingsFor(competitors, data, "daily", today);
-  const dailyRanks: Record<string, number> = {};
-  for (const entry of order(competitors, daily, "daily")) {
-    if (daily[entry.login]) dailyRanks[entry.login] = entry.rank;
-  }
+  const standings = standingsFor(competitors, data, row.window, today);
+
+  // Movement on Today and This month: mirror RefreshCoordinator.updateTodaysRankDeltas. The day's
+  // first run captures the baseline (the Window's ranks of rows with data); later runs report
+  // baseline − current. The baseline is this installation's Window's: a Window change resets it.
   let rankDeltas: Record<string, number> = {};
-  if (row.baseline_date !== today || !row.baseline_ranks_json) {
-    row.baseline_date = today;
-    row.baseline_ranks_json = JSON.stringify(dailyRanks);
-  } else {
-    const baseline = JSON.parse(row.baseline_ranks_json) as Record<string, number>;
-    for (const [login, rank] of Object.entries(dailyRanks)) {
-      if (baseline[login] !== undefined) rankDeltas[login] = baseline[login] - rank;
+  if (showsTodaysMovement(row.window)) {
+    const ranks: Record<string, number> = {};
+    for (const entry of order(competitors, standings, row.window)) {
+      if (standings[entry.login]) ranks[entry.login] = entry.rank;
+    }
+    if (row.baseline_date !== today || !row.baseline_ranks_json) {
+      row.baseline_date = today;
+      row.baseline_ranks_json = JSON.stringify(ranks);
+    } else {
+      const baseline = JSON.parse(row.baseline_ranks_json) as Record<string, number>;
+      for (const [login, rank] of Object.entries(ranks)) {
+        if (baseline[login] !== undefined) rankDeltas[login] = baseline[login] - rank;
+      }
     }
   }
 
-  const standings = row.window === "daily" ? daily : standingsFor(competitors, data, row.window, today);
+  // Everyone's streak from the same calendars, in the installation's own day, as the app works it out.
+  const streaks: Record<string, number> = {};
+  for (const login of competitors) {
+    const entry = data.get(login);
+    if (entry) streaks[login] = currentStreak(entry.days, today);
+  }
   const state = deriveLiveRankState({
     self: row.login,
     competitors,
     standings,
     window: row.window,
     rankDeltas,
+    streaks,
     // The data's age is that of your own count, the headline number. A rival whose page keeps
     // failing (renamed account) must not pin every push's stale date in the past.
     now: standings[row.login] ? data.get(row.login)!.fetchedAt : now,

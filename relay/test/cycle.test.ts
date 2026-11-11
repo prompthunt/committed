@@ -84,9 +84,10 @@ describe("updates", () => {
       rank: 2,
       competitorCount: 3,
       contributions: 5,
-      above: { login: "alice", contributions: 9, movementToday: 0 },
-      below: { login: "bob", contributions: 1, movementToday: 0 },
+      above: { login: "alice", contributions: 9, movementToday: 0, streak: 1 },
+      below: { login: "bob", contributions: 1, movementToday: 0, streak: 1 },
       movementToday: 0,
+      streak: 1,
       updatedAt: T0,
     });
     expect(push.payload.aps["stale-date"]).toBe(T0 + 20 * MINUTE);
@@ -162,7 +163,8 @@ describe("updates", () => {
     expect(apns.sent.length).toBeGreaterThan(0); // heartbeats continue
     const last = apns.sent.at(-1)!.payload.aps;
     expect(last["stale-date"]).toBeGreaterThan(clock.seconds);
-    expect(last["content-state"].below).toEqual({ login: "bob", contributions: 1, movementToday: 0 });
+    // Bob's last good calendar keeps his count and his streak.
+    expect(last["content-state"].below).toEqual({ login: "bob", contributions: 1, movementToday: 0, streak: 1 });
   });
 
   it("shows placeholders, not zero, when your counts can't be fetched", async () => {
@@ -221,7 +223,7 @@ describe("today's movement", () => {
     await relay.runCycle();
     expect(lastState().rank).toBe(3);
     expect(lastState().movementToday).toBe(-1);
-    expect(lastState().above).toEqual({ login: "bob", contributions: 7, movementToday: 1 });
+    expect(lastState().above).toEqual({ login: "bob", contributions: 7, movementToday: 1, streak: 1 });
     expect(lastState().below).toBeNull();
   });
 
@@ -236,7 +238,62 @@ describe("today's movement", () => {
     github.set("bob", { "2026-11-05": 7 });
     clock.advance(5 * MINUTE);
     await relay.runCycle();
-    expect(lastState().above).toEqual({ login: "bob", contributions: 7, movementToday: 0 });
+    expect(lastState().above).toEqual({ login: "bob", contributions: 7, movementToday: 0, streak: 1 });
+  });
+});
+
+describe("streaks", () => {
+  it("pushes your streak and your neighbors', worked out from the calendars it reads", async () => {
+    // 10:00 Nov 5 in New York. You've nothing yet today but a 3-day run up to yesterday; alice is
+    // on day 2; bob stopped two days ago.
+    github.set("me", { "2026-11-01": 0, "2026-11-02": 4, "2026-11-03": 1, "2026-11-04": 2, "2026-11-05": 0 });
+    github.set("alice", { "2026-11-03": 0, "2026-11-04": 1, "2026-11-05": 3 });
+    github.set("bob", { "2026-11-03": 8, "2026-11-04": 0, "2026-11-05": 0 });
+    await register(ID, { window: "weekly" });
+    await reportActivity(ID);
+    await relay.runCycle();
+
+    expect(lastState()).toStrictEqual({
+      window: "weekly",
+      rank: 2,
+      competitorCount: 3,
+      contributions: 7,
+      above: { login: "bob", contributions: 8, movementToday: 0, streak: 0 },
+      below: { login: "alice", contributions: 4, movementToday: 0, streak: 2 },
+      movementToday: 0,
+      streak: 3,
+      updatedAt: T0,
+    });
+  });
+
+  it("pushes again when only a streak changed", async () => {
+    github.set("me", { "2026-11-04": 2, "2026-11-05": 0 });
+    github.set("alice", { "2026-11-04": 9, "2026-11-05": 0 });
+    github.set("bob", { "2026-11-05": 0 });
+    await register(ID, { window: "weekly" });
+    await reportActivity(ID);
+    await relay.runCycle();
+    expect(lastState().streak).toBe(1);
+    apns.clear();
+
+    // You contribute today and yesterday's count drops by one: the same weekly total, a longer run.
+    github.set("me", { "2026-11-03": 0, "2026-11-04": 1, "2026-11-05": 1 });
+    clock.advance(5 * MINUTE);
+    await relay.runCycle();
+    expect(apns.sent).toHaveLength(1);
+    expect(lastState().contributions).toBe(2);
+    expect(lastState().streak).toBe(2);
+  });
+
+  it("leaves your streak out while your count can't be fetched", async () => {
+    github.set("alice", { "2026-11-05": 9 });
+    github.set("bob", { "2026-11-05": 1 });
+    github.fail("me");
+    await register(ID);
+    await reportActivity(ID);
+    await relay.runCycle();
+    expect(lastState().contributions).toBeNull();
+    expect("streak" in lastState()).toBe(false);
   });
 });
 
@@ -273,6 +330,75 @@ describe("local midnight", () => {
     expect(la.contributions).toBe(30);
     expect(la.rank).toBe(1);
     expect(la.movementToday).toBe(1);
+  });
+});
+
+describe("This month", () => {
+  it("counts from the 1st of the installation's month, with Today's movement", async () => {
+    github.set("me", { "2026-10-31": 50, "2026-11-01": 3, "2026-11-05": 2 });
+    github.set("alice", { "2026-10-20": 90, "2026-11-02": 4 });
+    github.set("bob", { "2026-11-04": 1 });
+    await register(ID, { window: "month" });
+    await reportActivity(ID);
+    await relay.runCycle();
+    expect(lastState()).toMatchObject({ window: "month", rank: 1, contributions: 5, movementToday: 0 });
+    expect(lastState().below).toMatchObject({ login: "alice", contributions: 4, movementToday: 0 });
+
+    // Alice passes you later that day: you're down one since the day's first run, she's up one.
+    github.set("alice", { "2026-10-20": 90, "2026-11-02": 4, "2026-11-05": 6 });
+    clock.advance(5 * MINUTE);
+    await relay.runCycle();
+    expect(lastState()).toMatchObject({ rank: 2, contributions: 5, movementToday: -1 });
+    expect(lastState().above).toMatchObject({ login: "alice", contributions: 10, movementToday: 1 });
+  });
+
+  it("resets at each installation's own midnight on the 1st", async () => {
+    // 2026-11-30T14:55Z: 23:55 Nov 30 in Tokyo, 06:55 Nov 30 in Los Angeles.
+    const monthEndUTC = Date.UTC(2026, 10, 30, 15, 0) / 1000;
+    clock.seconds = monthEndUTC - 5 * MINUTE;
+    github.set("me", { "2026-11-29": 8, "2026-11-30": 4, "2026-12-01": 0 });
+    github.set("alice", { "2026-11-30": 9, "2026-12-01": 0 });
+    github.set("bob", { "2026-11-30": 1, "2026-12-01": 0 });
+    await register("inst-tokyo", { window: "month", timeZone: "Asia/Tokyo" });
+    await register("inst-la-00", { window: "month", timeZone: "America/Los_Angeles" });
+    await reportActivity("inst-tokyo", "e5".repeat(40), "act-tokyo");
+    await reportActivity("inst-la-00", "f6".repeat(40), "act-la");
+    await relay.runCycle();
+
+    const stateFor = (token: string) =>
+      apns.sent.filter((push) => push.token === token).at(-1)!.payload.aps["content-state"];
+    expect(stateFor("e5".repeat(40)).contributions).toBe(12);
+    expect(stateFor("f6".repeat(40)).contributions).toBe(12);
+
+    // Midnight in Tokyo: December 1 there, still November 30 in Los Angeles.
+    clock.seconds = monthEndUTC;
+    apns.clear();
+    await relay.runCycle();
+
+    const tokyo = stateFor("e5".repeat(40));
+    expect(tokyo.contributions).toBe(0); // November's 12 never carries into December
+    expect(tokyo.rank).toBe(1); // everyone's on 0: you win the tie
+    expect(tokyo.movementToday).toBe(0); // a new day's baseline
+
+    // Los Angeles hasn't reached December: nothing changed, so nothing is pushed.
+    expect(apns.sent.filter((push) => push.token === "f6".repeat(40))).toHaveLength(0);
+  });
+
+  it("starts movement again when the Window changes", async () => {
+    github.set("me", { "2026-11-01": 9, "2026-11-05": 1 });
+    github.set("alice", { "2026-11-05": 5 });
+    github.set("bob", { "2026-11-05": 0 });
+    await register(ID); // Today: alice #1, you #2
+    await reportActivity(ID);
+    await relay.runCycle();
+    expect(lastState()).toMatchObject({ window: "daily", rank: 2 });
+
+    // This month: you're #1. Not a climb since this morning, just another Window.
+    await register(ID, { window: "month" });
+    clock.advance(5 * MINUTE);
+    await relay.runCycle();
+    expect(lastState()).toMatchObject({ window: "month", rank: 1, movementToday: 0 });
+    expect(lastState().below).toMatchObject({ login: "alice", movementToday: 0 });
   });
 });
 

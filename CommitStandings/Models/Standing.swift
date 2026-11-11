@@ -93,10 +93,6 @@ enum ContributionWindow: String, CaseIterable, Identifiable, Codable, Sendable {
         self == .daily || self == .month
     }
 
-    /// The Windows Live rank and the widgets offer. This month isn't one yet: the relay doesn't
-    /// rank it (#97).
-    static let liveRankChoices: [ContributionWindow] = [.daily, .weekly, .monthly]
-
     /// "Day 10 of 30" on This month: the day of the month as of `reference` in `calendar` (the
     /// device's), and how many days the month has. nil on the other Windows.
     func dayOfMonth(asOf reference: Date, calendar: Calendar = .current) -> String? {

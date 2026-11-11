@@ -384,3 +384,96 @@ fn the_first_full_month_is_the_first_month_the_calendar_covers_from_its_1st() {
         assert_eq!(history::first_full_month(&days(cells)), *expected, "{name}");
     }
 }
+
+/// The person view's bars: one count per day of a range, 1st first, 0 for a day the calendar
+/// doesn't have. This month stops at today; a finished month runs to its last day.
+#[test]
+fn a_day_series_has_one_count_per_day_of_the_range() {
+    let calendar = days(&[
+        (d(2026, 10, 1), 4),
+        (d(2026, 10, 3), 2),
+        (d(2026, 10, 31), 9),
+        (d(2026, 11, 1), 1),
+        (d(2026, 11, 3), 5),
+        (d(2026, 11, 4), 40), // after today
+    ]);
+    let today = d(2026, 11, 3);
+    assert_eq!(
+        history::series(&calendar, history::range(Window::ThisMonth, today)),
+        vec![1, 0, 5]
+    );
+    let october = history::series(&calendar, history::month_range(d(2026, 10, 1)));
+    assert_eq!(october.len(), 31);
+    assert_eq!((october[0], october[1], october[2]), (4, 0, 2));
+    assert_eq!(october[30], 9);
+    assert_eq!(
+        history::series(&BTreeMap::new(), history::month_range(d(2028, 2, 1))),
+        vec![0; 29]
+    );
+}
+
+#[test]
+fn active_days_count_days_with_a_contribution() {
+    let calendar = days(&[
+        (d(2026, 10, 31), 3), // last month
+        (d(2026, 11, 1), 1),
+        (d(2026, 11, 2), 0),
+        (d(2026, 11, 3), 7),
+        (d(2026, 11, 5), 2),
+        (d(2026, 11, 6), 8), // after today
+    ]);
+    let today = d(2026, 11, 5);
+    assert_eq!(
+        history::active_days(&calendar, history::range(Window::ThisMonth, today)),
+        3
+    );
+    assert_eq!(
+        history::active_days(&BTreeMap::new(), history::range(Window::ThisMonth, today)),
+        0
+    );
+}
+
+#[test]
+fn longest_streaks() {
+    let today = d(2026, 5, 28);
+    let with = |mut cells: Vec<(NaiveDate, u32)>, extra: &[(NaiveDate, u32)]| {
+        cells.extend_from_slice(extra);
+        days(&cells)
+    };
+    let cases: Vec<(&str, BTreeMap<NaiveDate, u32>, u32)> = vec![
+        ("no calendar", BTreeMap::new(), 0),
+        ("no contributions", days(&[(today, 0)]), 0),
+        ("the current run", with(run(today, 6), &[]), 6),
+        (
+            "an older, longer run beats the current one",
+            with(run(today, 3), &run(d(2026, 3, 10), 9)),
+            9,
+        ),
+        (
+            "a zero day splits a run",
+            with(run(d(2026, 5, 20), 4), &[(d(2026, 5, 21), 0)])
+                .into_iter()
+                .chain(run(d(2026, 5, 25), 4))
+                .collect(),
+            4,
+        ),
+        (
+            "a missing day splits a run",
+            with(run(d(2026, 4, 10), 5), &run(d(2026, 4, 4), 2)),
+            5,
+        ),
+        (
+            "future days never count",
+            with(run(d(2026, 6, 4), 20), &[]),
+            13, // May 16..28
+        ),
+        ("a whole GitHub calendar", with(run(today, 371), &[]), 371),
+    ];
+    for (name, calendar, expected) in cases {
+        assert_eq!(
+            history::longest_streak(&calendar, today),
+            expected,
+            "{name}"
+        );
+    }
+}

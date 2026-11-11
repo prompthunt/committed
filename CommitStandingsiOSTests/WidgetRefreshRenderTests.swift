@@ -16,8 +16,9 @@ struct WidgetRefreshRenderTests {
     private let directory = URL(fileURLWithPath: ProcessInfo.processInfo.environment["RENDER_DIR"] ?? NSTemporaryDirectory())
     private static let cases: [(name: String, age: Int, stale: Bool)] = [("fresh", 13 * 60 + 36, false), ("stale", 3 * 3600, true)]
 
-    private func surfaces(age: Int) async throws -> (snapshot: WidgetSnapshot, live: LiveRankState, selfLogin: String) {
-        let s = try await SampleBoardSurfaces.load()
+    private func surfaces(age: Int, window: ContributionWindow = .daily, justYou: Bool = false) async throws
+        -> (snapshot: WidgetSnapshot, live: LiveRankState, selfLogin: String) {
+        let s = try await SampleBoardSurfaces.load(window: window, justYou: justYou)
         var snapshot = s.snapshot
         snapshot.state.updatedAt -= age
         var live = s.liveRank
@@ -28,63 +29,86 @@ struct WidgetRefreshRenderTests {
     @Test func widgets() async throws {
         for c in Self.cases {
             let snapshot = try await surfaces(age: c.age).snapshot
-            try SurfaceRenderer.write(
-                SurfaceBackdrop {
-                    HStack(spacing: 24) {
-                        HomeScreenWidget(size: SurfaceSize.small, isStale: c.stale) { CommittedWidgetSmall(snapshot: snapshot) }
-                        HomeScreenWidget(size: SurfaceSize.small, isStale: c.stale) { CommittedWidgetBoardSmall(snapshot: snapshot) }
-                    }
-                    HomeScreenWidget(size: SurfaceSize.medium, isStale: c.stale) { CommittedWidgetMedium(snapshot: snapshot) }
-                    HomeScreenWidget(size: SurfaceSize.large, isStale: c.stale) { CommittedWidgetLarge(snapshot: snapshot) }
-                    LockScreenAccessory(size: SurfaceSize.accessoryInline, plate: false) {
-                        CommittedWidgetInline(snapshot: snapshot)
-                    }
-                    .environment(\.liveRankIsStale, c.stale)
-                    HStack(spacing: 16) {
-                        LockScreenAccessory(size: SurfaceSize.accessoryRectangular) {
-                            CommittedWidgetRectangular(snapshot: snapshot).padding(.horizontal, 8)
-                        }
-                        LockScreenAccessory(size: SurfaceSize.accessoryCircular) {
-                            CommittedWidgetCircular(snapshot: snapshot)
-                        }
-                    }
-                    .environment(\.liveRankIsStale, c.stale)
-                },
-                name: "widgets-\(c.name)", to: directory
-            )
+            try writeWidgets(snapshot, stale: c.stale, name: "widgets-\(c.name)")
         }
     }
 
     @Test func liveRank() async throws {
         for c in Self.cases {
             let (_, live, me) = try await surfaces(age: c.age)
-            try SurfaceRenderer.write(
-                SurfaceBackdrop {
-                    LockScreenLiveActivity(state: live, selfLogin: me, isStale: c.stale)
-                    IslandFrame {
-                        LiveRankIslandLeading(state: live)
-                    } trailing: {
-                        LiveRankIslandTrailing(state: live)
-                    } bottom: {
-                        LiveRankIslandBottom(state: live, selfLogin: me)
-                    }
-                    .environment(\.liveRankIsStale, c.stale)
-                    HStack(spacing: 24) {
-                        CompactIsland {
-                            LiveRankRankLabel(state: live, style: .compact)
-                        } trailing: {
-                            LiveRankCountLabel(state: live, style: .compact)
-                        }
-                        LiveRankSmall(state: live)
-                            .frame(width: 200)
-                            .background(Color.ink)
-                            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-                    }
-                    .environment(\.liveRankIsStale, c.stale)
-                },
-                name: "live-rank-\(c.name)", to: directory
-            )
+            try writeLiveRank(live, selfLogin: me, stale: c.stale, name: "live-rank-\(c.name)")
         }
+    }
+
+    /// Live rank's Window set to This month (#97): the widgets and Live rank follow it.
+    @Test func thisMonth() async throws {
+        let (snapshot, live, me) = try await surfaces(age: Self.cases[0].age, window: .month)
+        try writeWidgets(snapshot, stale: false, name: "widgets-this-month")
+        try writeLiveRank(live, selfLogin: me, stale: false, name: "live-rank-this-month")
+    }
+
+    /// Nobody else on the board: no rank or rows, and your streak beside your count (#94's gap).
+    @Test func justYou() async throws {
+        for window in [ContributionWindow.daily, .month] {
+            let (_, live, me) = try await surfaces(age: Self.cases[0].age, window: window, justYou: true)
+            try writeLiveRank(live, selfLogin: me, stale: false, name: "live-rank-just-you-\(window.rawValue)")
+        }
+    }
+
+    private func writeWidgets(_ snapshot: WidgetSnapshot, stale: Bool, name: String) throws {
+        try SurfaceRenderer.write(
+            SurfaceBackdrop {
+                HStack(spacing: 24) {
+                    HomeScreenWidget(size: SurfaceSize.small, isStale: stale) { CommittedWidgetSmall(snapshot: snapshot) }
+                    HomeScreenWidget(size: SurfaceSize.small, isStale: stale) { CommittedWidgetBoardSmall(snapshot: snapshot) }
+                }
+                HomeScreenWidget(size: SurfaceSize.medium, isStale: stale) { CommittedWidgetMedium(snapshot: snapshot) }
+                HomeScreenWidget(size: SurfaceSize.large, isStale: stale) { CommittedWidgetLarge(snapshot: snapshot) }
+                LockScreenAccessory(size: SurfaceSize.accessoryInline, plate: false) {
+                    CommittedWidgetInline(snapshot: snapshot)
+                }
+                .environment(\.liveRankIsStale, stale)
+                HStack(spacing: 16) {
+                    LockScreenAccessory(size: SurfaceSize.accessoryRectangular) {
+                        CommittedWidgetRectangular(snapshot: snapshot).padding(.horizontal, 8)
+                    }
+                    LockScreenAccessory(size: SurfaceSize.accessoryCircular) {
+                        CommittedWidgetCircular(snapshot: snapshot)
+                    }
+                }
+                .environment(\.liveRankIsStale, stale)
+            },
+            name: name, to: directory
+        )
+    }
+
+    private func writeLiveRank(_ live: LiveRankState, selfLogin me: String, stale: Bool, name: String) throws {
+        try SurfaceRenderer.write(
+            SurfaceBackdrop {
+                LockScreenLiveActivity(state: live, selfLogin: me, isStale: stale)
+                IslandFrame {
+                    LiveRankIslandLeading(state: live)
+                } trailing: {
+                    LiveRankIslandTrailing(state: live)
+                } bottom: {
+                    LiveRankIslandBottom(state: live, selfLogin: me)
+                }
+                .environment(\.liveRankIsStale, stale)
+                HStack(spacing: 24) {
+                    CompactIsland {
+                        LiveRankRankLabel(state: live, style: .compact)
+                    } trailing: {
+                        LiveRankCountLabel(state: live, style: .compact)
+                    }
+                    LiveRankSmall(state: live)
+                        .frame(width: 200)
+                        .background(Color.ink)
+                        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                }
+                .environment(\.liveRankIsStale, stale)
+            },
+            name: name, to: directory
+        )
     }
 }
 

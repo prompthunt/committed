@@ -211,6 +211,138 @@
       "notes": "Board surface of the fixture host, light, with made-up calendars for the fixture's GitHub handles. The host drew its own window into a PNG (NSView cacheDisplay, the technique the script's -CaptureSnapshot uses) because the capturing shell has no Screen Recording permission. No before capture. Captured on branch spec-85/92-streaks before it merged #95, so the Window switch has no This month yet."
     },
     {
+      "file": "103/person-light.png",
+      "caption": "#103 Windows person view for odile-m, light: November's bars over October's grey ones, today (Nov 22) selected, streaks, \"Active days 22 of 22\", past months with medals, GitHub profile link",
+      "capture": {
+        "device": "Chromium (in-app browser) on macOS, mocked Tauri IPC, 460×640 person window at 2x",
+        "os": "macOS 27.0",
+        "sourceCommit": "414f41299b0ba9dda63665a8b79f33ac23800617",
+        "fixture": true
+      },
+      "notes": "Windows person window, not WebView2 on Windows: the real app UI (windows/src/app.ts and style.css) served by vite and fed the Sample people through windows/fixture.html (mocked Tauri IPC, data from samplePerson in windows/src/sample-board.ts) with ?view=person&date=2026-11-22, so the fixture's today is November 22. macOS system fonts instead of Segoe UI; no window chrome. No before capture: the person view is new (rows used to open the GitHub profile). Recipe: cd windows && npm run dev -- --port <port>, open /fixture.html?view=person&date=2026-11-22&login=<login>. Screen-reader chart summary: \"22 active days this month, most on November 18 with 28\"; each day is a focusable bar labelled \"November 22: 9 contributions. October 22: 12\"."
+    },
+    {
+      "file": "103/person-selected-bar-dark.png",
+      "caption": "#103 Windows person view for odile-m, dark: November 18 selected with the arrow keys (focus ring), caption shows its date, count and October 18's",
+      "capture": {
+        "device": "Chromium (in-app browser) on macOS, mocked Tauri IPC, 460×640 person window at 2x",
+        "os": "macOS 27.0",
+        "sourceCommit": "414f41299b0ba9dda63665a8b79f33ac23800617",
+        "fixture": true
+      },
+      "notes": "Windows person window, not WebView2 on Windows: the real app UI (windows/src/app.ts and style.css) served by vite and fed the Sample people through windows/fixture.html (mocked Tauri IPC, data from samplePerson in windows/src/sample-board.ts) with ?view=person&date=2026-11-22, so the fixture's today is November 22. macOS system fonts instead of Segoe UI; no window chrome. No before capture: the person view is new (rows used to open the GitHub profile). Recipe: cd windows && npm run dev -- --port <port>, open /fixture.html?view=person&date=2026-11-22&login=<login>. Selected by focusing today's bar and pressing ArrowLeft four times."
+    },
+    {
+      "file": "103/person-waiting-dark.png",
+      "caption": "#103 Windows person view for niko-vane, dark: his count never loaded, so it says it's waiting instead of drawing zero bars",
+      "capture": {
+        "device": "Chromium (in-app browser) on macOS, mocked Tauri IPC, 460×640 person window at 2x",
+        "os": "macOS 27.0",
+        "sourceCommit": "414f41299b0ba9dda63665a8b79f33ac23800617",
+        "fixture": true
+      },
+      "notes": "Windows person window, not WebView2 on Windows: the real app UI (windows/src/app.ts and style.css) served by vite and fed the Sample people through windows/fixture.html (mocked Tauri IPC, data from samplePerson in windows/src/sample-board.ts) with ?view=person&date=2026-11-22, so the fixture's today is November 22. macOS system fonts instead of Segoe UI; no window chrome. No before capture: the person view is new (rows used to open the GitHub profile). Recipe: cd windows && npm run dev -- --port <port>, open /fixture.html?view=person&date=2026-11-22&login=<login>. niko-vane's refresh failed and he has no saved calendar, so get_person returns history null."
+    },
+    {
+      "file": "103/person-you-tip-light.png",
+      "caption": "#103 Windows person view for you (ari-linden), light, window resized taller: \"Active days 18 of 22\", past finishes with gold and silver, and the private-contributions tip at the bottom",
+      "capture": {
+        "device": "Chromium (in-app browser) on macOS, mocked Tauri IPC, 460×980 person window at 2x",
+        "os": "macOS 27.0",
+        "sourceCommit": "414f41299b0ba9dda63665a8b79f33ac23800617",
+        "fixture": true
+      },
+      "notes": "Windows person window, not WebView2 on Windows: the real app UI (windows/src/app.ts and style.css) served by vite and fed the Sample people through windows/fixture.html (mocked Tauri IPC, data from samplePerson in windows/src/sample-board.ts) with ?view=person&date=2026-11-22, so the fixture's today is November 22. macOS system fonts instead of Segoe UI; no window chrome. No before capture: the person view is new (rows used to open the GitHub profile). Recipe: cd windows && npm run dev -- --port <port>, open /fixture.html?view=person&date=2026-11-22&login=<login>. Your own view always shows the private-contributions tip (Mac copy), even after the board's tip is dismissed (the fixture has it dismissed). The window is resizable; 980 px tall shows the whole view without scrolling."
+    },
+    {
+      "file": "94/widgets-fresh.png",
+      "caption": "#94 Widgets, Today, fresh: small shows your 🔥 14 beside your count; medium and large rows show each person's streak (365+ past GitHub's calendar; none for bram-ott); the Committed Board (StandBy) widget's narrow rows and the Lock Screen accessories are unchanged",
+      "capture": {
+        "device": "iPhone Duo Simulator (render)",
+        "os": "iOS 27.1",
+        "sourceCommit": "1e7e4ddc31088809908cc10f93be38942dc20ca0",
+        "fixture": true
+      },
+      "notes": "Render, not runtime capture: the real widget and Live Activity views drawn with ImageRenderer by CommitStandingsiOSTests/WidgetRefreshRenderTests on the iPhone Duo / iOS 27.1 test simulator (TEST_RUNNER_RENDER_DIR through scripts/ios_check.py ios), fed what the real AppModel published on the Sample board after one pull to refresh (made-up calendars, so the streaks are made up too). The Simulator can't draw widgets on a Home Screen, a Live Activity or the Dynamic Island. Before (no streaks): docs/screenshots/widget-refresh/after-widgets-fresh.png."
+    },
+    {
+      "file": "94/widgets-stale.png",
+      "caption": "#94 Widgets, Today, 3 hours stale: streaks step down in color with the rest of the widget",
+      "capture": {
+        "device": "iPhone Duo Simulator (render)",
+        "os": "iOS 27.1",
+        "sourceCommit": "1e7e4ddc31088809908cc10f93be38942dc20ca0",
+        "fixture": true
+      },
+      "notes": "Render, not runtime capture: the real widget and Live Activity views drawn with ImageRenderer by CommitStandingsiOSTests/WidgetRefreshRenderTests on the iPhone Duo / iOS 27.1 test simulator (TEST_RUNNER_RENDER_DIR through scripts/ios_check.py ios), fed what the real AppModel published on the Sample board after one pull to refresh (made-up calendars, so the streaks are made up too). The Simulator can't draw widgets on a Home Screen, a Live Activity or the Dynamic Island. Before (no streaks): docs/screenshots/widget-refresh/after-widgets-stale.png."
+    },
+    {
+      "file": "94/live-rank-fresh.png",
+      "caption": "#94 Live rank, fresh: Lock Screen card and expanded island show streaks on the person above, you and the person below on the same line as the count; compact island and the small (CarPlay/Watch) layout unchanged",
+      "capture": {
+        "device": "iPhone Duo Simulator (render)",
+        "os": "iOS 27.1",
+        "sourceCommit": "1e7e4ddc31088809908cc10f93be38942dc20ca0",
+        "fixture": true
+      },
+      "notes": "Render, not runtime capture: the real widget and Live Activity views drawn with ImageRenderer by CommitStandingsiOSTests/WidgetRefreshRenderTests on the iPhone Duo / iOS 27.1 test simulator (TEST_RUNNER_RENDER_DIR through scripts/ios_check.py ios), fed what the real AppModel published on the Sample board after one pull to refresh (made-up calendars, so the streaks are made up too). The Simulator can't draw widgets on a Home Screen, a Live Activity or the Dynamic Island. Before (no streaks): docs/screenshots/widget-refresh/after-live-rank-fresh.png."
+    },
+    {
+      "file": "94/live-rank-stale.png",
+      "caption": "#94 Live rank, 3 hours stale: streaks step down to muted with the rows",
+      "capture": {
+        "device": "iPhone Duo Simulator (render)",
+        "os": "iOS 27.1",
+        "sourceCommit": "1e7e4ddc31088809908cc10f93be38942dc20ca0",
+        "fixture": true
+      },
+      "notes": "Render, not runtime capture: the real widget and Live Activity views drawn with ImageRenderer by CommitStandingsiOSTests/WidgetRefreshRenderTests on the iPhone Duo / iOS 27.1 test simulator (TEST_RUNNER_RENDER_DIR through scripts/ios_check.py ios), fed what the real AppModel published on the Sample board after one pull to refresh (made-up calendars, so the streaks are made up too). The Simulator can't draw widgets on a Home Screen, a Live Activity or the Dynamic Island. Before (no streaks): docs/screenshots/widget-refresh/after-live-rank-stale.png."
+    },
+    {
+      "file": "97/widgets-this-month.png",
+      "caption": "#97 Widgets on This month: every size headed \"This month\", ranked by This month's totals (the 1st through today); the inline and rectangular Lock Screen widgets read \"#3 · 57 this month\"",
+      "capture": {
+        "device": "iPhone Duo Simulator (render)",
+        "os": "iOS 27.1",
+        "sourceCommit": "de2a23775725aad445421612c0ef55e5594faed4",
+        "fixture": true
+      },
+      "notes": "Render, not runtime capture: the real widget and Live Activity views drawn with ImageRenderer by CommitStandingsiOSTests/WidgetRefreshRenderTests on the iPhone Duo / iOS 27.1 test simulator (TEST_RUNNER_RENDER_DIR through scripts/ios_check.py ios), fed what the real AppModel published on the Sample board (made-up calendars) after Settings ▸ Live rank's Window was set to This month and one pull to refresh, on November 10, 2026. The Simulator can't draw widgets on a Home Screen, a Live Activity or the Dynamic Island. Before: This month wasn't offered for Live rank or the widgets; Today for comparison: 94/widgets-fresh.png."
+    },
+    {
+      "file": "97/live-rank-this-month.png",
+      "caption": "#97 Live rank on This month: Lock Screen card, expanded island (\"This month\" fits beside the trophy), compact island and the small (CarPlay/Watch) layout",
+      "capture": {
+        "device": "iPhone Duo Simulator (render)",
+        "os": "iOS 27.1",
+        "sourceCommit": "de2a23775725aad445421612c0ef55e5594faed4",
+        "fixture": true
+      },
+      "notes": "Render, not runtime capture: the real widget and Live Activity views drawn with ImageRenderer by CommitStandingsiOSTests/WidgetRefreshRenderTests on the iPhone Duo / iOS 27.1 test simulator (TEST_RUNNER_RENDER_DIR through scripts/ios_check.py ios), fed what the real AppModel published on the Sample board (made-up calendars) after Settings ▸ Live rank's Window was set to This month and one pull to refresh, on November 10, 2026. The Simulator can't draw widgets on a Home Screen, a Live Activity or the Dynamic Island. Before: This month wasn't offered for Live rank; Today for comparison: 94/live-rank-fresh.png."
+    },
+    {
+      "file": "97/live-rank-just-you-month.png",
+      "caption": "#97 Live rank on This month with nobody else visible: your streak (🔥 14) beside your count on the Lock Screen, and beside \"Just you so far\" in the expanded island, on lines that were already there",
+      "capture": {
+        "device": "iPhone Duo Simulator (render)",
+        "os": "iOS 27.1",
+        "sourceCommit": "de2a23775725aad445421612c0ef55e5594faed4",
+        "fixture": true
+      },
+      "notes": "Render, not runtime capture: the real widget and Live Activity views drawn with ImageRenderer by CommitStandingsiOSTests/WidgetRefreshRenderTests on the iPhone Duo / iOS 27.1 test simulator (TEST_RUNNER_RENDER_DIR through scripts/ios_check.py ios), fed what the real AppModel published on the Sample board (made-up calendars) after Settings ▸ Live rank's Window was set to This month, everyone else hidden, and one pull to refresh, on November 10, 2026. The Simulator can't draw widgets on a Home Screen, a Live Activity or the Dynamic Island. Before (#94): with no rivals, the Lock Screen card and expanded island showed no streak."
+    },
+    {
+      "file": "97/live-rank-just-you-daily.png",
+      "caption": "#97 Live rank on Today with nobody else visible: the same streak fix for #94's gap",
+      "capture": {
+        "device": "iPhone Duo Simulator (render)",
+        "os": "iOS 27.1",
+        "sourceCommit": "de2a23775725aad445421612c0ef55e5594faed4",
+        "fixture": true
+      },
+      "notes": "Render, not runtime capture: the real widget and Live Activity views drawn with ImageRenderer by CommitStandingsiOSTests/WidgetRefreshRenderTests on the iPhone Duo / iOS 27.1 test simulator (TEST_RUNNER_RENDER_DIR through scripts/ios_check.py ios), fed what the real AppModel published on the Sample board (made-up calendars) after Settings ▸ Live rank's Window was set, everyone else hidden, and one pull to refresh, on November 10, 2026. The Simulator can't draw widgets on a Home Screen, a Live Activity or the Dynamic Island. Before (#94): with no rivals, the Lock Screen card and expanded island showed no streak."
+    },
+    {
       "file": "98/mac-final-standings.png",
       "caption": "#98 Mac popover on the 1st: the board opens on October's Final standings behind the 🏅 October final standings switch, with \"October final · You finished #1 of 5\" over the rows, 🥇🥈🥉 before the top three names, and your card showing your October total (\"in October\")",
       "capture": {

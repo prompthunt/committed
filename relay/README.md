@@ -79,7 +79,7 @@ Registers or updates. `{id}` is 8 to 64 characters of `[A-Za-z0-9-]`; a UUID wor
   "pushToStartToken": "hex…",        // or null
   "login": "addisonk",
   "competitors": ["addisonk", "alice", "bob"],  // visible board, in board order (ties)
-  "window": "daily",                 // "daily" | "weekly" | "monthly"
+  "window": "daily",                 // "daily" | "weekly" | "monthly" | "month" (This month)
   "timeZone": "America/New_York",    // IANA
   "apnsEnvironment": "sandbox"       // "sandbox" | "production"
 }
@@ -90,7 +90,11 @@ Registers or updates. `{id}` is 8 to 64 characters of `[A-Za-z0-9-]`; a UUID wor
 - At most 1,000 competitors, self included.
 - Returns `201` on creation, `200` on update.
 - A changed competitor list resets today's movement baseline, as a visibility change does in
-  `RefreshCoordinator`.
+  `RefreshCoordinator`. So does a changed `window`: the baseline holds that Window's ranks.
+- A `window` the relay doesn't know gets `400 {"error":"invalid_window"}`. The iPhone app reads
+  that error (a relay from before This month answers it for `"month"`): it stops registering that
+  Window, deletes its registration, and keeps Live rank current itself until Live rank's Window
+  changes or the app relaunches.
 
 ### `PUT /v1/installations/{id}/activity`
 
@@ -119,13 +123,15 @@ registration. Returns `204`.
    are kept with their real age, so a hiccup doesn't zero anyone. A login never fetched has no
    data and shows as a placeholder.
 2. **Windows.** Today, 7 days, and 30 days are summed against the installation's local
-   calendar date in its IANA time zone, not UTC.
+   calendar date in its IANA time zone, not UTC. This month (`"month"`) sums the 1st of that
+   local month through today, so it starts again at local midnight on the 1st.
 3. **Ranking.** `src/ranking.ts` ports `Ranking.order`. `src/liveRank.ts` derives
    `LiveRankState`, matching `LiveRankAttributes.ContentState`. `updatedAt` is when your own
    count was fetched, or the run time when you have no data.
-4. **Today's movement.** This mirrors `RefreshCoordinator.updateDailyRankDeltas`. The first run
-   of each local day captures the daily ranks of rows that have data. Later runs report
-   `baseline − current` for you, on the Today window only.
+4. **Today's movement.** This mirrors `RefreshCoordinator.updateTodaysRankDeltas`. On Today and
+   This month, the first run of each local day captures that Window's ranks of rows that have
+   data. Later runs report `baseline − current` for you and your neighbors. Other Windows show
+   no movement.
 5. **Pushes.**
    - It pushes `update` only when the state (ignoring `updatedAt`) changed.
    - It also sends a heartbeat when the last push is within 5 minutes of its stale date and
@@ -148,8 +154,8 @@ APNs auth is an ES256 JWT signed with WebCrypto from the `.p8` key and cached fo
 ## Conformance fixture
 
 `../fixtures/ranking-conformance.json` is shared with the Mac test target and the Windows core
-(`windows/core/tests/conformance.rs`, which checks `order` only: Windows has no Live rank), so
-the Swift ordering, this port and the Windows board can't drift.
+(`windows/core/tests/conformance.rs`, which checks `order` and streaks: Windows has no Live rank),
+so the Swift ordering, this port and the Windows board can't drift.
 
 ```json
 {
@@ -171,20 +177,45 @@ the Swift ordering, this port and the Windows board can't drift.
                          "below": { "login": "bob", "contributions": 20, "movementToday": 0 },
                          "movementToday": 1, "updatedAt": 1793800000 }
     }
+  }, {
+    "name": "streaks: …",
+    "input": {
+      "self": "me", "competitors": ["me", "kai"], "window": "daily", "rankDeltas": {},
+      "timeZone": "America/Los_Angeles",                 // the installation's time zone
+      "asOf": "2026-11-09",                              // the local day at `now` there
+      "now": 1794286800,
+      "days": { "me": { "2026-11-08": 2, "2026-11-09": 3 } }  // in place of `standings`
+    },
+    "expected": {
+      "order": [{ "login": "me", "rank": 1 }],
+      "streaks": { "me": 2 },                            // everyone in `days`, raw
+      "liveRankState": { "…": "…", "streak": 2, "below": { "…": "…", "streak": 3 } }
+    }
   }]
 }
 ```
 
-- `test/ranking.test.ts` checks `order` and `liveRankState`.
+- `test/ranking.test.ts` checks `order` and `liveRankState`, and for `days` cases the local day
+  (`localDate`) and each streak (`currentStreak`).
 - `CommitStandingsTests/RankingConformanceTests.swift` checks `order` against `Ranking.order`.
   It finds the file through `#filePath`, so the fixture isn't a bundle resource. The Swift
   `LiveRankState` derivation (#43) should extend that test to check `liveRankState` too.
 - A standing whose `window` differs from the case's `window` counts as missing.
+- A case gives `standings` or `days`, never both. With `days`, each runner derives standings from
+  the calendars with its own history code (`sum` here, `ContributionHistory.total` in Swift,
+  `history::total` in Rust); a login missing from `days` has no data. `asOf` is the local day at
+  `now` in `timeZone`: Swift and this port check their own resolution against it, and Rust, which
+  has no time zone database, uses it as today.
 - `LiveRankState` rules:
   - `rank` is null with no data for you, or with no visible rivals.
   - `above` and `below` are null when there's no rank, or when that neighbor has no data.
   - `movementToday`, yours and each neighbor's in `above`/`below`, is that login's
     `rankDeltas` entry on `daily`, and 0 outside it. The app decodes a neighbor without it as 0.
+  - `streak`, yours and each neighbor's, is that login's current streak: today and the days
+    before it with a contribution, counted back from yesterday while today has none. It's the raw
+    count; the apps show it from 2, and past 365 as "365+". It's left out (not null) for anyone
+    without a calendar, and yours is left out without your count. Apps and saved states from
+    before streaks decode without it.
 - Add a case for any ranking behavior change, and run both suites.
 
 ## Setup (provisioning ticket)

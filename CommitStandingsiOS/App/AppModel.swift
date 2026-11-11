@@ -139,7 +139,7 @@ final class AppModel {
             relay: relay,
             preferences: preferences,
             isSignedIn: { auth.isSignedIn },
-            rankDelta: { refresh.rankDelta(for: $0) },
+            rankDelta: { refresh.rankDelta(for: $0, in: $1) },
             now: now,
             isSampleBoard: isSampleBoard
         )

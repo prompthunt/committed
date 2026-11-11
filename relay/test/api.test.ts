@@ -102,6 +102,23 @@ describe("PUT /v1/installations/{id}", () => {
     expect(await row()).toBeNull();
   });
 
+  it("accepts every Window the app offers, This month included", async () => {
+    for (const window of ["daily", "weekly", "monthly", "month"]) {
+      const res = await call("PUT", `/v1/installations/${ID}`, { ...registration, window });
+      expect(res.status, window).toBeLessThan(300);
+      expect((await row())!.window).toBe(window);
+    }
+  });
+
+  // The iPhone app reads this exact error to fall back to updating Live rank itself: a relay older
+  // than This month answered `invalid_window` for "month", and a newer app may offer a Window this
+  // relay doesn't know yet.
+  it("answers invalid_window for a Window it doesn't know", async () => {
+    const res = await call("PUT", `/v1/installations/${ID}`, { ...registration, window: "yearly" });
+    expect(res.status).toBe(400);
+    expect(await res.json()).toEqual({ error: "invalid_window" });
+  });
+
   it("rejects invalid fields", async () => {
     const bad = [
       { ...registration, login: "gho_abc123" },

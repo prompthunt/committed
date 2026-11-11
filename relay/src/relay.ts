@@ -85,9 +85,11 @@ export function createRelay(deps: RelayDeps) {
       log("installation_created", { id, competitors: registration.competitors.length });
       return json(201, { ok: true });
     }
-    // A changed board (hide/show, roster sync) invalidates today's movement baseline,
-    // as a visibility change does in RefreshCoordinator.
-    const resetBaseline = existing.competitors_json !== JSON.stringify(registration.competitors);
+    // A changed board (hide/show, roster sync) invalidates today's movement baseline, as a
+    // visibility change does in RefreshCoordinator. So does another Window: the baseline holds
+    // that Window's ranks (Today's or This month's).
+    const resetBaseline =
+      existing.competitors_json !== JSON.stringify(registration.competitors) || existing.window !== registration.window;
     await store.update(id, registration, resetBaseline, deps.now());
     log("installation_updated", { id, competitors: registration.competitors.length });
     return json(200, { ok: true });
