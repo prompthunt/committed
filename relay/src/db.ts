@@ -20,6 +20,10 @@ export interface InstallationRow {
   last_push_at: number | null;
   rate_window_start: number;
   rate_count: number;
+  /** The owner's public GitHub name, or null when unknown or empty. */
+  display_name: string | null;
+  /** Unix seconds of the last name lookup, successful or not. */
+  display_name_checked_at: number | null;
   created_at: number;
   updated_at: number;
 }
@@ -37,6 +41,21 @@ export interface CachedDays {
   attempted_at: number;
   fetched_at: number | null;
   days_json: string | null;
+}
+
+/** A login's last good days in the contribution cache. */
+export interface CachedLoginDays {
+  login: string;
+  fetched_at: number;
+  days_json: string;
+}
+
+export interface BoardTokenRow {
+  token_hash: string;
+  installation_id: string;
+  label: string | null;
+  created_at: number;
+  revoked_at: number | null;
 }
 
 export class Store {
@@ -67,12 +86,14 @@ export class Store {
       .prepare(
         `UPDATE installations SET apns_environment = ?, push_to_start_token = ?, login = ?, competitors_json = ?,
            window = ?, time_zone = ?, updated_at = ?,
+           display_name = CASE WHEN login = ? THEN display_name ELSE NULL END,
+           display_name_checked_at = CASE WHEN login = ? THEN display_name_checked_at ELSE NULL END,
            baseline_date = CASE WHEN ? THEN NULL ELSE baseline_date END,
            baseline_ranks_json = CASE WHEN ? THEN NULL ELSE baseline_ranks_json END
          WHERE id = ?`,
       )
       .bind(reg.apnsEnvironment, reg.pushToStartToken, reg.login, JSON.stringify(reg.competitors), reg.window,
-        reg.timeZone, now, resetBaseline ? 1 : 0, resetBaseline ? 1 : 0, id)
+        reg.timeZone, now, reg.login, reg.login, resetBaseline ? 1 : 0, resetBaseline ? 1 : 0, id)
       .run();
   }
 
@@ -91,6 +112,24 @@ export class Store {
     await this.db
       .prepare("UPDATE installations SET rate_window_start = ?, rate_count = ? WHERE id = ?")
       .bind(windowStart, count, id)
+      .run();
+  }
+
+  /**
+   * Records a name lookup. `name` undefined means it failed: keep the last name, note the attempt.
+   * The login guard drops a lookup that raced a re-registration under another login.
+   */
+  async recordDisplayName(id: string, login: string, name: string | null | undefined, now: number): Promise<void> {
+    if (name === undefined) {
+      await this.db
+        .prepare("UPDATE installations SET display_name_checked_at = ? WHERE id = ? AND login = ?")
+        .bind(now, id, login)
+        .run();
+      return;
+    }
+    await this.db
+      .prepare("UPDATE installations SET display_name = ?, display_name_checked_at = ? WHERE id = ? AND login = ?")
+      .bind(name, now, id, login)
       .run();
   }
 
@@ -139,5 +178,23 @@ export class Store {
       )
       .bind(login, now, error)
       .run();
+  }
+
+  /** Last good days for each login, whatever their age. Reads only: nothing is fetched. */
+  async getCachedDays(logins: readonly string[]): Promise<CachedLoginDays[]> {
+    const { results } = await this.db
+      .prepare(
+        `SELECT login, fetched_at, days_json FROM contribution_cache
+         WHERE login IN (SELECT value FROM json_each(?)) AND fetched_at IS NOT NULL AND days_json IS NOT NULL`,
+      )
+      .bind(JSON.stringify(logins))
+      .all<CachedLoginDays>();
+    return results;
+  }
+
+  // MARK: - Board read tokens (minted by hand for now; see README)
+
+  getBoardToken(tokenHash: string): Promise<BoardTokenRow | null> {
+    return this.db.prepare("SELECT * FROM board_tokens WHERE token_hash = ?").bind(tokenHash).first<BoardTokenRow>();
   }
 }

@@ -9,12 +9,16 @@
   "scripts": {
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
-    "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.browser.json",
+    "test": "vitest run",
+    "test:browser": "playwright test"
   },
   "devDependencies": {
     "@cloudflare/vitest-plugin": "^1.5.1",
     "@cloudflare/workers-types": "^5.20261104.1",
+    "@playwright/test": "^1.65.0",
+    "@types/node": "^24.19.2",
+    "acorn": "^8.19.0",
     "typescript": "~5.9",
     "vitest": "~4.1",
     "wrangler": "^4.157.0"

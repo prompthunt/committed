@@ -7,16 +7,17 @@ import {
   type ApnsPayload,
   type ApnsSender,
 } from "./apns";
+import { competitorsOf, deriveBoard, loginData, type LoginData } from "./board";
 import type { InstallationRow, Store } from "./db";
-import { deriveLiveRankState, type LiveRankState } from "./liveRank";
-import { localDate, parseDays, sum, type Days } from "./parser";
-import { order, selfFirst, type Standing } from "./ranking";
-import type { GitHubFetch, Log } from "./relay";
+import type { LiveRankState } from "./liveRank";
+import { parseDays } from "./parser";
+import type { GitHubFetch, GitHubNameFetch, Log } from "./relay";
 
 export interface CycleDeps {
   store: Store;
   apns: ApnsSender;
   github: GitHubFetch;
+  githubName: GitHubNameFetch;
   now: () => number;
   log: Log;
 }
@@ -27,12 +28,9 @@ export const CACHE_SECONDS = 5 * 60;
 export const ROTATE_AFTER_SECONDS = 7.5 * 60 * 60;
 /** Heartbeat when the last pushed state is within this long of its stale date. */
 export const HEARTBEAT_MARGIN_SECONDS = 5 * 60;
+/** The owner's public GitHub name is looked up at most once a day per installation, failed or not. */
+export const NAME_LOOKUP_SECONDS = 24 * 60 * 60;
 const FETCH_CONCURRENCY = 6;
-
-export interface LoginData {
-  days: Days;
-  fetchedAt: number;
-}
 
 /**
  * One cron run. For each installation: compute its `LiveRankState` from public contribution
@@ -53,6 +51,8 @@ export async function runCycle(deps: CycleDeps): Promise<void> {
       deps.log("installation_failed", { id: row.id, error: String(error) });
     }
   }
+  // After the pushes, so a slow or failing GitHub API never delays Live rank.
+  for (const row of installations) await lookUpDisplayName(row, deps, now);
   deps.log("cycle_complete", { installations: installations.length, logins: logins.size });
 }
 
@@ -62,38 +62,12 @@ async function runInstallation(
   deps: CycleDeps,
   now: number,
 ): Promise<void> {
-  const competitors = competitorsOf(row);
-  const today = localDate(now, row.time_zone);
-
-  // Today's movement: mirror RefreshCoordinator.updateDailyRankDeltas. The day's first run
-  // captures the baseline (ranks of rows with data); later runs report baseline − current.
-  const daily = standingsFor(competitors, data, "daily", today);
-  const dailyRanks: Record<string, number> = {};
-  for (const entry of order(competitors, daily, "daily")) {
-    if (daily[entry.login]) dailyRanks[entry.login] = entry.rank;
-  }
-  let rankDeltas: Record<string, number> = {};
+  const { today, ranksToday, state } = deriveBoard(row, data, row.window, now);
+  // The day's first run captures the movement baseline; later runs report baseline − current.
   if (row.baseline_date !== today || !row.baseline_ranks_json) {
     row.baseline_date = today;
-    row.baseline_ranks_json = JSON.stringify(dailyRanks);
-  } else {
-    const baseline = JSON.parse(row.baseline_ranks_json) as Record<string, number>;
-    for (const [login, rank] of Object.entries(dailyRanks)) {
-      if (baseline[login] !== undefined) rankDeltas[login] = baseline[login] - rank;
-    }
+    row.baseline_ranks_json = JSON.stringify(ranksToday);
   }
-
-  const standings = row.window === "daily" ? daily : standingsFor(competitors, data, row.window, today);
-  const state = deriveLiveRankState({
-    self: row.login,
-    competitors,
-    standings,
-    window: row.window,
-    rankDeltas,
-    // The data's age is that of your own count, the headline number. A rival whose page keeps
-    // failing (renamed account) must not pin every push's stale date in the past.
-    now: standings[row.login] ? data.get(row.login)!.fetchedAt : now,
-  });
   const previous = row.last_state_json ? (JSON.parse(row.last_state_json) as LiveRankState) : null;
 
   if (row.activity_push_token) {
@@ -119,6 +93,25 @@ async function runInstallation(
   }
 
   await deps.store.save(row);
+}
+
+/**
+ * The board route's `displayName`: the owner's public GitHub profile name, refreshed at most once a
+ * day. Failures are silent (logged) and keep the last name until the next day's try.
+ */
+async function lookUpDisplayName(row: InstallationRow, deps: CycleDeps, now: number): Promise<void> {
+  if (row.display_name_checked_at !== null && now - row.display_name_checked_at < NAME_LOOKUP_SECONDS) return;
+  let name: string | null | undefined;
+  try {
+    name = (await deps.githubName(row.login))?.trim() || null;
+  } catch (error) {
+    deps.log("display_name_failed", { id: row.id, error: String(error) });
+  }
+  try {
+    await deps.store.recordDisplayName(row.id, row.login, name, now);
+  } catch (error) {
+    deps.log("display_name_failed", { id: row.id, error: String(error) });
+  }
 }
 
 async function start(row: InstallationRow, state: LiveRankState, deps: CycleDeps, now: number): Promise<void> {
@@ -171,25 +164,6 @@ async function send(
   return false;
 }
 
-/** Rows saved before registration enforced it may list you later: rank them you-first too. */
-function competitorsOf(row: InstallationRow): string[] {
-  return selfFirst(row.login, JSON.parse(row.competitors_json) as string[]);
-}
-
-export function standingsFor(
-  competitors: readonly string[],
-  data: Map<string, LoginData>,
-  window: Standing["window"],
-  today: string,
-): Record<string, Standing> {
-  const standings: Record<string, Standing> = {};
-  for (const login of competitors) {
-    const entry = data.get(login);
-    if (entry) standings[login] = { contributions: sum(entry.days, window, today), window };
-  }
-  return standings;
-}
-
 /** Days per login, from the shared 5-minute cache or a fresh anonymous fetch. */
 export async function loadContributions(
   logins: string[],
@@ -202,9 +176,8 @@ export async function loadContributions(
     for (let login = queue.shift(); login !== undefined; login = queue.shift()) {
       const cached = await deps.store.getCached(login);
       if (cached && now - cached.attempted_at < CACHE_SECONDS) {
-        if (cached.days_json && cached.fetched_at !== null) {
-          result.set(login, { days: JSON.parse(cached.days_json) as Days, fetchedAt: cached.fetched_at });
-        }
+        const entry = loginData(cached);
+        if (entry) result.set(login, entry);
         continue;
       }
       try {
@@ -215,9 +188,8 @@ export async function loadContributions(
         await deps.store.putFailed(login, now, String(error));
         deps.log("contributions_failed", { login, error: String(error) });
         // Stale beats missing: keep the last good days, with their real age.
-        if (cached?.days_json && cached.fetched_at !== null) {
-          result.set(login, { days: JSON.parse(cached.days_json) as Days, fetchedAt: cached.fetched_at });
-        }
+        const entry = loginData(cached);
+        if (entry) result.set(login, entry);
       }
     }
   };

@@ -53,6 +53,27 @@ export class FakeGitHub {
       .join("\n");
     return `<table>${cells}</table>${tips}`;
   };
+
+  /** api.github.com/users/<login> `name`s, logged apart from the contribution pages. */
+  readonly nameRequests: string[] = [];
+  private readonly names = new Map<string, string | null>();
+  private readonly failingNames = new Set<string>();
+
+  setName(login: string, name: string | null): void {
+    this.names.set(login, name);
+    this.failingNames.delete(login);
+  }
+
+  failName(login: string): void {
+    this.failingNames.add(login);
+  }
+
+  name = async (login: string): Promise<string | null> => {
+    this.nameRequests.push(login);
+    if (this.failingNames.has(login)) throw new Error(`HTTP 403 for ${login}`);
+    if (!this.names.has(login)) throw new Error(`HTTP 404 for ${login}`);
+    return this.names.get(login) ?? null;
+  };
 }
 
 export class Clock {

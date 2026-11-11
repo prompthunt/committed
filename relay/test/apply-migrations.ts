@@ -6,5 +6,9 @@ await applyD1Migrations(env.DB, env.TEST_MIGRATIONS);
 
 // Start every test from empty tables.
 beforeEach(async () => {
-  await env.DB.batch([env.DB.prepare("DELETE FROM installations"), env.DB.prepare("DELETE FROM contribution_cache")]);
+  await env.DB.batch([
+    env.DB.prepare("DELETE FROM board_tokens"),
+    env.DB.prepare("DELETE FROM installations"),
+    env.DB.prepare("DELETE FROM contribution_cache"),
+  ]);
 });

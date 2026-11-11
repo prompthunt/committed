@@ -121,6 +121,172 @@ shared 5-minute `contribution_cache`. Nothing else is stored.
 - **Writes:** 30 per installation per 10 minutes; past that, `429`.
 - **Bodies:** 128 KB at most.
 
+## Board route
+
+Lets another screen, such as the office TV's Glance, read one installation's board without the
+installation secret (ticket #82).
+
+### `GET /v1/installations/{id}/board?window=daily`
+
+- **Auth:** `Authorization: Bearer <board read token>`, 32 to 256 characters. The installation
+  secret is not accepted here, and a board read token can't call the device API.
+- **Check order:** `window` first (400), then the token's presence and length (401), then the
+  installation (404), and only then the token itself (401, 403). Looking up the installation before
+  the token is deliberate: deleting an installation deletes its tokens, so a screen can still tell
+  "Live rank is off" (404) from "this token was revoked" (403). It does reveal whether an
+  installation ID exists to anyone sending a well-formed token; IDs are random UUIDs, so that
+  isn't a way to find installations.
+- **`window`:** `daily` (the default), `weekly` or `monthly`.
+- **Reads only.** The board is computed from the cycle's `contribution_cache` and the installation's
+  competitors, time zone, login and today's movement baseline by `deriveBoard` in `src/board.ts`,
+  the same function the cycle pushes from. A read never fetches from GitHub and never writes, so
+  read at the same moment it returns the state the cycle pushed.
+- **Response** (`Cache-Control: private, max-age=60`, `Vary: Authorization`): the Live rank
+  summary fields, plus the full visible board in board order.
+
+  ```json
+  {
+    "window": "daily", "login": "me", "displayName": "Mae Example", "rank": 2, "competitorCount": 3, "contributions": 5,
+    "above": { "login": "alice", "contributions": 9, "movementToday": 0 },
+    "below": { "login": "bob", "contributions": 1, "movementToday": 0 },
+    "movementToday": 0, "gapToPass": 4, "updatedAt": 1793804400,
+    "rows": [
+      { "rank": 1, "login": "alice", "contributions": 9, "movementToday": 0, "isSelf": false },
+      { "rank": 2, "login": "me", "contributions": 5, "movementToday": 0, "isSelf": true },
+      { "rank": 3, "login": "bob", "contributions": 1, "movementToday": 0, "isSelf": false }
+    ]
+  }
+  ```
+
+  - `rank`, `above`, `below` and `movementToday` follow the `LiveRankState` rules below: `rank`
+    is null with no rivals or no data for you.
+  - `gapToPass` is `max(above − yours, 1)`, null with nobody above (Swift `gapToPass`).
+  - `displayName` is the `name` on your public GitHub profile, null when it's unknown or empty.
+    The cron cycle looks it up (`GET https://api.github.com/users/<login>`, unauthenticated) at
+    most once every 24 hours per installation, after its pushes, and keeps it in D1
+    (`migrations/0003_display_name.sql`). A failed lookup keeps the last name and tries again the
+    next day; a registration under another login forgets it. The board route only reads it.
+  - A row's `contributions` is null when that login has no data yet.
+  - `updatedAt` (Unix seconds) follows Live rank's rule: when your own count was fetched, else
+    the time of the read (as the cycle uses its run time). A rival's older data never dates the
+    board, so it's never null.
+- **Errors** are `{ "error": "<code>", "message": "<text>" }` with `Cache-Control: no-store`:
+
+  | Status | `error` | When |
+  |---|---|---|
+  | 401 | `unauthorized` | Token missing, malformed (under 32 or over 256 characters) or unknown |
+  | 403 | `revoked` | The token was revoked |
+  | 403 | `forbidden` | The token belongs to another installation |
+  | 404 | `not_found` | The installation is gone (Live rank turned off, GitHub disconnected) |
+  | 400 | `invalid_window` | `window` isn't `daily`, `weekly` or `monthly` |
+
+### Board read tokens
+
+The `board_tokens` table (`migrations/0002_board_tokens.sql`) stores each token's SHA-256 with
+its installation ID, an optional label, and created and revoked times. Deleting the installation
+deletes its tokens. For now tokens are minted by hand; a later iPhone setting can mint them
+through a route.
+
+**Mint** a token. Find the installation first; pick the production one that was updated most recently:
+
+```bash
+cd relay
+npx wrangler d1 execute committed-relay --remote --command \
+  "SELECT id, apns_environment, datetime(updated_at, 'unixepoch') AS updated FROM installations WHERE login = 'addisonk'"
+
+INSTALLATION=<id from above>
+TOKEN=$(openssl rand -hex 32)                                  # 64 characters; keep it, it's shown once
+HASH=$(printf %s "$TOKEN" | shasum -a 256 | cut -d' ' -f1)     # printf, not echo: no trailing newline
+npx wrangler d1 execute committed-relay --remote --command \
+  "INSERT INTO board_tokens (token_hash, installation_id, label, created_at) VALUES ('$HASH', '$INSTALLATION', 'Office Frame', unixepoch())"
+
+curl -H "Authorization: Bearer $TOKEN" \
+  "https://committed-relay.prompt-hunt.workers.dev/v1/installations/$INSTALLATION/board?window=daily"
+```
+
+Keep the token out of the repository. Only its hash is in D1, so a lost token can't be recovered:
+mint a new one.
+
+**List** an installation's tokens, and **revoke** one by label, or by hash if you still have the token:
+
+```bash
+npx wrangler d1 execute committed-relay --remote --command \
+  "SELECT label, datetime(created_at, 'unixepoch') AS created, datetime(revoked_at, 'unixepoch') AS revoked FROM board_tokens WHERE installation_id = '$INSTALLATION'"
+npx wrangler d1 execute committed-relay --remote --command \
+  "UPDATE board_tokens SET revoked_at = unixepoch() WHERE installation_id = '$INSTALLATION' AND label = 'Office Frame' AND revoked_at IS NULL"
+npx wrangler d1 execute committed-relay --remote --command \
+  "UPDATE board_tokens SET revoked_at = unixepoch() WHERE token_hash = '$HASH'"
+```
+
+A revoked token gets `403` from then on.
+
+## Web widget
+
+Committed's StandBy pair as a web page, so any screen can show your board: the iPhone app's hero
+card (`BoardSummaryView`, rank only) beside the board list. Glance on the office Frame iframes it (ticket #83; ADR 0001 in `addisonk/glance`).
+
+### `GET /v1/widget?layout=standby`
+
+- **Public, static, no data.** `widget/standby.html`, `standby.css`, `standby.js`, the Inter
+  Tight Regular and ExtraBold fonts and JetBrains Mono Medium (the eyebrows' monospace; the TV has
+  none), subset to Basic Latin, `·`, `–` and `…` (about 10 KB), are bundled into the Worker (the `rules` in
+  `wrangler.jsonc`) and served by `src/widget.ts` under `/v1/widget/`. `layout` defaults to
+  `standby`, the only layout; any other is a `404`. The page may be framed from any origin.
+- **Address:** `https://committed-relay.prompt-hunt.workers.dev/v1/widget?layout=standby#installation=<id>&token=<board read token>`.
+  The installation ID and token are in the **fragment**, which browsers never send to a server.
+  The page calls `GET /v1/installations/{id}/board?window=daily` on the same origin (no CORS)
+  with `Authorization: Bearer <token>`; the token never appears in a request URL. Add
+  `&window=weekly` or `&window=monthly` to the fragment for another Window.
+- **Refresh:** every 5 minutes, in step with the cycle (every minute until the first board
+  arrives). A failed refresh keeps the last board.
+- **States:**
+
+  | When | Shows |
+  |---|---|
+  | Before the first board | A `–` placeholder and "Your board is loading", never 0 |
+  | Data more than 20 minutes old (`updatedAt`) | Live rank's stale treatment: colors step down (lime to deep lime, rank to grey, the field dims); the age stays soft |
+  | No rivals | The trophy in place of a rank, your count, "Just you so far" |
+  | No count of yours yet | The trophy, "Waiting for your first count" |
+  | `401` / `403` | "This screen's access was revoked" |
+  | `404` | "Live rank is off on your iPhone" |
+  | No fragment | How to add the installation ID and token |
+
+- **The card:** a folio ("01 · TODAY", "02 · 7 DAYS", "03 · 30 DAYS" … "YOUR RANK") over a
+  hairline; your avatar with a lime ring, your first name (`displayName`'s first word, as the app
+  shows it) over `@login`, or `@login` alone; your rank huge with "of N"; then today's movement
+  ("Up 2 today" in lime, "Down 1 today" in soft, nothing when you held), the pass line ("5 to pass
+  mossbyte", none at #1) and "Updated 6 min ago" (the app's coarse age). Your count stays on your
+  row. Behind the rank sits the app's square field, drawn still for the card's size with its
+  masks folded into each square's opacity. The list's header is the eyebrow "12 PEOPLE · TODAY".
+- **Layout:** one rem scales with the box, so the pair fills whatever size it's given (a box
+  taller than wide stacks the card over the list). The rank shrinks to fit the card; in a box too
+  small for it the card drops your identity first, then the age, the movement line and the
+  folio's label. The list shows as many rows as fit, chosen
+  as the small Board widget chooses them (`WidgetSnapshot.boardRows`): the leaders, or the first
+  few, the person ahead of you and you. Long logins lose their middle. Avatars load from GitHub
+  over initials.
+- **Motion:** row counts tick up, rows slide to their new places (FLIP with transforms), and
+  movement chevrons fade in.
+
+### Runtime limits (Samsung Frame, Chromium 76)
+
+ES5 JavaScript only. No CSS flex `gap`, `inset`, `aspect-ratio`, `clamp()`, `min()`, `max()` or
+custom properties; no gradients, shadows or blur; only `opacity` and `transform` animate. Fonts
+and icons come from the relay; only avatars come from GitHub. `test/widget-runtime.test.ts`
+checks all of this in `npm test` against the exact files the route serves (ES5 via `acorn`).
+
+### Browser tests
+
+`browser/widget.spec.ts` drives the page in Playwright against a stubbed board route: every
+state above, the poll, the stale switch, the token staying out of URLs, the row swap and count
+tick, and no overflow at 1280×1080, 852×393, 360×240 and 400×900.
+
+```bash
+npx playwright install chromium   # once
+npm run test:browser
+WIDGET_SCREENS=/some/dir npm run test:browser   # also save a screenshot of each state
+```
+
 ## What the cron run does
 
 `src/cycle.ts`, once every 5 minutes:
@@ -227,6 +393,7 @@ cd relay
 npm ci
 npm run typecheck
 npm test                                    # Vitest in workerd: fake APNs, fake GitHub, local D1
+npm run test:browser                        # Playwright: the web widget against a stubbed board
 npx wrangler d1 migrations apply committed-relay --local
 npx wrangler dev --test-scheduled           # then: curl "localhost:8787/__scheduled?cron=*/5+*+*+*+*"
 ```

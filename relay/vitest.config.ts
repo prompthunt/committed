@@ -22,6 +22,8 @@ export default defineConfig({
     }),
   ],
   test: {
+    // browser/ holds the Playwright specs (`npm run test:browser`).
+    include: ["test/**/*.test.ts"],
     setupFiles: ["./test/apply-migrations.ts"],
   },
 });
