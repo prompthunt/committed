@@ -297,6 +297,50 @@
         "fixture": true
       },
       "notes": "Render, not runtime capture: the real widget and Live Activity views drawn with ImageRenderer by CommitStandingsiOSTests/WidgetRefreshRenderTests on the iPhone Duo / iOS 27.1 test simulator (TEST_RUNNER_RENDER_DIR through scripts/ios_check.py ios), fed what the real AppModel published on the Sample board after one pull to refresh (made-up calendars, so the streaks are made up too). The Simulator can't draw widgets on a Home Screen, a Live Activity or the Dynamic Island. Before (no streaks): docs/screenshots/widget-refresh/after-live-rank-stale.png."
+    },
+    {
+      "file": "97/widgets-this-month.png",
+      "caption": "#97 Widgets on This month: every size headed \"This month\", ranked by This month's totals (the 1st through today); the inline and rectangular Lock Screen widgets read \"#3 · 57 this month\"",
+      "capture": {
+        "device": "iPhone Duo Simulator (render)",
+        "os": "iOS 27.1",
+        "sourceCommit": "de2a23775725aad445421612c0ef55e5594faed4",
+        "fixture": true
+      },
+      "notes": "Render, not runtime capture: the real widget and Live Activity views drawn with ImageRenderer by CommitStandingsiOSTests/WidgetRefreshRenderTests on the iPhone Duo / iOS 27.1 test simulator (TEST_RUNNER_RENDER_DIR through scripts/ios_check.py ios), fed what the real AppModel published on the Sample board (made-up calendars) after Settings ▸ Live rank's Window was set to This month and one pull to refresh, on November 10, 2026. The Simulator can't draw widgets on a Home Screen, a Live Activity or the Dynamic Island. Before: This month wasn't offered for Live rank or the widgets; Today for comparison: 94/widgets-fresh.png."
+    },
+    {
+      "file": "97/live-rank-this-month.png",
+      "caption": "#97 Live rank on This month: Lock Screen card, expanded island (\"This month\" fits beside the trophy), compact island and the small (CarPlay/Watch) layout",
+      "capture": {
+        "device": "iPhone Duo Simulator (render)",
+        "os": "iOS 27.1",
+        "sourceCommit": "de2a23775725aad445421612c0ef55e5594faed4",
+        "fixture": true
+      },
+      "notes": "Render, not runtime capture: the real widget and Live Activity views drawn with ImageRenderer by CommitStandingsiOSTests/WidgetRefreshRenderTests on the iPhone Duo / iOS 27.1 test simulator (TEST_RUNNER_RENDER_DIR through scripts/ios_check.py ios), fed what the real AppModel published on the Sample board (made-up calendars) after Settings ▸ Live rank's Window was set to This month and one pull to refresh, on November 10, 2026. The Simulator can't draw widgets on a Home Screen, a Live Activity or the Dynamic Island. Before: This month wasn't offered for Live rank; Today for comparison: 94/live-rank-fresh.png."
+    },
+    {
+      "file": "97/live-rank-just-you-month.png",
+      "caption": "#97 Live rank on This month with nobody else visible: your streak (🔥 14) beside your count on the Lock Screen, and beside \"Just you so far\" in the expanded island, on lines that were already there",
+      "capture": {
+        "device": "iPhone Duo Simulator (render)",
+        "os": "iOS 27.1",
+        "sourceCommit": "de2a23775725aad445421612c0ef55e5594faed4",
+        "fixture": true
+      },
+      "notes": "Render, not runtime capture: the real widget and Live Activity views drawn with ImageRenderer by CommitStandingsiOSTests/WidgetRefreshRenderTests on the iPhone Duo / iOS 27.1 test simulator (TEST_RUNNER_RENDER_DIR through scripts/ios_check.py ios), fed what the real AppModel published on the Sample board (made-up calendars) after Settings ▸ Live rank's Window was set to This month, everyone else hidden, and one pull to refresh, on November 10, 2026. The Simulator can't draw widgets on a Home Screen, a Live Activity or the Dynamic Island. Before (#94): with no rivals, the Lock Screen card and expanded island showed no streak."
+    },
+    {
+      "file": "97/live-rank-just-you-daily.png",
+      "caption": "#97 Live rank on Today with nobody else visible: the same streak fix for #94's gap",
+      "capture": {
+        "device": "iPhone Duo Simulator (render)",
+        "os": "iOS 27.1",
+        "sourceCommit": "de2a23775725aad445421612c0ef55e5594faed4",
+        "fixture": true
+      },
+      "notes": "Render, not runtime capture: the real widget and Live Activity views drawn with ImageRenderer by CommitStandingsiOSTests/WidgetRefreshRenderTests on the iPhone Duo / iOS 27.1 test simulator (TEST_RUNNER_RENDER_DIR through scripts/ios_check.py ios), fed what the real AppModel published on the Sample board (made-up calendars) after Settings ▸ Live rank's Window was set, everyone else hidden, and one pull to refresh, on November 10, 2026. The Simulator can't draw widgets on a Home Screen, a Live Activity or the Dynamic Island. Before (#94): with no rivals, the Lock Screen card and expanded island showed no streak."
     }
   ]
 }
