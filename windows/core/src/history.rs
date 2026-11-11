@@ -15,7 +15,7 @@ pub fn range(window: Window, today: NaiveDate) -> RangeInclusive<NaiveDate> {
         Window::Today => today,
         Window::Week => today - Duration::days(6),
         Window::Monthly => today - Duration::days(29),
-        Window::ThisMonth => today.with_day(1).expect("every month has a 1st"),
+        Window::ThisMonth => first_of_month(today),
     };
     start..=today
 }
@@ -89,9 +89,8 @@ pub fn active_days(days: &BTreeMap<NaiveDate, u32>, range: RangeInclusive<NaiveD
 /// Every day of the month that contains `month` (any day of it names the month), 1st to last.
 /// Final standings use it for a finished month; This month is `range(Window::ThisMonth, today)`.
 pub fn month_range(month: NaiveDate) -> RangeInclusive<NaiveDate> {
-    let first = month.with_day(1).expect("every month has a 1st");
-    let last = first + Duration::days(i64::from(days_in_month(first)) - 1);
-    first..=last
+    let first = first_of_month(month);
+    first..=next_month(first) - Duration::days(1)
 }
 
 /// Contributions in the whole month that contains `month`; a day missing from the calendar adds 0.
@@ -105,21 +104,27 @@ pub fn month_total(days: &BTreeMap<NaiveDate, u32>, month: NaiveDate) -> u32 {
 /// calendar, zeros included, so the first key is the first day it covers.
 pub fn first_full_month(days: &BTreeMap<NaiveDate, u32>) -> Option<NaiveDate> {
     let first = *days.keys().next()?;
-    let start = first.with_day(1).expect("every month has a 1st");
+    let start = first_of_month(first);
     Some(if first == start {
         start
     } else {
-        start
-            .checked_add_months(chrono::Months::new(1))
-            .expect("a month after a calendar day")
+        next_month(first)
     })
 }
 
 /// How many days `today`'s month has (28 to 31): the "30" in "Day 10 of 30".
 pub fn days_in_month(today: NaiveDate) -> u32 {
-    let first = today.with_day(1).expect("every month has a 1st");
-    let next = first
+    (next_month(today) - first_of_month(today)).num_days() as u32
+}
+
+/// The 1st of `day`'s month.
+pub fn first_of_month(day: NaiveDate) -> NaiveDate {
+    day.with_day(1).expect("every month has a 1st")
+}
+
+/// The 1st of the month after `day`'s.
+pub fn next_month(day: NaiveDate) -> NaiveDate {
+    first_of_month(day)
         .checked_add_months(chrono::Months::new(1))
-        .expect("a month after a calendar day");
-    (next - first).num_days() as u32
+        .expect("a month after a calendar day")
 }

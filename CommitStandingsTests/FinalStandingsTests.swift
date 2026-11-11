@@ -82,12 +82,11 @@ struct FinalStandingsTests {
         #expect(Self.summary(store.finalStandings(for: Self.october)) == ["#1 ana 8 gold", "#2 me 3 silver", "#3 new-person —"])
     }
 
-    /// Months are offered from your own calendar's first full month until the month it's in;
-    /// your calendar here starts mid-September and was read on November 1.
+    /// Months are offered from your own calendar's first full month through last month (in the
+    /// device's calendar); your calendar here starts mid-September and was read on November 1.
     @Test func onlyFinishedMonthsYourCalendarCoversInFullAreOffered() {
         let store = Self.store(["me": 3, "ana": 8], rivals: ["ana"])
         #expect(store.finalStandings(for: CalendarMonth(year: 2026, month: 9)) == nil)
-        #expect(store.finalStandings(for: CalendarMonth(year: 2026, month: 11)) == nil)
         var utc = Calendar(identifier: .gregorian)
         utc.timeZone = .gmt
         let november1 = Date(timeIntervalSince1970: 1_793_512_800) // 2026-11-01T06:00Z
@@ -139,12 +138,22 @@ struct MonthFinalTests {
         let spy: Spy
     }
 
-    /// "me", "ana" and "bo" with October totals 30, 51 and 10 (calendars through `through`).
+    /// Saved months as if `owners` last heard about September: the next 1st announces October.
+    static func announcedSeptember(_ owners: [String] = ["me"]) -> InMemoryAnnouncedMonthPersistence {
+        let announced = InMemoryAnnouncedMonthPersistence()
+        announced.save(Dictionary(uniqueKeysWithValues: owners.map { ($0, "2026-09") }))
+        return announced
+    }
+
+    /// "me", "ana" and "bo" with October totals 30, 51 and 10, calendars through `date`'s day in
+    /// `calendar` (or through `lastDay`).
     static func board(
         at date: Date = november1,
-        announced: any AnnouncedMonthPersistence = InMemoryAnnouncedMonthPersistence(),
+        announced: any AnnouncedMonthPersistence = announcedSeptember(),
         store: StandingsStore? = nil,
-        notifier: Spy = Spy()
+        notifier: Spy = Spy(),
+        calendar: Calendar = utc,
+        lastDay: String? = nil
     ) async -> Board {
         let store = store ?? {
             let store = StandingsStore(persistence: InMemoryCompetitorPersistence())
@@ -152,19 +161,22 @@ struct MonthFinalTests {
             return store
         }()
         let client = StubFetcher()
-        await setCalendars(client, through: date)
+        await setCalendars(client, lastDay: lastDay ?? ContributionHistory.key(for: date, in: calendar))
         let clock = MutableClock(date)
         let refresh = RefreshCoordinator(
             store: store, client: client, interval: 9_999, now: { clock.date }, notifier: notifier,
-            calendar: utc, announcedMonths: announced
+            calendar: calendar, announcedMonths: announced
         )
         return Board(store: store, refresh: refresh, client: client, clock: clock, spy: notifier)
     }
 
     static func setCalendars(_ client: StubFetcher, through date: Date) async {
-        let last = ContributionHistory.key(for: date, in: utc)
+        await setCalendars(client, lastDay: ContributionHistory.key(for: date, in: utc))
+    }
+
+    static func setCalendars(_ client: StubFetcher, lastDay: String) async {
         for (login, total) in ["me": 30, "ana": 51, "bo": 10] {
-            let history = FinalStandingsTests.history(through: last, ["2026-10-15": total])
+            let history = FinalStandingsTests.history(through: lastDay, ["2026-10-15": total])
             await client.setResponse(.success(StandingCounts(contributions: 0, history: history)), for: login)
         }
     }
@@ -196,8 +208,38 @@ struct MonthFinalTests {
         #expect(board.refresh.showsFinalStandings)
     }
 
-    @Test func theFirstRefreshOfANewMonthAnnouncesLastMonthOnce() async {
+    /// In a zone ahead of UTC, local midnight on the 1st comes before GitHub's calendar has the
+    /// new day: the finished month is offered, and announced, from that midnight all the same.
+    @Test func aheadOfUTCTheFinishedMonthIsOfferedFromLocalMidnightOnThe1st() async {
+        var tokyo = Calendar(identifier: .gregorian)
+        tokyo.timeZone = TimeZone(identifier: "Asia/Tokyo")!
+        let tokyoMidnight = Date(timeIntervalSince1970: 1_793_460_600) // 2026-11-01T00:30+09:00
+        let board = await Self.board(at: tokyoMidnight, calendar: tokyo, lastDay: "2026-10-31")
+        await board.refresh.refreshAll(reason: .manual)
+        #expect(board.refresh.offeredFinalStandings?.month == FinalStandingsTests.october)
+        #expect(board.refresh.showsFinalStandings)
+        #expect(board.spy.monthFinals.map(\.title) == ["October final"])
+        #expect(board.spy.monthFinals.map(\.body) == ["You finished #2 of 3"])
+    }
+
+    /// An account that has never been announced anything (a new install, or the first version
+    /// with month finals) starts quietly: its first successful refresh records last month without
+    /// a notification, so it never hears old news. The next month's end is announced as usual.
+    @Test func aNeverAnnouncedAccountRecordsLastMonthWithoutANotice() async {
         let announced = InMemoryAnnouncedMonthPersistence()
+        let board = await Self.board(at: Self.november2, announced: announced)
+        await board.refresh.refreshAll(reason: .manual)
+        #expect(board.spy.monthFinals.isEmpty)
+        #expect(announced.load() == ["me": "2026-10"])
+
+        board.clock.date = Self.december1
+        await Self.setCalendars(board.client, through: Self.december1)
+        await board.refresh.refreshAll(reason: .manual)
+        #expect(board.spy.monthFinals.map(\.title) == ["November final"])
+    }
+
+    @Test func theFirstRefreshOfANewMonthAnnouncesLastMonthOnce() async {
+        let announced = Self.announcedSeptember()
         let board = await Self.board(announced: announced)
         await board.refresh.refreshAll(reason: .manual)
         #expect(board.spy.monthFinals.map(\.title) == ["October final"])
@@ -224,6 +266,7 @@ struct MonthFinalTests {
         #expect(!notifications.postMonthFinal(id: "monthfinal.2026-10", title: "October final", body: "You finished #2 of 3"))
 
         let announced = UserDefaultsAnnouncedMonthPersistence(defaults: defaults)
+        announced.save(["me": "2026-09"])
         let board = await Self.board(announced: announced)
         await board.refresh.refreshAll(reason: .manual)
         #expect(UserDefaultsAnnouncedMonthPersistence(defaults: defaults).load() == ["me": "2026-10"])
@@ -254,7 +297,7 @@ struct MonthFinalTests {
     /// The last month announced is kept per account: another account on this device still hears
     /// its own result.
     @Test func eachAccountHearsItsOwnResult() async {
-        let announced = InMemoryAnnouncedMonthPersistence()
+        let announced = Self.announcedSeptember(["me", "ana"])
         let first = await Self.board(announced: announced)
         await first.refresh.refreshAll(reason: .manual)
         let store = StandingsStore(persistence: InMemoryCompetitorPersistence())

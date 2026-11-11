@@ -67,9 +67,10 @@ struct PersonSummary: Equatable, Sendable {
         days.map { "\($0.activeDays) of \(dayOfMonth)" }
     }
 
-    /// The person view's streak stats read in days; past GitHub's year it's "365+ days".
+    /// The person view's streak stats read in days; past GitHub's year it's "365+ days", read
+    /// aloud as `StreakLabel.spokenDays`.
     static func streakText(_ days: Int) -> String {
-        days > 365 ? "365+ days" : plural(days, "day")
+        days > StreakLabel.cap ? "\(StreakLabel.cap)+ days" : plural(days, "day")
     }
 
     /// "18 active days this month, most on November 8 with 41": the chart's VoiceOver summary.

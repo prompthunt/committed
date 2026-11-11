@@ -138,5 +138,29 @@ struct BoardSummaryTests {
         #expect(result?.streak == nil)
         #expect(result?.accessibilityDescription == "You, @me, contributions not loaded yet")
     }
+
+    /// On Final standings the card matches the Mac's: your total and where you finished in the
+    /// finished month, with your streak, and no movement or gap (the month is over).
+    @Test func finalStandingsShowYourTotalAndResultForTheMonth() {
+        let october = CalendarMonth(year: 2026, month: 10)
+        func history(_ total: Int) -> ContributionHistory {
+            ContributionHistory(days: ["2026-09-30": 0, "2026-10-01": 0, "2026-10-15": total, "2026-11-01": 4],
+                                timeZone: .gmt)
+        }
+        let finals = FinalStandings(month: october, competitors: [me, ada, lin],
+                                    histories: ["me": history(30), "ada": history(51), "lin": history(10)])
+        let result = BoardSummary.make(finals: finals, displayName: "Addison Kowalski", streak: { ["me": 12][$0] },
+                                       lastUpdated: loadedAt)
+        #expect(result?.rank == 2)
+        #expect(result?.competitorCount == 3)
+        #expect(result?.contributions == 30)
+        #expect(result?.period == "October")
+        #expect(result?.streak == 12)
+        #expect(result?.movementToday == nil)
+        #expect(result?.passLine == nil)
+        #expect(result?.dayOfMonth == nil)
+        #expect(result?.accessibilityDescription
+            == "You, @me, finished 2 of 3 in October, 30 contributions in October, 12-day streak")
+    }
 }
 

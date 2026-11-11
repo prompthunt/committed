@@ -331,12 +331,10 @@ impl BoardCore {
         let Some(mut month) = first_offered_month(&state) else {
             return months;
         };
-        let current = today.with_day(1).expect("every month has a 1st");
+        let current = history::first_of_month(today);
         while month < current {
             months.push(month);
-            month = month
-                .checked_add_months(chrono::Months::new(1))
-                .expect("a month after a calendar day");
+            month = history::next_month(month);
         }
         months
     }
@@ -354,7 +352,7 @@ impl BoardCore {
         let row = ranked_rows(&state, Window::ThisMonth, today, self.clock.now())
             .into_iter()
             .find(|row| row.person.login == login)?;
-        let month = today.with_day(1).expect("every month has a 1st");
+        let month = history::first_of_month(today);
         let last_month = previous_month(today);
         let history = state.saved.counts.get(&login).map(|snapshot| {
             let days = &snapshot.days;
@@ -376,7 +374,7 @@ impl BoardCore {
                         });
                     }
                 }
-                finished = earlier.checked_add_months(chrono::Months::new(1));
+                finished = Some(history::next_month(earlier));
             }
             finishes.reverse();
             let this_month = history::range(Window::ThisMonth, today);
@@ -624,9 +622,8 @@ fn ranked_rows(state: &State, window: Window, today: NaiveDate, now: i64) -> Vec
 }
 /// The 1st of the month before `today`'s.
 pub(crate) fn previous_month(today: NaiveDate) -> NaiveDate {
-    today
-        .with_day(1)
-        .and_then(|first| first.checked_sub_months(chrono::Months::new(1)))
+    history::first_of_month(today)
+        .checked_sub_months(chrono::Months::new(1))
         .expect("a month before a calendar day")
 }
 /// The first month offered as finished: the first full month of your calendar (the first person
@@ -640,8 +637,8 @@ pub(crate) fn final_standings(
     month: NaiveDate,
     today: NaiveDate,
 ) -> Option<FinalStandings> {
-    let month = month.with_day(1)?;
-    let current = today.with_day(1)?;
+    let month = history::first_of_month(month);
+    let current = history::first_of_month(today);
     if month >= current || month < first_offered_month(state)? {
         return None;
     }

@@ -990,12 +990,39 @@ fn october_final() -> Notification {
     }
 }
 
+/// An account that has never been announced anything (a new install, or the first version with
+/// month finals) starts quietly: its first refresh records last month without a notice, so it never
+/// hears old news. The next month's end is announced as usual.
+#[tokio::test]
+async fn a_never_announced_account_records_last_month_without_a_notice() {
+    let f = Fixture::new();
+    *f.clock.0.lock().unwrap() = noon(2026, 11, 1);
+    october_board(&f).await;
+    f.core.set_setting("notifications", true).unwrap();
+    f.core.refresh(RefreshReason::Manual).await.unwrap();
+    assert!(f.notifications.0.lock().unwrap().is_empty());
+    *f.clock.0.lock().unwrap() = noon(2026, 12, 1);
+    f.core.refresh(RefreshReason::Manual).await.unwrap();
+    assert_eq!(
+        f.notifications.0.lock().unwrap().as_slice(),
+        [Notification {
+            title: "November final".into(),
+            body: "You finished #2 of 4".into(),
+        }]
+    );
+}
+
 #[tokio::test]
 async fn the_first_refresh_of_a_month_announces_your_finish_once_even_after_a_relaunch() {
     let f = Fixture::new();
     *f.clock.0.lock().unwrap() = noon(2026, 11, 1);
     october_board(&f).await;
     f.core.set_setting("notifications", true).unwrap();
+    // Already running in October: that first refresh records September quietly.
+    *f.clock.0.lock().unwrap() = noon(2026, 10, 31);
+    f.core.refresh(RefreshReason::Manual).await.unwrap();
+    assert!(f.notifications.0.lock().unwrap().is_empty());
+    *f.clock.0.lock().unwrap() = noon(2026, 11, 1);
     f.core.refresh(RefreshReason::Manual).await.unwrap();
     assert_eq!(
         f.notifications.0.lock().unwrap().as_slice(),
@@ -1098,6 +1125,9 @@ async fn no_month_final_with_notifications_off_and_not_later_that_month_either()
     let f = Fixture::new();
     *f.clock.0.lock().unwrap() = noon(2026, 11, 1);
     october_board(&f).await;
+    *f.clock.0.lock().unwrap() = noon(2026, 10, 31);
+    f.core.refresh(RefreshReason::Manual).await.unwrap();
+    *f.clock.0.lock().unwrap() = noon(2026, 11, 1);
     f.core.refresh(RefreshReason::Manual).await.unwrap();
     assert!(f.notifications.0.lock().unwrap().is_empty());
     // Turning notifications on later in November doesn't send a stale October final.

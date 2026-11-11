@@ -278,6 +278,12 @@ enum StreakLabel {
         return streak > cap ? "\(cap)-plus-day streak" : "\(streak)-day streak"
     }
 
+    /// A person view streak stat read aloud: "12 days", or "365-plus days" past the calendar (shown
+    /// as "365+ days", `PersonSummary.streakText`), never "365 plus sign".
+    static func spokenDays(_ days: Int) -> String {
+        days > cap ? "\(cap)-plus days" : "\(days) \(days == 1 ? "day" : "days")"
+    }
+
     /// "12", "365+", or nil under 2 days.
     static func number(_ streak: Int?) -> String? {
         guard let streak, streak >= minimum else { return nil }

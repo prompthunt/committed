@@ -143,12 +143,14 @@ struct PersonViewContent<Tip: View>: View {
 
     @ViewBuilder
     private func statBoxes(_ days: PersonSummary.Days) -> some View {
-        stat("🔥 Current streak", PersonSummary.streakText(days.currentStreak), spoken: "Current streak")
-        stat("Longest streak", PersonSummary.streakText(days.longestStreak))
+        stat("🔥 Current streak", PersonSummary.streakText(days.currentStreak), spoken: "Current streak",
+             spokenValue: StreakLabel.spokenDays(days.currentStreak))
+        stat("Longest streak", PersonSummary.streakText(days.longestStreak),
+             spokenValue: StreakLabel.spokenDays(days.longestStreak))
         stat("Active days", person.activeDaysText ?? "", spoken: "Active days this month")
     }
 
-    private func stat(_ label: String, _ value: String, spoken: String? = nil) -> some View {
+    private func stat(_ label: String, _ value: String, spoken: String? = nil, spokenValue: String? = nil) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(label)
                 .font(style.statLabelFont)
@@ -166,7 +168,7 @@ struct PersonViewContent<Tip: View>: View {
         .background(card)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(spoken ?? label)
-        .accessibilityValue(value.replacingOccurrences(of: "365+", with: "365-plus"))
+        .accessibilityValue(spokenValue ?? value)
     }
 
     private var card: some View {

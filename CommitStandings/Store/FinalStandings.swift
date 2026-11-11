@@ -75,11 +75,6 @@ extension ContributionHistory {
         guard let first = days.keys.min(), let month = CalendarMonth(key: first) else { return nil }
         return first.hasSuffix("-01") ? month : month.next
     }
-
-    /// The month of the calendar's latest day: the month it was fetched in.
-    var latestMonth: CalendarMonth? {
-        days.keys.max().flatMap(CalendarMonth.init(key:))
-    }
 }
 
 /// Gold, silver or bronze: ranks 1 to 3 of a finished month, when that month's total is above zero.
@@ -135,10 +130,7 @@ struct FinalStandings: Equatable, Sendable {
             guard let history = histories[competitor.username] else { continue }
             let total = history.total(in: month)
             totals[competitor.username] = total
-            standings[competitor.username] = Standing(
-                username: competitor.username, contributions: total, window: .month,
-                lastUpdated: .distantFuture, state: .loaded
-            )
+            standings[competitor.username] = Self.standing(competitor.username, total: total)
         }
         self.month = month
         entries = Ranking.order(competitors: competitors, standings: standings, window: .month).map { entry in
@@ -146,6 +138,12 @@ struct FinalStandings: Equatable, Sendable {
             return Entry(rank: entry.rank, competitor: entry.competitor, contributions: total,
                          medal: Medal(rank: entry.rank, contributions: total))
         }
+    }
+
+    /// A finished month's total as a loaded `Standing`, for the board's ranking and rows. It never
+    /// goes stale: the month is over.
+    static func standing(_ username: String, total: Int) -> Standing {
+        Standing(username: username, contributions: total, window: .month, lastUpdated: .distantFuture, state: .loaded)
     }
 
     /// Your place, if you're on the board.

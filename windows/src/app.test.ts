@@ -177,7 +177,7 @@ test("streaks show on rows and your summary from 2 days, read as N-day streak", 
   expect(summaryStreak?.getAttribute("role")).toBe("img");
   expect(summaryStreak?.getAttribute("aria-label")).toBe("12-day streak");
   expect(flame("year")).toBe("🔥 365+");
-  expect(label("year")).toContain("3 Contributions, 365+ day streak");
+  expect(label("year")).toContain("3 Contributions, 365-plus-day streak");
   expect(flame("exactly")).toBe("🔥 365");
   expect(label("exactly")).toContain("365-day streak");
   expect(flame("pair")).toBe("🔥 2");
@@ -245,12 +245,11 @@ test("This month shows the day of the month and today's movement", async () => {
   mockIPC((command, args) => {
     calls.push(command);
     if (command === "get_board") {
-      windows.push((args as { window: string }).window);
-      return {
-        ...board,
-        window: (args as { window: string }).window,
-        rows: [{ ...board.rows[0], movement: 2 }],
-      };
+      const window = (args as { window: string }).window;
+      windows.push(window);
+      // The core owns movement: it reports it on Today and This month, 0 on the others.
+      const movement = ["today", "month"].includes(window) ? 2 : 0;
+      return { ...board, window, rows: [{ ...board.rows[0], movement }] };
     }
     if (command === "get_settings")
       return {
@@ -527,6 +526,12 @@ test("the person view shows this month's bars over last month's, streaks, active
   const stats = document.querySelector(".person-stats")!.textContent!;
   expect(stats).toMatch(/Current streak\s*2 days/);
   expect(stats).toMatch(/Longest streak\s*365\+ days/);
+  // Read aloud like the rows' "365-plus-day streak", not "365 plus sign days".
+  const longest = document.querySelectorAll(".person-stats dd")[1];
+  expect(longest.querySelector('[aria-hidden="true"]')?.textContent).toBe(
+    "365+ days",
+  );
+  expect(longest.querySelector(".sr-only")?.textContent).toBe("365-plus days");
   expect(stats).toMatch(/Active days\s*3 of 4/);
   const finishes = Array.from(document.querySelectorAll(".finishes li"), (li) =>
     li.getAttribute("aria-label"),
@@ -570,6 +575,22 @@ test("arrow keys, Home, End and clicks select a bar and show its date and count"
   dispose();
 });
 
+const limitsCopy =
+  "Contributions count activity, not how good or hard the work was. Automated commits and bots count like anyone’s, and private work counts only when its owner turns on private contributions.";
+test("your own person view says what the number can't show (#89), loaded or waiting", async () => {
+  let dispose = await mountPerson(person);
+  expect(document.querySelector(".limits-note")).toBeNull();
+  dispose();
+  for (const history of [person.history, null]) {
+    dispose = await mountPerson({ ...person, is_you: true, history });
+    const note = document.querySelector(".limits-note")!;
+    expect(note.querySelector("h2")?.textContent).toBe(
+      "What this number can’t show",
+    );
+    expect(note.querySelector("p")?.textContent).toBe(limitsCopy);
+    dispose();
+  }
+});
 test("before their count loads the person view says it's waiting instead of drawing zeros", async () => {
   const dispose = await mountPerson({ ...person, history: null });
   expect(document.querySelector(".waiting")?.textContent).toContain(

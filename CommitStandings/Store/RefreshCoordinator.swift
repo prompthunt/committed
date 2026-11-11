@@ -350,13 +350,20 @@ final class RefreshCoordinator {
     /// The month-final Leaderboard Notification ("October final" / "You finished #2 of 8"), on the
     /// first successful refresh after a month ends, once per month per account on this device. The
     /// month counts as announced even when notifications are off (only posting needs them on), so
-    /// switching them on later doesn't bring up old news. It waits while anyone with a saved
-    /// calendar failed this refresh, so it never reports a place from stale numbers.
+    /// switching them on later doesn't bring up old news; an account never announced anything
+    /// starts quietly, its first refresh recording last month without a notice. It waits while
+    /// anyone with a saved calendar failed this refresh, so it never reports a place from stale
+    /// numbers. The Windows core's `month_final` follows the same rules.
     private func announceMonthFinal(window: ContributionWindow, reference: Date) {
         guard let owner = store.selfCompetitor?.username else { return }
         let month = CalendarMonth(containing: reference, in: calendar).previous
         var announced = announcedMonths.load()
-        if let last = announced[owner].flatMap(CalendarMonth.init(key:)), last >= month { return }
+        guard let last = announced[owner].flatMap(CalendarMonth.init(key:)) else {
+            announced[owner] = month.key
+            announcedMonths.save(announced)
+            return
+        }
+        if last >= month { return }
         let stale = store.visibleCompetitors.contains { person in
             guard store.history(for: person.username) != nil,
                   case .failed = store.standing(for: person.username, window: window)?.state else { return false }

@@ -17,10 +17,7 @@ extension FinalStandings {
         StandingRow(
             rank: entry.rank,
             competitor: entry.competitor,
-            standing: entry.contributions.map {
-                Standing(username: entry.competitor.username, contributions: $0, window: .month,
-                         lastUpdated: .distantFuture, state: .loaded)
-            },
+            standing: entry.contributions.map { Self.standing(entry.competitor.username, total: $0) },
             window: .month,
             maxContributions: maxContributions,
             medal: entry.medal,

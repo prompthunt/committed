@@ -9,7 +9,9 @@ import SwiftUI
 /// Text on the card is white, soft, or lime, never muted: the field can sit under any of it
 /// (`FieldTone.hero`, checked in `ThemeTests`). Every size follows Dynamic Type; at accessibility
 /// sizes the numbers stack under your name and the rank stops growing at accessibility 2.
-/// VoiceOver reads the card as one sentence (`BoardSummary.accessibilityDescription`).
+/// VoiceOver reads the card as one sentence (`BoardSummary.accessibilityDescription`). While the
+/// board shows last month's Final standings, the card shows your finish and total there, like the
+/// Mac's card.
 struct BoardSummaryView: View {
     @Environment(StandingsStore.self) private var store
     @Environment(RefreshCoordinator.self) private var refresh
@@ -21,8 +23,17 @@ struct BoardSummaryView: View {
     /// Bumped each time your rank improves, to fire `RankBurst`.
     @State private var bursts = 0
 
+    /// Last month's Final standings while the board shows them.
+    private var finals: FinalStandings? {
+        refresh.showsFinalStandings && !store.rivals.isEmpty ? refresh.offeredFinalStandings : nil
+    }
+
     private var summary: BoardSummary? {
-        BoardSummary.make(
+        if let finals {
+            return BoardSummary.make(finals: finals, displayName: auth.displayName,
+                                     streak: { refresh.streak(for: $0) }, lastUpdated: store.lastUpdated)
+        }
+        return BoardSummary.make(
             competitors: store.visibleCompetitors,
             standings: store.standings(for: store.selectedWindow),
             window: store.selectedWindow,
@@ -42,9 +53,11 @@ struct BoardSummaryView: View {
             RosterSyncNotice()
                 .padding(.horizontal, 6)
         }
-        .onChange(of: BurstKey(rank: summary?.rank, window: store.selectedWindow)) { old, new in
-            // Only a real climb within one Window: switching Windows can also lower the number.
-            if old.window == new.window, let before = old.rank, let after = new.rank, after < before {
+        .onChange(of: BurstKey(rank: summary?.rank, window: store.selectedWindow, period: summary?.period)) { old, new in
+            // Only a real climb within one Window: switching Windows (or to and from Final
+            // standings) can also lower the number.
+            if old.window == new.window, old.period == new.period, let before = old.rank, let after = new.rank,
+               after < before {
                 bursts += 1
             }
         }
@@ -52,11 +65,13 @@ struct BoardSummaryView: View {
 
     private func card(_ summary: BoardSummary) -> some View {
         let stacked = dynamicTypeSize.isAccessibilitySize
-        let isRefreshingMine = store.standing(for: summary.username, window: summary.window)?.state == .loading
+        let isRefreshingMine = summary.period == nil
+            && store.standing(for: summary.username, window: summary.window)?.state == .loading
             && summary.contributions != nil
 
         return VStack(alignment: .leading, spacing: 18) {
-            FolioRow(leading: Self.folio(summary.window, day: summary.dayOfMonth), trailing: "Your rank")
+            FolioRow(leading: summary.period.map { "\($0) final" } ?? Self.folio(summary.window, day: summary.dayOfMonth),
+                     trailing: summary.period == nil ? "Your rank" : "Your finish")
             identity(summary, stacked: stacked)
             numbers(summary, stacked: stacked, pulsing: isRefreshingMine)
             footer(summary)
@@ -154,7 +169,7 @@ struct BoardSummaryView: View {
                 .phaseAnimator(pulsing && !reduceMotion ? [1.0, 0.4] : [1.0]) { content, opacity in
                     content.opacity(opacity)
                 } animation: { _ in .easeInOut(duration: 0.85) }
-            Text("Contributions")
+            Text(summary.period.map { "Contributions in \($0)" } ?? "Contributions")
                 .eyebrow()
                 .foregroundStyle(Color.soft)
         }
@@ -205,6 +220,7 @@ struct BoardSummaryView: View {
     private struct BurstKey: Equatable {
         let rank: Int?
         let window: ContributionWindow
+        let period: String?
     }
 
     private func refreshAgeText(_ lastUpdated: Date?, now: Date) -> String? {

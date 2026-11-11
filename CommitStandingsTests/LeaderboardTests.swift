@@ -115,6 +115,15 @@ struct LeaderboardRankingTests {
         #expect(StreakLabel.spoken(371) == "365-plus-day streak")
     }
 
+    /// The person view's streak boxes read in days, "365+ days" past a year, which VoiceOver
+    /// hears as "365-plus days" like the rows' "365-plus-day streak".
+    @Test func streakDaysReadAloudLikeTheRows() {
+        #expect(StreakLabel.spokenDays(0) == "0 days")
+        #expect(StreakLabel.spokenDays(1) == "1 day")
+        #expect(StreakLabel.spokenDays(365) == "365 days")
+        #expect(StreakLabel.spokenDays(366) == "365-plus days")
+    }
+
     @Test func rowReadsItsStreakOnlyWhenTheCountHasLoaded() {
         let competitor = Competitor(username: "ada", isSelf: false)
         let loaded = Standing(username: "ada", contributions: 4, window: .daily, lastUpdated: .now, state: .loaded)
