@@ -1,0 +1,138 @@
+{
+  "device": "iPhone Duo Simulator",
+  "os": "iOS 27.1",
+  "screenshots": [
+    {
+      "file": "iphone-board.png",
+      "caption": "iPhone Board, Today, closed Duo: the streak mark (deep lime) and number on every row, your summary's mark in lime; your row drops the \"you\" badge so ari-linden shows whole",
+      "capture": {
+        "device": "iPhone Duo Simulator (closed)",
+        "os": "iOS 27.1",
+        "sourceCommit": "0937cdae57cf71cc872f7ff778b19d247ea6118c",
+        "fixture": true
+      },
+      "notes": "Runtime capture (xcrun simctl io screenshot --display=1) of a Debug build on the persistent iPhone Duo, launched with -ScreenshotFixture. Before: docs/screenshots/spec-85/92/iphone-board.png (your row truncated to \"ari...en\")."
+    },
+    {
+      "file": "mac-board.png",
+      "caption": "Mac popover: the streak mark in secondary gray beside each streak and under your handle",
+      "capture": {
+        "device": "MacBook Pro, fixture host (scripts/build-flow-capture.py)",
+        "os": "macOS 27.0",
+        "sourceCommit": "0937cdae57cf71cc872f7ff778b19d247ea6118c",
+        "fixture": true
+      },
+      "notes": "Fixture host, which draws light; the host drew its own window with -CaptureSnapshot. Before: docs/screenshots/spec-85/92/mac-board.png."
+    },
+    {
+      "file": "mac-person.png",
+      "caption": "Mac person view (hubot): the streak mark before \"Current streak\"",
+      "capture": {
+        "device": "MacBook Pro, fixture host (scripts/build-flow-capture.py)",
+        "os": "macOS 27.0",
+        "sourceCommit": "0937cdae57cf71cc872f7ff778b19d247ea6118c",
+        "fixture": true
+      },
+      "notes": "Fixture host, Person surface, forced Aqua, -CaptureSnapshot."
+    },
+    {
+      "file": "widgets-fresh.png",
+      "caption": "Widgets, fresh: small widget's streak beside your count, medium and large rows with the mark; the narrow Committed Board widget shows ari-linden whole (shrunk slightly) instead of \"ari...den\"",
+      "capture": {
+        "device": "iPhone Duo Simulator (render)",
+        "os": "iOS 27.1",
+        "sourceCommit": "0937cdae57cf71cc872f7ff778b19d247ea6118c",
+        "fixture": true
+      },
+      "notes": "Render, not runtime capture: the real widget and Live Activity views drawn with ImageRenderer by CommitStandingsiOSTests/WidgetRefreshRenderTests on the disposable iPhone Duo / iOS 27.1 test simulator (TEST_RUNNER_RENDER_DIR through scripts/ios_check.py ios), fed what the real AppModel published on the Sample board (made-up calendars, so the streaks are made up too). The Simulator can't draw widgets on a Home Screen, a Live Activity or the Dynamic Island. Before: docs/screenshots/spec-85/94/."
+    },
+    {
+      "file": "widgets-stale.png",
+      "caption": "Widgets, 3 hours stale: the mark steps down to the squares ramp's dim green",
+      "capture": {
+        "device": "iPhone Duo Simulator (render)",
+        "os": "iOS 27.1",
+        "sourceCommit": "0937cdae57cf71cc872f7ff778b19d247ea6118c",
+        "fixture": true
+      },
+      "notes": "Render, not runtime capture: the real widget and Live Activity views drawn with ImageRenderer by CommitStandingsiOSTests/WidgetRefreshRenderTests on the disposable iPhone Duo / iOS 27.1 test simulator (TEST_RUNNER_RENDER_DIR through scripts/ios_check.py ios), fed what the real AppModel published on the Sample board (made-up calendars, so the streaks are made up too). The Simulator can't draw widgets on a Home Screen, a Live Activity or the Dynamic Island. Before: docs/screenshots/spec-85/94/."
+    },
+    {
+      "file": "live-rank-fresh.png",
+      "caption": "Live rank, fresh: Lock Screen and expanded island rows with the mark",
+      "capture": {
+        "device": "iPhone Duo Simulator (render)",
+        "os": "iOS 27.1",
+        "sourceCommit": "0937cdae57cf71cc872f7ff778b19d247ea6118c",
+        "fixture": true
+      },
+      "notes": "Render, not runtime capture: the real widget and Live Activity views drawn with ImageRenderer by CommitStandingsiOSTests/WidgetRefreshRenderTests on the disposable iPhone Duo / iOS 27.1 test simulator (TEST_RUNNER_RENDER_DIR through scripts/ios_check.py ios), fed what the real AppModel published on the Sample board (made-up calendars, so the streaks are made up too). The Simulator can't draw widgets on a Home Screen, a Live Activity or the Dynamic Island. Before: docs/screenshots/spec-85/94/."
+    },
+    {
+      "file": "live-rank-stale.png",
+      "caption": "Live rank, 3 hours stale",
+      "capture": {
+        "device": "iPhone Duo Simulator (render)",
+        "os": "iOS 27.1",
+        "sourceCommit": "0937cdae57cf71cc872f7ff778b19d247ea6118c",
+        "fixture": true
+      },
+      "notes": "Render, not runtime capture: the real widget and Live Activity views drawn with ImageRenderer by CommitStandingsiOSTests/WidgetRefreshRenderTests on the disposable iPhone Duo / iOS 27.1 test simulator (TEST_RUNNER_RENDER_DIR through scripts/ios_check.py ios), fed what the real AppModel published on the Sample board (made-up calendars, so the streaks are made up too). The Simulator can't draw widgets on a Home Screen, a Live Activity or the Dynamic Island. Before: docs/screenshots/spec-85/94/."
+    },
+    {
+      "file": "your-row.png",
+      "caption": "Your row at 364 pt (the closed Duo's board): short name keeps the badge; ari-linden drops the badge; addisonkowalski drops badge and streak; a 39-character login wraps; a rival keeps its streak and truncates",
+      "capture": {
+        "device": "iPhone Duo Simulator (render)",
+        "os": "iOS 27.1",
+        "sourceCommit": "0937cdae57cf71cc872f7ff778b19d247ea6118c",
+        "fixture": true
+      },
+      "notes": "Render, not runtime capture: the shared StandingRow with the iPhone style, drawn with ImageRenderer by WidgetRefreshRenderTests.yourRowKeepsYourName from hand-built rows (logins chosen to exercise each step of the rule). GitHub's 39-character maximum still elides its middle on two lines."
+    },
+    {
+      "file": "windows-board-light.png",
+      "caption": "Windows board, light: the streak mark on rows and in your summary; the squares glyph's bottom-left square fixed",
+      "capture": {
+        "device": "In-app browser (Chromium), Windows fixture page",
+        "os": "macOS 27.0",
+        "sourceCommit": "0937cdae57cf71cc872f7ff778b19d247ea6118c",
+        "fixture": true
+      },
+      "notes": "Runtime capture of windows/fixture.html (the real windows/src/app.ts and style.css on the Sample board via mocked Tauri commands) in T3 Code's in-app browser, served by the Vite dev server. Not the Tauri WebView2 shell."
+    },
+    {
+      "file": "windows-board-dark.png",
+      "caption": "Windows board, dark",
+      "capture": {
+        "device": "In-app browser (Chromium), Windows fixture page",
+        "os": "macOS 27.0",
+        "sourceCommit": "0937cdae57cf71cc872f7ff778b19d247ea6118c",
+        "fixture": true
+      },
+      "notes": "Runtime capture of windows/fixture.html (the real windows/src/app.ts and style.css on the Sample board via mocked Tauri commands) in T3 Code's in-app browser, served by the Vite dev server. Not the Tauri WebView2 shell."
+    },
+    {
+      "file": "windows-your-row-narrow.png",
+      "caption": "Windows board narrowed to 270 px to exercise the rule: your row drops the badge and streak and keeps ari-linden whole; ines-volk truncates",
+      "capture": {
+        "device": "In-app browser (Chromium), Windows fixture page",
+        "os": "macOS 27.0",
+        "sourceCommit": "0937cdae57cf71cc872f7ff778b19d247ea6118c",
+        "fixture": true
+      },
+      "notes": "Runtime capture of windows/fixture.html (the real windows/src/app.ts and style.css on the Sample board via mocked Tauri commands) in T3 Code's in-app browser, served by the Vite dev server. Not the Tauri WebView2 shell. The shipped window is 380 px wide; 270 px is only to show the rule."
+    },
+    {
+      "file": "windows-person.png",
+      "caption": "Windows person view: the mark before \"Current streak\"",
+      "capture": {
+        "device": "In-app browser (Chromium), Windows fixture page",
+        "os": "macOS 27.0",
+        "sourceCommit": "0937cdae57cf71cc872f7ff778b19d247ea6118c",
+        "fixture": true
+      },
+      "notes": "Runtime capture of windows/fixture.html (the real windows/src/app.ts and style.css on the Sample board via mocked Tauri commands) in T3 Code's in-app browser, served by the Vite dev server. Not the Tauri WebView2 shell."
+    }
+  ]
+}
