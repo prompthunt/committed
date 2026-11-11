@@ -32,7 +32,8 @@ struct StandingRow: View {
 
     /// Your row never loses your name. When it doesn't fit whole, the "you" badge goes first (the
     /// row's highlight already says it's you), then your streak (your summary still has it), and
-    /// last the name wraps onto two lines. Rivals' rows keep everything and truncate the name.
+    /// last the name wraps onto two lines, or shrinks a little where a row has no room for a second
+    /// line. Rivals' rows keep everything and truncate the name.
     @ViewBuilder
     private var layout: some View {
         if competitor.isSelf {
@@ -58,6 +59,8 @@ struct StandingRow: View {
                 Text(competitor.username)
                     .font(competitor.isSelf ? style.selfNameFont : style.nameFont)
                     .lineLimit(wraps || dynamicTypeSize.isAccessibilitySize ? 2 : 1)
+                    // Where a second line has no room (a small widget's four rows), shrink a little.
+                    .minimumScaleFactor(wraps ? 0.75 : 1)
                     .truncationMode(.middle)
                 if badge {
                     Text("you")
