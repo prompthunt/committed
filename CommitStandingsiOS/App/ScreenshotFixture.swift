@@ -12,6 +12,8 @@ import UIKit
 /// `-ScreenshotWindow <raw value>` opens the board on that Window (`month` for This month),
 /// `-ScreenshotDate <ISO 8601>` sets the app's clock (`2026-11-01T10:00:00Z` shows the 1st's Final
 /// standings), and
+/// `-ScreenshotPerson <login>` opens that person's view (a sheet, or the second pane on the open
+/// iPhone Duo) and `-ScreenshotPersonDay <n>` selects that day's bar instead of today's,
 /// `-LiveRankPayload <file.json>` shows a Live Activity push payload's content state in Live rank,
 /// and `-RelayDisclosureAccepted` starts with the Committed relay disclosure already accepted (for
 /// builds with `COMMITTED_RELAY_URL`; without it, a relay build shows the disclosure sheet).
@@ -37,6 +39,16 @@ enum ScreenshotFixture {
         case "settings": return .settings
         default: return nil
         }
+    }
+
+    /// `-ScreenshotPerson <login>`: the person view to open on launch, as a tap on their row would.
+    static var requestedPerson: String? {
+        value(after: "-ScreenshotPerson")
+    }
+
+    /// `-ScreenshotPersonDay <n>`: the person view's selected bar, instead of today's.
+    static var personDay: Int? {
+        value(after: "-ScreenshotPersonDay").flatMap(Int.init)
     }
 
     /// `-ScreenshotConnect`: start Connect GitHub on launch, as a tap would, so captures can show

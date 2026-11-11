@@ -40,6 +40,26 @@ extension StandingRowStyle {
     )
 }
 
+extension PersonViewStyle {
+    /// The person view on iPhone: Inter Tight for names and numbers, lime for this month's bars
+    /// and you, last month in the site's dimmest square green, on tile cards.
+    static let committed = PersonViewStyle(
+        nameFont: CommittedType.display(26, relativeTo: .title2),
+        sectionFont: CommittedType.display(19, relativeTo: .headline),
+        statValueFont: CommittedType.display(22, relativeTo: .title3),
+        statLabelFont: .caption.weight(.medium),
+        bodyFont: .callout,
+        captionFont: .footnote,
+        avatarSize: 56,
+        accent: .lime,
+        badgeForeground: .onLime,
+        pastBarColor: .white.opacity(0.16),
+        secondaryColor: .muted,
+        cardColor: .tile,
+        cornerRadius: 16
+    )
+}
+
 // MARK: - Surfaces
 
 extension View {

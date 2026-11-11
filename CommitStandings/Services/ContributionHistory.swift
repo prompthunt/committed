@@ -93,6 +93,35 @@ struct ContributionHistory: Codable, Equatable, Sendable {
         return streak
     }
 
+    /// The longest run of consecutive days with a contribution anywhere in the calendar through
+    /// today (about the past year), in this history's time zone. Days after today never count, and
+    /// a day the calendar doesn't have breaks a run, as a zero does. The Windows core's
+    /// `longest_streak` follows the same rules.
+    func longestStreak(asOf reference: Date) -> Int {
+        guard let earliest = days.keys.min() else { return 0 }
+        let calendar = calendar
+        var day = calendar.startOfDay(for: reference)
+        var run = 0
+        var longest = 0
+        // Back from today to the calendar's first day; bounded so a malformed key can't loop long.
+        for _ in 0..<Self.maxCalendarSpan {
+            let key = Self.key(for: day, in: calendar)
+            guard key >= earliest else { break }
+            if (days[key] ?? 0) > 0 {
+                run += 1
+                longest = max(longest, run)
+            } else {
+                run = 0
+            }
+            guard let previous = calendar.date(byAdding: .day, value: -1, to: day) else { break }
+            day = previous
+        }
+        return longest
+    }
+
+    /// Ten years of days: far more than GitHub's calendar (53 weeks) ever covers.
+    private static let maxCalendarSpan = 3_660
+
     /// The `"YYYY-MM-DD"` key for the day containing `date` in `calendar`.
     static func key(for date: Date, in calendar: Calendar) -> String {
         let parts = calendar.dateComponents([.year, .month, .day], from: date)

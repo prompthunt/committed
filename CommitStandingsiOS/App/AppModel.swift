@@ -35,6 +35,9 @@ final class AppModel {
     }
 
     var selectedTab: AppTab = .board
+    /// The Competitor whose person view is open (a sheet, or the second pane on iPhone Duo), by
+    /// login; nil when none is. Forgotten when the graph on screen changes.
+    var selectedPerson: String?
     /// The switch in Settings asked for the relay disclosure.
     private var liveRankDisclosureRequested = false
 
@@ -198,6 +201,7 @@ final class AppModel {
         wire(sample, liveRank: sampleLiveRank, avatars: NoAvatarPrefetching())
         realServices.refresh.pauseTimer()
         services = sample
+        selectedPerson = nil
         liveRank = sampleLiveRank
         didRefreshIdentity = false
     }
@@ -226,6 +230,7 @@ final class AppModel {
         sample.refresh.pauseTimer()
         sample.auth.signOut()
         services = realServices
+        selectedPerson = nil
         liveRank = realLiveRank
         didRefreshIdentity = false
         liveRankDisclosureRequested = false
@@ -362,6 +367,17 @@ final class AppModel {
     }
 
     /// Hiding or showing someone updates Live rank and the widgets right away while the app is open.
+    /// Opens `login`'s person view, as tapping their row on the Board does.
+    func showPerson(_ login: String) {
+        selectedPerson = login
+    }
+
+    /// The open person view's content as of now, or nil: nobody chosen, or they've left the board
+    /// (hidden, or gone from your people), which closes it.
+    var shownPerson: PersonSummary? {
+        selectedPerson.flatMap { store.person($0, asOf: now(), calendar: .current) }
+    }
+
     func visibilityDidChange() async {
         await liveRank.sync()
         publishWidgets()

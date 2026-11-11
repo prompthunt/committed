@@ -33,6 +33,7 @@ struct CommittedApp: App {
                 now: ScreenshotFixture.now
             )
             if let tab = ScreenshotFixture.requestedTab { model.selectedTab = tab }
+            model.selectedPerson = ScreenshotFixture.requestedPerson
             return model
         }
         #endif

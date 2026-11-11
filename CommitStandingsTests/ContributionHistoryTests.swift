@@ -271,6 +271,43 @@ struct ContributionHistoryTests {
         #expect(tokyo.currentStreak(asOf: instant) == 0) // the 29th: the 28th ended empty
     }
 
+    // MARK: Longest streak
+
+    /// The same cases as the Windows core's `longest_streaks` (`windows/core/tests/history.rs`),
+    /// plus runs across a leap day, a month end and a DST change. Today is 2026-05-28 unless named.
+    static let longestStreakCases: [StreakCase] = [
+        StreakCase(name: "no calendar", days: [:], local: (2026, 5, 28, 12, 0), zone: "UTC", expected: 0),
+        StreakCase(name: "no contributions", days: ["2026-05-28": 0], local: (2026, 5, 28, 12, 0), zone: "UTC", expected: 0),
+        StreakCase(name: "the current run",
+                   days: run(6, endingOn: "2026-05-28"), local: (2026, 5, 28, 12, 0), zone: "UTC", expected: 6),
+        StreakCase(name: "an older, longer run beats the current one",
+                   days: merged(run(3, endingOn: "2026-05-28"), run(9, endingOn: "2026-03-10")),
+                   local: (2026, 5, 28, 12, 0), zone: "UTC", expected: 9),
+        StreakCase(name: "a zero day splits a run",
+                   days: merged(run(4, endingOn: "2026-05-20"), ["2026-05-21": 0], run(4, endingOn: "2026-05-25")),
+                   local: (2026, 5, 28, 12, 0), zone: "UTC", expected: 4),
+        StreakCase(name: "a missing day splits a run",
+                   days: merged(run(5, endingOn: "2026-04-10"), run(2, endingOn: "2026-04-04")),
+                   local: (2026, 5, 28, 12, 0), zone: "UTC", expected: 5),
+        StreakCase(name: "future days never count",
+                   days: run(20, endingOn: "2026-06-04"), local: (2026, 5, 28, 12, 0), zone: "UTC", expected: 13),
+        StreakCase(name: "a whole GitHub calendar",
+                   days: run(371, endingOn: "2026-05-28"), local: (2026, 5, 28, 12, 0), zone: "UTC", expected: 371),
+        StreakCase(name: "a run across a leap day and a month end",
+                   days: run(4, endingOn: "2028-03-02"), local: (2028, 3, 10, 12, 0), zone: "Australia/Adelaide", expected: 4),
+        StreakCase(name: "a run across the US DST change",
+                   days: run(5, endingOn: "2026-03-10"), local: (2026, 3, 20, 9, 0), zone: "America/Los_Angeles", expected: 5),
+        StreakCase(name: "today's day in the history's own zone decides what's future",
+                   days: run(3, endingOn: "2026-05-29"), local: (2026, 5, 28, 23, 0), zone: "America/Los_Angeles", expected: 2),
+    ]
+
+    @Test(arguments: longestStreakCases)
+    func longestStreak(_ c: StreakCase) throws {
+        let zone = try #require(TimeZone(identifier: c.zone))
+        let history = ContributionHistory(days: c.days, timeZone: zone)
+        #expect(history.longestStreak(asOf: try Self.instant(c.local, in: zone)) == c.expected)
+    }
+
     static func instant(_ local: (Int, Int, Int, Int, Int), in zone: TimeZone) throws -> Date {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = zone

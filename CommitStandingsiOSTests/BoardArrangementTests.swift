@@ -42,4 +42,17 @@ struct BoardArrangementTests {
     @Test func summaryUsesItsOwnPaneWhenThePanesSitSideBySide() {
         #expect(placement(open, leaderboardHalf, summaryHalf) == .secondaryPane)
     }
+
+    // MARK: Person view
+
+    @Test func personViewTakesTheSecondPaneWhenTheSummaryHasOne() {
+        #expect(BoardArrangement.personPlacement(summary: .secondaryPane) == .secondaryPane)
+    }
+
+    @Test func personViewIsASheetWhereverThereIsOnlyOnePane() {
+        // Closed, open in portrait, Split View, or before the panes report.
+        #expect(BoardArrangement.personPlacement(summary: .leaderboardHeader) == .sheet)
+        #expect(BoardArrangement.personPlacement(summary: placement(closed, closed, closed)) == .sheet)
+        #expect(BoardArrangement.personPlacement(summary: placement(nil, nil, nil)) == .sheet)
+    }
 }
