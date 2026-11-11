@@ -8,18 +8,15 @@
  * order. Ranks start at 1.
  */
 
-/**
- * Raw values match Swift's `ContributionWindow`: Today, 7 days and 30 days trail today; This month
- * (`"month"`) is the local calendar month so far and starts again on the 1st.
- */
-export type Window = "daily" | "weekly" | "monthly" | "month";
+/** Raw values match Swift's `ContributionWindow`: Today, 7 days and 30 days, each ending today. */
+export type Window = "daily" | "weekly" | "monthly";
 
-export const WINDOWS: readonly Window[] = ["daily", "weekly", "monthly", "month"];
+export const WINDOWS: readonly Window[] = ["daily", "weekly", "monthly"];
 
 /**
  * The first day (`YYYY-MM-DD`) a Window counts, ending on the local `today` (inclusive), as
  * `ContributionHistory.days(in:asOf:)` works it out. `today` is already the installation's local
- * date, so This month resets at local midnight on the 1st in its own time zone.
+ * date, so every Window rolls over at local midnight in its own time zone.
  */
 export function windowStart(window: Window, today: string): string {
   switch (window) {
@@ -29,17 +26,7 @@ export function windowStart(window: Window, today: string): string {
       return addDays(today, -6);
     case "monthly":
       return addDays(today, -29);
-    case "month":
-      return `${today.slice(0, 7)}-01`;
   }
-}
-
-/**
- * Whether Live rank shows movement (places moved since the day's first ranking) on this Window:
- * Today and This month, as Swift's `ContributionWindow.showsTodaysMovement`.
- */
-export function showsTodaysMovement(window: Window): boolean {
-  return window === "daily" || window === "month";
 }
 
 /** `date` (`YYYY-MM-DD`) moved by `delta` days. */

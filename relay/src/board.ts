@@ -1,7 +1,7 @@
 import type { CachedDays, InstallationRow } from "./db";
 import { deriveLiveRankState, type LiveRankState } from "./liveRank";
 import { currentStreak, localDate, sum, type Days } from "./parser";
-import { order, selfFirst, showsTodaysMovement, type Standing, type Window } from "./ranking";
+import { order, selfFirst, type Standing, type Window } from "./ranking";
 
 /**
  * Board computation shared by the cron cycle (Live rank pushes) and the board route (other
@@ -40,26 +40,13 @@ export function standingsFor(
   return standings;
 }
 
-/** The Window's ranks of the rows that have data: what the day's movement baseline records. */
-function ranksOf(
-  competitors: readonly string[],
-  standings: Readonly<Record<string, Standing>>,
-  window: Window,
-): Record<string, number> {
+/** Today's daily ranks of the rows that have data: what the day's movement baseline records. */
+function dailyRanks(competitors: readonly string[], daily: Readonly<Record<string, Standing>>): Record<string, number> {
   const ranks: Record<string, number> = {};
-  for (const entry of order(competitors, standings, window)) {
-    if (standings[entry.login]) ranks[entry.login] = entry.rank;
+  for (const entry of order(competitors, daily, "daily")) {
+    if (daily[entry.login]) ranks[entry.login] = entry.rank;
   }
   return ranks;
-}
-
-/**
- * The Window an installation's movement baseline holds: its own when that one moves (Today or
- * This month, as the app shows it), else Today's, so the board route's Today still moves. A Window
- * change resets the baseline (registration).
- */
-export function movementWindow(row: Pick<InstallationRow, "window">): Window {
-  return showsTodaysMovement(row.window) ? row.window : "daily";
 }
 
 /** Everyone's current streak from the same calendars, in the installation's own day, as the app works it out. */
@@ -88,9 +75,9 @@ function rankDeltas(baseline: Readonly<Record<string, number>>, current: Readonl
 export interface BoardDerivation {
   /** The installation's local calendar date. */
   today: string;
-  /** The movement Window's ranks now (`movementWindow`): the baseline the day's first cycle records. */
+  /** Today's daily ranks: the movement baseline the day's first cycle records. */
   ranksToday: Record<string, number>;
-  /** Today's movement per login on the movement Window; empty until today's baseline exists. */
+  /** Today's movement per login; empty until today's baseline exists. */
   deltas: Record<string, number>;
   standings: Record<string, Standing>;
   state: LiveRankState;
@@ -108,23 +95,21 @@ export function deriveBoard(
 ): BoardDerivation {
   const competitors = competitorsOf(row);
   const today = localDate(now, row.time_zone);
-  // Movement on Today and This month mirrors RefreshCoordinator.updateTodaysRankDeltas: baseline −
-  // current, once the day's baseline (the movement Window's ranks of rows with data) exists.
-  const moving = movementWindow(row);
-  const movingStandings = standingsFor(competitors, data, moving, today);
-  const ranksToday = ranksOf(competitors, movingStandings, moving);
+  // Today's movement mirrors RefreshCoordinator.updateTodaysRankDeltas: baseline − current, once
+  // the day's baseline (daily ranks of rows with data) exists.
+  const daily = standingsFor(competitors, data, "daily", today);
+  const ranksToday = dailyRanks(competitors, daily);
   const deltas =
     row.baseline_date === today && row.baseline_ranks_json
       ? rankDeltas(JSON.parse(row.baseline_ranks_json) as Record<string, number>, ranksToday)
       : {};
-  const standings = window === moving ? movingStandings : standingsFor(competitors, data, window, today);
+  const standings = window === "daily" ? daily : standingsFor(competitors, data, window, today);
   const state = deriveLiveRankState({
     self: row.login,
     competitors,
     standings,
     window,
-    // Only the movement Window has a baseline; liveRank reads deltas on Today and This month only.
-    rankDeltas: window === moving ? deltas : {},
+    rankDeltas: deltas,
     streaks: streaksFor(competitors, data, today),
     // The data's age is that of your own count, the headline number. A rival whose page keeps
     // failing (renamed account) must not pin every push's stale date in the past.
@@ -138,7 +123,7 @@ export interface BoardRow {
   login: string;
   /** null = no data for this login yet (a placeholder row). */
   contributions: number | null;
-  /** Places moved since today's baseline, on the installation's movement Window (Today or This month), else 0. */
+  /** Places moved since today's baseline. Today only, else 0. */
   movementToday: number;
   /** This row is the installation's owner ("you"). */
   isSelf: boolean;
@@ -168,7 +153,7 @@ export function readBoard(row: InstallationRow, data: ReadonlyMap<string, LoginD
     rank,
     login,
     contributions: standings[login]?.contributions ?? null,
-    movementToday: window === movementWindow(row) && standings[login] ? (deltas[login] ?? 0) : 0,
+    movementToday: window === "daily" && standings[login] ? (deltas[login] ?? 0) : 0,
     isSelf: login === row.login,
   }));
   const gapToPass =

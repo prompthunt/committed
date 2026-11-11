@@ -60,13 +60,6 @@ describe("GET /v1/board", () => {
     });
   });
 
-  it("sums This month from the 1st in the board's time zone", async () => {
-    const res = await get("login=me&competitors=alice,bob&window=month&tz=America/New_York");
-    expect(res.status).toBe(200);
-    const body = (await res.json()) as { window: string; rank: number; contributions: number; above: { login: string } };
-    expect(body).toMatchObject({ window: "month", rank: 2, contributions: 15, above: { login: "bob" } });
-  });
-
   it("sums the 7-day window", async () => {
     const res = await get("login=me&competitors=alice,bob&window=weekly&tz=America/New_York");
     const body = (await res.json()) as { rank: number; contributions: number; above: { login: string } };
@@ -94,6 +87,7 @@ describe("GET /v1/board", () => {
     expect((await get("competitors=alice")).status).toBe(400);
     expect((await get("login=me&competitors=al ice")).status).toBe(400);
     expect((await get("login=me&window=yearly")).status).toBe(400);
+    expect((await get("login=me&window=month")).status).toBe(400);
     expect((await get("login=me&tz=Mars/Base")).status).toBe(400);
     const many = Array.from({ length: MAX_BOARD_COMPETITORS }, (_, i) => `user${i}`).join(",");
     const res = await get(`login=me&competitors=${many}`);

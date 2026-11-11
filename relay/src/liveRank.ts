@@ -1,4 +1,4 @@
-import { order, showsTodaysMovement, type Standing, type Window } from "./ranking";
+import { order, type Standing, type Window } from "./ranking";
 
 /**
  * The Live Activity content state, matching `LiveRankAttributes.ContentState` in the
@@ -15,7 +15,7 @@ export interface LiveRankState {
   contributions: number | null;
   above: Neighbor | null;
   below: Neighbor | null;
-  /** + moved up / − moved down since the day's baseline. Today and This month, else 0. */
+  /** + moved up / − moved down since the day's baseline. Today only, else 0. */
   movementToday: number;
   /**
    * Your current streak (`currentStreak`), the raw count. Left out without your count or calendar,
@@ -29,7 +29,7 @@ export interface LiveRankState {
 export interface Neighbor {
   login: string;
   contributions: number;
-  /** Their places moved since the day's baseline, like yours. Today and This month, else 0. */
+  /** Their places moved since the day's baseline, like yours. Today only, else 0. */
   movementToday: number;
   /** Their current streak, like yours; left out when they have no calendar. */
   streak?: number;
@@ -41,7 +41,7 @@ export interface LiveRankInput {
   competitors: readonly string[];
   standings: Readonly<Record<string, Standing | undefined>>;
   window: Window;
-  /** Today's rank change per login (baseline − current), yours and your neighbors'; read on Today and This month. */
+  /** Today's rank change per login (baseline − current), yours and your neighbors'; daily window only. */
   rankDeltas: Readonly<Record<string, number | undefined>>;
   /** Current streak per login (`currentStreak`), for everyone with a calendar; absent = unknown. */
   streaks?: Readonly<Record<string, number | undefined>>;
@@ -57,7 +57,7 @@ export function deriveLiveRankState(input: LiveRankInput): LiveRankState {
     const standing = standings[login];
     return standing && standing.window === window ? standing.contributions : null;
   };
-  const movement = (login: string): number => (showsTodaysMovement(window) ? (input.rankDeltas[login] ?? 0) : 0);
+  const movement = (login: string): number => (window === "daily" ? (input.rankDeltas[login] ?? 0) : 0);
   // Only set when known, so the JSON leaves the key out (as Swift's encoder does for nil).
   const withStreak = <T extends object>(value: T, login: string): T & { streak?: number } => {
     const streak = input.streaks?.[login];
