@@ -82,6 +82,31 @@ struct WidgetRefreshRenderTests {
         )
     }
 
+    /// The Board widget in StandBy, as iPhone Duo's right half shows it: no background, the small
+    /// widget scaled to fill the slot (about 3x), on black. The Home Screen layout first, then the
+    /// StandBy one.
+    @Test func boardInStandBy() async throws {
+        let snapshot = try await surfaces(age: Self.cases[0].age).snapshot
+        func slot(standBy: Bool) -> some View {
+            CommittedWidgetBoardSmall(snapshot: snapshot, standBy: standBy)
+                .padding(SurfaceSize.widgetMargin)
+                .frame(width: SurfaceSize.small.width, height: SurfaceSize.small.height)
+                .environment(\.colorScheme, .dark)
+                .environment(\.loadsGitHubAvatars, false)
+                .scaleEffect(2.5)
+                .frame(width: SurfaceSize.small.width * 2.5, height: SurfaceSize.small.height * 2.5)
+        }
+        try SurfaceRenderer.write(
+            HStack(spacing: 40) {
+                slot(standBy: false)
+                slot(standBy: true)
+            }
+            .padding(40)
+            .background(Color.black),
+            name: "board-standby", to: directory
+        )
+    }
+
     private func writeWidgets(_ snapshot: WidgetSnapshot, stale: Bool, name: String) throws {
         try SurfaceRenderer.write(
             SurfaceBackdrop {

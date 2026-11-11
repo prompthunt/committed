@@ -137,43 +137,75 @@ struct CommittedWidgetLarge: View {
     }
 }
 
-/// Small Board: the Window, four of the board's rows, then the age. StandBy scales the small
-/// widget up to half a landscape screen, so four rows read from across a room.
+/// Small Board: the Window, four of the board's rows, then the age.
+///
+/// In StandBy the system drops the background and scales the small widget up to fill its slot; on
+/// iPhone Duo's right half that's about three times its Home Screen size, beside widgets in smaller
+/// slots, where a 16 pt heading and 12 pt age grow to the size of the rows. So there (`standBy`) the
+/// board leads: no heading, the rows share the height, and the Window and the age share one 10 pt
+/// line underneath.
 struct CommittedWidgetBoardSmall: View {
     let snapshot: WidgetSnapshot
+    var standBy = false
     @Environment(\.liveRankIsStale) private var isStale
 
     var body: some View {
         let state = snapshot.state
+        if standBy {
+            VStack(spacing: 6) {
+                board(state)
+                footer(state)
+            }
+            .dynamicTypeSize(...DynamicTypeSize.large)
+        } else {
+            VStack(alignment: .leading, spacing: 4) {
+                LiveRankWindowLabel(state: state, accessibilityName: "Committed")
+                board(state)
+                Spacer(minLength: 0)
+                UpdateAge(date: state.updatedDate)
+                    .frame(maxWidth: .infinity, alignment: .trailing)
+            }
+            .dynamicTypeSize(...DynamicTypeSize.large)
+        }
+    }
+
+    @ViewBuilder private func board(_ state: LiveRankState) -> some View {
         let window = state.contributionWindow ?? .daily
         let rows = snapshot.boardRows()
         let busiest = (snapshot.top + rows).compactMap(\.contributions).max() ?? 0
-        VStack(alignment: .leading, spacing: 4) {
-            LiveRankWindowLabel(state: state, accessibilityName: "Committed")
-            if rows.isEmpty {
-                Spacer(minLength: 0)
-                Text(state.emptyStateLine ?? "Your board is loading")
-                    .font(.footnote)
-                    .foregroundStyle(Color.soft)
-            } else {
-                VStack(spacing: 2) {
-                    // No streaks: beside whole counts, the small widget's rows have no room for them.
-                    ForEach(rows, id: \.rank) { row in
-                        WidgetBoardRow(row: row, window: window, updated: state.updatedDate, busiest: busiest,
-                                       showsStreak: false)
-                    }
-                }
-                .padding(.horizontal, -6)
-                .foregroundStyle(isStale ? Color.soft : Color.white)
-                .environment(\.standingRowStyle, .widgetBoard(stale: isStale))
-                .environment(\.avatarFallbackStyle, .committed)
-                .environment(\.loadsGitHubAvatars, false)
-            }
+        if rows.isEmpty {
             Spacer(minLength: 0)
-            UpdateAge(date: state.updatedDate)
-                .frame(maxWidth: .infinity, alignment: .trailing)
+            Text(state.emptyStateLine ?? "Your board is loading")
+                .font(.footnote)
+                .foregroundStyle(Color.soft)
+                .frame(maxWidth: .infinity, alignment: standBy ? .center : .leading)
+                .multilineTextAlignment(standBy ? .center : .leading)
+            if standBy { Spacer(minLength: 0) }
+        } else {
+            VStack(spacing: standBy ? 0 : 2) {
+                // No streaks: beside whole counts, the small widget's rows have no room for them.
+                ForEach(rows, id: \.rank) { row in
+                    WidgetBoardRow(row: row, window: window, updated: state.updatedDate, busiest: busiest,
+                                   showsStreak: false)
+                        .frame(maxHeight: standBy ? .infinity : nil)
+                }
+            }
+            // The rows' own padding reaches into the margins, so names keep their width.
+            .padding(.horizontal, -6)
+            .foregroundStyle(isStale ? Color.soft : Color.white)
+            .environment(\.standingRowStyle, .widgetBoard(stale: isStale))
+            .environment(\.avatarFallbackStyle, .committed)
+            .environment(\.loadsGitHubAvatars, false)
         }
-        .dynamicTypeSize(...DynamicTypeSize.large)
+    }
+
+    /// StandBy's one small line: the trophy and the Window on the left, the age on the right.
+    private func footer(_ state: LiveRankState) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 6) {
+            LiveRankWindowLabel(state: state, accessibilityName: "Committed", size: 10)
+            Spacer(minLength: 0)
+            UpdateAge(date: state.updatedDate, size: 10)
+        }
     }
 }
 

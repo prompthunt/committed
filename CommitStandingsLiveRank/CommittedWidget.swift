@@ -37,7 +37,7 @@ struct CommittedBoardWidget: Widget {
         StaticConfiguration(kind: WidgetSnapshot.boardListKind, provider: CommittedWidgetProvider()) { entry in
             Group {
                 if let snapshot = entry.snapshot {
-                    CommittedWidgetBoardSmall(snapshot: snapshot)
+                    BoardWidgetContent(snapshot: snapshot)
                 } else {
                     CommittedWidgetConnect()
                 }
@@ -128,5 +128,17 @@ struct CommittedWidgetView: View {
             .environment(\.colorScheme, .dark)
             .containerBackground(for: .widget) { Color.ink }
         }
+    }
+}
+
+/// StandBy removes the container background, and it's the only place this small-only widget
+/// loses it: WidgetKit has no location in the environment (`WidgetLocation` is only for
+/// `disfavoredLocations`), so the missing background is the signal.
+private struct BoardWidgetContent: View {
+    let snapshot: WidgetSnapshot
+    @Environment(\.showsWidgetContainerBackground) private var showsBackground
+
+    var body: some View {
+        CommittedWidgetBoardSmall(snapshot: snapshot, standBy: !showsBackground)
     }
 }
