@@ -151,6 +151,22 @@ pub struct PersonView {
     pub days_in_month: u32,
     /// `None` until this person's calendar loads: the view waits rather than drawing zeros.
     pub history: Option<PersonHistory>,
+    /// Your race with them, on a rival's view once both calendars load; `None` on your own.
+    pub race: Option<Race>,
+}
+/// You against a rival over one month (Swift's `PersonSummary.Race`): this month through today,
+/// or on the 1st last month's finished race.
+#[derive(Clone, Debug, Serialize, PartialEq)]
+pub struct Race {
+    /// The raced month's 1st and name.
+    pub month: NaiveDate,
+    pub month_name: String,
+    /// True on the 1st: the race is last month's, and it's over.
+    pub is_final: bool,
+    /// Running totals from the 1st, one per day (`history::running`).
+    pub yours: Vec<u32>,
+    pub theirs: Vec<u32>,
+    pub story: history::RaceStory,
 }
 #[derive(Clone, Debug, Serialize, PartialEq)]
 pub struct PersonHistory {
@@ -176,6 +192,8 @@ pub struct MonthFinish {
     pub of: usize,
     pub total: u32,
     pub medal: Option<Medal>,
+    /// Where you finished that month, on a rival's view: "You #3". `None` on your own.
+    pub your_rank: Option<usize>,
 }
 #[derive(Clone, Debug, Serialize)]
 pub struct Board {
@@ -354,6 +372,7 @@ impl BoardCore {
             .find(|row| row.person.login == login)?;
         let month = history::first_of_month(today);
         let last_month = previous_month(today);
+        let me = state.saved.owner.clone().filter(|_| !row.is_you);
         let history = state.saved.counts.get(&login).map(|snapshot| {
             let days = &snapshot.days;
             let mut finishes = vec![];
@@ -361,6 +380,13 @@ impl BoardCore {
             while let Some(earlier) = finished.filter(|m| *m < month) {
                 if let Some(standings) = final_standings(&state, earlier, today) {
                     let of = standings.rows.len();
+                    let your_rank = me.as_ref().and_then(|me| {
+                        standings
+                            .rows
+                            .iter()
+                            .find(|r| &r.person.login == me)
+                            .map(|r| r.rank)
+                    });
                     if let Some(place) =
                         standings.rows.into_iter().find(|r| r.person.login == login)
                     {
@@ -371,6 +397,7 @@ impl BoardCore {
                             of,
                             total: place.contributions.unwrap_or(0),
                             medal: place.medal,
+                            your_rank,
                         });
                     }
                 }
@@ -387,6 +414,28 @@ impl BoardCore {
                 finishes,
             }
         });
+        let mine = me.as_ref().and_then(|me| state.saved.counts.get(me));
+        let theirs = state.saved.counts.get(&login);
+        let race = mine.zip(theirs).and_then(|(mine, theirs)| {
+            // On the 1st the new month has barely begun: show last month's finished race
+            // instead, when it's on offer as Final standings.
+            let (raced, days, is_final) = if today.day() == 1 {
+                final_standings(&state, last_month, today)?;
+                (last_month, history::month_range(last_month), true)
+            } else {
+                (month, history::range(Window::ThisMonth, today), false)
+            };
+            let yours = history::running(&history::series(&mine.days, days.clone()));
+            let theirs = history::running(&history::series(&theirs.days, days));
+            Some(Race {
+                month: raced,
+                month_name: raced.format("%B").to_string(),
+                is_final,
+                story: history::race_story(&yours, &theirs),
+                yours,
+                theirs,
+            })
+        });
         Some(PersonView {
             is_you: row.is_you,
             status: row.status,
@@ -398,6 +447,7 @@ impl BoardCore {
             day_of_month: today.day(),
             days_in_month: history::days_in_month(today),
             history,
+            race,
         })
     }
     /// Chooses whose view the person window shows; only someone on the board now.

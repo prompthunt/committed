@@ -477,3 +477,51 @@ fn longest_streaks() {
         );
     }
 }
+
+#[test]
+fn race_stories_follow_the_lead() {
+    use history::{RaceStory::*, Side::*};
+    // The same cases as Swift's `theStoryFollowsTheLead` (`PersonSummaryTests`).
+    let cases: [(&[u32], &[u32], history::RaceStory); 7] = [
+        (&[1, 2, 3], &[1, 2, 3], Level),
+        (&[2, 4, 6], &[1, 2, 3], Led { by: You }),
+        (&[1, 2, 3], &[2, 4, 6], Led { by: Them }),
+        (&[0, 0, 1], &[0, 2, 3], PulledAhead { by: Them, day: 2 }),
+        (
+            &[0, 3, 3],
+            &[1, 1, 5],
+            Passed {
+                by: Them,
+                day: 3,
+                changes: 2,
+            },
+        ),
+        (&[1, 3, 6], &[4, 5, 6], Caught { by: You, day: 3 }),
+        (
+            &[3, 9, 19, 23, 27, 33, 40, 43, 50, 57],
+            &[2, 6, 12, 15, 20, 24, 36, 45, 53, 62],
+            Passed {
+                by: Them,
+                day: 8,
+                changes: 1,
+            },
+        ),
+    ];
+    for (yours, theirs, story) in cases {
+        assert_eq!(
+            history::race_story(yours, theirs),
+            story,
+            "{yours:?} vs {theirs:?}"
+        );
+    }
+    assert_eq!(history::running(&[3, 0, 4]), [3, 3, 7]);
+    assert_eq!(
+        serde_json::to_value(Passed {
+            by: Them,
+            day: 8,
+            changes: 1
+        })
+        .unwrap(),
+        serde_json::json!({"kind": "passed", "by": "them", "day": 8, "changes": 1})
+    );
+}

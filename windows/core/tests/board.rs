@@ -1230,10 +1230,32 @@ async fn the_person_view_shows_a_visible_persons_month_streaks_and_finishes() {
             of: 4,
             total: 12,
             medal: Some(Bronze),
+            // You finished second, above bob on the tie.
+            your_rank: Some(2),
         }]
     );
+    // bob's view leads with his race with you: 9 on the 1st, nothing since, against your 0.
+    let race = bob.race.expect("both calendars loaded");
+    assert_eq!((race.month, race.is_final), (day(2026, 11, 1), false));
+    assert_eq!(race.yours, [0, 0, 0]);
+    assert_eq!(race.theirs, [9, 9, 9]);
+    assert_eq!(
+        race.story,
+        history::RaceStory::Led {
+            by: history::Side::Them
+        }
+    );
 
-    assert!(f.core.person("octocat").unwrap().is_you);
+    let you = f.core.person("octocat").unwrap();
+    assert!(you.is_you);
+    // Your own view has no race and no rank beside your own.
+    assert!(you.race.is_none());
+    assert!(you
+        .history
+        .unwrap()
+        .finishes
+        .iter()
+        .all(|f| f.your_rank.is_none()));
     // Before someone's count loads there's no history: the view waits instead of drawing zeros.
     let offline = f.core.person("offline").unwrap();
     assert!(offline.history.is_none());
@@ -1245,6 +1267,34 @@ async fn the_person_view_shows_a_visible_persons_month_streaks_and_finishes() {
     // Hiding alice changes October's finishes, the same as the board.
     let finish = &f.core.person("bob").unwrap().history.unwrap().finishes[0];
     assert_eq!((finish.rank, finish.of, finish.medal), (2, 3, Some(Silver)));
+}
+
+#[tokio::test]
+async fn on_the_first_the_race_is_last_months_finished_one() {
+    let f = Fixture::new();
+    *f.clock.0.lock().unwrap() = noon(2026, 11, 1);
+    october_board(&f).await;
+    f.core.refresh(RefreshReason::Manual).await.unwrap();
+    let race = f
+        .core
+        .person("bob")
+        .unwrap()
+        .race
+        .expect("October is on offer");
+    assert_eq!(
+        (race.month, race.month_name.as_str(), race.is_final),
+        (day(2026, 10, 1), "October", true)
+    );
+    assert_eq!(race.yours.len(), 31);
+    assert_eq!((race.yours[30], race.theirs[30]), (12, 12));
+    // You led on the 1st, bob passed you on the 2nd, and your 10 on the 31st drew level.
+    assert_eq!(
+        race.story,
+        history::RaceStory::Caught {
+            by: history::Side::You,
+            day: 31
+        }
+    );
 }
 
 #[tokio::test]

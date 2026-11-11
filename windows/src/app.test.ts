@@ -2,9 +2,15 @@
 import { afterEach, expect, test, vi } from "vitest";
 import { mockIPC, clearMocks } from "@tauri-apps/api/mocks";
 import { emit } from "@tauri-apps/api/event";
-import { start } from "./app";
-import { sampleBoard, samplePeople, samplePerson } from "./sample-board";
-import type { PersonView, Window } from "./types";
+import { raceHeadline, raceStory, start, streakCaption } from "./app";
+import {
+  raceStory as raceStoryOf,
+  sampleBoard,
+  sampleOwner,
+  samplePeople,
+  samplePerson,
+} from "./sample-board";
+import type { PersonView, Race, Window } from "./types";
 
 const board = {
   window: "today",
@@ -436,6 +442,7 @@ const person: PersonView = {
         of: 6,
         total: 105,
         medal: "gold",
+        your_rank: 3,
       },
       {
         month: "2025-12-01",
@@ -444,8 +451,18 @@ const person: PersonView = {
         of: 6,
         total: 40,
         medal: null,
+        your_rank: 2,
       },
     ],
+  },
+  // You led the first two days; odile-m's 41 on the 3rd passed you.
+  race: {
+    month: "2026-11-01",
+    month_name: "November",
+    is_final: false,
+    yours: [5, 5, 5, 7],
+    theirs: [3, 3, 44, 49],
+    story: { kind: "passed", by: "them", day: 3, changes: 1 },
   },
 };
 async function mountPerson(
@@ -523,24 +540,142 @@ test("the person view shows this month's bars over last month's, streaks, active
     "-1",
     "0",
   ]);
+  // One streak tile: the longest shows in its caption only because it differs.
   const stats = document.querySelector(".person-stats")!.textContent!;
-  expect(stats).toMatch(/Current streak\s*2 days/);
-  expect(stats).toMatch(/Longest streak\s*365\+ days/);
+  expect(document.querySelectorAll(".person-stats dd")).toHaveLength(2);
+  expect(stats).toMatch(/Streak\s*2 days\s*Best 365\+ days/);
   // Read aloud like the rows' "365-plus-day streak", not "365 plus sign days".
-  const longest = document.querySelectorAll(".person-stats dd")[1];
-  expect(longest.querySelector('[aria-hidden="true"]')?.textContent).toBe(
+  const streak = document.querySelectorAll(".person-stats dd")[0];
+  expect(streak.querySelector('[aria-hidden="true"]')?.textContent).toBe(
     "365+ days",
   );
-  expect(longest.querySelector(".sr-only")?.textContent).toBe("365-plus days");
-  expect(stats).toMatch(/Active days\s*3 of 4/);
+  expect(streak.querySelector(".sr-only")?.textContent).toBe("365-plus days");
+  expect(stats).toMatch(/Active days\s*3 of 4\s*This month/);
   const finishes = Array.from(document.querySelectorAll(".finishes li"), (li) =>
     li.getAttribute("aria-label"),
   );
   expect(finishes).toEqual([
-    "October: #1 of 6, 105 contributions, gold medal",
-    "December 2025: #4 of 6, 40 contributions",
+    "October: #1 of 6, 105 contributions, gold medal, you finished #3",
+    "December 2025: #4 of 6, 40 contributions, you finished #2",
   ]);
+  // Your finish beside theirs, and the months each of you finished ahead.
+  expect(
+    Array.from(document.querySelectorAll(".your-finish"), (y) => [
+      y.textContent,
+      y.classList.contains("ahead"),
+    ]),
+  ).toEqual([
+    ["You #3", false],
+    ["You #2", true],
+  ]);
+  expect(document.querySelector(".record")?.textContent).toBe(
+    "odile-m 1 · you 1",
+  );
   expect(document.querySelector(".finishes li")?.textContent).toContain("🥇");
+  dispose();
+});
+
+test("a rival's view leads with their race with you", async () => {
+  const dispose = await mountPerson(person);
+  const race = document.querySelector(".race")!;
+  // It comes before the stats, right under the header.
+  expect(race.nextElementSibling?.classList.contains("person-stats")).toBe(
+    true,
+  );
+  expect(race.querySelector(".race-title")?.textContent).toBe(
+    "You vs odile-m · November",
+  );
+  expect(race.querySelector(".race-headline")?.textContent).toBe(
+    "42 to pass odile-m",
+  );
+  expect(race.querySelector(".race-number")?.textContent).toBe("42");
+  expect(race.querySelector(".race-story")?.textContent).toBe(
+    "odile-m passed you on November 3",
+  );
+  expect(race.getAttribute("aria-label")).toBe(
+    "You vs odile-m, November. 42 to pass odile-m. odile-m passed you on November 3. odile-m 49, you 7.",
+  );
+  // Their line in the bar color, yours muted, the pass marked on their line.
+  expect(race.querySelectorAll(".race-line")).toHaveLength(2);
+  expect(race.querySelector(".race-marker")?.classList.contains("them")).toBe(
+    true,
+  );
+  expect(
+    Array.from(race.querySelectorAll(".race-label"), (l) => l.textContent),
+  ).toEqual(["49 odile-m", "7 you"]);
+  dispose();
+});
+
+test("the race headline and story follow the lead", () => {
+  const view = { ...person, login: "ana" };
+  const race = (yours: number[], theirs: number[], is_final = false): Race => ({
+    month: "2026-11-01",
+    month_name: "November",
+    is_final,
+    yours,
+    theirs,
+    story: raceStoryOf(yours, theirs),
+  });
+  const cases: [Race, string, string][] = [
+    [race([1, 2, 3], [1, 2, 3]), "Level with ana", "Level all month"],
+    [race([2, 4, 6], [1, 2, 3]), "3 ahead of ana", "You’ve led all month"],
+    [race([1, 2, 3], [2, 4, 6]), "3 to pass ana", "ana has led all month"],
+    [
+      race([0, 0, 1], [0, 2, 3]),
+      "2 to pass ana",
+      "ana pulled ahead on November 2",
+    ],
+    [
+      race([0, 3, 3], [1, 1, 5]),
+      "2 to pass ana",
+      "ana passed you on November 3 · the lead changed 2 times",
+    ],
+    [
+      race([1, 3, 6], [4, 5, 6]),
+      "Level with ana",
+      "You caught ana on November 3",
+    ],
+    [
+      race([1, 2, 3], [2, 4, 6], true),
+      "ana beat you by 3",
+      "ana led all month",
+    ],
+    [
+      race([2, 4, 6], [1, 2, 3], true),
+      "You beat ana by 3",
+      "You led all month",
+    ],
+  ];
+  for (const [r, headline, story] of cases) {
+    expect(raceHeadline(view, r).text).toBe(headline);
+    expect(raceStory(view, r)).toBe(story);
+  }
+});
+
+test("the streak tile names the longest only when it differs", () => {
+  expect(streakCaption(14, 24)).toBe("Best 24 days");
+  expect(streakCaption(47, 47)).toBe("Longest in the past year");
+  expect(streakCaption(0, 12)).toBe("Best 12 days");
+  expect(streakCaption(0, 0)).toBe("No streaks in the past year");
+  expect(streakCaption(371, 371)).toBe("Longest in the past year");
+});
+
+test("your own view has no race and no record", async () => {
+  const dispose = await mountPerson({
+    ...person,
+    is_you: true,
+    race: null,
+    history: {
+      ...person.history!,
+      finishes: person.history!.finishes.map((f) => ({
+        ...f,
+        your_rank: null,
+      })),
+    },
+  });
+  expect(document.querySelector(".race")).toBeNull();
+  expect(document.querySelector(".record")).toBeNull();
+  expect(document.querySelector(".your-finish")).toBeNull();
   dispose();
 });
 
@@ -652,6 +787,15 @@ test("the fixture's Sample people have consistent person views", () => {
       history.current_streak,
     );
     expect(history.finishes[0].month_name).toBe("October");
+    // A rival's race ends on both This month totals; your own view has none.
+    if (login === sampleOwner) {
+      expect(view.race).toBeNull();
+    } else {
+      const owner = board.rows.find((r) => r.login === sampleOwner)!;
+      expect(view.race!.theirs.at(-1)).toBe(row.contributions);
+      expect(view.race!.yours.at(-1)).toBe(owner.contributions);
+      expect(history.finishes.every((f) => f.your_rank !== null)).toBe(true);
+    }
   }
   expect(samplePerson("stranger", now)).toBeNull();
 });

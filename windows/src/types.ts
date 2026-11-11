@@ -49,6 +49,26 @@ export interface PersonView extends Person {
   days_in_month: number;
   /** Null until this person's calendar loads: the view waits instead of drawing zeros. */
   history: PersonHistory | null;
+  /** Your race with them, on a rival's view once both calendars load; null on your own. */
+  race: Race | null;
+}
+export type Side = "you" | "them";
+/** How a race went, told by its lead (the core's `history::RaceStory`). */
+export type RaceStory =
+  | { kind: "level" }
+  | { kind: "led"; by: Side }
+  | { kind: "pulled_ahead"; by: Side; day: number }
+  | { kind: "passed"; by: Side; day: number; changes: number }
+  | { kind: "caught"; by: Side; day: number };
+/** You against a rival over one month: this month so far, or on the 1st last month's final. */
+export interface Race {
+  month: string;
+  month_name: string;
+  is_final: boolean;
+  /** Running totals from the 1st, one per day. */
+  yours: number[];
+  theirs: number[];
+  story: RaceStory;
 }
 export interface PersonHistory {
   /** Each day's count from the 1st through today. */
@@ -69,6 +89,8 @@ export interface MonthFinish {
   of: number;
   total: number;
   medal: Medal | null;
+  /** Where you finished that month, on a rival's view; null on your own. */
+  your_rank: number | null;
 }
 export interface Board {
   window: Window;

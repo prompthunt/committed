@@ -8,6 +8,8 @@ import type {
   MonthFinish,
   PersonView,
   PersonVisibility,
+  Race,
+  RaceStory,
   Row,
   Window,
 } from "./types";
@@ -230,6 +232,7 @@ export function samplePerson(login: string, now: number): PersonView | null {
       0,
     ).getDate(),
     history: null,
+    race: null,
   };
   if (!person.counts || person.streak === null) return view;
   const today = person.counts.today;
@@ -256,8 +259,30 @@ export function samplePerson(login: string, now: number): PersonView | null {
     return noise(login, 100 + d) < 0.68;
   });
   const lastMonthSeries = spread(login, 200, pastActive, person.lastMonth ?? 0);
+  // A rival's view races them against the owner: this month, or last month's final on the 1st.
+  const owner = login === sampleOwner ? null : samplePerson(sampleOwner, now);
+  let race: Race | null = null;
+  if (owner?.history) {
+    const final = day === 1;
+    const month = final
+      ? lastMonth
+      : new Date(date.getFullYear(), date.getMonth(), 1);
+    const yours = running(
+      final ? owner.history.last_month : owner.history.this_month,
+    );
+    const theirs = running(final ? lastMonthSeries : thisMonth);
+    race = {
+      month: iso(month),
+      month_name: monthName(month),
+      is_final: final,
+      yours,
+      theirs,
+      story: raceStory(yours, theirs),
+    };
+  }
   return {
     ...view,
+    race,
     history: {
       this_month: thisMonth,
       last_month: lastMonthSeries,
@@ -297,6 +322,53 @@ function sampleFinishes(login: string, date: Date): MonthFinish[] {
       of: order.length,
       total: mine,
       medal: mine > 0 ? (medals[rank - 1] ?? null) : null,
+      your_rank:
+        login === sampleOwner
+          ? null
+          : order.findIndex((p) => p.login === sampleOwner) + 1,
     };
   });
+}
+
+const running = (days: number[]) => {
+  let total = 0;
+  return days.map((n) => (total += n));
+};
+
+/** The core's `history::race_story`, for the Sample board's made-up races. */
+export function raceStory(yours: number[], theirs: number[]): RaceStory {
+  const days = Math.min(yours.length, theirs.length);
+  const leader = (i: number) =>
+    theirs[i] > yours[i] ? "them" : yours[i] > theirs[i] ? "you" : null;
+  let leading: "you" | "them" | null = null;
+  let firstLead = 0;
+  let changes = 0;
+  let lastChange = 0;
+  for (let i = 0; i < days; i++) {
+    const side = leader(i);
+    if (!side) continue;
+    if (!leading) {
+      leading = side;
+      firstLead = i + 1;
+    } else if (side !== leading) {
+      leading = side;
+      changes++;
+      lastChange = i + 1;
+    }
+  }
+  if (!leading) return { kind: "level" };
+  if (days > 0 && !leader(days - 1)) {
+    let start = days;
+    while (start > 1 && !leader(start - 2)) start--;
+    return {
+      kind: "caught",
+      by: leading === "you" ? "them" : "you",
+      day: start,
+    };
+  }
+  if (changes > 0)
+    return { kind: "passed", by: leading, day: lastChange, changes };
+  return firstLead === 1
+    ? { kind: "led", by: leading }
+    : { kind: "pulled_ahead", by: leading, day: firstLead };
 }
