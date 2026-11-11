@@ -7,6 +7,7 @@ import type {
   DesktopSettings,
   Person,
   PersonView,
+  Race,
   PersonVisibility,
   Settings,
   Window,
@@ -65,6 +66,124 @@ const streakDays = (n: number) =>
     ? `<span aria-hidden="true">${streakCap}+ days</span><span class="sr-only">${streakCap}-plus days</span>`
     : plural(n, "day");
 /** "18 active days this month, most on November 8 with 41": the chart's screen-reader summary. */
+/** The streak tile's value: "14 days", or "None" once it's broken. */
+const streakValue = (current: number) =>
+  current === 0 ? "None" : streakDays(current);
+/**
+ * The streak tile's caption: their longest only when it differs from the current one, so the
+ * tile never says the same thing twice (as on the Mac and iPhone).
+ */
+export function streakCaption(current: number, longest: number) {
+  if (longest === 0) return "No streaks in the past year";
+  if (current >= longest || Math.min(current, longest) > streakCap)
+    return "Longest in the past year";
+  return `Best ${streakDays(longest)}`;
+}
+const monthNames = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
+];
+/** The race's `day` (1 = `start`) as "November 8". */
+export function raceDate(race: Race, day: number) {
+  const date = new Date(`${race.start}T00:00:00Z`);
+  date.setUTCDate(date.getUTCDate() + day - 1);
+  return `${monthNames[date.getUTCMonth()]} ${date.getUTCDate()}`;
+}
+const last = (totals: number[]) => totals[totals.length - 1] ?? 0;
+/**
+ * The gap in the Board's words, as on the Mac and iPhone: "5 to pass odile-m", "12 ahead of
+ * ezra-q", "Level with ezra-q". `number` is the leading figure drawn in the bar color.
+ */
+export function raceHeadline(view: PersonView, race: Race) {
+  const yours = last(race.yours);
+  const theirs = last(race.theirs);
+  const gap = Math.abs(theirs - yours).toLocaleString();
+  if (yours === theirs)
+    return { number: null, text: `Level with ${view.login}` };
+  return {
+    number: gap,
+    text: `${gap} ${theirs > yours ? "to pass" : "ahead of"} ${view.login}`,
+  };
+}
+/** Who passed whom: "odile-m passed you on November 8", "You've led for all 30 days". */
+export function raceStory(view: PersonView, race: Race) {
+  const story = race.story;
+  const span = `all ${race.yours.length} days`;
+  const on = (day: number) => raceDate(race, day);
+  switch (story.kind) {
+    case "level":
+      return `Level for ${span}`;
+    case "led":
+      return story.by === "you"
+        ? `You’ve led for ${span}`
+        : `${view.login} has led for ${span}`;
+    case "pulled_ahead":
+      return `${story.by === "you" ? "You" : view.login} pulled ahead on ${on(story.day)}`;
+    case "passed":
+      return `${story.by === "you" ? `You passed ${view.login}` : `${view.login} passed you`} on ${on(story.day)}${story.changes > 1 ? ` · the lead changed ${story.changes} times` : ""}`;
+    case "caught":
+      return story.by === "you"
+        ? `You caught ${view.login} on ${on(story.day)}`
+        : `${view.login} caught you on ${on(story.day)}`;
+  }
+}
+/** The race card read aloud, chart included. */
+function raceSpoken(view: PersonView, race: Race) {
+  return `You vs ${view.login}, 30 days. ${raceHeadline(view, race).text}. ${raceStory(view, race)}. ${view.login} ${last(race.theirs).toLocaleString()}, you ${last(race.yours).toLocaleString()}.`;
+}
+/**
+ * Both running totals as lines, theirs in the bar color and yours muted, with the latest change
+ * of lead marked and each total labeled at its end (the higher above the lower).
+ */
+function raceChart(view: PersonView, race: Race) {
+  const width = 320;
+  const plot = 228;
+  const height = 96;
+  const top = 12;
+  const bottom = 16;
+  const days = Math.max(race.yours.length, race.theirs.length, 2);
+  const yours = last(race.yours);
+  const theirs = last(race.theirs);
+  const most = Math.max(1, yours, theirs);
+  const x = (day: number) => ((day - 1) / (days - 1)) * plot;
+  const y = (total: number) =>
+    top + (height - top - bottom) * (1 - total / most);
+  const line = (totals: number[]) =>
+    totals
+      .map(
+        (t, i) => `${i ? "L" : "M"}${x(i + 1).toFixed(1)},${y(t).toFixed(1)}`,
+      )
+      .join("");
+  const story = race.story;
+  let marker = "";
+  if (story.kind !== "level" && story.kind !== "led") {
+    const totals = story.by === "you" ? race.yours : race.theirs;
+    marker = `<circle class="race-marker ${story.by}" cx="${x(story.day)}" cy="${y(totals[story.day - 1])}" r="3.5" />`;
+  }
+  const end = x(days) + 8;
+  const labels =
+    yours === theirs
+      ? `<text class="race-label" x="${end}" y="${y(theirs) + 4}">${theirs.toLocaleString()} each</text>`
+      : `<text class="race-label them" x="${end}" y="${y(theirs) + (theirs > yours ? -2 : 11)}">${theirs.toLocaleString()} ${escape(view.login)}</text><text class="race-label" x="${end}" y="${y(yours) + (yours > theirs ? -2 : 11)}">${yours.toLocaleString()} you</text>`;
+  return `<svg class="race-chart" viewBox="0 0 ${width} ${height}" aria-hidden="true"><line class="race-axis" x1="0" x2="${plot}" y1="${height - bottom}" y2="${height - bottom}" /><path class="race-line" d="${line(race.yours)}" /><path class="race-line them" d="${line(race.theirs)}" />${marker}${labels}<text class="race-tick" x="0" y="${height - 3}">${escape(raceDate(race, 1))}</text><text class="race-tick" x="${plot}" y="${height - 3}" text-anchor="end">Today</text></svg>`;
+}
+function raceCard(view: PersonView, race: Race) {
+  const headline = raceHeadline(view, race);
+  const text = headline.number
+    ? `<span class="race-number">${escape(headline.number)}</span>${escape(headline.text.slice(headline.number.length))}`
+    : escape(headline.text);
+  return `<section class="race" role="group" aria-label="${escape(raceSpoken(view, race))}"><div aria-hidden="true"><p class="race-title">You vs ${escape(view.login)} · 30 days</p><p class="race-headline">${text}</p><p class="race-story">${escape(raceStory(view, race))}</p>${raceChart(view, race)}</div></section>`;
+}
 function chartSummary(view: PersonView, days: number[]) {
   const active = days.filter((n) => n > 0).length;
   if (!active) return "No contributions yet this month";
@@ -123,10 +242,10 @@ function personHtml(view: PersonView, selected: number) {
   const total = (days: number[]) => days.reduce((a, b) => a + b, 0);
   return `${header}
     ${view.status === "failed" ? '<p class="muted">Refresh failed · showing saved counts</p>' : ""}
+    ${view.race ? raceCard(view, view.race) : ""}
     <dl class="person-stats">
-      <div><dt><span aria-hidden="true">🔥 </span>Current streak</dt><dd>${streakDays(history.current_streak)}</dd></div>
-      <div><dt>Longest streak</dt><dd>${streakDays(history.longest_streak)}</dd></div>
-      <div><dt>Active days</dt><dd>${history.active_days} of ${view.day_of_month}</dd></div>
+      <div><dt><span aria-hidden="true">🔥 </span>Streak</dt><dd>${streakValue(history.current_streak)}<small>${streakCaption(history.current_streak, history.longest_streak)}</small></dd></div>
+      <div><dt>Active days</dt><dd>${history.active_days} of ${view.day_of_month}<small>This month</small></dd></div>
     </dl>
     <section class="month" aria-labelledby="month-title"><div class="month-head"><h2 id="month-title">${escape(view.month_name)}</h2><p class="legend"><span class="key now" aria-hidden="true"></span>${escape(view.month_name)} <strong>${total(history.this_month).toLocaleString()}</strong><span class="key past" aria-hidden="true"></span>${escape(view.last_month_name)} <strong>${total(history.last_month).toLocaleString()}</strong></p></div>
       ${selectedDay(view, selected)}${chart(view, selected)}</section>

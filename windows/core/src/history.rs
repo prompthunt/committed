@@ -4,6 +4,7 @@
 //! `month_range` and `days_in_month` serve the person view.
 use crate::Window;
 use chrono::{Datelike, Duration, NaiveDate};
+use serde::Serialize;
 use std::collections::BTreeMap;
 use std::ops::RangeInclusive;
 
@@ -106,4 +107,105 @@ pub fn next_month(day: NaiveDate) -> NaiveDate {
     first_of_month(day)
         .checked_add_months(chrono::Months::new(1))
         .expect("a month after a calendar day")
+}
+
+/// Running totals: each day's count plus every day before it in the series.
+pub fn running(series: &[u32]) -> Vec<u32> {
+    let mut total = 0;
+    series
+        .iter()
+        .map(|n| {
+            total += n;
+            total
+        })
+        .collect()
+}
+
+/// Whose side of a race: yours, or the rival's.
+#[derive(Clone, Copy, Debug, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum Side {
+    You,
+    Them,
+}
+
+/// How a race went, told by its lead: the Windows mirror of Swift's `PersonSummary.Story`. Ties
+/// put you ahead on the board, so a level day keeps whoever led before it and only a strict lead
+/// counts as passing.
+#[derive(Clone, Copy, Debug, Serialize, PartialEq, Eq)]
+#[serde(tag = "kind", rename_all = "snake_case")]
+pub enum RaceStory {
+    /// Never apart.
+    Level,
+    /// One of you has led since the 1st.
+    Led { by: Side },
+    /// Level at first, then `by` pulled ahead on `day` and has led since.
+    PulledAhead { by: Side, day: u32 },
+    /// The lead changed hands `changes` times; `by` took it last, on `day`.
+    Passed { by: Side, day: u32, changes: u32 },
+    /// Level now: `by` drew level on `day`, after the other had led.
+    Caught { by: Side, day: u32 },
+}
+
+/// The story of two running totals, day 1 first (`running`).
+pub fn race_story(yours: &[u32], theirs: &[u32]) -> RaceStory {
+    let days = yours.len().min(theirs.len());
+    let leader = |i: usize| {
+        if theirs[i] > yours[i] {
+            Some(Side::Them)
+        } else if yours[i] > theirs[i] {
+            Some(Side::You)
+        } else {
+            None
+        }
+    };
+    let mut leading = None;
+    let (mut first_lead, mut changes, mut last_change) = (0, 0, 0);
+    for i in 0..days {
+        let Some(side) = leader(i) else { continue };
+        match leading {
+            None => {
+                leading = Some(side);
+                first_lead = i as u32 + 1;
+            }
+            Some(previous) if previous != side => {
+                leading = Some(side);
+                changes += 1;
+                last_change = i as u32 + 1;
+            }
+            _ => {}
+        }
+    }
+    let Some(leading) = leading else {
+        return RaceStory::Level;
+    };
+    if days > 0 && leader(days - 1).is_none() {
+        let mut start = days;
+        while start > 1 && leader(start - 2).is_none() {
+            start -= 1;
+        }
+        let by = if leading == Side::You {
+            Side::Them
+        } else {
+            Side::You
+        };
+        return RaceStory::Caught {
+            by,
+            day: start as u32,
+        };
+    }
+    if changes > 0 {
+        RaceStory::Passed {
+            by: leading,
+            day: last_change,
+            changes,
+        }
+    } else if first_lead == 1 {
+        RaceStory::Led { by: leading }
+    } else {
+        RaceStory::PulledAhead {
+            by: leading,
+            day: first_lead,
+        }
+    }
 }

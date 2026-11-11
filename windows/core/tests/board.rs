@@ -883,8 +883,24 @@ async fn the_person_view_shows_a_visible_persons_month_and_streaks() {
     assert_eq!(history.current_streak, 0);
     assert_eq!(history.longest_streak, 1);
     assert_eq!(history.active_days, 1);
+    // bob's view leads with his race with you over the board's 30 days, October 5 to today:
+    // your 10 on October 31 pulled you ahead and his 9 on November 1 didn't catch it.
+    let race = bob.race.expect("both calendars loaded");
+    assert_eq!(race.start, day(2026, 10, 5));
+    assert_eq!((race.yours.len(), race.theirs.len()), (30, 30));
+    assert_eq!((race.yours[29], race.theirs[29]), (10, 9));
+    assert_eq!(
+        race.story,
+        history::RaceStory::PulledAhead {
+            by: history::Side::You,
+            day: 27
+        }
+    );
 
-    assert!(f.core.person("octocat").unwrap().is_you);
+    let you = f.core.person("octocat").unwrap();
+    assert!(you.is_you);
+    // Your own view has no race.
+    assert!(you.race.is_none());
     // Before someone's count loads there's no history: the view waits instead of drawing zeros.
     let offline = f.core.person("offline").unwrap();
     assert!(offline.history.is_none());

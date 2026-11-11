@@ -136,4 +136,93 @@ struct PersonSummaryTests {
     func streakStatsReadInDays(_ streak: Int, _ text: String) {
         #expect(PersonSummary.streakText(streak) == text)
     }
+
+    // MARK: One streak tile
+
+    @Test(arguments: [
+        (14, 24, "14 days", "Best 24 days", "14 days, best 24 days"),
+        (47, 47, "47 days", "Longest in the past year", "47 days, longest in the past year"),
+        (0, 12, "None", "Best 12 days", "None, best 12 days"),
+        (0, 0, "None", "No streaks in the past year", "None, no streaks in the past year"),
+        (371, 371, "365+ days", "Longest in the past year", "365-plus days, longest in the past year"),
+    ])
+    func oneStreakTileNamesTheLongestOnlyWhenItDiffers(_ current: Int, _ longest: Int, _ value: String,
+                                                      _ caption: String, _ spoken: String) {
+        #expect(PersonSummary.streakValue(current) == value)
+        #expect(PersonSummary.streakCaption(current: current, longest: longest) == caption)
+        #expect(PersonSummary.streakSpoken(current: current, longest: longest) == spoken)
+    }
+
+    // MARK: The race with you, over the Board's 30 days
+
+    /// Me and Odile on November 10: nothing in October, I lead from November 1, she passes me on
+    /// the 8th.
+    static func raceStore() -> StandingsStore {
+        let mine = [3, 6, 10, 4, 4, 6, 7, 3, 7, 7]
+        let hers = [2, 4, 6, 3, 5, 4, 12, 9, 8, 9]
+        func days(_ counts: [Int]) -> [String: Int] {
+            Dictionary(uniqueKeysWithValues: counts.enumerated().map {
+                (String(format: "2026-11-%02d", $0.offset + 1), $0.element)
+            })
+        }
+        return store(rivals: ["odile"], histories: [
+            "me": history(through: "2026-11-10", days(mine).merging(["2026-10-05": 40]) { a, _ in a }),
+            "odile": history(through: "2026-11-10", days(hers)),
+        ])
+    }
+
+    @Test func aRivalsViewLeadsWithTheRaceOverThe30Days() throws {
+        let store = Self.raceStore()
+        let person = try #require(store.person("odile", asOf: Self.noon("2026-11-10"), calendar: Self.utc))
+        let race = try #require(person.race)
+        // October 12 through today; October 5's 40 is outside the 30 days.
+        #expect(race.dates.count == 30)
+        #expect(race.dates.first == "October 12")
+        #expect(race.dates.last == "November 10")
+        #expect(Array(race.yours.suffix(10)) == [3, 9, 19, 23, 27, 33, 40, 43, 50, 57])
+        #expect(Array(race.theirs.suffix(10)) == [2, 6, 12, 15, 20, 24, 36, 45, 53, 62])
+        // The same totals the Board ranks on 30 days.
+        #expect(race.yourTotal == store.history(for: "me")?.total(for: .monthly, asOf: Self.noon("2026-11-10")))
+        #expect(race.theirTotal == store.history(for: "odile")?.total(for: .monthly, asOf: Self.noon("2026-11-10")))
+        // Level through October, then I pulled ahead on November 1 (day 21) and she passed on the 8th.
+        #expect(race.story == .passed(.them, day: 28, changes: 1))
+        #expect(person.raceTitle == "You vs odile · 30 days")
+        #expect(person.raceHeadline == "5 to pass odile")
+        #expect(person.raceHeadlineNumber == "5")
+        #expect(person.raceStory == "odile passed you on November 8")
+        #expect(person.raceSpoken == "You vs odile, 30 days. 5 to pass odile. odile passed you on November 8. odile 62, you 57.")
+    }
+
+    @Test func yourOwnViewHasNoRace() throws {
+        let me = try #require(Self.raceStore().person("me", asOf: Self.noon("2026-11-10"), calendar: Self.utc))
+        #expect(me.race == nil)
+        #expect(me.raceHeadline == nil)
+    }
+
+    @Test func noRaceUntilYourOwnCountLoads() throws {
+        let store = Self.store(rivals: ["ana"], histories: ["ana": Self.ana])
+        let ana = try #require(store.person("ana", asOf: Self.noon("2026-11-22"), calendar: Self.utc))
+        #expect(ana.days != nil)
+        #expect(ana.race == nil)
+    }
+
+    @Test(arguments: [
+        // [yours], [theirs], story, headline, story line
+        ([1, 2, 3], [1, 2, 3], PersonSummary.Story.level, "Level with ana", "Level for all 3 days"),
+        ([2, 4, 6], [1, 2, 3], .led(.you), "3 ahead of ana", "You’ve led for all 3 days"),
+        ([1, 2, 3], [2, 4, 6], .led(.them), "3 to pass ana", "ana has led for all 3 days"),
+        ([0, 0, 1], [0, 2, 3], .pulledAhead(.them, day: 2), "2 to pass ana", "ana pulled ahead on November 2"),
+        ([0, 3, 3], [1, 1, 5], .passed(.them, day: 3, changes: 2), "2 to pass ana",
+         "ana passed you on November 3 · the lead changed 2 times"),
+        ([1, 3, 6], [4, 5, 6], .caught(.you, day: 3), "Level with ana", "You caught ana on November 3"),
+    ])
+    func theStoryFollowsTheLead(_ yours: [Int], _ theirs: [Int], _ story: PersonSummary.Story,
+                                _ headline: String, _ line: String) {
+        let race = PersonSummary.Race(dates: ["November 1", "November 2", "November 3"], yours: yours, theirs: theirs)
+        let person = PersonSummary(competitor: Competitor(username: "ana", isSelf: false), status: .loaded,
+                                   month: CalendarMonth(year: 2026, month: 11), dayOfMonth: 3, days: nil, race: race)
+        #expect(race.story == story)
+        #expect(person.raceHeadline == headline)
+        #expect(person.raceStory == line)
+    }
 }

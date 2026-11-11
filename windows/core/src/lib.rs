@@ -134,6 +134,19 @@ pub struct PersonView {
     pub days_in_month: u32,
     /// `None` until this person's calendar loads: the view waits rather than drawing zeros.
     pub history: Option<PersonHistory>,
+    /// Your race with them, on a rival's view once both calendars load; `None` on your own.
+    pub race: Option<Race>,
+}
+/// You against a rival over the board's 30 days through today (Swift's `PersonSummary.Race`):
+/// the same totals the board ranks on 30 days.
+#[derive(Clone, Debug, Serialize, PartialEq)]
+pub struct Race {
+    /// The first day raced; each running total's index counts on from it.
+    pub start: NaiveDate,
+    /// Running totals from `start`, one per day (`history::running`).
+    pub yours: Vec<u32>,
+    pub theirs: Vec<u32>,
+    pub story: history::RaceStory,
 }
 #[derive(Clone, Debug, Serialize, PartialEq)]
 pub struct PersonHistory {
@@ -284,6 +297,22 @@ impl BoardCore {
             .find(|row| row.person.login == login)?;
         let month = history::first_of_month(today);
         let last_month = previous_month(today);
+        // A rival's view races them against you over the board's 30 days.
+        let me = state.saved.owner.as_ref().filter(|_| !row.is_you);
+        let race = me
+            .and_then(|me| state.saved.counts.get(me))
+            .zip(state.saved.counts.get(&login))
+            .map(|(mine, theirs)| {
+                let days = history::range(Window::Monthly, today);
+                let yours = history::running(&history::series(&mine.days, days.clone()));
+                let theirs = history::running(&history::series(&theirs.days, days.clone()));
+                Race {
+                    start: *days.start(),
+                    story: history::race_story(&yours, &theirs),
+                    yours,
+                    theirs,
+                }
+            });
         let history = state.saved.counts.get(&login).map(|snapshot| {
             let days = &snapshot.days;
             let this_month = month..=today;
@@ -306,6 +335,7 @@ impl BoardCore {
             day_of_month: today.day(),
             days_in_month: history::days_in_month(today),
             history,
+            race,
         })
     }
     /// Chooses whose view the person window shows; only someone on the board now.

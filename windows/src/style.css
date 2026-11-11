@@ -527,7 +527,7 @@ select {
 }
 .person-stats {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: 8px;
   margin: 0 0 8px;
 }
@@ -546,6 +546,84 @@ select {
   font-size: 17px;
   font-weight: 650;
   font-variant-numeric: tabular-nums;
+}
+.person-stats dd small {
+  display: block;
+  margin-top: 1px;
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--muted);
+}
+.race {
+  margin: 0 0 8px;
+  padding: 12px 14px 8px;
+  border-radius: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+}
+.race p {
+  margin: 0;
+}
+.race-title {
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.race .race-headline {
+  margin-top: 4px;
+  font-size: 22px;
+  font-weight: 750;
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+}
+.race-number {
+  color: var(--bar);
+}
+.race-story {
+  font-size: 12px;
+  color: var(--muted);
+}
+.race-chart {
+  display: block;
+  width: 100%;
+  height: auto;
+  margin-top: 6px;
+  overflow: visible;
+}
+.race-axis {
+  stroke: var(--border);
+}
+.race-line {
+  fill: none;
+  stroke: var(--muted);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.race-line.them {
+  stroke: var(--bar);
+  stroke-width: 2.5;
+}
+.race-marker {
+  fill: var(--muted);
+}
+.race-marker.them {
+  fill: var(--bar);
+}
+.race-label {
+  fill: var(--muted);
+  font-size: 10px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+.race-label.them {
+  fill: var(--bar);
+}
+.race-tick {
+  fill: var(--muted);
+  font-size: 9px;
 }
 .month-head {
   display: flex;
