@@ -10,8 +10,8 @@ struct StandingRow: View {
     var maxContributions: Int = 0
     /// Change in this row's placement since the start of the day (+ up, − down). nil/0 ⇒ no marker.
     var rankDelta: Int? = nil
-    /// Days in a row with a contribution (`ContributionHistory.currentStreak`). Shown as "🔥 12"
-    /// from 2 days, and only once this row's count has loaded. nil ⇒ no history yet.
+    /// Days in a row with a contribution (`ContributionHistory.currentStreak`). Shown as the streak
+    /// mark and "12" from 2 days, and only once this row's count has loaded. nil ⇒ no history yet.
     var streak: Int? = nil
     /// Grows with Dynamic Type on iPhone so "#12" never truncates; stays 24pt on the Mac.
     @ScaledMetric(relativeTo: .caption) private var rankWidth: CGFloat = 24
@@ -21,6 +21,34 @@ struct StandingRow: View {
     @Environment(\.standingRowStyle) private var style
 
     var body: some View {
+        layout
+            .padding(.horizontal, style.horizontalPadding)
+            .padding(.vertical, style.verticalPadding)
+            .background(selfHighlight)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(accessibilityDescription)
+            .help(trollDescription.map { "Problem? \($0)." } ?? "")
+    }
+
+    /// Your row never loses your name. When it doesn't fit whole, the "you" badge goes first (the
+    /// row's highlight already says it's you), then your streak (your summary still has it), and
+    /// last the name wraps onto two lines, or shrinks a little where a row has no room for a second
+    /// line. Rivals' rows keep everything and truncate the name.
+    @ViewBuilder
+    private var layout: some View {
+        if competitor.isSelf {
+            ViewThatFits(in: .horizontal) {
+                content(badge: style.showsSelfBadge, streak: true, wraps: false)
+                content(badge: false, streak: true, wraps: false)
+                content(badge: false, streak: false, wraps: false)
+                content(badge: false, streak: false, wraps: true)
+            }
+        } else {
+            content(badge: false, streak: true, wraps: false)
+        }
+    }
+
+    private func content(badge: Bool, streak showsStreak: Bool, wraps: Bool) -> some View {
         HStack(spacing: style.spacing) {
             Text("#\(rank)")
                 .font(style.rankFont)
@@ -30,9 +58,11 @@ struct StandingRow: View {
             HStack(spacing: 4) {
                 Text(competitor.username)
                     .font(competitor.isSelf ? style.selfNameFont : style.nameFont)
-                    .lineLimit(dynamicTypeSize.isAccessibilitySize ? 2 : 1)
+                    .lineLimit(wraps || dynamicTypeSize.isAccessibilitySize ? 2 : 1)
+                    // Where a second line has no room (a small widget's four rows), shrink a little.
+                    .minimumScaleFactor(wraps ? 0.75 : 1)
                     .truncationMode(.middle)
-                if competitor.isSelf, style.showsSelfBadge {
+                if badge {
                     Text("you")
                         .font(style.badgeFont)
                         .padding(.horizontal, 5)
@@ -44,19 +74,13 @@ struct StandingRow: View {
             Spacer(minLength: 6)
             HStack(spacing: 4) {
                 rankDeltaIndicator
-                streakLabel
+                if showsStreak { streakLabel }
                 contributionsLabel
                     .fixedSize(horizontal: style.keepsCountWhole, vertical: false)
                     .frame(minWidth: style.countMinWidth, alignment: .trailing)
             }
             contributionSquare
         }
-        .padding(.horizontal, style.horizontalPadding)
-        .padding(.vertical, style.verticalPadding)
-        .background(selfHighlight)
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(accessibilityDescription)
-        .help(trollDescription.map { "Problem? \($0)." } ?? "")
     }
 
     /// The window's trolling day, once the row has data.
@@ -170,20 +194,23 @@ struct StandingRow: View {
         return standingDescription + streak + movement + trolling
     }
 
-    /// "🔥 12" beside the count, or nil: under 2 days, or no count loaded (a failed or first load
-    /// shows no streak, never "0").
-    var streakText: String? {
-        hasData ? StreakLabel.text(streak) : nil
+    /// The streak's number beside the mark ("12", "365+"), or nil: under 2 days, or no count
+    /// loaded (a failed or first load shows no streak, never "0").
+    var streakNumber: String? {
+        hasData ? StreakLabel.number(streak) : nil
     }
 
     @ViewBuilder
     private var streakLabel: some View {
-        if let streakText {
-            Text(streakText)
+        if streakNumber != nil {
+            StreakBadge(streak: streak, markSize: style.streakMarkSize, relativeTo: style.streakTextStyle,
+                        markColor: style.streakMarkColor ?? style.streakColor)
                 .font(style.streakFont)
                 .foregroundStyle(style.streakColor.map(AnyShapeStyle.init) ?? AnyShapeStyle(.secondary))
                 .lineLimit(1)
                 .fixedSize()
+                // The row's own label reads the streak.
+                .accessibilityHidden(true)
         }
     }
 
@@ -246,18 +273,14 @@ struct StandingRow: View {
     }
 }
 
-/// How a streak reads wherever it shows: "🔥 12" from 2 days ("🔥 1" would clutter every row),
-/// "365+" past GitHub's calendar (about a year, so the app never claims more than it can see), and
-/// "12-day streak" to VoiceOver so the flame isn't read aloud.
+/// How a streak reads wherever it shows: the streak mark and "12" from 2 days (a mark on every
+/// 1-day row would clutter the board), "365+" past GitHub's calendar (about a year, so the app
+/// never claims more than it can see), and "12-day streak" to VoiceOver.
 enum StreakLabel {
     /// Shortest streak shown.
     static let minimum = 2
     /// Longest streak shown as a number; anything longer reads "365+".
     static let cap = 365
-
-    static func text(_ streak: Int?) -> String? {
-        number(streak).map { "🔥 \($0)" }
-    }
 
     static func spoken(_ streak: Int?) -> String? {
         guard let streak, streak >= minimum else { return nil }
@@ -274,6 +297,81 @@ enum StreakLabel {
     static func number(_ streak: Int?) -> String? {
         guard let streak, streak >= minimum else { return nil }
         return streak > cap ? "\(cap)+" : "\(streak)"
+    }
+}
+
+/// The streak mark: a flame with a contribution square at its heart
+/// (`docs/design/committed-streak-glyph.svg`), on the trophy's 16 × 16 grid. One shape in one
+/// color, so it tints like text: lime or deep lime on the dark iPhone surfaces, stepping down when
+/// stale, and plain secondary gray on the Mac. Fill it with `eoFill` so the square stays open.
+struct StreakGlyph: Shape {
+    func path(in rect: CGRect) -> Path {
+        let scale = min(rect.width, rect.height) / 16
+        let origin = CGPoint(x: rect.midX - 8 * scale, y: rect.midY - 8 * scale)
+        func p(_ x: CGFloat, _ y: CGFloat) -> CGPoint {
+            CGPoint(x: origin.x + x * scale, y: origin.y + y * scale)
+        }
+        var path = Path()
+        path.move(to: p(8, 15.6))
+        path.addCurve(to: p(2.3, 10.2), control1: p(4.6, 15.6), control2: p(2.3, 13.2))
+        path.addCurve(to: p(4.2, 5.8), control1: p(2.3, 8.4), control2: p(3.1, 6.9))
+        path.addCurve(to: p(5.8, 8.4), control1: p(4.4, 7.2), control2: p(5, 8))
+        path.addCurve(to: p(9, 0.4), control1: p(5.6, 5.4), control2: p(7, 2.6))
+        path.addCurve(to: p(13.7, 10.2), control1: p(11.8, 2.8), control2: p(13.7, 6.2))
+        path.addCurve(to: p(8, 15.6), control1: p(13.7, 13.2), control2: p(11.4, 15.6))
+        path.closeSubpath()
+        path.addRect(CGRect(origin: p(5.9, 9.7), size: CGSize(width: 4.2 * scale, height: 4.2 * scale)))
+        return path
+    }
+}
+
+/// The streak mark alone, sized with the text it sits beside. nil color = the foreground style.
+struct StreakMark: View {
+    var color: Color? = nil
+    @ScaledMetric private var size: CGFloat
+
+    init(size: CGFloat, relativeTo textStyle: Font.TextStyle = .body, color: Color? = nil) {
+        _size = ScaledMetric(wrappedValue: size, relativeTo: textStyle)
+        self.color = color
+    }
+
+    var body: some View {
+        StreakGlyph()
+            .fill(color.map(AnyShapeStyle.init) ?? AnyShapeStyle(.foreground), style: FillStyle(eoFill: true))
+            .frame(width: size, height: size)
+            // Sit on the text's baseline the way a glyph would, not centered on the line.
+            .alignmentGuide(.firstTextBaseline) { $0[.bottom] - $0.height * 0.06 }
+            .alignmentGuide(.lastTextBaseline) { $0[.bottom] - $0.height * 0.06 }
+            .accessibilityHidden(true)
+    }
+}
+
+/// A streak as it shows everywhere: the mark, then the number ("12", "365+"), read aloud as
+/// "12-day streak". Nothing under 2 days or without a streak. Takes its font and number color
+/// from the environment.
+struct StreakBadge: View {
+    let streak: Int?
+    let markSize: CGFloat
+    var textStyle: Font.TextStyle = .body
+    var markColor: Color? = nil
+
+    init(streak: Int?, markSize: CGFloat, relativeTo textStyle: Font.TextStyle = .body, markColor: Color? = nil) {
+        self.streak = streak
+        self.markSize = markSize
+        self.textStyle = textStyle
+        self.markColor = markColor
+    }
+
+    var body: some View {
+        if let number = StreakLabel.number(streak) {
+            HStack(alignment: .firstTextBaseline, spacing: markSize * 0.25) {
+                StreakMark(size: markSize, relativeTo: textStyle, color: markColor)
+                Text(number)
+                    .monospacedDigit()
+            }
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(StreakLabel.spoken(streak) ?? "")
+        }
     }
 }
 

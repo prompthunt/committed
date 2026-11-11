@@ -15,6 +15,7 @@
   --selection-border: #c4d4a5;
   --bar: #476510;
   --past-bar: #d9dcd3;
+  --streak-mark: #476510;
 }
 * {
   box-sizing: border-box;
@@ -306,6 +307,31 @@ small {
   flex-shrink: 0;
   color: var(--muted);
   font-size: 12px;
+}
+/* The streak mark: one path in its own color, sized to the text beside it. */
+.streak-mark {
+  width: 0.95em;
+  height: 0.95em;
+  margin-right: 0.25em;
+  vertical-align: -0.1em;
+  fill: var(--streak-mark);
+  flex-shrink: 0;
+}
+.streak {
+  display: inline-flex;
+  align-items: baseline;
+}
+.streak .streak-mark {
+  align-self: center;
+}
+/* Your row when your name doesn't fit whole (see `fitYourRow`). */
+.you.no-badge .badge,
+.you.no-streak .streak {
+  display: none;
+}
+.you.wraps .identity strong {
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 .contribution-squares {
   width: 12px;
@@ -750,6 +776,7 @@ select {
     --bar: var(--brand);
     --past-bar: #3a3d35;
     --troll-red: #ff4f3f;
+    --streak-mark: #8bc41a;
   }
   .avatar {
     outline-color: rgb(255 255 255 / 0.1);
@@ -775,6 +802,7 @@ select {
     --bar: Highlight;
     --past-bar: GrayText;
     --troll-red: CanvasText;
+    --streak-mark: CanvasText;
     background: Canvas;
     color: CanvasText;
   }

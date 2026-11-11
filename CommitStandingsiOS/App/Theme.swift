@@ -35,6 +35,10 @@ extension StandingRowStyle {
         // Quieter than the count beside it, on the board's numerals; never muted (it's news).
         streakFont: CommittedType.numeral(14, relativeTo: .footnote),
         streakColor: .soft,
+        // The mark in the squares glyph's top green, so the two marks on a row read as one family.
+        streakMarkSize: 13,
+        streakTextStyle: .footnote,
+        streakMarkColor: .limeDeep,
         // The Mac's 2×2 squares glyph, tinted on the site's ramp; Live rank's rows match.
         squares: .shadedSymbol(Color.rowGlyphs),
         // The troll face reads at a glance only a little larger than the squares glyph.

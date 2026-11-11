@@ -39,9 +39,10 @@ struct CommittedWidgetSmall: View {
                                    size: ranked ? 12 : 18)
                 // Your streak on the count's line, so the card keeps its four lines. Only beside
                 // your count (`state.streak` is nil without it), from 2 days.
-                if let streak = StreakLabel.text(state.streak) {
+                if StreakLabel.number(state.streak) != nil {
                     Spacer(minLength: 4)
-                    Text(streak)
+                    StreakBadge(streak: state.streak, markSize: ranked ? 14 : 16, relativeTo: .subheadline,
+                                markColor: isStale ? Color.rowGlyphs[1] : .limeDeep)
                         .font(CommittedType.numeral(ranked ? 15 : 17, relativeTo: .subheadline))
                         .foregroundStyle(isStale ? Color.muted : Color.soft)
                         .fixedSize()
