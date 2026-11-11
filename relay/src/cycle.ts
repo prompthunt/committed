@@ -9,7 +9,7 @@ import {
 } from "./apns";
 import type { InstallationRow, Store } from "./db";
 import { deriveLiveRankState, type LiveRankState } from "./liveRank";
-import { localDate, parseDays, sum, type Days } from "./parser";
+import { currentStreak, localDate, parseDays, sum, type Days } from "./parser";
 import { order, selfFirst, type Standing } from "./ranking";
 import type { GitHubFetch, Log } from "./relay";
 
@@ -84,12 +84,19 @@ async function runInstallation(
   }
 
   const standings = row.window === "daily" ? daily : standingsFor(competitors, data, row.window, today);
+  // Everyone's streak from the same calendars, in the installation's own day, as the app works it out.
+  const streaks: Record<string, number> = {};
+  for (const login of competitors) {
+    const entry = data.get(login);
+    if (entry) streaks[login] = currentStreak(entry.days, today);
+  }
   const state = deriveLiveRankState({
     self: row.login,
     competitors,
     standings,
     window: row.window,
     rankDeltas,
+    streaks,
     // The data's age is that of your own count, the headline number. A rival whose page keeps
     // failing (renamed account) must not pin every push's stale date in the past.
     now: standings[row.login] ? data.get(row.login)!.fetchedAt : now,

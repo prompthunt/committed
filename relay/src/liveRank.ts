@@ -17,6 +17,11 @@ export interface LiveRankState {
   below: Neighbor | null;
   /** + moved up / − moved down since the day's baseline. Today only, else 0. */
   movementToday: number;
+  /**
+   * Your current streak (`currentStreak`), the raw count. Left out without your count or calendar,
+   * so older apps and saved states, which never had it, read the same as "no streak known".
+   */
+  streak?: number;
   /** Unix seconds of the data, not of the push. */
   updatedAt: number;
 }
@@ -26,6 +31,8 @@ export interface Neighbor {
   contributions: number;
   /** Their places moved since the day's baseline, like yours. Today only, else 0. */
   movementToday: number;
+  /** Their current streak, like yours; left out when they have no calendar. */
+  streak?: number;
 }
 
 export interface LiveRankInput {
@@ -36,6 +43,8 @@ export interface LiveRankInput {
   window: Window;
   /** Today's rank change per login (baseline − current), yours and your neighbors'; daily window only. */
   rankDeltas: Readonly<Record<string, number | undefined>>;
+  /** Current streak per login (`currentStreak`), for everyone with a calendar; absent = unknown. */
+  streaks?: Readonly<Record<string, number | undefined>>;
   /** Unix seconds of the data. */
   now: number;
 }
@@ -49,17 +58,22 @@ export function deriveLiveRankState(input: LiveRankInput): LiveRankState {
     return standing && standing.window === window ? standing.contributions : null;
   };
   const movement = (login: string): number => (window === "daily" ? (input.rankDeltas[login] ?? 0) : 0);
+  // Only set when known, so the JSON leaves the key out (as Swift's encoder does for nil).
+  const withStreak = <T extends object>(value: T, login: string): T & { streak?: number } => {
+    const streak = input.streaks?.[login];
+    return streak === undefined ? value : { ...value, streak };
+  };
   const neighbor = (login: string | undefined): Neighbor | null => {
     if (login === undefined) return null;
     const contributions = countFor(login);
-    return contributions === null ? null : { login, contributions, movementToday: movement(login) };
+    return contributions === null ? null : withStreak({ login, contributions, movementToday: movement(login) }, login);
   };
 
   const contributions = countFor(self);
   const position = ranked.findIndex((entry) => entry.login === self);
   const ranks = contributions !== null && position >= 0 && competitors.length > 1;
 
-  return {
+  const state: LiveRankState = {
     window,
     rank: ranks ? ranked[position]!.rank : null,
     competitorCount: competitors.length,
@@ -69,4 +83,6 @@ export function deriveLiveRankState(input: LiveRankInput): LiveRankState {
     movementToday: movement(self),
     updatedAt: Math.floor(input.now),
   };
+  // Your streak follows your count: none shows beside a count that hasn't loaded.
+  return contributions === null ? state : withStreak(state, self);
 }

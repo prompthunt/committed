@@ -84,9 +84,10 @@ describe("updates", () => {
       rank: 2,
       competitorCount: 3,
       contributions: 5,
-      above: { login: "alice", contributions: 9, movementToday: 0 },
-      below: { login: "bob", contributions: 1, movementToday: 0 },
+      above: { login: "alice", contributions: 9, movementToday: 0, streak: 1 },
+      below: { login: "bob", contributions: 1, movementToday: 0, streak: 1 },
       movementToday: 0,
+      streak: 1,
       updatedAt: T0,
     });
     expect(push.payload.aps["stale-date"]).toBe(T0 + 20 * MINUTE);
@@ -162,7 +163,8 @@ describe("updates", () => {
     expect(apns.sent.length).toBeGreaterThan(0); // heartbeats continue
     const last = apns.sent.at(-1)!.payload.aps;
     expect(last["stale-date"]).toBeGreaterThan(clock.seconds);
-    expect(last["content-state"].below).toEqual({ login: "bob", contributions: 1, movementToday: 0 });
+    // Bob's last good calendar keeps his count and his streak.
+    expect(last["content-state"].below).toEqual({ login: "bob", contributions: 1, movementToday: 0, streak: 1 });
   });
 
   it("shows placeholders, not zero, when your counts can't be fetched", async () => {
@@ -221,7 +223,7 @@ describe("today's movement", () => {
     await relay.runCycle();
     expect(lastState().rank).toBe(3);
     expect(lastState().movementToday).toBe(-1);
-    expect(lastState().above).toEqual({ login: "bob", contributions: 7, movementToday: 1 });
+    expect(lastState().above).toEqual({ login: "bob", contributions: 7, movementToday: 1, streak: 1 });
     expect(lastState().below).toBeNull();
   });
 
@@ -236,7 +238,62 @@ describe("today's movement", () => {
     github.set("bob", { "2026-11-05": 7 });
     clock.advance(5 * MINUTE);
     await relay.runCycle();
-    expect(lastState().above).toEqual({ login: "bob", contributions: 7, movementToday: 0 });
+    expect(lastState().above).toEqual({ login: "bob", contributions: 7, movementToday: 0, streak: 1 });
+  });
+});
+
+describe("streaks", () => {
+  it("pushes your streak and your neighbors', worked out from the calendars it reads", async () => {
+    // 10:00 Nov 5 in New York. You've nothing yet today but a 3-day run up to yesterday; alice is
+    // on day 2; bob stopped two days ago.
+    github.set("me", { "2026-11-01": 0, "2026-11-02": 4, "2026-11-03": 1, "2026-11-04": 2, "2026-11-05": 0 });
+    github.set("alice", { "2026-11-03": 0, "2026-11-04": 1, "2026-11-05": 3 });
+    github.set("bob", { "2026-11-03": 8, "2026-11-04": 0, "2026-11-05": 0 });
+    await register(ID, { window: "weekly" });
+    await reportActivity(ID);
+    await relay.runCycle();
+
+    expect(lastState()).toStrictEqual({
+      window: "weekly",
+      rank: 2,
+      competitorCount: 3,
+      contributions: 7,
+      above: { login: "bob", contributions: 8, movementToday: 0, streak: 0 },
+      below: { login: "alice", contributions: 4, movementToday: 0, streak: 2 },
+      movementToday: 0,
+      streak: 3,
+      updatedAt: T0,
+    });
+  });
+
+  it("pushes again when only a streak changed", async () => {
+    github.set("me", { "2026-11-04": 2, "2026-11-05": 0 });
+    github.set("alice", { "2026-11-04": 9, "2026-11-05": 0 });
+    github.set("bob", { "2026-11-05": 0 });
+    await register(ID, { window: "weekly" });
+    await reportActivity(ID);
+    await relay.runCycle();
+    expect(lastState().streak).toBe(1);
+    apns.clear();
+
+    // You contribute today and yesterday's count drops by one: the same weekly total, a longer run.
+    github.set("me", { "2026-11-03": 0, "2026-11-04": 1, "2026-11-05": 1 });
+    clock.advance(5 * MINUTE);
+    await relay.runCycle();
+    expect(apns.sent).toHaveLength(1);
+    expect(lastState().contributions).toBe(2);
+    expect(lastState().streak).toBe(2);
+  });
+
+  it("leaves your streak out while your count can't be fetched", async () => {
+    github.set("alice", { "2026-11-05": 9 });
+    github.set("bob", { "2026-11-05": 1 });
+    github.fail("me");
+    await register(ID);
+    await reportActivity(ID);
+    await relay.runCycle();
+    expect(lastState().contributions).toBeNull();
+    expect("streak" in lastState()).toBe(false);
   });
 });
 

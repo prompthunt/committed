@@ -70,6 +70,24 @@ export function sum(days: Days, window: Window, today: string): number {
   return total;
 }
 
+/**
+ * Days in a row with at least one contribution as of `today`, the port of Swift's
+ * `ContributionHistory.currentStreak(asOf:)`. While today has none yet, the run counts back from
+ * yesterday, so a streak stays alive until today ends. A day missing from the calendar counts as
+ * none, so the run stops at the calendar's first day, and days after `today` never count. The raw
+ * count: the apps show it from 2, and past 365 as "365+".
+ */
+export function currentStreak(days: Days, today: string): number {
+  const contributed = (date: string) => (days[date] ?? 0) > 0;
+  let day = contributed(today) ? today : addDays(today, -1);
+  let streak = 0;
+  while (contributed(day)) {
+    streak += 1;
+    day = addDays(day, -1);
+  }
+  return streak;
+}
+
 /** The calendar date (`YYYY-MM-DD`) at `unixSeconds` in the IANA `timeZone`. */
 export function localDate(unixSeconds: number, timeZone: string): string {
   const parts = new Intl.DateTimeFormat("en-CA", {
