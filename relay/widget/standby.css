@@ -6,8 +6,8 @@
  * Every size is in rem. standby.js sets the root font size from the box the page is given, so the
  * whole layout scales to fill it. Colors are Committed's palette (CommittedTheme.swift):
  * ink #050505, tile #0e100b, raised #1b1d17, lime #c8ff2e, limeDeep #8bc41a, onLime #1e2410,
- * muted #8e9288, soft #d6d9d0. Framed in another screen (html.embedded), the greys become
- * translucent white and the card's tile a translucent dark: see "Framed" at the end.
+ * muted #8e9288, soft #d6d9d0. Framed in another screen (html.embedded), the page draws with
+ * Apple's vibrant tokens (label-secondary, label-tertiary, separator): see "Framed" at the end.
  */
 
 @font-face {
@@ -697,18 +697,29 @@ html.embedded body {
   display: flex;
 }
 
-/* MARK: Framed: translucent white in place of fixed greys (Glance's ADR 0004)
+/* MARK: Framed: Apple's vibrant tokens in place of fixed greys (Glance's ADR 0004)
 
    In another screen's frame the page sits on the host's surface, Glance's flat #141416 or its
-   glass, and can't know which. Secondary text uses white at 72% (was muted) or 82% (was soft), the
-   card's solid tile becomes a translucent dark, and the stale step-down follows. Lime, the self
-   row's highlight and the avatars keep their colours. */
+   glass, and can't know which. It draws with Apple's vibrant tokens for dark materials (iOS 27),
+   as plain alpha white because Chromium 76 has no plus-lighter blend. No CSS variables on the TV,
+   so each token is a group of selectors under its name:
 
+     label-primary     #fff                     main text (unchanged: names, counts, the rank)
+     label-secondary   rgba(255,255,255,0.60)   supporting text (was muted #8e9288 and soft #d6d9d0)
+     label-tertiary    rgba(255,255,255,0.25)   decorative only
+     label-quaternary  rgba(255,255,255,0.15)   decorative only (not used here)
+     separator         rgba(255,255,255,0.10)   hairlines
+
+   One exception: the rank card. Apple's fill-secondary, rgba(255,255,255,0.07), lit the card
+   over the bright lower left of Glance's glass and took text under the limits, Committed's own
+   deep lime included (stale "3 to pass" 2.5:1, the age 2.9:1). The card keeps a translucent
+   dark, rgba(0,0,0,0.25) (was #0e100b), edged with separator.
+
+   Lime, deep lime, the self row's highlight and the avatars are Committed's own and don't change. */
+
+/* label-secondary */
 html.embedded .list-head,
-html.embedded .row-rank {
-  color: rgba(255, 255, 255, 0.72);
-}
-
+html.embedded .row-rank,
 html.embedded .folio,
 html.embedded .who-handle,
 html.embedded .rank-of,
@@ -717,25 +728,28 @@ html.embedded .movement-line[data-direction="down"],
 html.embedded .status.quiet,
 html.embedded .age,
 html.embedded .movement[data-direction="down"],
-html.embedded .message-detail {
-  color: rgba(255, 255, 255, 0.82);
-}
-
-html.embedded .card {
-  background: rgba(0, 0, 0, 0.25);
-}
-
-html.embedded .loading .rank {
-  color: rgba(255, 255, 255, 0.72);
-}
-
+html.embedded .message-detail,
+html.embedded .loading .rank,
 html.embedded[data-state="stale"] .rank,
+html.embedded[data-state="stale"] .row,
+html.embedded[data-state="stale"] .status.quiet,
 html.embedded[data-state="stale"] .movement-line[data-direction="down"],
 html.embedded[data-state="stale"] .movement[data-direction="down"] {
-  color: rgba(255, 255, 255, 0.72);
+  color: rgba(255, 255, 255, 0.6);
 }
 
-html.embedded[data-state="stale"] .row,
-html.embedded[data-state="stale"] .status.quiet {
-  color: rgba(255, 255, 255, 0.82);
+/* label-tertiary: the row glyph's empty level (no contributions), which the count beside it says */
+html.embedded .glyph[data-level="0"] i {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+/* The rank card: a translucent dark in place of fill-secondary (see above), edged with separator */
+html.embedded .card {
+  background: rgba(0, 0, 0, 0.25);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+/* separator */
+html.embedded .folio {
+  border-bottom-color: rgba(255, 255, 255, 0.1);
 }

@@ -277,13 +277,16 @@ card (`BoardSummaryView`, rank only) beside the board list. Glance on the office
   over initials.
 - **Framed:** in another page's frame (`html.embedded`, set when `window.self !== window.top`) the
   page is transparent and sits on the host's surface: Glance's flat `#141416` or its glass, which
-  it can't tell apart. So it trades fixed greys for translucent white, as Glance's ADR 0004 asks:
-  the eyebrow over the list and the row ranks at 72% white (were muted `#8e9288`), the card's
-  folio, `@login`, "of N", the age and the soft "down" movement at 82% (were soft `#d6d9d0`),
-  and the stale step-down the same way. The card's solid tile becomes `rgba(0,0,0,0.25)` with its
-  hairline. Lime, your row's highlight and the avatars don't change. Opened on its own, the page
-  looks as before. Every text role measures at least 4.5:1 (3:1 for large text) on both
-  surfaces at Glance's Medium slot, 912×492.
+  it can't tell apart. So it draws with Apple's vibrant tokens for dark materials (iOS 27), as
+  plain alpha white, in place of fixed greys (Glance's ADR 0004): `label-secondary`
+  (`rgba(255,255,255,0.60)`) for the list's eyebrow, row ranks, the folio, `@login`, "of N", the
+  age, "down" movement and the stale step-down (were muted `#8e9288` and soft `#d6d9d0`);
+  `label-tertiary` (0.25) for an empty row glyph; `separator` (0.10) for the card's hairlines.
+  The card's tile is the one exception: Apple's `fill-secondary` (white at 7%) washed it out on
+  glass, so it's a translucent dark, `rgba(0,0,0,0.25)` (was `#0e100b`). Lime, your row's
+  highlight and the avatars don't change. Opened on its own, the page looks as before. On flat
+  every text role clears 4.5:1 (3:1 for large text); on the unmaterialled glass bake two
+  `label-secondary` roles fall short, which Glance's material behind the tile is to fix.
 - **Motion:** row counts tick up, rows slide to their new places (FLIP with transforms), and
   movement chevrons fade in.
 

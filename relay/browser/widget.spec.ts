@@ -114,6 +114,9 @@ const LIME = "rgb(200, 255, 46)";
 const LIME_DEEP = "rgb(139, 196, 26)";
 const SOFT = "rgb(214, 217, 208)";
 const MUTED = "rgb(142, 146, 136)";
+/** Apple's vibrant tokens (dark), as plain alpha white: what the page draws with when framed. */
+const LABEL_SECONDARY = "rgba(255, 255, 255, 0.6)";
+const SEPARATOR = "rgba(255, 255, 255, 0.1)";
 const color = (locator: ReturnType<Page["locator"]>) => locator.evaluate((el) => getComputedStyle(el).color);
 
 test("first load shows placeholders, never zero", async ({ page }) => {
@@ -539,16 +542,11 @@ async function tones(frame: { evaluate: Page["evaluate"] }) {
         badge: getComputedStyle(q('[data-testid="row"][data-self="true"] .badge')).backgroundColor,
       },
       card: { bg: card.backgroundColor, border: card.borderTopColor },
+      folioRule: getComputedStyle(q('[data-testid="card"] .folio')).borderBottomColor,
       selfRow: { bg: self.backgroundColor, border: self.borderTopColor },
       avatar: getComputedStyle(q(".row .avatar")).backgroundColor,
     };
   });
-}
-
-/** [r, g, b, alpha] from a computed colour. */
-function rgba(value: string): number[] {
-  const parts = value.match(/[\d.]+/g)!.map(Number);
-  return parts.length === 3 ? [...parts, 1] : parts;
 }
 
 test("on its own the page paints Committed's ink background", async ({ page }) => {
@@ -591,28 +589,24 @@ test("embedded in another screen's frame, the page is transparent so the host's 
   ]);
   expect(bgs).toEqual(["rgba(0, 0, 0, 0)", "rgba(0, 0, 0, 0)"]);
 
-  // Glance's tile may be flat or glass, so the page uses translucent white, not fixed greys
-  // (Glance's ADR 0004): secondary text at 65% white or brighter, never opaque grey.
+  // Glance's tile may be flat or glass, so the page draws with Apple's vibrant tokens, not fixed
+  // greys (Glance's ADR 0004): label-secondary for supporting text, label-primary for the rest,
+  // separator for hairlines.
   const t = await tones(widget);
-  for (const [role, value] of Object.entries(t.secondary)) {
-    const [r, g, b, a] = rgba(value);
-    expect([r, g, b], role).toEqual([255, 255, 255]);
-    expect(a, role).toBeGreaterThanOrEqual(0.65);
-    expect(a, role).toBeLessThan(1);
-  }
+  for (const [role, value] of Object.entries(t.secondary)) expect(value, role).toBe(LABEL_SECONDARY);
   expect(t.login).toBe("rgb(255, 255, 255)");
-  // The card's solid tile becomes a translucent dark, so the surface shows through it.
-  const [cr, cg, cb, ca] = rgba(t.card.bg);
-  expect([cr, cg, cb]).toEqual([0, 0, 0]);
-  expect(ca).toBeGreaterThan(0);
-  expect(ca).toBeLessThanOrEqual(0.25);
+  expect(t.card.border).toBe(SEPARATOR);
+  expect(t.folioRule).toBe(SEPARATOR);
+  // The card's solid tile becomes a translucent dark (fill-secondary's white lit it too much on
+  // glass), so the surface shows through it.
+  expect(t.card.bg).toBe("rgba(0, 0, 0, 0.25)");
   // Committed's lime, your row's highlight and the avatars are unchanged.
   expect(t.lime).toEqual({ movementUp: LIME, status: LIME, selfCount: LIME, badge: LIME });
   expect(t.selfRow).toEqual({ bg: "rgba(200, 255, 46, 0.08)", border: "rgba(200, 255, 46, 0.32)" });
   expect(t.avatar).toBe("rgb(27, 29, 23)");
 });
 
-test("embedded and stale, the stepped-down colours are translucent white too", async ({ page }) => {
+test("embedded and stale, the stepped-down colours are label-secondary too", async ({ page }) => {
   const HOST = "https://host.test/";
   await page.route(HOST, (route) =>
     route.fulfill({
@@ -635,11 +629,6 @@ test("embedded and stale, the stepped-down colours are translucent white too", a
       status: fg('[data-testid="status"]'),
     };
   });
-  for (const key of ["rank", "row", "rowRank", "rowMovementDown"] as const) {
-    const [r, g, b, a] = rgba(stale[key]);
-    expect([r, g, b], key).toEqual([255, 255, 255]);
-    expect(a, key).toBeGreaterThanOrEqual(0.65);
-    expect(a, key).toBeLessThan(1);
-  }
+  for (const key of ["rank", "row", "rowRank", "rowMovementDown"] as const) expect(stale[key], key).toBe(LABEL_SECONDARY);
   expect(stale.status).toBe(LIME_DEEP);
 });
