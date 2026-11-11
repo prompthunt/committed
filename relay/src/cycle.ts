@@ -29,7 +29,7 @@ export const ROTATE_AFTER_SECONDS = 7.5 * 60 * 60;
 export const HEARTBEAT_MARGIN_SECONDS = 5 * 60;
 const FETCH_CONCURRENCY = 6;
 
-interface LoginData {
+export interface LoginData {
   days: Days;
   fetchedAt: number;
 }
@@ -176,7 +176,7 @@ function competitorsOf(row: InstallationRow): string[] {
   return selfFirst(row.login, JSON.parse(row.competitors_json) as string[]);
 }
 
-function standingsFor(
+export function standingsFor(
   competitors: readonly string[],
   data: Map<string, LoginData>,
   window: Standing["window"],
@@ -191,7 +191,11 @@ function standingsFor(
 }
 
 /** Days per login, from the shared 5-minute cache or a fresh anonymous fetch. */
-async function loadContributions(logins: string[], deps: CycleDeps, now: number): Promise<Map<string, LoginData>> {
+export async function loadContributions(
+  logins: string[],
+  deps: Pick<CycleDeps, "store" | "github" | "log">,
+  now: number,
+): Promise<Map<string, LoginData>> {
   const result = new Map<string, LoginData>();
   const queue = [...logins];
   const worker = async () => {

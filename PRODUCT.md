@@ -108,13 +108,22 @@ Committed's widgets show Live rank's Window: **Committed** (small, medium and la
 
 ### The Committed relay
 
-The **Committed relay** is a small push service that keeps Live rank current while the iPhone app is closed. It's the only server Committed uses, and it exists only for Live rank.
+The **Committed relay** is a small push service that keeps Live rank current while the iPhone app is closed. It's the only server Committed uses. It also answers the public rank reads behind **Committed for NZXT Kraken** (below).
 
 - **What it receives:** your GitHub username, the usernames on your board (visible people, in board order), Live rank's Window, your time zone, whether the build pushes through Apple's sandbox or production service, and the Apple push tokens for Live rank on that iPhone. Registration uses a random installation ID and secret kept in the iPhone's Keychain. There is no Committed account.
 - **What it never receives:** your GitHub token, which is sent only to GitHub. The relay reads the same public contribution pages as the apps, anonymously.
+- **The Kraken page's reads** send a username, its rivals, the Window and a time zone with each request. The relay stores nothing from them beyond the shared per-username contribution cache.
 - **When the iPhone updates it:** when you hide or show someone, change Live rank's Window, when a people sync changes who's on your board, when your time zone changes, and when Apple issues a new push token.
 - **Turning Live rank off or Disconnect GitHub** deletes the iPhone's registration and ends Live rank.
 - Crossing notifications still come only from the device; the relay sends Live rank updates, not notifications.
+
+### Committed for NZXT Kraken
+
+**gitcommitted.app/kraken** puts your rank on an NZXT Kraken cooler's LCD through NZXT CAM's Web Integration. It's a web page, not part of the apps, and needs no Committed app or GitHub connection.
+
+- **Setup:** in CAM, set the Kraken's mode to Web Integration and enter `https://gitcommitted.app/kraken`. CAM shows the page's setup view: enter a GitHub username, load the people that account follows (from GitHub's public API, anonymously), uncheck anyone to leave off, add anyone else by username, and pick **Today / 7 days / 30 days**. Up to 99 rivals. Settings save as you go in the browser's local storage, which CAM shares with the LCD view, so the LCD follows along without a reload. A link with the board in its query (`?login=&competitors=&window=`) works too, for setup done in another browser.
+- **The LCD** (CAM adds `?kraken=1`): the trophy and Window, your rank large in lime, "of N", your Contributions, the gap to pass the person ahead ("3 to pass alice", or "You're in first"), and how old the numbers are, over a field of contribution squares. It fits the 640 and 320 round screens and the 240 square one, from the size CAM reports. Empty states match Live rank ("Just you so far", "Waiting for your first count"). Twenty minutes past its data, the colors step down.
+- **Counts** come from the relay's `GET /v1/board`, polled every minute: the same public contribution graphs and ranking as the apps, through the relay's shared 5-minute cache. There's no today's movement. Its board is people you follow plus anyone added by hand; organization members and the apps' hide choices don't carry over.
 
 ## How it works
 

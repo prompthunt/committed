@@ -103,6 +103,19 @@ pushes the current state to it.
 Sends an `end` event with immediate dismissal to the current activity, if any, and deletes the
 registration. Returns `204`.
 
+### `GET /v1/board?login=&competitors=a,b&window=&tz=`
+
+Public and unauthenticated, for the NZXT Kraken page (`gitcommitted.app/kraken`), which can't read
+github.com from a browser. Returns one board's `LiveRankState`, computed on request through the
+shared 5-minute `contribution_cache`. Nothing else is stored.
+
+- `login` and `competitors` (comma-separated) are normalized like a registration: lowercased,
+  deduplicated, you first. At most 100 logins, you included.
+- `window` is `daily` (default), `weekly` or `monthly`; `tz` is an IANA time zone (default `UTC`).
+- `movementToday` is always 0: there's no per-board baseline.
+- `Access-Control-Allow-Origin: *`, `Cache-Control: public, max-age=60`.
+- Rate limited per `cf-connecting-ip` by the `BOARD_LIMITER` binding (20 a minute); past that, `429`.
+
 ### Limits
 
 - **Writes:** 30 per installation per 10 minutes; past that, `429`.
