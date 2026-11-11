@@ -46,7 +46,7 @@ extension PersonViewStyle {
     static let committed = PersonViewStyle(
         nameFont: CommittedType.display(26, relativeTo: .title2),
         sectionFont: CommittedType.display(19, relativeTo: .headline),
-        statValueFont: CommittedType.display(22, relativeTo: .title3),
+        statValueFont: CommittedType.display(20, relativeTo: .title3),
         statLabelFont: .caption.weight(.medium),
         bodyFont: .callout,
         captionFont: .footnote,

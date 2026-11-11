@@ -13,7 +13,8 @@ import UIKit
 /// `-ScreenshotDate <ISO 8601>` sets the app's clock (`2026-11-01T10:00:00Z` shows the 1st's Final
 /// standings), `-ScreenshotShare` opens Share board once the board has loaded,
 /// `-ScreenshotPerson <login>` opens that person's view (a sheet, or the second pane on the open
-/// iPhone Duo) and `-ScreenshotPersonDay <n>` selects that day's bar instead of today's, and
+/// iPhone Duo) and `-ScreenshotPersonDay <n>` selects that day's bar instead of today's
+/// (`-ScreenshotPersonEnd` scrolls it to the end), and
 /// `-LiveRankPayload <file.json>` shows a Live Activity push payload's content state in Live rank,
 /// and `-RelayDisclosureAccepted` starts with the Committed relay disclosure already accepted (for
 /// builds with `COMMITTED_RELAY_URL`; without it, a relay build shows the disclosure sheet).
@@ -49,6 +50,12 @@ enum ScreenshotFixture {
     /// `-ScreenshotPersonDay <n>`: the person view's selected bar, instead of today's.
     static var personDay: Int? {
         value(after: "-ScreenshotPersonDay").flatMap(Int.init)
+    }
+
+    /// `-ScreenshotPersonEnd`: the person view opens scrolled to its end (your own view's tip and
+    /// note).
+    static var personScrolledToEnd: Bool {
+        ProcessInfo.processInfo.arguments.contains("-ScreenshotPersonEnd")
     }
 
     /// `-ScreenshotConnect`: start Connect GitHub on launch, as a tap would, so captures can show

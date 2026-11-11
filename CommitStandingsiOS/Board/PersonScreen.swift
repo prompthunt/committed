@@ -25,6 +25,7 @@ struct PersonScreen: View {
             .frame(maxWidth: 640)
             .frame(maxWidth: .infinity)
         }
+        .defaultScrollAnchor(Self.scrollAnchor)
         .scrollContentBackground(.hidden)
         .background(Color.ink)
         .environment(\.personViewStyle, .committed)
@@ -33,6 +34,14 @@ struct PersonScreen: View {
         }
         // A different person starts on their own today.
         .id(person.login)
+    }
+
+    private static var scrollAnchor: UnitPoint {
+        #if DEBUG
+        ScreenshotFixture.personScrolledToEnd ? .bottom : .top
+        #else
+        .top
+        #endif
     }
 
     private static var initialDay: Int? {

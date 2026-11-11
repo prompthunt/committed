@@ -50,6 +50,7 @@ struct PersonViewContent<Tip: View>: View {
     var canShareFinish: (CalendarMonth) -> Bool
     private let privateTip: Tip
     @Environment(\.personViewStyle) private var style
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     /// The selected bar's day of the month: today until another is picked.
     @State private var selectedDay: Int
     @State private var touchedBar: String?
@@ -115,21 +116,28 @@ struct PersonViewContent<Tip: View>: View {
             }
             Spacer(minLength: 8)
             Link(destination: person.profileURL) {
-                Label("GitHub profile", systemImage: "arrow.up.right")
+                Label("GitHub", systemImage: "arrow.up.right")
                     .font(style.bodyFont.weight(.semibold))
                     .labelStyle(.titleAndIcon)
+                    .lineLimit(1)
+                    .fixedSize()
             }
             .tint(accent)
+            .accessibilityLabel("GitHub profile")
             .accessibilityHint("Opens \(person.login) on GitHub")
         }
     }
 
     // MARK: Stats
 
+    /// Three boxes side by side; stacked at accessibility text sizes.
+    @ViewBuilder
     private func stats(_ days: PersonSummary.Days) -> some View {
-        ViewThatFits(in: .horizontal) {
-            HStack(spacing: 8) { statBoxes(days) }
+        if dynamicTypeSize.isAccessibilitySize {
             VStack(spacing: 8) { statBoxes(days) }
+        } else {
+            HStack(alignment: .top, spacing: 8) { statBoxes(days) }
+                .fixedSize(horizontal: false, vertical: true)
         }
     }
 
@@ -145,13 +153,15 @@ struct PersonViewContent<Tip: View>: View {
             Text(label)
                 .font(style.statLabelFont)
                 .foregroundStyle(secondary)
-                .lineLimit(1)
+                .lineLimit(2)
+                .fixedSize(horizontal: false, vertical: true)
+            Spacer(minLength: 0)
             Text(value)
                 .font(style.statValueFont)
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
         .padding(12)
         .background(card)
         .accessibilityElement(children: .ignore)
@@ -238,8 +248,11 @@ struct PersonViewContent<Tip: View>: View {
         }
         .chartXScale(domain: (1...slots).map(String.init))
         .chartXAxis {
-            AxisMarks(values: [1, 8, 15, 22, 29].filter { $0 <= slots }.map(String.init)) { _ in
-                AxisValueLabel()
+            // Weekly ticks only (1, 8, 15, 22, 29): thirty-one labels don't fit.
+            AxisMarks { value in
+                if let day = value.as(String.self).flatMap(Int.init), day % 7 == 1 {
+                    AxisValueLabel()
+                }
             }
         }
         .chartYAxis {
