@@ -71,13 +71,22 @@ final class RefreshCoordinator {
     /// daily count zeroing at midnight) instead of reporting the reset as a flurry of crossings.
     private var previousRanking: [ContributionWindow: (date: Date, counts: [String: Int])] = [:]
 
-    /// Each tracked username's placement change since the start of today (+ moved up, − moved
-    /// down), for the Today board's small rank-shift chevrons. Observable so rows update live.
-    private(set) var dailyRankDeltas: [String: Int] = [:]
-    /// The daily ranking captured at the day's first refresh — the baseline today's deltas measure
-    /// against. Reset when a new calendar day's first refresh lands.
-    private var dailyBaselineRanks: [String: Int] = [:]
-    private var dailyBaselineDate: Date?
+    /// Per Window that shows movement (Today, This month): each tracked username's placement
+    /// change since the start of today (+ moved up, − moved down), for the board's small rank-shift
+    /// chevrons. Observable so rows update live.
+    private(set) var todaysRankDeltas: [ContributionWindow: [String: Int]] = [:]
+    /// Each such Window's ranking captured at the day's first refresh of it — the baseline today's
+    /// deltas measure against. Reset when a new calendar day's first refresh lands (which on the
+    /// 1st is also This month's reset).
+    private var todaysBaselines: [ContributionWindow: (date: Date, ranks: [String: Int])] = [:]
+
+    /// The device's calendar, which decides when a month ends and which day is the 1st.
+    private let calendar: Calendar
+    /// The last finished month announced, per account, so each is announced once on this device.
+    private let announcedMonths: any AnnouncedMonthPersistence
+    /// The finished month whose Final standings the person put away (by picking a Window); the
+    /// Board opens on the next one again.
+    private(set) var dismissedFinalStandings: CalendarMonth?
 
     init(
         store: StandingsStore,
@@ -85,8 +94,12 @@ final class RefreshCoordinator {
         interval: TimeInterval = 300,
         now: @Sendable @escaping () -> Date = { Date() },
         notifier: RankChangeNotifying? = nil,
+        calendar: Calendar = .current,
+        announcedMonths: any AnnouncedMonthPersistence = InMemoryAnnouncedMonthPersistence(),
         beforeRefresh: @escaping @MainActor (RefreshReason) async -> Void = { _ in }
     ) {
+        self.calendar = calendar
+        self.announcedMonths = announcedMonths
         self.beforeRefresh = beforeRefresh
         self.store = store
         self.client = client
@@ -102,9 +115,8 @@ final class RefreshCoordinator {
         generation = UUID()
         isRefreshing = false
         previousRanking = [:]
-        dailyBaselineRanks = [:]
-        dailyBaselineDate = nil
-        dailyRankDeltas = [:]
+        todaysBaselines = [:]
+        todaysRankDeltas = [:]
     }
 
     func refreshAll(reason: RefreshReason) async {
@@ -120,23 +132,32 @@ final class RefreshCoordinator {
         lastReason = reason
         let reference = now()
         let extras = staleAdditionalWindows(excluding: window)
-        await fetch(usernames, window: window, reference: reference)
+        let histories = await fetch(usernames, window: window, reference: reference)
         guard !Task.isCancelled, generation == requestGeneration else { return }
 
         if baselineVisibilityRevision != store.visibilityRevision {
             previousRanking = [:]
-            dailyBaselineRanks = [:]
-            dailyBaselineDate = nil
-            dailyRankDeltas = [:]
+            todaysBaselines = [:]
+            todaysRankDeltas = [:]
             baselineVisibilityRevision = store.visibilityRevision
         }
         notifyPositionChanges(window: window, reference: reference)
-        updateDailyRankDeltas(window: window, reference: reference)
+        announceMonthFinal(window: window, reference: reference)
+        updateTodaysRankDeltas(window: window, reference: reference)
 
         for extra in extras {
-            await fetch(usernames, window: extra, reference: reference)
+            // Every Window comes from the same page: work it out from the days just fetched, and
+            // fetch only for anyone whose page didn't carry them.
+            for username in usernames {
+                guard let history = histories[username] else { continue }
+                applyDerived(history, username: username, window: extra, reference: reference)
+            }
+            let missing = usernames.filter { histories[$0] == nil }
+            if !missing.isEmpty {
+                await fetch(missing, window: extra, reference: reference)
+            }
             guard !Task.isCancelled, generation == requestGeneration else { return }
-            updateDailyRankDeltas(window: extra, reference: reference)
+            updateTodaysRankDeltas(window: extra, reference: reference)
         }
         store.markRefreshComplete(at: reference)
         await didRefresh(reason)
@@ -152,8 +173,11 @@ final class RefreshCoordinator {
     }
 
     /// Fetch `window`'s counts for `usernames` (six at a time) and apply them, keeping prior good
-    /// numbers on failure. Results that arrive after a sign-out are dropped.
-    private func fetch(_ usernames: [String], window: ContributionWindow, reference: Date) async {
+    /// numbers on failure. Results that arrive after a sign-out are dropped. Returns the daily
+    /// counts that came back, which the store also keeps (once for the whole batch).
+    @discardableResult
+    private func fetch(_ usernames: [String], window: ContributionWindow, reference: Date) async
+        -> [String: ContributionHistory] {
         let requestGeneration = generation
         // Snapshot prior good standings *before* markLoading flips state to
         // .loading. Without this, a competitor whose last successful counts were
@@ -190,8 +214,12 @@ final class RefreshCoordinator {
             return collected
         }
 
-        guard !Task.isCancelled, generation == requestGeneration else { return }
+        guard !Task.isCancelled, generation == requestGeneration else { return [:] }
+        var histories: [String: ContributionHistory] = [:]
         for (username, result) in results {
+            if case .success(let counts) = result, let history = counts.history {
+                histories[username] = history
+            }
             applyResult(
                 result,
                 username: username,
@@ -200,47 +228,63 @@ final class RefreshCoordinator {
                 prior: priorStandings[username]
             )
         }
+        store.updateHistories(histories)
+        return histories
     }
 
-    /// The signed-in user (or anyone's) placement change since the start of today, or nil when the
-    /// position held / there's nothing to show. Drives the Today board's rank-shift chevrons.
-    func rankDelta(for username: String) -> Int? {
-        guard baselineVisibilityRevision == store.visibilityRevision, !store.isHidden(username) else { return nil }
-        let delta = dailyRankDeltas[username] ?? 0
+    /// `window`'s count worked out from days already fetched in this refresh: no page needed.
+    private func applyDerived(_ history: ContributionHistory, username: String, window: ContributionWindow, reference: Date) {
+        applyResult(
+            .success(StandingCounts(contributions: history.total(for: window, asOf: reference), history: history)),
+            username: username,
+            window: window,
+            reference: reference,
+            prior: nil
+        )
+    }
+
+    /// Anyone's placement change on `window` since the start of today, or nil when the position
+    /// held, there's nothing to show, or `window` doesn't show movement. Drives the rank-shift
+    /// chevrons on Today and This month.
+    func rankDelta(for username: String, in window: ContributionWindow = .daily) -> Int? {
+        guard window.showsTodaysMovement, baselineVisibilityRevision == store.visibilityRevision,
+              !store.isHidden(username) else { return nil }
+        let delta = todaysRankDeltas[window]?[username] ?? 0
         return delta == 0 ? nil : delta
     }
 
-    /// After a Today-window refresh, recompute each competitor's movement vs the start-of-day
-    /// baseline. The first refresh of a new day (re)sets the baseline and reports no movement yet.
-    private func updateDailyRankDeltas(window: ContributionWindow, reference: Date) {
-        guard window == .daily else { return }
+    /// After refreshing a Window that shows movement, recompute each competitor's movement on it
+    /// vs that Window's start-of-day baseline. The first refresh of a new day (re)sets the baseline
+    /// and reports no movement yet.
+    private func updateTodaysRankDeltas(window: ContributionWindow, reference: Date) {
+        guard window.showsTodaysMovement else { return }
         let ordered = Ranking.order(
             competitors: store.visibleCompetitors,
-            standings: store.standings(for: .daily),
-            window: .daily
+            standings: store.standings(for: window),
+            window: window
         )
         // Only rank rows that actually have data; a never-loaded row shouldn't generate movement.
         var currentRanks: [String: Int] = [:]
         for entry in ordered {
-            if let standing = store.standing(for: entry.competitor.username, window: .daily),
+            if let standing = store.standing(for: entry.competitor.username, window: window),
                standing.lastUpdated != .distantPast {
                 currentRanks[entry.competitor.username] = entry.rank
             }
         }
         // New day (or first capture this session): re-baseline, no movement yet.
-        if dailyBaselineDate == nil || !Calendar.current.isDate(dailyBaselineDate!, inSameDayAs: reference) {
-            dailyBaselineRanks = currentRanks
-            dailyBaselineDate = reference
-            dailyRankDeltas = [:]
+        guard let baseline = todaysBaselines[window],
+              Calendar.current.isDate(baseline.date, inSameDayAs: reference) else {
+            todaysBaselines[window] = (reference, currentRanks)
+            todaysRankDeltas[window] = [:]
             return
         }
         var deltas: [String: Int] = [:]
         for (username, rank) in currentRanks {
-            if let baseline = dailyBaselineRanks[username] {
-                deltas[username] = baseline - rank   // + = climbed (lower rank number)
+            if let start = baseline.ranks[username] {
+                deltas[username] = start - rank   // + = climbed (lower rank number)
             }
         }
-        dailyRankDeltas = deltas
+        todaysRankDeltas[window] = deltas
     }
 
     /// After a full refresh, diff the just-updated window's ranking against the prior in-memory
@@ -256,7 +300,7 @@ final class RefreshCoordinator {
             }
         }
         // Re-baseline across the window's reset boundary: a prior snapshot from an earlier period
-        // (yesterday for .daily, last week/month for .weekly/.monthly) is comparing pre-reset
+        // (yesterday for .daily, last week/month for .weekly/.monthly/.month) is comparing pre-reset
         // counts to post-reset ones, which would report the reset itself as crossings. Treat it
         // as a first snapshot instead.
         let prior = previousRanking[window]
@@ -276,6 +320,63 @@ final class RefreshCoordinator {
         }
     }
 
+    // MARK: - Final standings
+
+    /// Last month's Final standings, offered on the Board all day on the 1st (in the device's
+    /// calendar) so the result isn't hidden behind an empty new month. nil on other days, or when
+    /// your saved calendar doesn't cover last month.
+    var offeredFinalStandings: FinalStandings? {
+        let today = now()
+        guard calendar.component(.day, from: today) == 1 else { return nil }
+        return store.finalStandings(for: CalendarMonth(containing: today, in: calendar).previous)
+    }
+
+    /// Whether the Board shows the offered Final standings instead of the live board: it opens on
+    /// them each 1st, until a Window is picked or they're switched off.
+    var showsFinalStandings: Bool {
+        guard let month = offeredFinalStandings?.month else { return false }
+        return dismissedFinalStandings != month
+    }
+
+    /// The Final standings switch; picking a Window passes false.
+    func showFinalStandings(_ show: Bool) {
+        if show {
+            dismissedFinalStandings = nil
+        } else if let month = offeredFinalStandings?.month {
+            dismissedFinalStandings = month
+        }
+    }
+
+    /// The month-final Leaderboard Notification ("October final" / "You finished #2 of 8"), on the
+    /// first successful refresh after a month ends, once per month per account on this device. The
+    /// month counts as announced even when notifications are off (only posting needs them on), so
+    /// switching them on later doesn't bring up old news; an account never announced anything
+    /// starts quietly, its first successful refresh recording last month without a notice. It waits while
+    /// anyone with a saved calendar failed this refresh, so it never reports a place from stale
+    /// numbers. The Windows core's `month_final` follows the same rules.
+    private func announceMonthFinal(window: ContributionWindow, reference: Date) {
+        guard let owner = store.selfCompetitor?.username else { return }
+        let month = CalendarMonth(containing: reference, in: calendar).previous
+        var announced = announcedMonths.load()
+        guard let last = announced[owner].flatMap(CalendarMonth.init(key:)) else {
+            // Once your own calendar has loaded: the first successful refresh.
+            guard store.history(for: owner) != nil else { return }
+            announced[owner] = month.key
+            announcedMonths.save(announced)
+            return
+        }
+        if last >= month { return }
+        let stale = store.visibleCompetitors.contains { person in
+            guard store.history(for: person.username) != nil,
+                  case .failed = store.standing(for: person.username, window: window)?.state else { return false }
+            return true
+        }
+        guard !stale, let finals = store.finalStandings(for: month), let result = finals.result else { return }
+        announced[owner] = month.key
+        announcedMonths.save(announced)
+        notifier?.postMonthFinal(id: "monthfinal.\(month.key)", title: result.title, body: result.body)
+    }
+
     /// Whether two dates fall in the same reset period for `window` — so a snapshot taken in one
     /// period isn't diffed against counts that reset at the boundary.
     private static func sameResetPeriod(_ window: ContributionWindow, _ a: Date, _ b: Date) -> Bool {
@@ -283,8 +384,15 @@ final class RefreshCoordinator {
         switch window {
         case .daily: return calendar.isDate(a, inSameDayAs: b)
         case .weekly: return calendar.isDate(a, equalTo: b, toGranularity: .weekOfYear)
-        case .monthly: return calendar.isDate(a, equalTo: b, toGranularity: .month)
+        case .monthly, .month: return calendar.isDate(a, equalTo: b, toGranularity: .month)
         }
+    }
+
+    /// `username`'s current streak from the days their last successful page brought back (saved
+    /// across relaunches), as of now; nil before any page has. A row shows it only beside a loaded
+    /// count (`StandingRow.streakText`), and only from 2 days.
+    func streak(for username: String) -> Int? {
+        store.history(for: username)?.currentStreak(asOf: now())
     }
 
     func refreshOne(username: String, reason: RefreshReason) async {
@@ -298,12 +406,22 @@ final class RefreshCoordinator {
             } ?? true
         }
         let reference = now()
+        var fetched: ContributionHistory?
         for window in windows {
+            // One page: later Windows come from the days the first one brought back.
+            if let fetched {
+                applyDerived(fetched, username: username, window: window, reference: reference)
+                continue
+            }
             let prior = store.standing(for: username, window: window)
             store.markLoading(username: username, window: window)
             let result = await client.standingCounts(for: username, window: window, asOf: reference)
             guard !Task.isCancelled, generation == requestGeneration, !store.isHidden(username) else { return }
             applyResult(result, username: username, window: window, reference: reference, prior: prior)
+            if case .success(let counts) = result, let history = counts.history {
+                fetched = history
+                store.updateHistories([username: history])
+            }
         }
         lastReason = reason
         await didRefresh(reason)

@@ -45,9 +45,25 @@ struct LeaderboardView: View {
             .padding(.horizontal, 8)
             .padding(.bottom, 6)
 
-            LazyVStack(spacing: 0) {
-                ForEach(entries) { item in
-                    row(for: item, maxContributions: maxContributions)
+            if refresh.showsFinalStandings, let finals = refresh.offeredFinalStandings {
+                if let status = finals.statusLine {
+                    Text(status)
+                        .font(.caption.weight(.medium))
+                        .padding(.horizontal, 8)
+                        .padding(.bottom, 4)
+                }
+                LazyVStack(spacing: 0) {
+                    ForEach(finals.entries) { entry in
+                        PersonWindowRowButton(login: entry.competitor.username) { finals.row(entry) }
+                    }
+                }
+            } else {
+                LazyVStack(spacing: 0) {
+                    ForEach(entries) { item in
+                        PersonWindowRowButton(login: item.competitor.username) {
+                            row(for: item, maxContributions: maxContributions)
+                        }
+                    }
                 }
             }
         }
@@ -60,15 +76,15 @@ struct LeaderboardView: View {
             standing: store.standing(for: item.competitor.username, window: store.selectedWindow),
             window: store.selectedWindow,
             maxContributions: maxContributions,
-            rankDelta: rankDelta(for: item.competitor.username)
+            rankDelta: rankDelta(for: item.competitor.username),
+            streak: refresh.streak(for: item.competitor.username)
         )
     }
 
-    /// Placement movement since the start of the day — only meaningful (and only shown) on the
-    /// Today board; the 7/30-day positions barely move hour to hour.
+    /// Placement movement since the start of the day — only shown on Today and This month; the
+    /// trailing 7/30-day positions barely move hour to hour.
     private func rankDelta(for username: String) -> Int? {
-        guard store.selectedWindow == .daily else { return nil }
-        return refresh.rankDelta(for: username)
+        refresh.rankDelta(for: username, in: store.selectedWindow)
     }
 
     /// Shown once, on the very first sync, in place of a board full of spinners.

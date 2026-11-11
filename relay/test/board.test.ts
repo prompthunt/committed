@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import fixture from "../../fixtures/ranking-conformance.json";
 import { localDate } from "../src/parser";
 import { createRelay } from "../src/relay";
-import type { Standing, Window } from "../src/ranking";
+import { showsTodaysMovement, type Standing, type Window } from "../src/ranking";
 import { Clock, FakeApns, FakeGitHub, MINUTE } from "./support/fakes";
 
 const ID = "inst-board-0001";
@@ -73,13 +73,28 @@ function board(id = ID, query = "", token: string | null = TOKEN, authorization?
   return relay.fetch(new Request(`https://relay.test/v1/installations/${id}/board${query}`, { headers }));
 }
 
+/** The board state without `streak` on you, `above` and `below`. */
+function withoutStreaks(state: Record<string, unknown>): Record<string, unknown> {
+  const drop = (value: unknown) => {
+    if (value === null || typeof value !== "object") return value;
+    const { streak: _streak, ...rest } = value as Record<string, unknown>;
+    return rest;
+  };
+  const { streak: _streak, ...rest } = state;
+  return { ...rest, above: drop(rest.above), below: drop(rest.below) };
+}
+
 interface FixtureCase {
   name: string;
   input: {
     self: string;
     competitors: string[];
     window: Window;
-    standings: Record<string, Standing>;
+    /** A case has either `standings` or per-person `days` (with `timeZone` and `asOf`). */
+    standings?: Record<string, Standing>;
+    days?: Record<string, Record<string, number>>;
+    timeZone?: string;
+    asOf?: string;
     rankDeltas: Record<string, number>;
     now: number;
   };
@@ -88,19 +103,24 @@ interface FixtureCase {
 
 describe("GET /v1/installations/{id}/board", () => {
   // The relay's cache holds days, not windowed standings: a standing in the case's window becomes
-  // that many contributions today, and one in another window becomes no cached data at all.
+  // that many contributions today, and one in another window becomes no cached data at all. A
+  // `days` case's calendars go into the cache as they are.
   for (const c of fixture.cases as unknown as FixtureCase[]) {
     it(`matches the ranking conformance fixture: ${c.name}`, async () => {
       const { input, expected } = c;
       clock.seconds = input.now;
-      const timeZone = "America/New_York";
+      const timeZone = input.timeZone ?? "America/New_York";
       const today = localDate(input.now, timeZone);
-      await register(ID, { login: input.self, competitors: input.competitors, window: "daily", timeZone });
+      if (input.asOf) expect(today).toBe(input.asOf);
+      await register(ID, { login: input.self, competitors: input.competitors, window: input.window, timeZone });
       await mint(TOKEN, ID);
-      for (const [login, standing] of Object.entries(input.standings)) {
+      if (input.days) {
+        for (const [login, days] of Object.entries(input.days)) await seedCache(login, days, input.now);
+      }
+      for (const [login, standing] of Object.entries(input.standings ?? {})) {
         if (standing.window === input.window) await seedCache(login, { [today]: standing.contributions }, input.now);
       }
-      if (input.window === "daily") {
+      if (showsTodaysMovement(input.window)) {
         const baseline: Record<string, number> = {};
         for (const entry of expected.order) {
           const delta = input.rankDeltas[entry.login];
@@ -117,7 +137,9 @@ describe("GET /v1/installations/{id}/board", () => {
       const body = (await res.json()) as Record<string, unknown> & { rows: { login: string; rank: number }[] };
       expect(body.rows.map(({ login, rank }) => ({ login, rank }))).toEqual(expected.order);
       const { rows: _rows, gapToPass: _gap, login: _login, displayName: _name, ...summary } = body;
-      expect(summary).toEqual(expected.liveRankState);
+      // A `standings` case has no calendars: the one cached day gives each row a streak the
+      // fixture doesn't model, so only `days` cases compare streaks.
+      expect(input.days ? summary : withoutStreaks(summary)).toEqual(expected.liveRankState);
     });
   }
 
@@ -143,9 +165,10 @@ describe("GET /v1/installations/{id}/board", () => {
       rank: 2,
       competitorCount: 3,
       contributions: 5,
-      above: { login: "alice", contributions: 9, movementToday: 0 },
-      below: { login: "bob", contributions: 1, movementToday: 0 },
+      above: { login: "alice", contributions: 9, movementToday: 0, streak: 1 },
+      below: { login: "bob", contributions: 1, movementToday: 0, streak: 1 },
       movementToday: 0,
+      streak: 1,
       gapToPass: 4,
       updatedAt: T0,
       rows: [
@@ -156,6 +179,33 @@ describe("GET /v1/installations/{id}/board", () => {
     });
     expect(github.requests).toEqual([]);
     expect(github.nameRequests).toEqual([]);
+  });
+
+  it("moves rows on This month when that's the installation's Window, and not on Today", async () => {
+    github.set("me", { "2026-11-02": 10, "2026-11-05": 5 });
+    github.set("alice", { "2026-11-05": 30 });
+    github.set("bob", { "2026-10-31": 90, "2026-11-05": 1 });
+    await register(ID, { window: "month" });
+    await mint(TOKEN, ID);
+    await relay.runCycle(); // This month's baseline: alice 1, me 2, bob 3 (October doesn't count)
+    clock.advance(6 * MINUTE);
+    github.set("bob", { "2026-11-05": 20 });
+    await relay.runCycle(); // bob passes me this month
+
+    const month = (await (await board(ID, "?window=month")).json()) as {
+      movementToday: number;
+      streak: number;
+      rows: { login: string; contributions: number; movementToday: number }[];
+    };
+    expect(month.rows.map(({ login, contributions, movementToday }) => [login, contributions, movementToday])).toEqual([
+      ["alice", 30, 0],
+      ["bob", 20, 1],
+      ["me", 15, -1],
+    ]);
+    expect(month.movementToday).toBe(-1);
+    expect(month.streak).toBe(1);
+    const today = (await (await board(ID, "?window=daily")).json()) as { rows: { movementToday: number }[] };
+    expect(today.rows.map((row) => row.movementToday)).toEqual([0, 0, 0]);
   });
 
   it("reports each row's movement since the cycle's baseline, and changes nothing when read", async () => {

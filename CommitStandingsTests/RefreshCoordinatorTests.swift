@@ -42,6 +42,7 @@ final class SpyNotifier: RankChangeNotifying {
     var posted: [[RankChangeEvent]] = []
     var allEvents: [RankChangeEvent] { posted.flatMap { $0 } }
     func post(_ events: [RankChangeEvent]) { posted.append(events) }
+    func postMonthFinal(id: String, title: String, body: String) -> Bool { true }
 }
 
 /// A mutable clock so a single coordinator can be driven across a day boundary in one test.
@@ -526,6 +527,52 @@ struct RefreshCompanionTests {
         #expect(refresh.rankDelta(for: "me") == 1)
     }
 
+    /// This month's chevrons measure the This month ranking against its own first ranking of the
+    /// day, not Today's: here you climb on This month while dropping on Today.
+    @Test func thisMonthHasItsOwnMovementSinceTheStartOfToday() async {
+        let store = makeStore()
+        store.selectedWindow = .month
+        let counts = WindowCounts([.month: ["me": 10, "alice": 20], .daily: ["me": 1, "alice": 0]])
+        let clock = clock
+        let refresh = RefreshCoordinator(store: store, client: MutableWindowFetcher(counts), interval: 99999,
+                                         now: { clock.date })
+        refresh.additionalWindows = { [.daily] }
+        await refresh.refreshAll(reason: .manual)
+        #expect(refresh.rankDelta(for: "me", in: .month) == nil)
+
+        counts.counts = [.month: ["me": 25, "alice": 20], .daily: ["me": 1, "alice": 3]]
+        clock.date = clock.date.addingTimeInterval(180)
+        await refresh.refreshAll(reason: .timer)
+
+        #expect(refresh.rankDelta(for: "me", in: .month) == 1)
+        #expect(refresh.rankDelta(for: "alice", in: .month) == -1)
+        #expect(refresh.rankDelta(for: "me", in: .daily) == -1)
+        #expect(refresh.rankDelta(for: "me", in: .monthly) == nil)
+    }
+
+    /// The first ranking of a new day, here the 1st of a new month, is the new baseline: last
+    /// month's climb doesn't carry into it.
+    @Test func thisMonthsMovementStartsAgainOnTheFirst() async throws {
+        let store = makeStore()
+        store.selectedWindow = .month
+        let lastDay = try #require(Calendar.current.date(from: DateComponents(year: 2026, month: 10, day: 31, hour: 12)))
+        let counts = WindowCounts([.month: ["me": 10, "alice": 20]])
+        let clock = MutableClock(lastDay)
+        let refresh = RefreshCoordinator(store: store, client: MutableWindowFetcher(counts), interval: 99999,
+                                         now: { clock.date })
+        await refresh.refreshAll(reason: .manual)
+        counts.counts = [.month: ["me": 25, "alice": 20]]
+        clock.date = lastDay.addingTimeInterval(180)
+        await refresh.refreshAll(reason: .timer)
+        #expect(refresh.rankDelta(for: "me", in: .month) == 1)
+
+        counts.counts = [.month: ["me": 0, "alice": 2]]
+        clock.date = try #require(Calendar.current.date(from: DateComponents(year: 2026, month: 11, day: 1, hour: 9)))
+        await refresh.refreshAll(reason: .timer)
+        #expect(refresh.rankDelta(for: "me", in: .month) == nil)
+        #expect(refresh.rankDelta(for: "alice", in: .month) == nil)
+    }
+
     @Test func didRefreshRunsAfterEveryRefresh() async {
         let store = makeStore()
         let fetcher = WindowFetcher([.daily: ["me": 3, "alice": 1]])
@@ -555,3 +602,197 @@ struct RefreshCompanionTests {
         #expect(store.standing(for: "alice", window: .daily)?.contributions == 1)
     }
 }
+
+/// Returns each person's whole calendar, as the real client does, and records which Window each
+/// page was fetched for. The Window total is worked out from the days.
+actor CalendarFetcher: ContributionsFetching {
+    private var histories: [String: ContributionHistory]
+    private(set) var fetched: [ContributionWindow: [String]] = [:]
+
+    init(_ histories: [String: ContributionHistory]) { self.histories = histories }
+
+    func set(_ history: ContributionHistory?, for login: String) { histories[login] = history }
+    func calls(_ window: ContributionWindow) -> [String] { fetched[window] ?? [] }
+    var pages: Int { fetched.values.map(\.count).reduce(0, +) }
+
+    func standingCounts(for username: String, window: ContributionWindow, asOf reference: Date)
+        async -> Result<StandingCounts, ContributionsError> {
+        fetched[window, default: []].append(username)
+        guard let history = histories[username] else { return .failure(.network("offline")) }
+        return .success(StandingCounts(contributions: history.total(for: window, asOf: reference), history: history))
+    }
+}
+
+/// A Refresh keeps each person's days, and works out every Window from one page per person.
+@MainActor
+struct RefreshDailyCountsTests {
+    private let clock = MutableClock(Date(timeIntervalSince1970: 1_779_969_600)) // 2026-05-28 12:00 UTC
+    private static let utc = TimeZone(identifier: "UTC")!
+    private let me = ContributionHistory(days: ["2026-05-22": 4, "2026-05-28": 1], timeZone: utc)
+    private let alice = ContributionHistory(days: ["2026-05-27": 6, "2026-05-28": 2], timeZone: utc)
+
+    private func makeStore() -> StandingsStore {
+        let store = StandingsStore(persistence: InMemoryCompetitorPersistence())
+        store.replaceRoster(owner: "me", members: ["alice"])
+        return store
+    }
+
+    @Test func aRefreshKeepsEachPersonsDays() async {
+        let store = makeStore()
+        let clock = clock
+        let refresh = RefreshCoordinator(store: store, client: CalendarFetcher(["me": me, "alice": alice]),
+                                         interval: 99999, now: { clock.date })
+
+        await refresh.refreshAll(reason: .manual)
+
+        #expect(store.history(for: "me") == me)
+        #expect(store.history(for: "alice") == alice)
+        #expect(store.standing(for: "alice", window: .daily)?.contributions == 2)
+    }
+
+    @Test func aFailedFetchKeepsTheLastDays() async {
+        let store = makeStore()
+        let fetcher = CalendarFetcher(["me": me, "alice": alice])
+        let clock = clock
+        let refresh = RefreshCoordinator(store: store, client: fetcher, interval: 99999, now: { clock.date })
+        await refresh.refreshAll(reason: .manual)
+
+        await fetcher.set(nil, for: "alice")
+        clock.date = clock.date.addingTimeInterval(600)
+        await refresh.refreshAll(reason: .timer)
+
+        #expect(store.history(for: "alice") == alice)
+    }
+
+    /// Live rank's Window on iPhone comes from the same page as the board's: one page per person
+    /// per Refresh, and the numbers match what a separate fetch would have given.
+    @Test func anotherWindowComesFromTheSameDaysWithoutAnotherPage() async {
+        let store = makeStore()
+        let fetcher = CalendarFetcher(["me": me, "alice": alice])
+        let clock = clock
+        let refresh = RefreshCoordinator(store: store, client: fetcher, interval: 99999, now: { clock.date })
+        refresh.additionalWindows = { [.weekly, .monthly] }
+
+        await refresh.refreshAll(reason: .manual)
+
+        #expect(await fetcher.pages == 2)
+        #expect(await fetcher.calls(.weekly).isEmpty)
+        #expect(store.standing(for: "me", window: .daily)?.contributions == 1)
+        #expect(store.standing(for: "me", window: .weekly)?.contributions == 5)
+        #expect(store.standing(for: "alice", window: .weekly)?.contributions == 8)
+        #expect(store.standing(for: "alice", window: .monthly)?.contributions == 8)
+        #expect(store.standing(for: "alice", window: .weekly)?.state == .loaded)
+    }
+
+    @Test func showingSomeoneFetchesOnePageForEveryWindow() async {
+        let store = makeStore()
+        let fetcher = CalendarFetcher(["me": me, "alice": alice])
+        let clock = clock
+        let refresh = RefreshCoordinator(store: store, client: fetcher, interval: 99999, now: { clock.date })
+        refresh.additionalWindows = { [.weekly] }
+
+        await refresh.refreshOne(username: "alice", reason: .visibilityChanged)
+
+        #expect(await fetcher.pages == 1)
+        #expect(store.history(for: "alice") == alice)
+        #expect(store.standing(for: "alice", window: .weekly)?.contributions == 8)
+    }
+
+    /// This month on the board, read in Los Angeles: 03:00 UTC on March 1 is still February 28
+    /// there, so This month is February (28 days) until local midnight, then resets to the 1st.
+    @Test func thisMonthTotalsFollowTheLocalMonthAndResetOnTheFirst() async throws {
+        let losAngeles = try #require(TimeZone(identifier: "America/Los_Angeles"))
+        let days = ["2026-01-31": 50, "2026-02-01": 3, "2026-02-28": 4, "2026-03-01": 6]
+        let store = makeStore()
+        store.selectedWindow = .month
+        let clock = MutableClock(Date(timeIntervalSince1970: 1_772_334_000)) // 2026-03-01 03:00 UTC
+        let fetcher = CalendarFetcher([
+            "me": ContributionHistory(days: days, timeZone: losAngeles),
+            "alice": ContributionHistory(days: ["2026-02-28": 1, "2026-03-01": 9], timeZone: losAngeles),
+        ])
+        let refresh = RefreshCoordinator(store: store, client: fetcher, interval: 99999, now: { clock.date })
+        refresh.additionalWindows = { [.monthly] }
+
+        await refresh.refreshAll(reason: .manual)
+        #expect(store.standing(for: "me", window: .month)?.contributions == 7)
+        #expect(store.standing(for: "alice", window: .month)?.contributions == 1)
+        #expect(store.standing(for: "me", window: .monthly)?.contributions == 57) // 30 days unchanged
+
+        clock.date = Date(timeIntervalSince1970: 1_772_380_800) // 2026-03-01 08:00 PST
+        await refresh.refreshAll(reason: .timer)
+        #expect(store.standing(for: "me", window: .month)?.contributions == 6)
+        #expect(store.standing(for: "alice", window: .month)?.contributions == 9)
+    }
+}
+
+/// Each person's streak comes from the days their last page brought back, as of the clock.
+@MainActor
+struct RefreshStreakTests {
+    private let clock = MutableClock(Date(timeIntervalSince1970: 1_779_969_600)) // 2026-05-28 12:00 UTC
+    private static let utc = TimeZone(identifier: "UTC")!
+    /// Contributed the last three days, today included.
+    private let me = ContributionHistory(days: ["2026-05-25": 0, "2026-05-26": 2, "2026-05-27": 1, "2026-05-28": 3], timeZone: utc)
+    /// Nothing yet today, but every day of the week before.
+    private let alice = ContributionHistory(
+        days: ["2026-05-21": 1, "2026-05-22": 1, "2026-05-23": 4, "2026-05-24": 1, "2026-05-25": 2,
+               "2026-05-26": 1, "2026-05-27": 5, "2026-05-28": 0],
+        timeZone: utc)
+
+    private func makeStore() -> StandingsStore {
+        let store = StandingsStore(persistence: InMemoryCompetitorPersistence())
+        store.replaceRoster(owner: "me", members: ["alice", "bob"])
+        return store
+    }
+
+    @Test func rowsGetStreaksFromTheFetchedCalendars() async {
+        let store = makeStore()
+        let clock = clock
+        let refresh = RefreshCoordinator(store: store, client: CalendarFetcher(["me": me, "alice": alice]),
+                                         interval: 99999, now: { clock.date })
+        #expect(refresh.streak(for: "me") == nil) // nothing fetched yet
+
+        await refresh.refreshAll(reason: .manual)
+
+        #expect(refresh.streak(for: "me") == 3)
+        #expect(refresh.streak(for: "alice") == 7) // alive through today
+        #expect(refresh.streak(for: "bob") == nil) // failed with nothing cached: no streak, not 0
+    }
+
+    @Test func aStreakBreaksAtMidnightAfterAnEmptyDay() async {
+        let store = makeStore()
+        let clock = clock
+        let refresh = RefreshCoordinator(store: store, client: CalendarFetcher(["me": me, "alice": alice]),
+                                         interval: 99999, now: { clock.date })
+        await refresh.refreshAll(reason: .manual)
+
+        clock.date = clock.date.addingTimeInterval(13 * 3600) // 2026-05-29 01:00 UTC
+        #expect(refresh.streak(for: "me") == 3) // the 28th had contributions: still alive
+        #expect(refresh.streak(for: "alice") == 0) // the 28th ended empty
+    }
+
+    @Test func aFailedRefreshKeepsTheLastStreak() async {
+        let store = makeStore()
+        let fetcher = CalendarFetcher(["me": me, "alice": alice])
+        let clock = clock
+        let refresh = RefreshCoordinator(store: store, client: fetcher, interval: 99999, now: { clock.date })
+        await refresh.refreshAll(reason: .manual)
+
+        await fetcher.set(nil, for: "alice")
+        clock.date = clock.date.addingTimeInterval(600)
+        await refresh.refreshAll(reason: .timer)
+
+        #expect(refresh.streak(for: "alice") == 7)
+    }
+
+    @Test func savedCalendarsShowStreaksBeforeTheFirstRefresh() {
+        let people = InMemoryCompetitorPersistence()
+        people.save([Competitor(username: "me", isSelf: true)])
+        let saved = InMemoryContributionHistoryPersistence()
+        saved.save(["me": me])
+        let store = StandingsStore(persistence: people, historyPersistence: saved)
+        let clock = clock
+        let refresh = RefreshCoordinator(store: store, client: CalendarFetcher([:]), interval: 99999, now: { clock.date })
+        #expect(refresh.streak(for: "me") == 3)
+    }
+}
+

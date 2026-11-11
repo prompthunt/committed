@@ -33,34 +33,41 @@ struct WidgetRefresh: Sendable {
               let window = saved.state.contributionWindow,
               now.timeIntervalSince(saved.state.updatedDate) >= Self.reuseWithin
         else { return saved }
-        let counts = await fetch(people, window: window, now: now)
+        let fetched = await fetch(people, window: window, now: now)
         // Nobody answered (offline, GitHub down): keep the saved numbers, so the age keeps counting.
-        guard !counts.isEmpty else { return saved }
+        guard !fetched.isEmpty else { return saved }
         // The app saved newer numbers while these were loading: they win.
         if let latest = load(), latest.state.updatedAt > saved.state.updatedAt { return latest }
-        let refreshed = saved.refreshed(counts: counts, now: now, calendar: calendar)
+        let refreshed = saved.refreshed(
+            counts: fetched.mapValues(\.contributions),
+            // From the calendar each page carries, as of now, as the Board's rows work them out.
+            streaks: fetched.compactMapValues { $0.history?.currentStreak(asOf: now) },
+            now: now, calendar: calendar
+        )
         save(refreshed)
         return refreshed
     }
 
-    /// Everyone's count for `window`, at most `concurrency` at a time, within `budget`. Anyone who
-    /// failed or didn't answer in time is left out.
-    private func fetch(_ people: [String], window: ContributionWindow, now: Date) async -> [String: Int] {
+    /// Everyone's count for `window` and their calendar, at most `concurrency` at a time, within
+    /// `budget`. Anyone who failed or didn't answer in time is left out. Each count is worked out
+    /// from that person's calendar by `ContributionHistory`, in the client, the same as the app's
+    /// Refresh.
+    private func fetch(_ people: [String], window: ContributionWindow, now: Date) async -> [String: StandingCounts] {
         let deadline = Date().addingTimeInterval(Self.budget)
         let fetcher = fetcher
-        return await withTaskGroup(of: (String, Int?).self) { group in
+        return await withTaskGroup(of: (String, StandingCounts?).self) { group in
             var pending = people[...]
             func next(_ login: String) {
                 group.addTask {
                     let result = await fetcher.standingCounts(for: login, window: window, asOf: now)
-                    return (login, try? result.get().contributions)
+                    return (login, try? result.get())
                 }
             }
             for login in pending.prefix(Self.concurrency) { next(login) }
             pending = pending.dropFirst(Self.concurrency)
-            var counts: [String: Int] = [:]
-            while let (login, count) = await group.next() {
-                if let count { counts[login] = count }
+            var counts: [String: StandingCounts] = [:]
+            while let (login, fetched) = await group.next() {
+                if let fetched { counts[login] = fetched }
                 if Date() >= deadline {
                     group.cancelAll()
                     break

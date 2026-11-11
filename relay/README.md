@@ -79,7 +79,7 @@ Registers or updates. `{id}` is 8 to 64 characters of `[A-Za-z0-9-]`; a UUID wor
   "pushToStartToken": "hex…",        // or null
   "login": "addisonk",
   "competitors": ["addisonk", "alice", "bob"],  // visible board, in board order (ties)
-  "window": "daily",                 // "daily" | "weekly" | "monthly"
+  "window": "daily",                 // "daily" | "weekly" | "monthly" | "month" (This month)
   "timeZone": "America/New_York",    // IANA
   "apnsEnvironment": "sandbox"       // "sandbox" | "production"
 }
@@ -90,7 +90,11 @@ Registers or updates. `{id}` is 8 to 64 characters of `[A-Za-z0-9-]`; a UUID wor
 - At most 1,000 competitors, self included.
 - Returns `201` on creation, `200` on update.
 - A changed competitor list resets today's movement baseline, as a visibility change does in
-  `RefreshCoordinator`.
+  `RefreshCoordinator`. So does a changed `window`: the baseline holds that Window's ranks.
+- A `window` the relay doesn't know gets `400 {"error":"invalid_window"}`. The iPhone app reads
+  that error (a relay from before This month answers it for `"month"`): it stops registering that
+  Window, deletes its registration, and keeps Live rank current itself until Live rank's Window
+  changes or the app relaunches.
 
 ### `PUT /v1/installations/{id}/activity`
 
@@ -111,7 +115,7 @@ shared 5-minute `contribution_cache`. Nothing else is stored.
 
 - `login` and `competitors` (comma-separated) are normalized like a registration: lowercased,
   deduplicated, you first. At most 100 logins, you included.
-- `window` is `daily` (default), `weekly` or `monthly`; `tz` is an IANA time zone (default `UTC`).
+- `window` is `daily` (default), `weekly`, `monthly` or `month` (This month); `tz` is an IANA time zone (default `UTC`).
 - `movementToday` is always 0: there's no per-board baseline.
 - `Access-Control-Allow-Origin: *`, `Cache-Control: public, max-age=60`.
 - Rate limited per `cf-connecting-ip` by the `BOARD_LIMITER` binding (20 a minute); past that, `429`.
@@ -136,7 +140,7 @@ installation secret (ticket #82).
   "Live rank is off" (404) from "this token was revoked" (403). It does reveal whether an
   installation ID exists to anyone sending a well-formed token; IDs are random UUIDs, so that
   isn't a way to find installations.
-- **`window`:** `daily` (the default), `weekly` or `monthly`.
+- **`window`:** `daily` (the default), `weekly`, `monthly` or `month` (This month).
 - **Reads only.** The board is computed from the cycle's `contribution_cache` and the installation's
   competitors, time zone, login and today's movement baseline by `deriveBoard` in `src/board.ts`,
   the same function the cycle pushes from. A read never fetches from GitHub and never writes, so
@@ -167,6 +171,9 @@ installation secret (ticket #82).
     (`migrations/0003_display_name.sql`). A failed lookup keeps the last name and tries again the
     next day; a registration under another login forgets it. The board route only reads it.
   - A row's `contributions` is null when that login has no data yet.
+  - A row's `movementToday` is read on the installation's movement Window: its own Window when
+    that's Today or This month, otherwise Today (`movementWindow`); 0 on any other. `streak` on
+    you, `above` and `below` follows Live rank's rule.
   - `updatedAt` (Unix seconds) follows Live rank's rule: when your own count was fetched, else
     the time of the read (as the cycle uses its run time). A rival's older data never dates the
     board, so it's never null.
@@ -178,7 +185,7 @@ installation secret (ticket #82).
   | 403 | `revoked` | The token was revoked |
   | 403 | `forbidden` | The token belongs to another installation |
   | 404 | `not_found` | The installation is gone (Live rank turned off, GitHub disconnected) |
-  | 400 | `invalid_window` | `window` isn't `daily`, `weekly` or `monthly` |
+  | 400 | `invalid_window` | `window` isn't `daily`, `weekly`, `monthly` or `month` |
 
 ### Board read tokens
 
@@ -236,7 +243,7 @@ card (`BoardSummaryView`, rank only) beside the board list. Glance on the office
   The installation ID and token are in the **fragment**, which browsers never send to a server.
   The page calls `GET /v1/installations/{id}/board?window=daily` on the same origin (no CORS)
   with `Authorization: Bearer <token>`; the token never appears in a request URL. Add
-  `&window=weekly` or `&window=monthly` to the fragment for another Window.
+  `&window=weekly`, `&window=monthly` or `&window=month` to the fragment for another Window.
 - **Refresh:** every 5 minutes, in step with the cycle (every minute until the first board
   arrives). A failed refresh keeps the last board.
 - **States:**
@@ -298,13 +305,15 @@ WIDGET_SCREENS=/some/dir npm run test:browser   # also save a screenshot of each
    are kept with their real age, so a hiccup doesn't zero anyone. A login never fetched has no
    data and shows as a placeholder.
 2. **Windows.** Today, 7 days, and 30 days are summed against the installation's local
-   calendar date in its IANA time zone, not UTC.
+   calendar date in its IANA time zone, not UTC. This month (`"month"`) sums the 1st of that
+   local month through today, so it starts again at local midnight on the 1st.
 3. **Ranking.** `src/ranking.ts` ports `Ranking.order`. `src/liveRank.ts` derives
    `LiveRankState`, matching `LiveRankAttributes.ContentState`. `updatedAt` is when your own
    count was fetched, or the run time when you have no data.
-4. **Today's movement.** This mirrors `RefreshCoordinator.updateDailyRankDeltas`. The first run
-   of each local day captures the daily ranks of rows that have data. Later runs report
-   `baseline − current` for you, on the Today window only.
+4. **Today's movement.** This mirrors `RefreshCoordinator.updateTodaysRankDeltas`. On Today and
+   This month, the first run of each local day captures that Window's ranks of rows that have
+   data. Later runs report `baseline − current` for you and your neighbors. Other Windows show
+   no movement.
 5. **Pushes.**
    - It pushes `update` only when the state (ignoring `updatedAt`) changed.
    - It also sends a heartbeat when the last push is within 5 minutes of its stale date and
@@ -326,8 +335,9 @@ APNs auth is an ES256 JWT signed with WebCrypto from the `.p8` key and cached fo
 
 ## Conformance fixture
 
-`../fixtures/ranking-conformance.json` is shared with the Mac test target, so the Swift
-ordering and this port can't drift.
+`../fixtures/ranking-conformance.json` is shared with the Mac test target and the Windows core
+(`windows/core/tests/conformance.rs`, which checks `order` and streaks: Windows has no Live rank),
+so the Swift ordering, this port and the Windows board can't drift.
 
 ```json
 {
@@ -349,20 +359,45 @@ ordering and this port can't drift.
                          "below": { "login": "bob", "contributions": 20, "movementToday": 0 },
                          "movementToday": 1, "updatedAt": 1793800000 }
     }
+  }, {
+    "name": "streaks: …",
+    "input": {
+      "self": "me", "competitors": ["me", "kai"], "window": "daily", "rankDeltas": {},
+      "timeZone": "America/Los_Angeles",                 // the installation's time zone
+      "asOf": "2026-11-09",                              // the local day at `now` there
+      "now": 1794286800,
+      "days": { "me": { "2026-11-08": 2, "2026-11-09": 3 } }  // in place of `standings`
+    },
+    "expected": {
+      "order": [{ "login": "me", "rank": 1 }],
+      "streaks": { "me": 2 },                            // everyone in `days`, raw
+      "liveRankState": { "…": "…", "streak": 2, "below": { "…": "…", "streak": 3 } }
+    }
   }]
 }
 ```
 
-- `test/ranking.test.ts` checks `order` and `liveRankState`.
+- `test/ranking.test.ts` checks `order` and `liveRankState`, and for `days` cases the local day
+  (`localDate`) and each streak (`currentStreak`).
 - `CommitStandingsTests/RankingConformanceTests.swift` checks `order` against `Ranking.order`.
   It finds the file through `#filePath`, so the fixture isn't a bundle resource. The Swift
   `LiveRankState` derivation (#43) should extend that test to check `liveRankState` too.
 - A standing whose `window` differs from the case's `window` counts as missing.
+- A case gives `standings` or `days`, never both. With `days`, each runner derives standings from
+  the calendars with its own history code (`sum` here, `ContributionHistory.total` in Swift,
+  `history::total` in Rust); a login missing from `days` has no data. `asOf` is the local day at
+  `now` in `timeZone`: Swift and this port check their own resolution against it, and Rust, which
+  has no time zone database, uses it as today.
 - `LiveRankState` rules:
   - `rank` is null with no data for you, or with no visible rivals.
   - `above` and `below` are null when there's no rank, or when that neighbor has no data.
   - `movementToday`, yours and each neighbor's in `above`/`below`, is that login's
     `rankDeltas` entry on `daily`, and 0 outside it. The app decodes a neighbor without it as 0.
+  - `streak`, yours and each neighbor's, is that login's current streak: today and the days
+    before it with a contribution, counted back from yesterday while today has none. It's the raw
+    count; the apps show it from 2, and past 365 as "365+". It's left out (not null) for anyone
+    without a calendar, and yours is left out without your count. Apps and saved states from
+    before streaks decode without it.
 - Add a case for any ranking behavior change, and run both suites.
 
 ## Setup (provisioning ticket)

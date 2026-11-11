@@ -2,16 +2,24 @@ import SwiftUI
 
 /// The "you" card pinned to the top of the board (below the tabs): your avatar, your first name
 /// over your @handle, and the selected window's contribution count as a big condensed number with
-/// a small uppercase "CONTRIBUTIONS" caption. Shown in both the solo and the populated board so
-/// there's always a sense of where you stand. (Your rank is visible in the list below; the
-/// explainer stays reachable from the ⋯ "About Committed" menu.)
+/// a small uppercase "CONTRIBUTIONS" caption, with your streak ("🔥 12") under your handle once
+/// your count has loaded. Shown in both the solo and the populated board so there's always a sense
+/// of where you stand. (Your rank is visible in the list below; the explainer stays reachable from
+/// the ⋯ "About Committed" menu.)
 struct HeroCard: View {
     @Environment(StandingsStore.self) private var store
     @Environment(AuthModel.self) private var auth
+    @Environment(RefreshCoordinator.self) private var refresh
+
+    /// Last month's Final standings while the board shows them: the card shows your total for it.
+    private var finals: FinalStandings? {
+        refresh.showsFinalStandings && !store.rivals.isEmpty ? refresh.offeredFinalStandings : nil
+    }
 
     var body: some View {
         if let me = store.selfCompetitor {
             let standing = store.standing(for: me.username, window: store.selectedWindow)
+            let streak = value(for: standing) == nil ? nil : refresh.streak(for: me.username)
             HStack(spacing: 14) {
                 AvatarView(username: me.username, size: 50)
                 VStack(alignment: .leading, spacing: 2) {
@@ -33,6 +41,12 @@ struct HeroCard: View {
                             .lineLimit(1)
                             .truncationMode(.middle)
                     }
+                    if let streakText = StreakLabel.text(streak) {
+                        Text(streakText)
+                            .font(.caption.monospacedDigit())
+                            .foregroundStyle(.secondary)
+                            .padding(.top, 2)
+                    }
                 }
                 Spacer(minLength: 8)
                 VStack(alignment: .center, spacing: 1) {
@@ -47,6 +61,22 @@ struct HeroCard: View {
                         .tracking(8 * 0.14)
                         .textCase(.uppercase)
                         .foregroundStyle(.secondary)
+                    // This month: "Day 10 of 30", so you know how much race is left.
+                    if let finals {
+                        Text("in \(finals.month.name)")
+                            .font(.system(size: 8, weight: .medium, design: .monospaced))
+                            .tracking(8 * 0.14)
+                            .textCase(.uppercase)
+                            .foregroundStyle(.tint)
+                            .padding(.top, 2)
+                    } else if let day = store.selectedWindow.dayOfMonth(asOf: Date()) {
+                        Text(day)
+                            .font(.system(size: 8, weight: .medium, design: .monospaced))
+                            .tracking(8 * 0.14)
+                            .textCase(.uppercase)
+                            .foregroundStyle(.tint)
+                            .padding(.top, 2)
+                    }
                 }
             }
             .padding(14)
@@ -57,12 +87,16 @@ struct HeroCard: View {
                     .stroke(.tint.opacity(0.30), lineWidth: 1)
             )
             .accessibilityElement(children: .ignore)
-            .accessibilityLabel(accessibilityLabel(for: standing))
+            .accessibilityLabel(Self.accessibilityLabel(
+                username: me.username, contributions: value(for: standing),
+                window: store.selectedWindow, dayOfMonth: store.selectedWindow.dayOfMonth(asOf: Date()),
+                streak: streak, period: finals?.month.name))
         }
     }
 
     /// The contribution count once it has actually loaded (nil while first loading / on failure).
     private func value(for standing: Standing?) -> Int? {
+        if let finals { return finals.you?.contributions }
         guard let standing, standing.lastUpdated != .distantPast else { return nil }
         return standing.contributions
     }
@@ -71,12 +105,19 @@ struct HeroCard: View {
         value(for: standing).map { $0.formatted() } ?? "—"
     }
 
-    private func accessibilityLabel(for standing: Standing?) -> String {
-        let who = store.selfCompetitor.map { "@\($0.username)" } ?? "you"
-        guard let value = value(for: standing) else {
-            return "\(who), no contributions data yet"
+    /// One sentence for the card. The streak is read only beside a loaded count. `period` is the
+    /// finished month ("October") while the board shows its Final standings.
+    static func accessibilityLabel(username: String, contributions: Int?, window: ContributionWindow,
+                                   dayOfMonth: String? = nil, streak: Int?, period: String? = nil) -> String {
+        guard let contributions else {
+            return "@\(username), no contributions data yet"
         }
-        return "\(who), \(value) contributions for \(store.selectedWindow.accessibilityDescription)"
+        let streak = StreakLabel.spoken(streak).map { ", " + $0 } ?? ""
+        if let period {
+            return "@\(username), \(contributions) contributions in \(period)\(streak)"
+        }
+        let day = dayOfMonth.map { ", \($0.lowercased())" } ?? ""
+        return "@\(username), \(contributions) contributions for \(window.accessibilityDescription)\(day)\(streak)"
     }
 }
 

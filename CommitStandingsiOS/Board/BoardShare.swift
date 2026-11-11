@@ -3,10 +3,12 @@ import UIKit
 
 // Share the board as an image: one of Committed's widgets, drawn by the widget's own views
 // (`CommittedWidgetViews.swift`), on a square for a feed or a 9:16 story with a headline. It shows
-// the Board's current Window and only the people the board shows, as the widgets do.
+// the Board's current Window and only the people the board shows, as the widgets do. On the 1st it
+// also offers last month's Final standings: the large widget's rows with medals, under "October final".
 
-/// Which widget the image shows.
-enum BoardShareStyle: String, CaseIterable, Identifiable, Sendable {
+/// Which widget the image shows. Not `CaseIterable`: Final standings is offered only with a
+/// finished month (`BoardShareRequest.styles`), so nothing should list every style.
+enum BoardShareStyle: String, Identifiable, Sendable {
     /// The large widget: the top six, then you below a rule when you're further down.
     case board
     /// The medium widget: the person above you, you, and the person below.
@@ -15,6 +17,12 @@ enum BoardShareStyle: String, CaseIterable, Identifiable, Sendable {
     case rank
     /// The small Committed Board widget: the leaders, or the top two and your race.
     case list
+    /// A finished month's Final standings: the large widget's rows with medals on the top three,
+    /// headed "October final".
+    case final
+
+    /// The live board's styles, in the carousel's order.
+    static let live: [BoardShareStyle] = [.board, .race, .rank, .list]
 
     var id: String { rawValue }
 
@@ -24,6 +32,7 @@ enum BoardShareStyle: String, CaseIterable, Identifiable, Sendable {
         case .race: "Your race"
         case .rank: "Rank"
         case .list: "Top 4"
+        case .final: "Final standings"
         }
     }
 
@@ -32,7 +41,7 @@ enum BoardShareStyle: String, CaseIterable, Identifiable, Sendable {
     /// empty space under them.
     func widgetSize(rows: Int, dividesSelf: Bool) -> CGSize {
         switch self {
-        case .board:
+        case .board, .final:
             // Header and margins, then each row at its height plus the 8 pt between rows, and the
             // rule over your row when you're further down. Measured from renders at the fixed
             // Dynamic Type size the card uses.
@@ -96,11 +105,29 @@ enum BoardShareFormat: String, CaseIterable, Identifiable, Sendable {
 }
 
 /// The share image: a widget on the board's squares, with Committed's name under it, and on a story
-/// a headline over it ("Who shipped more today?").
+/// a headline over it ("Who shipped more today?", or "…in October?" for Final standings).
 struct BoardShareCard: View {
     let snapshot: WidgetSnapshot
     let style: BoardShareStyle
     let format: BoardShareFormat
+    /// The finished month, for Final standings; nil for the live board.
+    private let month: CalendarMonth?
+
+    /// The live board in one of its styles.
+    init(snapshot: WidgetSnapshot, style: BoardShareStyle, format: BoardShareFormat) {
+        self.snapshot = snapshot
+        self.style = style
+        self.format = format
+        month = nil
+    }
+
+    /// A finished month's Final standings.
+    init(finals: FinalStandingsShare, format: BoardShareFormat) {
+        snapshot = finals.snapshot
+        style = .final
+        self.format = format
+        month = finals.month
+    }
 
     var body: some View {
         let canvas = format.canvas
@@ -121,14 +148,16 @@ struct BoardShareCard: View {
                 .frame(maxHeight: .infinity, alignment: .bottom)
             VStack(spacing: 0) {
                 if format == .story {
-                    BoardShareHeadline(window: snapshot.state.contributionWindow ?? .daily)
+                    BoardShareHeadline(when: month.map { "in \($0.name)?" }
+                                       ?? BoardShareHeadline.when(snapshot.state.contributionWindow ?? .daily))
                         .padding(.top, 104)
                     Spacer(minLength: 24)
                 } else {
                     Spacer(minLength: 0)
                 }
-                BoardShareWidget(snapshot: snapshot, style: style, format: format)
-                BoardShareTimestamp(date: snapshot.state.updatedDate)
+                BoardShareWidget(snapshot: snapshot, style: style, format: format,
+                                 title: month.map { "\($0.name) final" })
+                BoardShareTimestamp(text: month.map(Self.finalLine) ?? Self.timestamp(snapshot.state.updatedDate))
                     .padding(.top, 14)
                 Spacer(minLength: 0)
                 BoardShareFooter(peopleCount: snapshot.state.competitorCount)
@@ -154,6 +183,17 @@ struct BoardShareCard: View {
         "Who shipped more \(BoardShareHeadline.when(window))"
     }
 
+    /// A finished month's story headline: "Who shipped more in October?".
+    static func headline(_ month: CalendarMonth) -> String {
+        "Who shipped more in \(month.name)?"
+    }
+
+    /// Under a finished month's widget, in place of the timestamp: its numbers are final, not "as
+    /// of" a moment. "Final · October 2026".
+    static func finalLine(_ month: CalendarMonth) -> String {
+        "Final · \(month.name) \(month.year)"
+    }
+
     /// When the numbers are from, as the image prints it ("As of Nov 8, 2026, 3:42 PM").
     static func timestamp(_ date: Date, locale: Locale = .current, timeZone: TimeZone = .current) -> String {
         var style = Date.FormatStyle.dateTime.month(.abbreviated).day().year().hour().minute()
@@ -168,9 +208,11 @@ private struct BoardShareWidget: View {
     let snapshot: WidgetSnapshot
     let style: BoardShareStyle
     let format: BoardShareFormat
+    /// The large widget's header in place of the Window ("October final").
+    var title: String? = nil
 
     var body: some View {
-        let shown = style == .board ? snapshot.sharing(rows: format.boardRows) : snapshot
+        let shown = style == .board || style == .final ? snapshot.sharing(rows: format.boardRows) : snapshot
         let size = style.widgetSize(rows: shown.top.count + (shown.selfIsInTop ? 0 : 1),
                                     dividesSelf: !shown.selfIsInTop && shown.selfRow != nil)
         let room = format.widgetRoom
@@ -193,17 +235,18 @@ private struct BoardShareWidget: View {
         case .race: CommittedWidgetMedium(snapshot: snapshot)
         case .rank: CommittedWidgetSmall(snapshot: snapshot)
         case .list: CommittedWidgetBoardSmall(snapshot: snapshot)
+        case .final: CommittedWidgetLarge(snapshot: snapshot, title: title)
         }
     }
 }
 
-/// "Who shipped more today?", the site's headline, with the Window in lime.
+/// "Who shipped more today?", the site's headline, with the Window (or the month) in lime.
 private struct BoardShareHeadline: View {
-    let window: ContributionWindow
+    let when: String
 
     var body: some View {
         // The Window on its own line, so the headline never breaks mid-phrase.
-        Text("Who shipped more\n\(Text(Self.when(window)).foregroundStyle(Color.lime))")
+        Text("Who shipped more\n\(Text(when).foregroundStyle(Color.lime))")
             .font(CommittedType.display(54, relativeTo: .largeTitle))
             .displayTracking(54)
             .foregroundStyle(.white)
@@ -216,17 +259,18 @@ private struct BoardShareHeadline: View {
         switch window {
         case .daily: "today?"
         case .weekly: "this week?"
-        case .monthly: "this month?"
+        case .monthly: "in 30 days?"
+        case .month: "this month?"
         }
     }
 }
 
 /// When the numbers are from, under the widget, so an old screenshot reads as old.
 private struct BoardShareTimestamp: View {
-    let date: Date
+    let text: String
 
     var body: some View {
-        Text(BoardShareCard.timestamp(date))
+        Text(text)
             .font(.system(size: 14, weight: .medium, design: .monospaced))
             .tracking(0.8)
             .textCase(.uppercase)
@@ -316,7 +360,16 @@ private struct BoardShareSquareField: View {
 enum BoardShareRenderer {
     /// The image at `format.pixelSize`.
     static func image(_ snapshot: WidgetSnapshot, style: BoardShareStyle, format: BoardShareFormat) -> UIImage? {
-        let renderer = ImageRenderer(content: BoardShareCard(snapshot: snapshot, style: style, format: format))
+        image(BoardShareCard(snapshot: snapshot, style: style, format: format))
+    }
+
+    /// A finished month's Final standings at `format.pixelSize`.
+    static func image(_ finals: FinalStandingsShare, format: BoardShareFormat) -> UIImage? {
+        image(BoardShareCard(finals: finals, format: format))
+    }
+
+    static func image(_ card: BoardShareCard) -> UIImage? {
+        let renderer = ImageRenderer(content: card)
         renderer.scale = BoardShareFormat.renderScale
         renderer.isOpaque = true
         return renderer.uiImage
@@ -325,31 +378,132 @@ enum BoardShareRenderer {
     /// The image as a PNG in a temporary folder, named for what it shows, for the share sheet. Each
     /// render replaces the last one of the same style and format.
     static func file(_ snapshot: WidgetSnapshot, style: BoardShareStyle, format: BoardShareFormat) throws -> URL {
-        guard let data = image(snapshot, style: style, format: format)?.pngData() else {
-            throw CocoaError(.fileWriteUnknown)
-        }
+        let window = (snapshot.state.contributionWindow ?? .daily).shortTitle.replacingOccurrences(of: " ", with: "-")
+        return try file(BoardShareCard(snapshot: snapshot, style: style, format: format),
+                        named: "Committed-\(window)-\(style.rawValue)-\(format.rawValue).png")
+    }
+
+    /// A finished month's Final standings as a PNG: `Committed-October-final-square.png`.
+    static func file(_ finals: FinalStandingsShare, format: BoardShareFormat) throws -> URL {
+        try file(BoardShareCard(finals: finals, format: format),
+                 named: "Committed-\(finals.month.name)-final-\(format.rawValue).png")
+    }
+
+    private static func file(_ card: BoardShareCard, named name: String) throws -> URL {
+        guard let data = image(card)?.pngData() else { throw CocoaError(.fileWriteUnknown) }
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent("board-share", isDirectory: true)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-        let window = (snapshot.state.contributionWindow ?? .daily).shortTitle.replacingOccurrences(of: " ", with: "-")
-        let url = directory.appendingPathComponent("Committed-\(window)-\(style.rawValue)-\(format.rawValue).png")
+        let url = directory.appendingPathComponent(name)
         try data.write(to: url, options: .atomic)
         return url
     }
 }
 
+// MARK: - Final standings
+
+/// A finished month's Final standings as Share board draws them: its rows as the large widget's,
+/// with medals on the top three and no streaks or movement, under "October final".
+struct FinalStandingsShare: Equatable, Sendable {
+    let month: CalendarMonth
+    /// The rows as a board snapshot, so the large widget and its share layout (`sharing(rows:)`, you
+    /// below the rule when further down) draw them as they draw a live board.
+    let snapshot: WidgetSnapshot
+
+    /// The widget's header: "October final".
+    var title: String { "\(month.name) final" }
+
+    /// nil without you on the board. `isSampleBoard` keeps the Sample board's made-up people on
+    /// initials.
+    init?(_ finals: FinalStandings, isSampleBoard: Bool, now: Date) {
+        guard let you = finals.you else { return nil }
+        month = finals.month
+        let rows = finals.entries.map { entry in
+            WidgetSnapshot.Row(rank: entry.rank, login: entry.competitor.username, contributions: entry.contributions,
+                               movement: 0, isSelf: entry.competitor.isSelf, medal: entry.medal)
+        }
+        var snapshot = WidgetSnapshot(
+            selfLogin: you.competitor.username,
+            state: LiveRankState(window: ContributionWindow.month.rawValue, rank: you.rank,
+                                 competitorCount: finals.entries.count, contributions: you.contributions,
+                                 above: nil, below: nil, movementToday: 0,
+                                 updatedAt: Int(now.timeIntervalSince1970)),
+            top: Array(rows.prefix(BoardShareFormat.maxBoardRows))
+        )
+        if isSampleBoard { snapshot.isSampleBoard = true }
+        self.snapshot = snapshot
+    }
+}
+
 // MARK: - Sheet
+
+/// What Share board offers: the live board's styles, and a finished month's Final standings when
+/// there is one (last month's on the 1st, or a past month from the person view). Frozen when Share
+/// is tapped, so a refresh can't change the image under the carousel.
+struct BoardShareRequest: Identifiable {
+    let id = UUID()
+    /// The live board; nil when only a finished month is shared.
+    let snapshot: WidgetSnapshot?
+    let finals: FinalStandingsShare?
+    /// The page the carousel opens on.
+    let initialStyle: BoardShareStyle
+
+    /// The live board, with `finals` offered first when there are some; `opensOnFinals` (the Board
+    /// showing them) opens the carousel there.
+    init(snapshot: WidgetSnapshot, finals: FinalStandingsShare? = nil, opensOnFinals: Bool = false) {
+        self.snapshot = snapshot
+        self.finals = finals
+        initialStyle = finals != nil && opensOnFinals ? .final : .board
+    }
+
+    /// A finished month's Final standings alone.
+    init(finals: FinalStandingsShare) {
+        snapshot = nil
+        self.finals = finals
+        initialStyle = .final
+    }
+
+    /// The carousel's pages: Final standings only when there's a finished month to show.
+    var styles: [BoardShareStyle] {
+        (finals == nil ? [] : [.final]) + (snapshot == nil ? [] : BoardShareStyle.live)
+    }
+
+    /// The image for `style` in `format`.
+    func card(_ style: BoardShareStyle, format: BoardShareFormat) -> BoardShareCard? {
+        if style == .final { return finals.map { BoardShareCard(finals: $0, format: format) } }
+        return snapshot.map { BoardShareCard(snapshot: $0, style: style, format: format) }
+    }
+
+    /// The PNG for `style` in `format`, named for what it shows.
+    @MainActor
+    func file(_ style: BoardShareStyle, format: BoardShareFormat) throws -> URL {
+        if style == .final, let finals { return try BoardShareRenderer.file(finals, format: format) }
+        guard let snapshot else { throw CocoaError(.fileWriteUnknown) }
+        return try BoardShareRenderer.file(snapshot, style: style, format: format)
+    }
+}
 
 /// What the Share button opens: swipe between the widget styles, pick Square or Story, and share.
 struct BoardShareSheet: View {
-    let snapshot: WidgetSnapshot
-    @State private var style: BoardShareStyle = .board
+    let request: BoardShareRequest
+    @State private var style: BoardShareStyle
     @State private var format: BoardShareFormat
     @State private var sharing: SharedFile?
     @Environment(\.dismiss) private var dismiss
 
-    init(snapshot: WidgetSnapshot, initialFormat: BoardShareFormat = .square) {
-        self.snapshot = snapshot
+    init(request: BoardShareRequest, initialFormat: BoardShareFormat = .square) {
+        self.request = request
+        _style = State(initialValue: request.initialStyle)
         _format = State(initialValue: initialFormat)
+    }
+
+    /// The live board's styles.
+    init(snapshot: WidgetSnapshot, initialFormat: BoardShareFormat = .square) {
+        self.init(request: BoardShareRequest(snapshot: snapshot), initialFormat: initialFormat)
+    }
+
+    /// A finished month's Final standings alone, as the person view's past months share them.
+    init(finals: FinalStandingsShare, initialFormat: BoardShareFormat = .square) {
+        self.init(request: BoardShareRequest(finals: finals), initialFormat: initialFormat)
     }
 
     private struct SharedFile: Identifiable {
@@ -361,14 +515,16 @@ struct BoardShareSheet: View {
         NavigationStack {
             VStack(spacing: 18) {
                 TabView(selection: $style) {
-                    ForEach(BoardShareStyle.allCases) { style in
-                        BoardSharePreview(snapshot: snapshot, style: style, format: format)
-                            .padding(.horizontal, 24)
-                            .padding(.bottom, 36)
-                            .tag(style)
+                    ForEach(request.styles) { style in
+                        if let card = request.card(style, format: format) {
+                            BoardSharePreview(card: card)
+                                .padding(.horizontal, 24)
+                                .padding(.bottom, 36)
+                                .tag(style)
+                        }
                     }
                 }
-                .tabViewStyle(.page(indexDisplayMode: .always))
+                .tabViewStyle(.page(indexDisplayMode: request.styles.count > 1 ? .always : .never))
                 .indexViewStyle(.page(backgroundDisplayMode: .interactive))
 
                 Text(style.title)
@@ -385,7 +541,7 @@ struct BoardShareSheet: View {
                 .padding(.horizontal, 24)
 
                 Button {
-                    sharing = (try? BoardShareRenderer.file(snapshot, style: style, format: format)).map(SharedFile.init)
+                    sharing = (try? request.file(style, format: format)).map(SharedFile.init)
                 } label: {
                     Label("Share", systemImage: "square.and.arrow.up")
                         .frame(maxWidth: .infinity)
@@ -425,15 +581,13 @@ private struct BoardShareActivity: UIViewControllerRepresentable {
 
 /// One page of the carousel: the card itself, scaled to fit the page.
 private struct BoardSharePreview: View {
-    let snapshot: WidgetSnapshot
-    let style: BoardShareStyle
-    let format: BoardShareFormat
+    let card: BoardShareCard
 
     var body: some View {
         GeometryReader { proxy in
-            let canvas = format.canvas
+            let canvas = card.format.canvas
             let scale = min(proxy.size.width / canvas.width, proxy.size.height / canvas.height)
-            BoardShareCard(snapshot: snapshot, style: style, format: format)
+            card
                 .scaleEffect(scale)
                 .frame(width: canvas.width * scale, height: canvas.height * scale)
                 .clipShape(.rect(cornerRadius: 18))
@@ -441,6 +595,6 @@ private struct BoardSharePreview: View {
                 .frame(width: proxy.size.width, height: proxy.size.height)
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("\(style.title), \(format.title.lowercased()) image")
+        .accessibilityLabel("\(card.style.title), \(card.format.title.lowercased()) image")
     }
 }

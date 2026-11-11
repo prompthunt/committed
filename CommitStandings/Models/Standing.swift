@@ -55,22 +55,39 @@ struct Burst: Equatable, Codable, Sendable {
     }
 }
 
-/// Result of fetching a competitor's standing: the contributions count, plus the window's
-/// biggest trolling day when there is one.
+/// Result of fetching a competitor's standing: the Window's contributions count, the Window's
+/// biggest trolling day when there is one and, from the real client, the daily counts both were
+/// worked out from. Stubs may leave `history` nil.
 struct StandingCounts: Equatable, Sendable {
     var contributions: Int
+    var history: ContributionHistory?
     var burst: Burst?
 
-    init(contributions: Int, burst: Burst? = nil) {
+    init(contributions: Int, history: ContributionHistory? = nil, burst: Burst? = nil) {
         self.contributions = contributions
+        self.history = history
         self.burst = burst
+    }
+
+    /// `window`'s total and trolling day as of `reference`, both from `history`.
+    init(history: ContributionHistory, window: ContributionWindow, asOf reference: Date) {
+        self.init(
+            contributions: history.total(for: window, asOf: reference),
+            history: history,
+            burst: history.burst(for: window, asOf: reference)
+        )
     }
 }
 
+/// The time range Contributions are counted over. Today, 7 days and 30 days are trailing; This
+/// month is the local calendar month so far and resets to zero on the 1st. Raw values are saved
+/// (settings, caches, Live rank, the relay), so 30 days stays `"monthly"` and This month is
+/// `"month"`. Which days each one covers is `ContributionHistory.days(in:asOf:)`.
 enum ContributionWindow: String, CaseIterable, Identifiable, Codable, Sendable {
     case daily
     case weekly
     case monthly
+    case month
 
     var id: String { rawValue }
 
@@ -79,6 +96,7 @@ enum ContributionWindow: String, CaseIterable, Identifiable, Codable, Sendable {
         case .daily: return "Daily"
         case .weekly: return "Weekly"
         case .monthly: return "Monthly"
+        case .month: return "This month"
         }
     }
 
@@ -87,14 +105,7 @@ enum ContributionWindow: String, CaseIterable, Identifiable, Codable, Sendable {
         case .daily: return "Today"
         case .weekly: return "7 days"
         case .monthly: return "30 days"
-        }
-    }
-
-    var dayCount: Int {
-        switch self {
-        case .daily: return 1
-        case .weekly: return 7
-        case .monthly: return 30
+        case .month: return "This month"
         }
     }
 
@@ -103,14 +114,22 @@ enum ContributionWindow: String, CaseIterable, Identifiable, Codable, Sendable {
         case .daily: return "today"
         case .weekly: return "the last 7 days"
         case .monthly: return "the last 30 days"
+        case .month: return "this month"
         }
     }
 
-    func dateRange(asOf reference: Date, calendar: Calendar = .current) -> ClosedRange<Date>? {
-        let today = calendar.startOfDay(for: reference)
-        guard let earliest = calendar.date(byAdding: .day, value: -(dayCount - 1), to: today) else {
-            return nil
-        }
-        return earliest...today
+    /// Whether the board shows today's movement chevrons on this Window: Today, and This month
+    /// (each measured from the day's first ranking). The trailing 7 and 30 days barely move hour to
+    /// hour.
+    var showsTodaysMovement: Bool {
+        self == .daily || self == .month
+    }
+
+    /// "Day 10 of 30" on This month: the day of the month as of `reference` in `calendar` (the
+    /// device's), and how many days the month has. nil on the other Windows.
+    func dayOfMonth(asOf reference: Date, calendar: Calendar = .current) -> String? {
+        guard self == .month,
+              let length = calendar.range(of: .day, in: .month, for: reference)?.count else { return nil }
+        return "Day \(calendar.component(.day, from: reference)) of \(length)"
     }
 }

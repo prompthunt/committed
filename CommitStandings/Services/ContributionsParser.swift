@@ -2,7 +2,7 @@ import Foundation
 
 /// Parses GitHub's public contributions calendar HTML at
 /// `https://github.com/users/{username}/contributions` into per-day
-/// contribution counts and computes a daily, trailing-7-day, or trailing-30-day sum.
+/// contribution counts. `ContributionHistory` works out every Window from them.
 ///
 /// The HTML has shifted shape multiple times. We support two forms:
 ///
@@ -12,26 +12,33 @@ import Foundation
 /// 2. Legacy: `<td data-date="YYYY-MM-DD" data-count="N">`, or a sibling
 ///    `<span aria-label="N contributions on ...">`.
 enum ContributionsParser {
-    static func parseDays(html: String) throws -> [Date: Int] {
+    /// The calendar's days, read in `timeZone` (the device's when fetching). Window totals come
+    /// from the returned history.
+    static func parseHistory(html: String, timeZone: TimeZone) throws -> ContributionHistory {
+        ContributionHistory(days: try parseDays(html: html), timeZone: timeZone)
+    }
+
+    /// `"YYYY-MM-DD"` → count for every day cell. A cell with no readable count is 0.
+    static func parseDays(html: String) throws -> [String: Int] {
         let cells = extractDateCells(html: html)
         if cells.isEmpty {
             throw ContributionsError.parseFailed("No day cells found")
         }
         let tooltipCounts = extractTooltipCounts(html: html)
-        let calendar = contributionCalendar()
 
-        var result: [Date: Int] = [:]
+        var result: [String: Int] = [:]
         for cell in cells {
-            guard let day = calendar.date(from: cell.dateComponents) else { continue }
-            let normalized = calendar.startOfDay(for: day)
+            guard let year = cell.dateComponents.year, let month = cell.dateComponents.month,
+                  let day = cell.dateComponents.day else { continue }
+            let key = ContributionHistory.key(year: year, month: month, day: day)
             if let direct = cell.directCount {
-                result[normalized] = direct
+                result[key] = direct
             } else if let id = cell.id, let count = tooltipCounts[id] {
-                result[normalized] = count
+                result[key] = count
             } else if let labelCount = cell.ariaLabelCount {
-                result[normalized] = labelCount
+                result[key] = labelCount
             } else {
-                result[normalized] = 0
+                result[key] = 0
             }
         }
         if result.isEmpty {
@@ -40,51 +47,7 @@ enum ContributionsParser {
         return result
     }
 
-    static func sum(days: [Date: Int], window: ContributionWindow, asOf reference: Date) -> Int {
-        let calendar = contributionCalendar()
-        let today = calendar.startOfDay(for: reference)
-        guard let earliest = calendar.date(byAdding: .day, value: -(window.dayCount - 1), to: today) else {
-            return 0
-        }
-        var sum = 0
-        for (date, count) in days where date >= earliest && date <= today {
-            sum += count
-        }
-        return sum
-    }
-
-    /// The window's biggest trolling day, if any. Each day is judged against the person's own
-    /// history before it, so every device and window agree on the same day.
-    static func burst(days: [Date: Int], window: ContributionWindow, asOf reference: Date) -> Burst? {
-        let calendar = contributionCalendar()
-        let today = calendar.startOfDay(for: reference)
-        guard let earliest = calendar.date(byAdding: .day, value: -(window.dayCount - 1), to: today) else {
-            return nil
-        }
-        let history = days.sorted { $0.key < $1.key }
-        var biggest: Burst?
-        for (index, entry) in history.enumerated()
-        where entry.key >= earliest && entry.key <= today && entry.value > TrollCheck.floor {
-            let usual = TrollCheck.usualBigDay(history[..<index].map(\.value))
-            guard TrollCheck.isTrolling(count: entry.value, usual: usual) else { continue }
-            if entry.value > (biggest?.count ?? 0) {
-                biggest = Burst(day: entry.key, count: entry.value, usual: usual)
-            }
-        }
-        return biggest
-    }
-
     // MARK: - Internals
-
-    static func contributionCalendar() -> Calendar {
-        var calendar = Calendar(identifier: .gregorian)
-        calendar.timeZone = .current
-        return calendar
-    }
-
-    static func isoCalendar() -> Calendar {
-        contributionCalendar()
-    }
 
     struct DateCell {
         var dateComponents: DateComponents

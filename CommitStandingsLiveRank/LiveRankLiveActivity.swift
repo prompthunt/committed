@@ -90,25 +90,27 @@ extension LiveRankState {
     var hasLadder: Bool { competitorCount > 1 && contributions != nil }
 }
 
-/// The trophy and the Window ("Today", "7 days", "30 days") at 16 pt, heading Live rank and every
+/// The trophy and the Window ("Today", "7 days", "30 days", "This month") at 16 pt, heading Live rank and every
 /// system-size widget.
 struct LiveRankWindowLabel: View {
     let state: LiveRankState
     var accessibilityName = "Live rank"
+    /// Said in place of the Window ("October final"); nil for the Window.
+    var title: String? = nil
     @Environment(\.liveRankIsStale) private var isStale
 
     var body: some View {
         HStack(spacing: 6) {
             TrophyMark(size: 17, color: isStale ? .limeDeep : .lime)
-            if let window = state.contributionWindow {
-                Text(window.shortTitle)
+            if let text = title ?? state.contributionWindow?.shortTitle {
+                Text(text)
                     .font(.system(size: 16))
                     .foregroundStyle(Color.soft)
                     .fixedSize()
             }
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(state.contributionWindow.map { "\(accessibilityName), \($0.accessibilityDescription)" } ?? accessibilityName)
+        .accessibilityLabel((title ?? state.contributionWindow?.accessibilityDescription).map { "\(accessibilityName), \($0)" } ?? accessibilityName)
     }
 }
 
@@ -138,10 +140,11 @@ struct UpdateAge: View {
 struct LiveRankHeader: View {
     let state: LiveRankState
     var accessibilityName = "Live rank"
+    var title: String? = nil
 
     var body: some View {
         HStack(alignment: .firstTextBaseline, spacing: 8) {
-            LiveRankWindowLabel(state: state, accessibilityName: accessibilityName)
+            LiveRankWindowLabel(state: state, accessibilityName: accessibilityName, title: title)
             Spacer(minLength: 8)
             UpdateAge(date: state.updatedDate)
         }
@@ -187,7 +190,12 @@ struct LiveRankIslandBottom: View {
                 LiveRankRows(state: state, selfLogin: selfLogin)
             } else {
                 if state.competitorCount <= 1, let line = state.emptyStateLine {
-                    Text(line).font(.subheadline).foregroundStyle(Color.soft)
+                    // Just you: your streak on this line, so the island keeps its height.
+                    HStack(alignment: .firstTextBaseline, spacing: 8) {
+                        Text(line).font(.subheadline).foregroundStyle(Color.soft)
+                        Spacer(minLength: 8)
+                        LiveRankStreak(state: state, size: 15)
+                    }
                 }
                 // The corners carry the Window and the count; the age goes here.
                 LiveRankStatusLine(state: state)
@@ -272,6 +280,26 @@ struct LiveRankRankLabel: View {
             // Rivals but no count of yours yet. The dash takes a rank's width, so the island
             // lays out the same as when there is one (trophy over the rank on the Duo).
             Text("#8").hidden().overlay { Text(placeholder) }
+        }
+    }
+}
+
+/// Your streak ("🔥 14", from 2 days) where Live rank has no rows to carry it: the Lock Screen card
+/// and the expanded island when nobody else is on your board. Nothing without your count
+/// (`state.streak` is nil then) or under 2 days.
+struct LiveRankStreak: View {
+    let state: LiveRankState
+    let size: CGFloat
+    @Environment(\.liveRankIsStale) private var isStale
+
+    var body: some View {
+        if let text = StreakLabel.text(state.streak) {
+            Text(text)
+                .font(CommittedType.numeral(size, relativeTo: .subheadline))
+                .foregroundStyle(isStale ? Color.muted : Color.soft)
+                .lineLimit(1)
+                .fixedSize()
+                .accessibilityLabel(StreakLabel.spoken(state.streak) ?? "")
         }
     }
 }
@@ -396,6 +424,9 @@ struct LiveRankLockScreen: View {
                 HStack(alignment: .firstTextBaseline) {
                     LiveRankRankLabel(state: state, style: .lockScreen)
                     Spacer(minLength: 8)
+                    // Just you: your streak beside your count, on the same line (the card's
+                    // height is capped).
+                    LiveRankStreak(state: state, size: 17)
                     if state.contributions != nil || state.competitorCount <= 1 {
                         LiveRankCountLabel(state: state, style: .lockScreen)
                     }
@@ -501,9 +532,13 @@ enum LiveRankText {
         return state.competitorCount > 1 ? "Rank not loaded" : "Live rank"
     }
 
-    static func countAccessibility(_ state: LiveRankState) -> String {
+    /// "12 contributions", and with `streak`, ", 5-day streak" when your streak shows (the small
+    /// widget, which shows it beside your count).
+    static func countAccessibility(_ state: LiveRankState, streak: Bool = false) -> String {
         guard let contributions = state.contributions else { return "Contributions not loaded" }
-        return contributions == 1 ? "1 contribution" : "\(contributions) contributions"
+        let count = contributions == 1 ? "1 contribution" : "\(contributions) contributions"
+        guard streak, let spoken = StreakLabel.spoken(state.streak) else { return count }
+        return "\(count), \(spoken)"
     }
 }
 

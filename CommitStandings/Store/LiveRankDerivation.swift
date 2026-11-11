@@ -9,13 +9,18 @@ extension LiveRankState {
     ///     lists you first (`StandingsStore.addSelf`/`replaceRoster`, the relay's `selfFirst`), so
     ///     `Ranking.order` gives you every tie, which `gapToPass` relies on.
     ///   - standings: counts by login. A missing entry, or one for another Window, is no data.
-    ///   - rankDeltas: today's movement by login (baseline − current); read only on Today.
+    ///   - rankDeltas: today's movement by login (baseline − current); read only on Windows that
+    ///     show it (`showsTodaysMovement`: Today and This month). The relay's port reads Today only
+    ///     until it ranks This month (#97).
+    ///   - streaks: current streak by login (`ContributionHistory.currentStreak`), for everyone
+    ///     with a calendar. Yours shows only beside your count; a missing entry is no streak.
     ///   - now: when the data was fetched. Becomes `updatedAt`, rounded down to whole seconds.
     static func derive(
         competitors: [Competitor],
         standings: [String: Standing],
         window: ContributionWindow,
         rankDeltas: [String: Int],
+        streaks: [String: Int] = [:],
         now: Date
     ) -> LiveRankState {
         func count(_ login: String) -> Int? {
@@ -23,11 +28,12 @@ extension LiveRankState {
             return standing.contributions
         }
         func movement(_ login: String) -> Int {
-            window == .daily ? rankDeltas[login] ?? 0 : 0
+            window.showsTodaysMovement ? rankDeltas[login] ?? 0 : 0
         }
         func neighbor(_ entry: Ranking.Entry?) -> Neighbor? {
             guard let login = entry?.competitor.username, let contributions = count(login) else { return nil }
-            return Neighbor(login: login, contributions: contributions, movementToday: movement(login))
+            return Neighbor(login: login, contributions: contributions, movementToday: movement(login),
+                            streak: streaks[login])
         }
 
         assert(!competitors.contains(where: \.isSelf) || competitors.first?.isSelf == true,
@@ -47,6 +53,7 @@ extension LiveRankState {
             above: ranks.flatMap { neighbor(ranked[safe: $0 - 1]) },
             below: ranks.flatMap { neighbor(ranked[safe: $0 + 1]) },
             movementToday: me.map(movement) ?? 0,
+            streak: contributions == nil ? nil : me.flatMap { streaks[$0] },
             updatedAt: Int(now.timeIntervalSince1970.rounded(.down))
         )
     }

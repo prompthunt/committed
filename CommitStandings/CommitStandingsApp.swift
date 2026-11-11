@@ -8,6 +8,7 @@ struct CommitStandingsApp: App {
     @State private var roster: GitHubRoster
     @State private var notifications: NotificationService
     @State private var updater: AppUpdater
+    @State private var personWindow: PersonWindowModel
 
     init() {
         // One shared graph for Mac and iPhone (see CommittedServices): durable snapshot so
@@ -20,6 +21,7 @@ struct CommitStandingsApp: App {
         _notifications = State(initialValue: services.notifications)
         _auth = State(initialValue: services.auth)
         _updater = State(initialValue: AppUpdater())
+        _personWindow = State(initialValue: PersonWindowModel(store: services.store))
     }
 
     var body: some Scene {
@@ -30,6 +32,7 @@ struct CommitStandingsApp: App {
                 .environment(auth)
                 .environment(roster)
                 .environment(notifications)
+                .environment(personWindow)
                 .task {
                     if auth.isSignedIn {
                         // Re-fetch the display name each launch so the hero shows a real first
@@ -81,12 +84,39 @@ struct CommitStandingsApp: App {
         .defaultPosition(.center)
         .windowResizability(.contentMinSize)
         .windowToolbarStyle(.unifiedCompact)
+
+        // One person at a time, opened by clicking a board row: clicking someone else switches it
+        // to them, and clicking the person shown brings it forward. Not restored at launch, when
+        // nobody has been clicked yet.
+        Window("Person", id: PersonWindow.id) {
+            PersonWindowView()
+                .environment(personWindow)
+        }
+        .defaultSize(width: PersonWindow.defaultWidth, height: 640)
+        .defaultPosition(.center)
+        .windowResizability(.contentMinSize)
+        .windowToolbarStyle(.unifiedCompact)
+        .restorationBehavior(.disabled)
     }
 }
 
 enum MenuPopoverLayout {
     static let width: CGFloat = 340
     static let maxHeight: CGFloat = 520
+}
+
+/// The person window's identity and opener. Shows `login` in the one person window, then opens it,
+/// or brings it forward when it's already open (LSUIElement agent, so activate after opening).
+enum PersonWindow {
+    static let id = "person"
+    static let defaultWidth: CGFloat = 460
+    static let minWidth: CGFloat = 400
+
+    @MainActor
+    static func open(_ login: String, model: PersonWindowModel, using openWindow: OpenWindowAction) {
+        model.show(login)
+        openAccessoryWindow(id: id, using: openWindow)
+    }
 }
 
 /// Preserve the existing singleton scene identity while opening the native manager.

@@ -9,7 +9,13 @@ import UIKit
 ///
 /// Optional, after `-ScreenshotFixture`: `-ScreenshotTab people|settings` opens on that tab,
 /// `-ScreenshotHide <login>` hides that person before the first refresh (so Today still moves),
-/// `-ScreenshotTroll <login>` gives that person a trolling day (784 more, the troll face),
+/// `-ScreenshotWindow <raw value>` opens the board on that Window (`month` for This month),
+/// `-ScreenshotDate <ISO 8601>` sets the app's clock (`2026-11-01T10:00:00Z` shows the 1st's Final
+/// standings), `-ScreenshotShare` opens Share board once the board has loaded,
+/// `-ScreenshotPerson <login>` opens that person's view (a sheet, or the second pane on the open
+/// iPhone Duo) and `-ScreenshotPersonDay <n>` selects that day's bar instead of today's
+/// (`-ScreenshotPersonEnd` scrolls it to the end),
+/// `-ScreenshotTroll <login>` gives that person a trolling day (784 more, the troll face), and
 /// `-LiveRankPayload <file.json>` shows a Live Activity push payload's content state in Live rank,
 /// and `-RelayDisclosureAccepted` starts with the Committed relay disclosure already accepted (for
 /// builds with `COMMITTED_RELAY_URL`; without it, a relay build shows the disclosure sheet).
@@ -37,11 +43,34 @@ enum ScreenshotFixture {
         }
     }
 
+    /// `-ScreenshotPerson <login>`: the person view to open on launch, as a tap on their row would.
+    static var requestedPerson: String? {
+        value(after: "-ScreenshotPerson")
+    }
+
+    /// `-ScreenshotPersonDay <n>`: the person view's selected bar, instead of today's.
+    static var personDay: Int? {
+        value(after: "-ScreenshotPersonDay").flatMap(Int.init)
+    }
+
+    /// `-ScreenshotPersonEnd`: the person view opens scrolled to its end (your own view's tip and
+    /// note).
+    static var personScrolledToEnd: Bool {
+        ProcessInfo.processInfo.arguments.contains("-ScreenshotPersonEnd")
+    }
+
     /// `-ScreenshotConnect`: start Connect GitHub on launch, as a tap would, so captures can show
     /// its code (for example over the Sample board). Honored on any Debug launch. It asks GitHub
     /// for a real device code; nothing connects unless someone approves it.
     static var startsConnect: Bool {
         ProcessInfo.processInfo.arguments.contains("-ScreenshotConnect")
+    }
+
+    /// `-ScreenshotShare`: open Share board a few seconds after launch, once the first refresh has
+    /// loaded the board, as tapping Share would, so captures can show the sheet (with
+    /// `-ScreenshotDate`, the 1st's Final standings). Honored on any Debug launch.
+    static var opensShare: Bool {
+        ProcessInfo.processInfo.arguments.contains("-ScreenshotShare")
     }
 
     /// Live rank settings for the fixture, in memory: never chosen, or accepted and on with
@@ -147,6 +176,12 @@ enum ScreenshotFixture {
     ///
     /// `extraPeople` adds that many followed people (`sample-pal-01`, …) below everyone else, for a
     /// board long enough to scroll on the open iPhone Duo display (used by the #46 render tests).
+    /// The app's clock: `-ScreenshotDate <ISO 8601>`, or the real time.
+    static var now: @Sendable () -> Date {
+        let date = value(after: "-ScreenshotDate").flatMap { try? Date($0, strategy: .iso8601) }
+        return { date ?? Date() }
+    }
+
     static func services(extraPeople: Int = 0, failingCompetitor: Bool = true) -> CommittedServices {
         // `-ScreenshotRestrictedOrg <name>`: an organization that won't list its members for
         // Committed, as People shows it.
@@ -155,8 +190,13 @@ enum ScreenshotFixture {
             includesFailingCompetitor: failingCompetitor,
             restrictedOrganizations: value(after: "-ScreenshotRestrictedOrg").map { [$0] },
             trollPerson: value(after: "-ScreenshotTroll")
-        ))
+        ), now: now)
         let hide = value(after: "-ScreenshotHide")
+        // `-ScreenshotWindow month`: the board opens on that Window (a raw value), so This month's
+        // first two refreshes move too.
+        if let window = value(after: "-ScreenshotWindow").flatMap(ContributionWindow.init(rawValue:)) {
+            services.store.selectedWindow = window
+        }
         Task {
             await services.auth.refreshIdentity()
             if let hide {

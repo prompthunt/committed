@@ -34,7 +34,8 @@ final class LiveRankController {
     private let relay: any LiveRankRegistrar
     private let preferenceStore: any LiveRankPreferenceStoring
     private let isSignedIn: @MainActor () -> Bool
-    private let rankDelta: @MainActor (String) -> Int?
+    /// Someone's movement on a Window since the day's first ranking (`RefreshCoordinator.rankDelta`).
+    private let rankDelta: @MainActor (String, ContributionWindow) -> Int?
     private let now: @Sendable () -> Date
     /// The Sample board's Live rank: its activity tells the extension to show initials only.
     private let isSampleBoard: Bool
@@ -51,7 +52,7 @@ final class LiveRankController {
         relay: any LiveRankRegistrar,
         preferences: any LiveRankPreferenceStoring,
         isSignedIn: @escaping @MainActor () -> Bool,
-        rankDelta: @escaping @MainActor (String) -> Int?,
+        rankDelta: @escaping @MainActor (String, ContributionWindow) -> Int?,
         now: @escaping @Sendable () -> Date,
         isSampleBoard: Bool = false
     ) {
@@ -80,6 +81,11 @@ final class LiveRankController {
 
     /// The Committed relay keeps Live rank current with the app closed (phase 2).
     var isRelayConfigured: Bool { relay.pushUpdates == .token }
+
+    /// The relay keeps Live rank's Window current with the app closed. False on a Window the relay
+    /// can't rank (This month, on a relay from before it): then the app keeps Live rank up to date
+    /// on its own refreshes, as without a relay.
+    var isRelayKeepingCurrent: Bool { isRelayConfigured && relay.serves(window) }
 
     /// Turning Live rank on needs the relay disclosure first.
     var requiresRelayDisclosure: Bool {
@@ -188,7 +194,8 @@ final class LiveRankController {
             return
         }
 
-        let state = LiveRankState.board(store, window: window, rankDelta: rankDelta, now: now())
+        let state = LiveRankState.board(store, window: window, rankDelta: { [window, rankDelta] in rankDelta($0, window) },
+                                        now: now())
         let kept = running.first { $0.selfLogin == me && $0.state.window == state.window }
         for stray in running where stray.id != kept?.id {
             await activities.end(id: stray.id)
@@ -212,10 +219,13 @@ final class LiveRankController {
             return
         }
         let attributes = LiveRankAttributes(selfLogin: me, isSampleBoard: isSampleBoard ? true : nil)
+        // A relay that can't rank this Window (it answered `tellRelay` above) gets no push token:
+        // the app's own refreshes keep the activity current.
+        let pushUpdates = relay.serves(window) ? relay.pushUpdates : .none
         do {
-            _ = try activities.start(attributes, state: state, pushUpdates: relay.pushUpdates)
+            _ = try activities.start(attributes, state: state, pushUpdates: pushUpdates)
             status = .live
-        } catch where relay.pushUpdates == .token {
+        } catch where pushUpdates == .token {
             // iOS refused a push-token activity (for example, no Push Notifications entitlement):
             // fall back to phase 1, updated by the app's own refreshes.
             do {

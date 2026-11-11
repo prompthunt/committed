@@ -17,7 +17,9 @@ npm run tauri -- dev
 
 First launch opens Connect GitHub. The setup window stays open during the browser
 handoff. Click the tray icon to show or hide the board; Escape or clicking outside
-hides it. Standalone windows close to the tray. Quit fully exits.
+hides it. Click a row to open that person's view in its own window: their month day by
+day beside last month, streaks, active days, past finishes and a link to their GitHub
+profile. Standalone windows close to the tray. Quit fully exits.
 
 ```powershell
 npm run test:core

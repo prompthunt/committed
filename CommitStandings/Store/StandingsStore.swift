@@ -35,12 +35,15 @@ extension Error {
 final class StandingsStore {
     private(set) var competitors: [Competitor]
     private(set) var standings: [String: Standing] = [:]
+    /// Each Competitor's daily counts, by username. Missing means "no history yet".
+    private(set) var histories: [String: ContributionHistory] = [:]
     private(set) var lastUpdated: Date?
     var selectedWindow: ContributionWindow = .daily
     private(set) var visibilityRevision = 0
 
     private let persistence: CompetitorPersistence
     private let snapshotPersistence: StandingsSnapshotPersistence
+    private let historyPersistence: any ContributionHistoryPersistence
     private let hiddenPeoplePersistence: any HiddenPeoplePersistence
     private var hiddenByAccount: [String: Set<String>]
 
@@ -49,10 +52,12 @@ final class StandingsStore {
         // Durable snapshot is opt-in (production passes a UserDefaults-backed instance);
         // defaults to in-memory so test suites and previews stay isolated.
         snapshotPersistence: StandingsSnapshotPersistence = InMemoryStandingsSnapshotPersistence(),
-        hiddenPeoplePersistence: any HiddenPeoplePersistence = InMemoryHiddenPeoplePersistence()
+        hiddenPeoplePersistence: any HiddenPeoplePersistence = InMemoryHiddenPeoplePersistence(),
+        historyPersistence: any ContributionHistoryPersistence = InMemoryContributionHistoryPersistence()
     ) {
         self.persistence = persistence
         self.snapshotPersistence = snapshotPersistence
+        self.historyPersistence = historyPersistence
         self.hiddenPeoplePersistence = hiddenPeoplePersistence
         self.hiddenByAccount = hiddenPeoplePersistence.load()
         self.competitors = persistence.load()
@@ -64,6 +69,7 @@ final class StandingsStore {
             snapshot.state = .loaded
             standings[key(snapshot.username, snapshot.window)] = snapshot
         }
+        histories = historyPersistence.load().filter { known.contains($0.key) }
     }
 
     /// Wipe all local state — competitors (including self) and cached standings — and
@@ -73,8 +79,10 @@ final class StandingsStore {
         competitors = []
         standings = [:]
         lastUpdated = nil
+        histories = [:]
         persist()
         snapshotPersistence.save([])
+        historyPersistence.save([:])
     }
 
     var selfCompetitor: Competitor? {
@@ -131,6 +139,10 @@ final class StandingsStore {
         standings = standings.filter { known.contains($0.value.username) }
         persist()
         persistSnapshot()
+        if histories.keys.contains(where: { !known.contains($0) }) {
+            histories = histories.filter { known.contains($0.key) }
+            historyPersistence.save(histories)
+        }
     }
 
     // MARK: - Mutations
@@ -229,6 +241,29 @@ final class StandingsStore {
         for window in ContributionWindow.allCases {
             standings.removeValue(forKey: key(username, window))
         }
+        if histories.removeValue(forKey: username) != nil {
+            historyPersistence.save(histories)
+        }
+    }
+
+    /// A person's daily counts from their last successful fetch, or nil: no history yet.
+    func history(for username: String) -> ContributionHistory? {
+        histories[username]
+    }
+
+    /// Everyone's current streak as of `reference`, from their saved calendars (`currentStreak`).
+    /// Nobody without a calendar is in it.
+    func streaks(asOf reference: Date) -> [String: Int] {
+        histories.mapValues { $0.currentStreak(asOf: reference) }
+    }
+
+    /// Keep freshly fetched daily counts for people still on the board, saved once per batch.
+    func updateHistories(_ updates: [String: ContributionHistory]) {
+        let known = Set(competitors.map(\.username))
+        let kept = updates.filter { known.contains($0.key) }
+        guard !kept.isEmpty else { return }
+        histories.merge(kept) { _, new in new }
+        historyPersistence.save(histories)
     }
 
     func updateStanding(_ standing: Standing) {
@@ -280,7 +315,8 @@ extension LiveRankState {
     /// Live rank for `window` from the board as it stands, so it never disagrees with the board:
     /// visible competitors only, and a row still loading for the first time (or failed with nothing
     /// cached, both `.distantPast`) counts as no data rather than a zero. `rankDelta` is the
-    /// Today board's movement (`RefreshCoordinator.rankDelta(for:)`). `updatedAt` is the newest
+    /// Today board's movement (`RefreshCoordinator.rankDelta(for:)`). Streaks come from each
+    /// person's saved calendar as of `now`, as the Board's rows show them. `updatedAt` is the newest
     /// count shown, or `now` when there's none.
     @MainActor
     static func board(
@@ -302,7 +338,37 @@ extension LiveRankState {
             standings: standings,
             window: window,
             rankDeltas: deltas,
+            streaks: store.streaks(asOf: now),
             now: standings.values.map(\.lastUpdated).max() ?? now
         )
+    }
+}
+
+// MARK: - Final standings
+
+extension StandingsStore {
+    /// A finished month's Final standings among the people visible now, from saved calendars. nil
+    /// before your own calendar's first full month. Callers ask only for months already over in
+    /// the device's calendar: from local midnight on the 1st, even in a zone ahead of UTC where
+    /// GitHub's calendar doesn't have the new day yet. #100's share image and #101's past finishes
+    /// read this.
+    func finalStandings(for month: CalendarMonth) -> FinalStandings? {
+        guard let me = selfCompetitor?.username, let first = history(for: me)?.firstFullMonth,
+              month >= first else { return nil }
+        return FinalStandings(month: month, competitors: visibleCompetitors, histories: histories)
+    }
+
+    /// The finished months on offer as of `reference`, newest first: from your own calendar's first
+    /// full month through last month in `calendar` (the device's). For the person view's past
+    /// finishes (#101).
+    func finishedMonths(asOf reference: Date, calendar: Calendar) -> [CalendarMonth] {
+        guard let me = selfCompetitor?.username, let first = history(for: me)?.firstFullMonth else { return [] }
+        var months: [CalendarMonth] = []
+        var month = CalendarMonth(containing: reference, in: calendar).previous
+        while month >= first {
+            if finalStandings(for: month) != nil { months.append(month) }
+            month = month.previous
+        }
+        return months
     }
 }

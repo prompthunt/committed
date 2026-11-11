@@ -91,7 +91,51 @@ struct SampleServicesTests {
         await model.windowDidChange()
         #expect(board(model, .monthly) == ["ines-volk", "odile-m", "ari-linden", "ezra-q", "bram-ott"])
 
+        model.store.selectedWindow = .month
+        await model.windowDidChange()
+        #expect(model.store.standing(for: "ines-volk", window: .month)?.contributions == 84)
+
         #expect(GitHubTrafficRecorder.unexpectedRequests.isEmpty)
+    }
+
+    /// Made-up calendars give the Sample board's people streaks: one past GitHub's calendar
+    /// ("365+"), and Bram Ott, with nothing yesterday or today, none.
+    @Test func theSampleBoardHasStreaks() async {
+        let model = makeModel()
+        await model.sceneDidBecomeActive()
+        #expect(model.refresh.streak(for: "ines-volk") == 47)
+        #expect(model.refresh.streak(for: "odile-m").map { $0 > StreakLabel.cap } == true)
+        #expect(model.refresh.streak(for: "ari-linden") == 14)
+        #expect(model.refresh.streak(for: "ezra-q") == 3)
+        #expect(model.refresh.streak(for: "bram-ott") == 0)
+        await model.pullToRefresh()
+        #expect(model.refresh.streak(for: "ari-linden") == 14)
+    }
+
+    /// The made-up calendars add up to the Sample board's fixed counts on every Window.
+    @Test func everyWindowsCountComesFromTheCalendars() async {
+        let model = makeModel()
+        await model.sceneDidBecomeActive()
+        for window in [ContributionWindow.weekly, .monthly] {
+            model.store.selectedWindow = window
+            await model.windowDidChange()
+        }
+        let expected: [String: [ContributionWindow: Int]] = [
+            "ines-volk": [.daily: 12, .weekly: 61, .monthly: 240],
+            "odile-m": [.daily: 9, .weekly: 44, .monthly: 198],
+            "ari-linden": [.daily: 5, .weekly: 38, .monthly: 171],
+            "ezra-q": [.daily: 6, .weekly: 52, .monthly: 160],
+            "bram-ott": [.daily: 0, .weekly: 11, .monthly: 57],
+        ]
+        for (login, windows) in expected {
+            for (window, count) in windows {
+                #expect(model.store.standing(for: login, window: window)?.contributions == count, "\(login) \(window)")
+                // Today moves on later fetches (Ari Linden), so only the longer Windows here.
+                if window != .daily {
+                    #expect(model.store.history(for: login)?.total(for: window, asOf: clock.now) == count, "\(login) \(window)")
+                }
+            }
+        }
     }
 
     @Test func pullToRefreshMovesToday() async {
@@ -101,6 +145,18 @@ struct SampleServicesTests {
         await model.pullToRefresh()
         #expect(board(model, .daily) == ["ines-volk", "odile-m", "ari-linden", "ezra-q", "bram-ott"])
         #expect(model.refresh.rankDelta(for: "ari-linden") != nil) // the movement chevron
+    }
+
+    /// This month moves the way Today does: Ari Linden passes Ezra Q on the second refresh, with a
+    /// chevron.
+    @Test func pullToRefreshMovesThisMonth() async {
+        let model = makeModel()
+        model.store.selectedWindow = .month
+        await model.sceneDidBecomeActive()
+        #expect(board(model, .month) == ["ines-volk", "odile-m", "ezra-q", "ari-linden", "bram-ott"])
+        await model.pullToRefresh()
+        #expect(board(model, .month) == ["ines-volk", "odile-m", "ari-linden", "ezra-q", "bram-ott"])
+        #expect(model.refresh.rankDelta(for: "ari-linden", in: .month) == 1)
     }
 
     @Test func peopleSyncedFourMinutesAgo() async {

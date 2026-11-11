@@ -29,9 +29,11 @@ struct CommittedApp: App {
                 liveRankPreferences: ScreenshotFixture.liveRankPreferences(),
                 liveRankRelay: makeLiveRankRelay(),
                 avatars: ScreenshotFixture.avatars(),
-                widgets: WidgetPublisher()
+                widgets: WidgetPublisher(),
+                now: ScreenshotFixture.now
             )
             if let tab = ScreenshotFixture.requestedTab { model.selectedTab = tab }
+            model.selectedPerson = ScreenshotFixture.requestedPerson
             return model
         }
         #endif

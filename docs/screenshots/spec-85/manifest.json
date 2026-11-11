@@ -1,0 +1,566 @@
+{
+  "notes": "Spec #85 UI evidence. Captures live in <ticket>/ folders; each entry carries its own device, OS and notes, because the tickets use different surfaces.",
+  "screenshots": [
+    {
+      "file": "93/board-today-light.png",
+      "caption": "#93 Windows board, Today, light: 🔥 streaks on rows beside the count and in your summary; 1-day and no-data rows show none",
+      "capture": {
+        "device": "Chromium (in-app browser) on macOS, mocked Tauri IPC, 380×620 board at 2x",
+        "os": "macOS 27.0",
+        "sourceCommit": "9f5667f953baca676019c78324e02db76e5e2c53",
+        "fixture": true
+      },
+      "notes": "Windows board, not WebView2 on Windows: the real app UI (windows/src/app.ts and style.css) served by vite and fed the Sample board through windows/fixture.html (mocked Tauri IPC, data in windows/src/sample-board.ts). macOS system fonts instead of Segoe UI; no window chrome or tray. Streak cases on show: 365+ (ines-volk, a 371-day run), 23, 12 (you, also in the summary), 2 (ezra-q), 1 (bram-ott, hidden), and no data (niko-vane, failed: no streak). No before capture: the fixture page is new in this change, so there is no baseline board to compare. Recipe: cd windows && npm run dev, open http://127.0.0.1:1420/fixture.html?view=board, resize to 380×620."
+    },
+    {
+      "file": "93/board-today-dark.png",
+      "caption": "#93 Windows board, Today, dark: same streaks, readable on the dark surface and on your highlighted row",
+      "capture": {
+        "device": "Chromium (in-app browser) on macOS, mocked Tauri IPC, 380×620 board at 2x",
+        "os": "macOS 27.0",
+        "sourceCommit": "9f5667f953baca676019c78324e02db76e5e2c53",
+        "fixture": true
+      },
+      "notes": "Windows board, not WebView2 on Windows: the real app UI (windows/src/app.ts and style.css) served by vite and fed the Sample board through windows/fixture.html (mocked Tauri IPC, data in windows/src/sample-board.ts). macOS system fonts instead of Segoe UI; no window chrome or tray. Streak cases on show: 365+ (ines-volk, a 371-day run), 23, 12 (you, also in the summary), 2 (ezra-q), 1 (bram-ott, hidden), and no data (niko-vane, failed: no streak). No before capture: the fixture page is new in this change, so there is no baseline board to compare. Recipe: cd windows && npm run dev, open http://127.0.0.1:1420/fixture.html?view=board, resize to 380×620."
+    },
+    {
+      "file": "93/board-30-days-light.png",
+      "caption": "#93 Windows board, 30 days, light: streaks don't depend on the Window; three-digit counts still fit beside 🔥 365+",
+      "capture": {
+        "device": "Chromium (in-app browser) on macOS, mocked Tauri IPC, 380×620 board at 2x",
+        "os": "macOS 27.0",
+        "sourceCommit": "9f5667f953baca676019c78324e02db76e5e2c53",
+        "fixture": true
+      },
+      "notes": "Windows board, not WebView2 on Windows: the real app UI (windows/src/app.ts and style.css) served by vite and fed the Sample board through windows/fixture.html (mocked Tauri IPC, data in windows/src/sample-board.ts). macOS system fonts instead of Segoe UI; no window chrome or tray. Streak cases on show: 365+ (ines-volk, a 371-day run), 23, 12 (you, also in the summary), 2 (ezra-q), 1 (bram-ott, hidden), and no data (niko-vane, failed: no streak). No before capture: the fixture page is new in this change, so there is no baseline board to compare. Recipe: cd windows && npm run dev, open http://127.0.0.1:1420/fixture.html?view=board, resize to 380×620."
+    },
+    {
+      "file": "96/before-30-days-dark.png",
+      "caption": "#96 Before: the Windows picker had three Windows (Today, 7 days, 30 days); 30 days selected, dark",
+      "capture": {
+        "device": "Chromium (in-app browser) on macOS, mocked Tauri IPC",
+        "os": "macOS 27.0",
+        "sourceCommit": "999a565ecb1b47fc89759ad9fed20a9946da729e",
+        "fixture": true
+      },
+      "notes": "Windows board (#96) captured as Chromium on macOS with mocked Tauri IPC: windows/ served by vite, start(root, 'board') driven through @tauri-apps/api/mocks with fixture rows (five made-up logins, letter avatars). Not WebView2 on Windows: fonts are macOS system fonts, there's no window chrome or tray. Board window at its default 380×620 CSS px unless noted (340 px is tauri.conf's minWidth). The before capture is origin/spec-85-streaks-month-person (999a565) with the same fixture."
+    },
+    {
+      "file": "96/this-month-dark.png",
+      "caption": "#96 After: This month added as the fourth Window; status reads 'This month · Day 10 of 30' and today's movement chevrons show, dark",
+      "capture": {
+        "device": "Chromium (in-app browser) on macOS, mocked Tauri IPC",
+        "os": "macOS 27.0",
+        "sourceCommit": "e1f41a5269624e323c0d96adc66a28bf275a93b2",
+        "fixture": true
+      },
+      "notes": "Windows board (#96) captured as Chromium on macOS with mocked Tauri IPC: windows/ served by vite, start(root, 'board') driven through @tauri-apps/api/mocks with fixture rows (five made-up logins, letter avatars). Not WebView2 on Windows: fonts are macOS system fonts, there's no window chrome or tray. Board window at its default 380×620 CSS px unless noted (340 px is tauri.conf's minWidth). The before capture is origin/spec-85-streaks-month-person (999a565) with the same fixture."
+    },
+    {
+      "file": "96/this-month-light.png",
+      "caption": "#96 After: This month on day 10 of 30 with movement chevrons, light",
+      "capture": {
+        "device": "Chromium (in-app browser) on macOS, mocked Tauri IPC",
+        "os": "macOS 27.0",
+        "sourceCommit": "e1f41a5269624e323c0d96adc66a28bf275a93b2",
+        "fixture": true
+      },
+      "notes": "Windows board (#96) captured as Chromium on macOS with mocked Tauri IPC: windows/ served by vite, start(root, 'board') driven through @tauri-apps/api/mocks with fixture rows (five made-up logins, letter avatars). Not WebView2 on Windows: fonts are macOS system fonts, there's no window chrome or tray. Board window at its default 380×620 CSS px unless noted (340 px is tauri.conf's minWidth). The before capture is origin/spec-85-streaks-month-person (999a565) with the same fixture."
+    },
+    {
+      "file": "96/this-month-dark-340.png",
+      "caption": "#96 After: This month at the board's 340 px minimum width; all four labels stay on one line, dark",
+      "capture": {
+        "device": "Chromium (in-app browser) on macOS, mocked Tauri IPC",
+        "os": "macOS 27.0",
+        "sourceCommit": "e1f41a5269624e323c0d96adc66a28bf275a93b2",
+        "fixture": true
+      },
+      "notes": "Windows board (#96) captured as Chromium on macOS with mocked Tauri IPC: windows/ served by vite, start(root, 'board') driven through @tauri-apps/api/mocks with fixture rows (five made-up logins, letter avatars). Not WebView2 on Windows: fonts are macOS system fonts, there's no window chrome or tray. Board window at its default 380×620 CSS px unless noted (340 px is tauri.conf's minWidth). The before capture is origin/spec-85-streaks-month-person (999a565) with the same fixture."
+    },
+    {
+      "file": "96/this-month-first-day-dark.png",
+      "caption": "#96 After: the 1st of a 31-day month ('Day 1 of 31'); This month restarts from today's counts, no movement yet, dark",
+      "capture": {
+        "device": "Chromium (in-app browser) on macOS, mocked Tauri IPC",
+        "os": "macOS 27.0",
+        "sourceCommit": "e1f41a5269624e323c0d96adc66a28bf275a93b2",
+        "fixture": true
+      },
+      "notes": "Windows board (#96) captured as Chromium on macOS with mocked Tauri IPC: windows/ served by vite, start(root, 'board') driven through @tauri-apps/api/mocks with fixture rows (five made-up logins, letter avatars). Not WebView2 on Windows: fonts are macOS system fonts, there's no window chrome or tray. Board window at its default 380×620 CSS px unless noted (340 px is tauri.conf's minWidth). The before capture is origin/spec-85-streaks-month-person (999a565) with the same fixture."
+    },
+    {
+      "file": "95/iphone-this-month.png",
+      "caption": "#95 iPhone Board on This month: fourth segment, summary heading 04 · This month · Day 10 of 30, movement chevrons (Ari up 1 past Ezra)",
+      "capture": {
+        "device": "iPhone Duo Simulator (persistent, primary display)",
+        "os": "iOS 27.1",
+        "sourceCommit": "ded160894d3a735d1f4b5993f4392389a60dc4a7",
+        "fixture": true
+      },
+      "notes": "#95 This month. iPhone: runtime captures (xcrun simctl io screenshot --display=primary) of a Debug build on the persistent iPhone Duo, launched with -ScreenshotFixture -ScreenshotWindow month|daily -dismissedPrivateContribTip YES (Sample board data; the fixture refreshes twice, so both Windows show movement). Mac: the scripts/build-flow-capture.py fixture host, launched with -CaptureWindow month|daily -CaptureSnapshot <file> (the host writes its own window's contents; this shell has no Screen Recording permission). The share story is a render, not runtime capture: BoardShareTests.thisMonthStoryFromTheSampleBoard renders the real BoardShareRenderer from AppModel.boardToShare() on the Sample board, on a disposable iPhone Duo via scripts/ios_check.py ios. No before captures: the three-segment baseline was not recaptured. All captured on 2026-11-10 (Day 10 of 30)."
+    },
+    {
+      "file": "95/iphone-today.png",
+      "caption": "#95 iPhone Board on Today with the four-segment Window switch",
+      "capture": {
+        "device": "iPhone Duo Simulator (persistent, primary display)",
+        "os": "iOS 27.1",
+        "sourceCommit": "ded160894d3a735d1f4b5993f4392389a60dc4a7",
+        "fixture": true
+      },
+      "notes": "#95 This month. iPhone: runtime captures (xcrun simctl io screenshot --display=primary) of a Debug build on the persistent iPhone Duo, launched with -ScreenshotFixture -ScreenshotWindow month|daily -dismissedPrivateContribTip YES (Sample board data; the fixture refreshes twice, so both Windows show movement). Mac: the scripts/build-flow-capture.py fixture host, launched with -CaptureWindow month|daily -CaptureSnapshot <file> (the host writes its own window's contents; this shell has no Screen Recording permission). The share story is a render, not runtime capture: BoardShareTests.thisMonthStoryFromTheSampleBoard renders the real BoardShareRenderer from AppModel.boardToShare() on the Sample board, on a disposable iPhone Duo via scripts/ios_check.py ios. No before captures: the three-segment baseline was not recaptured. All captured on 2026-11-10 (Day 10 of 30)."
+    },
+    {
+      "file": "95/mac-this-month.png",
+      "caption": "#95 Mac popover on This month: four segments fit the 340 pt popover, Day 10 of 30 under your count",
+      "capture": {
+        "device": "MacBook Pro (fixture host)",
+        "os": "macOS 27.0.1",
+        "sourceCommit": "ded160894d3a735d1f4b5993f4392389a60dc4a7",
+        "fixture": true
+      },
+      "notes": "#95 This month. iPhone: runtime captures (xcrun simctl io screenshot --display=primary) of a Debug build on the persistent iPhone Duo, launched with -ScreenshotFixture -ScreenshotWindow month|daily -dismissedPrivateContribTip YES (Sample board data; the fixture refreshes twice, so both Windows show movement). Mac: the scripts/build-flow-capture.py fixture host, launched with -CaptureWindow month|daily -CaptureSnapshot <file> (the host writes its own window's contents; this shell has no Screen Recording permission). The share story is a render, not runtime capture: BoardShareTests.thisMonthStoryFromTheSampleBoard renders the real BoardShareRenderer from AppModel.boardToShare() on the Sample board, on a disposable iPhone Duo via scripts/ios_check.py ios. No before captures: the three-segment baseline was not recaptured. All captured on 2026-11-10 (Day 10 of 30)."
+    },
+    {
+      "file": "95/mac-today.png",
+      "caption": "#95 Mac popover on Today with the four-segment Window switch",
+      "capture": {
+        "device": "MacBook Pro (fixture host)",
+        "os": "macOS 27.0.1",
+        "sourceCommit": "ded160894d3a735d1f4b5993f4392389a60dc4a7",
+        "fixture": true
+      },
+      "notes": "#95 This month. iPhone: runtime captures (xcrun simctl io screenshot --display=primary) of a Debug build on the persistent iPhone Duo, launched with -ScreenshotFixture -ScreenshotWindow month|daily -dismissedPrivateContribTip YES (Sample board data; the fixture refreshes twice, so both Windows show movement). Mac: the scripts/build-flow-capture.py fixture host, launched with -CaptureWindow month|daily -CaptureSnapshot <file> (the host writes its own window's contents; this shell has no Screen Recording permission). The share story is a render, not runtime capture: BoardShareTests.thisMonthStoryFromTheSampleBoard renders the real BoardShareRenderer from AppModel.boardToShare() on the Sample board, on a disposable iPhone Duo via scripts/ios_check.py ios. No before captures: the three-segment baseline was not recaptured. All captured on 2026-11-10 (Day 10 of 30)."
+    },
+    {
+      "file": "95/share-this-month-story.png",
+      "caption": "#95 Share board story on This month: Who shipped more this month? (render, not runtime capture)",
+      "capture": {
+        "device": "iPhone Duo Simulator (disposable, scripts/ios_check.py ios)",
+        "os": "iOS 27.1",
+        "sourceCommit": "ded160894d3a735d1f4b5993f4392389a60dc4a7",
+        "fixture": true
+      },
+      "notes": "#95 This month. iPhone: runtime captures (xcrun simctl io screenshot --display=primary) of a Debug build on the persistent iPhone Duo, launched with -ScreenshotFixture -ScreenshotWindow month|daily -dismissedPrivateContribTip YES (Sample board data; the fixture refreshes twice, so both Windows show movement). Mac: the scripts/build-flow-capture.py fixture host, launched with -CaptureWindow month|daily -CaptureSnapshot <file> (the host writes its own window's contents; this shell has no Screen Recording permission). The share story is a render, not runtime capture: BoardShareTests.thisMonthStoryFromTheSampleBoard renders the real BoardShareRenderer from AppModel.boardToShare() on the Sample board, on a disposable iPhone Duo via scripts/ios_check.py ios. No before captures: the three-segment baseline was not recaptured. All captured on 2026-11-10 (Day 10 of 30)."
+    },
+    {
+      "file": "99/final-standings-light.png",
+      "caption": "#99 Windows board on the 1st, light: opens on October's Final standings, 🥇🥈🥉 on the top three, \"October final · You finished #2 of 6\", your October total in the summary; no Window selected",
+      "capture": {
+        "device": "Chromium (in-app browser) on macOS, mocked Tauri IPC, 380×620 board at 2x",
+        "os": "macOS 27.0",
+        "sourceCommit": "04a851e29279afdd8eda96b726823ff621f9e29c",
+        "fixture": true
+      },
+      "notes": "Windows board, not WebView2 on Windows: the real app UI (windows/src/app.ts and style.css) served by vite and fed the Sample board through windows/fixture.html (mocked Tauri IPC, data in windows/src/sample-board.ts) with ?date=2026-11-01, so the fixture's today is the 1st. macOS system fonts instead of Segoe UI; no window chrome or tray. October finishes: ines-volk 212 gold; ari-linden (you) 160 silver, winning the tie with odile-m 160 bronze; ezra-q 98; bram-ott 0 (no medal); niko-vane no calendar (last, no medal). No before capture: Final standings is new, and the board on other days is unchanged (see 96/). Recipe: cd windows && npm run dev -- --port <port>, open /fixture.html?view=board&date=2026-11-01."
+    },
+    {
+      "file": "99/final-standings-dark.png",
+      "caption": "#99 Windows board on the 1st, dark: the same Final standings with medals, pressed toggle readable on the dark surface",
+      "capture": {
+        "device": "Chromium (in-app browser) on macOS, mocked Tauri IPC, 380×620 board at 2x",
+        "os": "macOS 27.0",
+        "sourceCommit": "04a851e29279afdd8eda96b726823ff621f9e29c",
+        "fixture": true
+      },
+      "notes": "Windows board, not WebView2 on Windows: the real app UI (windows/src/app.ts and style.css) served by vite and fed the Sample board through windows/fixture.html (mocked Tauri IPC, data in windows/src/sample-board.ts) with ?date=2026-11-01, so the fixture's today is the 1st. macOS system fonts instead of Segoe UI; no window chrome or tray. October finishes: ines-volk 212 gold; ari-linden (you) 160 silver, winning the tie with odile-m 160 bronze; ezra-q 98; bram-ott 0 (no medal); niko-vane no calendar (last, no medal). No before capture: Final standings is new, and the board on other days is unchanged (see 96/). Recipe: cd windows && npm run dev -- --port <port>, open /fixture.html?view=board&date=2026-11-01."
+    },
+    {
+      "file": "99/live-board-toggle-off-dark.png",
+      "caption": "#99 Windows board on the 1st, dark: toggle released, back to the live Today board (streaks and movement, no medals); the October final standings button stays offered all day",
+      "capture": {
+        "device": "Chromium (in-app browser) on macOS, mocked Tauri IPC, 380×620 board at 2x",
+        "os": "macOS 27.0",
+        "sourceCommit": "04a851e29279afdd8eda96b726823ff621f9e29c",
+        "fixture": true
+      },
+      "notes": "Windows board, not WebView2 on Windows: the real app UI (windows/src/app.ts and style.css) served by vite and fed the Sample board through windows/fixture.html (mocked Tauri IPC, data in windows/src/sample-board.ts) with ?date=2026-11-01, so the fixture's today is the 1st. macOS system fonts instead of Segoe UI; no window chrome or tray. October finishes: ines-volk 212 gold; ari-linden (you) 160 silver, winning the tie with odile-m 160 bronze; ezra-q 98; bram-ott 0 (no medal); niko-vane no calendar (last, no medal). No before capture: Final standings is new, and the board on other days is unchanged (see 96/). Recipe: cd windows && npm run dev -- --port <port>, open /fixture.html?view=board&date=2026-11-01."
+    },
+    {
+      "file": "99/final-standings-light-340.png",
+      "caption": "#99 Windows board on the 1st at the 340 px minimum width, light: toggle, status and medal rows fit without wrapping",
+      "capture": {
+        "device": "Chromium (in-app browser) on macOS, mocked Tauri IPC, 340×620 board at 2x",
+        "os": "macOS 27.0",
+        "sourceCommit": "04a851e29279afdd8eda96b726823ff621f9e29c",
+        "fixture": true
+      },
+      "notes": "Windows board, not WebView2 on Windows: the real app UI (windows/src/app.ts and style.css) served by vite and fed the Sample board through windows/fixture.html (mocked Tauri IPC, data in windows/src/sample-board.ts) with ?date=2026-11-01, so the fixture's today is the 1st. macOS system fonts instead of Segoe UI; no window chrome or tray. October finishes: ines-volk 212 gold; ari-linden (you) 160 silver, winning the tie with odile-m 160 bronze; ezra-q 98; bram-ott 0 (no medal); niko-vane no calendar (last, no medal). No before capture: Final standings is new, and the board on other days is unchanged (see 96/). Recipe: cd windows && npm run dev -- --port <port>, open /fixture.html?view=board&date=2026-11-01."
+    },
+    {
+      "file": "92/iphone-board.png",
+      "caption": "#92 iPhone Board, Today: your summary reads 🔥 14 beside today's movement; rows show 🔥 47, 🔥 365+ (a run past GitHub's calendar), 🔥 14 (you) and 🔥 3; bram-ott (nothing yesterday or today) shows none",
+      "capture": {
+        "device": "iPhone Duo Simulator (closed)",
+        "os": "iOS 27.1",
+        "sourceCommit": "50653afb286c7fb8ff796104d41d8d8d91e0530c",
+        "fixture": true
+      },
+      "notes": "Runtime capture (xcrun simctl io screenshot --display=1) of a Debug build on the persistent iPhone Duo, launched with -ScreenshotFixture -ScreenshotTab board: the Sample board's made-up calendars, refreshed twice so Today moves. Your own row truncates to \"ari...en\" with the chevron, streak and badge beside it on the closed Duo: narrow-row placement is left to design review per the ticket. No before capture of this exact board; docs/screenshots/sample-board/board.png shows the Sample board without streaks. Captured on branch spec-85/92-streaks before it merged #95, so the Window switch has no This month yet."
+    },
+    {
+      "file": "92/mac-board.png",
+      "caption": "#92 Mac popover, Today: your summary card shows 🔥 14 under your handle; rows show 🔥 14, 🔥 6, 🔥 365+ and 🔥 2; defunkt (no streak) shows none",
+      "capture": {
+        "device": "MacBook Pro, fixture host (scripts/build-flow-capture.py)",
+        "os": "macOS 27.0.1",
+        "sourceCommit": "50653afb286c7fb8ff796104d41d8d8d91e0530c",
+        "fixture": true
+      },
+      "notes": "Board surface of the fixture host, light, with made-up calendars for the fixture's GitHub handles. The host drew its own window into a PNG (NSView cacheDisplay, the technique the script's -CaptureSnapshot uses) because the capturing shell has no Screen Recording permission. No before capture. Captured on branch spec-85/92-streaks before it merged #95, so the Window switch has no This month yet."
+    },
+    {
+      "file": "103/person-light.png",
+      "caption": "#103 Windows person view for odile-m, light: November's bars over October's grey ones, today (Nov 22) selected, streaks, \"Active days 22 of 22\", past months with medals, GitHub profile link",
+      "capture": {
+        "device": "Chromium (in-app browser) on macOS, mocked Tauri IPC, 460×640 person window at 2x",
+        "os": "macOS 27.0",
+        "sourceCommit": "414f41299b0ba9dda63665a8b79f33ac23800617",
+        "fixture": true
+      },
+      "notes": "Windows person window, not WebView2 on Windows: the real app UI (windows/src/app.ts and style.css) served by vite and fed the Sample people through windows/fixture.html (mocked Tauri IPC, data from samplePerson in windows/src/sample-board.ts) with ?view=person&date=2026-11-22, so the fixture's today is November 22. macOS system fonts instead of Segoe UI; no window chrome. No before capture: the person view is new (rows used to open the GitHub profile). Recipe: cd windows && npm run dev -- --port <port>, open /fixture.html?view=person&date=2026-11-22&login=<login>. Screen-reader chart summary: \"22 active days this month, most on November 18 with 28\"; each day is a focusable bar labelled \"November 22: 9 contributions. October 22: 12\"."
+    },
+    {
+      "file": "103/person-selected-bar-dark.png",
+      "caption": "#103 Windows person view for odile-m, dark: November 18 selected with the arrow keys (focus ring), caption shows its date, count and October 18's",
+      "capture": {
+        "device": "Chromium (in-app browser) on macOS, mocked Tauri IPC, 460×640 person window at 2x",
+        "os": "macOS 27.0",
+        "sourceCommit": "414f41299b0ba9dda63665a8b79f33ac23800617",
+        "fixture": true
+      },
+      "notes": "Windows person window, not WebView2 on Windows: the real app UI (windows/src/app.ts and style.css) served by vite and fed the Sample people through windows/fixture.html (mocked Tauri IPC, data from samplePerson in windows/src/sample-board.ts) with ?view=person&date=2026-11-22, so the fixture's today is November 22. macOS system fonts instead of Segoe UI; no window chrome. No before capture: the person view is new (rows used to open the GitHub profile). Recipe: cd windows && npm run dev -- --port <port>, open /fixture.html?view=person&date=2026-11-22&login=<login>. Selected by focusing today's bar and pressing ArrowLeft four times."
+    },
+    {
+      "file": "103/person-waiting-dark.png",
+      "caption": "#103 Windows person view for niko-vane, dark: his count never loaded, so it says it's waiting instead of drawing zero bars",
+      "capture": {
+        "device": "Chromium (in-app browser) on macOS, mocked Tauri IPC, 460×640 person window at 2x",
+        "os": "macOS 27.0",
+        "sourceCommit": "414f41299b0ba9dda63665a8b79f33ac23800617",
+        "fixture": true
+      },
+      "notes": "Windows person window, not WebView2 on Windows: the real app UI (windows/src/app.ts and style.css) served by vite and fed the Sample people through windows/fixture.html (mocked Tauri IPC, data from samplePerson in windows/src/sample-board.ts) with ?view=person&date=2026-11-22, so the fixture's today is November 22. macOS system fonts instead of Segoe UI; no window chrome. No before capture: the person view is new (rows used to open the GitHub profile). Recipe: cd windows && npm run dev -- --port <port>, open /fixture.html?view=person&date=2026-11-22&login=<login>. niko-vane's refresh failed and he has no saved calendar, so get_person returns history null."
+    },
+    {
+      "file": "103/person-you-tip-light.png",
+      "caption": "#103 Windows person view for you (ari-linden), light, window resized taller: \"Active days 18 of 22\", past finishes with gold and silver, the private-contributions tip, and What this number can't show (#89) at the bottom",
+      "capture": {
+        "device": "Chromium (in-app browser) on macOS, mocked Tauri IPC, 460×980 person window at 2x",
+        "os": "macOS 27.0",
+        "sourceCommit": "acfb104d8c224a0271c54237c7fa70abc1c2a416",
+        "fixture": true
+      },
+      "notes": "Windows person window, not WebView2 on Windows: the real app UI (windows/src/app.ts and style.css) served by vite and fed the Sample people through windows/fixture.html (mocked Tauri IPC, data from samplePerson in windows/src/sample-board.ts) with ?view=person&date=2026-11-22, so the fixture's today is November 22. macOS system fonts instead of Segoe UI; no window chrome. No before capture: the person view is new (rows used to open the GitHub profile). Recipe: cd windows && npm run dev -- --port <port>, open /fixture.html?view=person&date=2026-11-22&login=<login>. Your own view always shows the private-contributions tip (Mac copy), even after the board's tip is dismissed (the fixture has it dismissed). The window is resizable; 980 px tall shows the whole view without scrolling. Recaptured for the final review, which added the #89 note (same copy as the Mac and iPhone; also shown while your count is waiting)."
+    },
+    {
+      "file": "94/widgets-fresh.png",
+      "caption": "#94 Widgets, Today, fresh: small shows your 🔥 14 beside your count; medium and large rows show each person's streak (365+ past GitHub's calendar; none for bram-ott); the Committed Board (StandBy) widget's narrow rows and the Lock Screen accessories are unchanged",
+      "capture": {
+        "device": "iPhone Duo Simulator (render)",
+        "os": "iOS 27.1",
+        "sourceCommit": "1e7e4ddc31088809908cc10f93be38942dc20ca0",
+        "fixture": true
+      },
+      "notes": "Render, not runtime capture: the real widget and Live Activity views drawn with ImageRenderer by CommitStandingsiOSTests/WidgetRefreshRenderTests on the iPhone Duo / iOS 27.1 test simulator (TEST_RUNNER_RENDER_DIR through scripts/ios_check.py ios), fed what the real AppModel published on the Sample board after one pull to refresh (made-up calendars, so the streaks are made up too). The Simulator can't draw widgets on a Home Screen, a Live Activity or the Dynamic Island. Before (no streaks): docs/screenshots/widget-refresh/after-widgets-fresh.png."
+    },
+    {
+      "file": "94/widgets-stale.png",
+      "caption": "#94 Widgets, Today, 3 hours stale: streaks step down in color with the rest of the widget",
+      "capture": {
+        "device": "iPhone Duo Simulator (render)",
+        "os": "iOS 27.1",
+        "sourceCommit": "1e7e4ddc31088809908cc10f93be38942dc20ca0",
+        "fixture": true
+      },
+      "notes": "Render, not runtime capture: the real widget and Live Activity views drawn with ImageRenderer by CommitStandingsiOSTests/WidgetRefreshRenderTests on the iPhone Duo / iOS 27.1 test simulator (TEST_RUNNER_RENDER_DIR through scripts/ios_check.py ios), fed what the real AppModel published on the Sample board after one pull to refresh (made-up calendars, so the streaks are made up too). The Simulator can't draw widgets on a Home Screen, a Live Activity or the Dynamic Island. Before (no streaks): docs/screenshots/widget-refresh/after-widgets-stale.png."
+    },
+    {
+      "file": "94/live-rank-fresh.png",
+      "caption": "#94 Live rank, fresh: Lock Screen card and expanded island show streaks on the person above, you and the person below on the same line as the count; compact island and the small (CarPlay/Watch) layout unchanged",
+      "capture": {
+        "device": "iPhone Duo Simulator (render)",
+        "os": "iOS 27.1",
+        "sourceCommit": "1e7e4ddc31088809908cc10f93be38942dc20ca0",
+        "fixture": true
+      },
+      "notes": "Render, not runtime capture: the real widget and Live Activity views drawn with ImageRenderer by CommitStandingsiOSTests/WidgetRefreshRenderTests on the iPhone Duo / iOS 27.1 test simulator (TEST_RUNNER_RENDER_DIR through scripts/ios_check.py ios), fed what the real AppModel published on the Sample board after one pull to refresh (made-up calendars, so the streaks are made up too). The Simulator can't draw widgets on a Home Screen, a Live Activity or the Dynamic Island. Before (no streaks): docs/screenshots/widget-refresh/after-live-rank-fresh.png."
+    },
+    {
+      "file": "94/live-rank-stale.png",
+      "caption": "#94 Live rank, 3 hours stale: streaks step down to muted with the rows",
+      "capture": {
+        "device": "iPhone Duo Simulator (render)",
+        "os": "iOS 27.1",
+        "sourceCommit": "1e7e4ddc31088809908cc10f93be38942dc20ca0",
+        "fixture": true
+      },
+      "notes": "Render, not runtime capture: the real widget and Live Activity views drawn with ImageRenderer by CommitStandingsiOSTests/WidgetRefreshRenderTests on the iPhone Duo / iOS 27.1 test simulator (TEST_RUNNER_RENDER_DIR through scripts/ios_check.py ios), fed what the real AppModel published on the Sample board after one pull to refresh (made-up calendars, so the streaks are made up too). The Simulator can't draw widgets on a Home Screen, a Live Activity or the Dynamic Island. Before (no streaks): docs/screenshots/widget-refresh/after-live-rank-stale.png."
+    },
+    {
+      "file": "97/widgets-this-month.png",
+      "caption": "#97 Widgets on This month: every size headed \"This month\", ranked by This month's totals (the 1st through today); the inline and rectangular Lock Screen widgets read \"#3 · 57 this month\"",
+      "capture": {
+        "device": "iPhone Duo Simulator (render)",
+        "os": "iOS 27.1",
+        "sourceCommit": "de2a23775725aad445421612c0ef55e5594faed4",
+        "fixture": true
+      },
+      "notes": "Render, not runtime capture: the real widget and Live Activity views drawn with ImageRenderer by CommitStandingsiOSTests/WidgetRefreshRenderTests on the iPhone Duo / iOS 27.1 test simulator (TEST_RUNNER_RENDER_DIR through scripts/ios_check.py ios), fed what the real AppModel published on the Sample board (made-up calendars) after Settings ▸ Live rank's Window was set to This month and one pull to refresh, on November 10, 2026. The Simulator can't draw widgets on a Home Screen, a Live Activity or the Dynamic Island. Before: This month wasn't offered for Live rank or the widgets; Today for comparison: 94/widgets-fresh.png."
+    },
+    {
+      "file": "97/live-rank-this-month.png",
+      "caption": "#97 Live rank on This month: Lock Screen card, expanded island (\"This month\" fits beside the trophy), compact island and the small (CarPlay/Watch) layout",
+      "capture": {
+        "device": "iPhone Duo Simulator (render)",
+        "os": "iOS 27.1",
+        "sourceCommit": "de2a23775725aad445421612c0ef55e5594faed4",
+        "fixture": true
+      },
+      "notes": "Render, not runtime capture: the real widget and Live Activity views drawn with ImageRenderer by CommitStandingsiOSTests/WidgetRefreshRenderTests on the iPhone Duo / iOS 27.1 test simulator (TEST_RUNNER_RENDER_DIR through scripts/ios_check.py ios), fed what the real AppModel published on the Sample board (made-up calendars) after Settings ▸ Live rank's Window was set to This month and one pull to refresh, on November 10, 2026. The Simulator can't draw widgets on a Home Screen, a Live Activity or the Dynamic Island. Before: This month wasn't offered for Live rank; Today for comparison: 94/live-rank-fresh.png."
+    },
+    {
+      "file": "97/live-rank-just-you-month.png",
+      "caption": "#97 Live rank on This month with nobody else visible: your streak (🔥 14) beside your count on the Lock Screen, and beside \"Just you so far\" in the expanded island, on lines that were already there",
+      "capture": {
+        "device": "iPhone Duo Simulator (render)",
+        "os": "iOS 27.1",
+        "sourceCommit": "de2a23775725aad445421612c0ef55e5594faed4",
+        "fixture": true
+      },
+      "notes": "Render, not runtime capture: the real widget and Live Activity views drawn with ImageRenderer by CommitStandingsiOSTests/WidgetRefreshRenderTests on the iPhone Duo / iOS 27.1 test simulator (TEST_RUNNER_RENDER_DIR through scripts/ios_check.py ios), fed what the real AppModel published on the Sample board (made-up calendars) after Settings ▸ Live rank's Window was set to This month, everyone else hidden, and one pull to refresh, on November 10, 2026. The Simulator can't draw widgets on a Home Screen, a Live Activity or the Dynamic Island. Before (#94): with no rivals, the Lock Screen card and expanded island showed no streak."
+    },
+    {
+      "file": "97/live-rank-just-you-daily.png",
+      "caption": "#97 Live rank on Today with nobody else visible: the same streak fix for #94's gap",
+      "capture": {
+        "device": "iPhone Duo Simulator (render)",
+        "os": "iOS 27.1",
+        "sourceCommit": "de2a23775725aad445421612c0ef55e5594faed4",
+        "fixture": true
+      },
+      "notes": "Render, not runtime capture: the real widget and Live Activity views drawn with ImageRenderer by CommitStandingsiOSTests/WidgetRefreshRenderTests on the iPhone Duo / iOS 27.1 test simulator (TEST_RUNNER_RENDER_DIR through scripts/ios_check.py ios), fed what the real AppModel published on the Sample board (made-up calendars) after Settings ▸ Live rank's Window was set, everyone else hidden, and one pull to refresh, on November 10, 2026. The Simulator can't draw widgets on a Home Screen, a Live Activity or the Dynamic Island. Before (#94): with no rivals, the Lock Screen card and expanded island showed no streak."
+    },
+    {
+      "file": "98/mac-final-standings.png",
+      "caption": "#98 Mac popover on the 1st: the board opens on October's Final standings behind the 🏅 October final standings switch, with \"October final · You finished #1 of 5\" over the rows, 🥇🥈🥉 before the top three names, and your card showing your October total (\"in October\")",
+      "capture": {
+        "device": "MacBook Pro, fixture host (scripts/build-flow-capture.py)",
+        "os": "macOS 27.0.1",
+        "sourceCommit": "92f9d0619a3cae97fcc000ca466424e96aea1920",
+        "fixture": true
+      },
+      "notes": "Fixture host launched with -CaptureDate 2026-11-01T18:00:00Z -CaptureSnapshot; the host drew its own window into a PNG (NSView cacheDisplay) because the capturing shell has no Screen Recording permission. Made-up calendars from #92's host (captureHistory); light appearance. Final standings rows show no streak by design."
+    },
+    {
+      "file": "98/mac-board-the-2nd.png",
+      "caption": "#98 Mac popover on the 2nd: no Final standings switch; the live board as before",
+      "capture": {
+        "device": "MacBook Pro, fixture host (scripts/build-flow-capture.py)",
+        "os": "macOS 27.0.1",
+        "sourceCommit": "92f9d0619a3cae97fcc000ca466424e96aea1920",
+        "fixture": true
+      },
+      "notes": "Same host with -CaptureDate 2026-11-02T18:00:00Z, as the after-the-1st baseline."
+    },
+    {
+      "file": "98/iphone-final-standings.png",
+      "caption": "#98 iPhone Board on the 1st (Sample board): your summary card shows your October finish, \"October final · Your finish\", #3 of 6 and 178 contributions in October (as the Mac's card does), over the 🏅 October final standings switch, \"October final · You finished #3 of 6\" and the rows with 🥇 ines-volk, 🥈 odile-m and 🥉 ari-linden (you)",
+      "capture": {
+        "device": "iPhone Duo Simulator (closed)",
+        "os": "iOS 27.1",
+        "sourceCommit": "acfb104d8c224a0271c54237c7fa70abc1c2a416",
+        "fixture": true
+      },
+      "notes": "Runtime capture (xcrun simctl io screenshot --display=1) of a Debug build on the persistent iPhone Duo, launched with -ScreenshotFixture -ScreenshotTab board -ScreenshotDate 2026-11-01T18:00:00Z: the Sample board's made-up calendars (niko-vane always fails and ranks 6th below the fold). \"Updated 9 days ago\" comes from the fixture's fixed past clock against today's date, not from the feature. Recaptured for the final review: the summary card used to stay on the live Window on iPhone; it now shows your result for the finished month (BoardSummary.make(finals:))."
+    },
+    {
+      "file": "98/iphone-board-the-2nd.png",
+      "caption": "#98 iPhone Board on the 2nd (Sample board): no Final standings switch; the live board as before",
+      "capture": {
+        "device": "iPhone Duo Simulator (closed)",
+        "os": "iOS 27.1",
+        "sourceCommit": "92f9d0619a3cae97fcc000ca466424e96aea1920",
+        "fixture": true
+      },
+      "notes": "Same launch with -ScreenshotDate 2026-11-02T18:00:00Z, as the after-the-1st baseline. \"Updated 8 days ago\" is the fixed past clock, as above."
+    },
+    {
+      "file": "100/share-final-square.png",
+      "caption": "#100 Share board's Final standings, Square (1080 × 1080): the large widget headed \"October final\", 🥇🥈🥉 before the top three names, no counting-up age, \"Final · October 2026\" under it",
+      "capture": {
+        "device": "iPhone Simulator (CommittedAgent iPhone Duo, iOS 27.1), ImageRenderer",
+        "os": "iOS 27.1",
+        "sourceCommit": "1ba535fd445a66f101b9f3e9c29ddaaf14744cca",
+        "fixture": true
+      },
+      "notes": "Render, not runtime capture: BoardShareTests.finalStandingsRenderAtThePostedSize renders BoardShareCard with ImageRenderer at 1080 px from the Sample board's AppModel at noon on 2026-11-01 (model.boardShareRequest().finals), run by `TEST_RUNNER_RENDER_DIR=… python3 scripts/ios_check.py ios`. The share image is always dark (the card fixes its appearance), so there is no light variant."
+    },
+    {
+      "file": "100/share-final-story.png",
+      "caption": "#100 Share board's Final standings, Story (1080 × 1920): \"Who shipped more in October?\" over the same widget",
+      "capture": {
+        "device": "iPhone Simulator (CommittedAgent iPhone Duo, iOS 27.1), ImageRenderer",
+        "os": "iOS 27.1",
+        "sourceCommit": "1ba535fd445a66f101b9f3e9c29ddaaf14744cca",
+        "fixture": true
+      },
+      "notes": "Render, not runtime capture: BoardShareTests.finalStandingsRenderAtThePostedSize renders BoardShareCard with ImageRenderer at 1080 px from the Sample board's AppModel at noon on 2026-11-01 (model.boardShareRequest().finals), run by `TEST_RUNNER_RENDER_DIR=… python3 scripts/ios_check.py ios`. The share image is always dark (the card fixes its appearance), so there is no light variant."
+    },
+    {
+      "file": "100/iphone-share-sheet-final.png",
+      "caption": "#100 iPhone Share board on the 1st: the sheet opens on Final standings (first of five pages, then Board, Your race, Rank, Top 4), Square selected",
+      "capture": {
+        "device": "iPhone Duo Simulator (closed)",
+        "os": "iOS 27.1",
+        "sourceCommit": "1ba535fd445a66f101b9f3e9c29ddaaf14744cca",
+        "fixture": true
+      },
+      "notes": "Runtime capture (xcrun simctl io screenshot --display=1) of a Debug build on the persistent iPhone Duo, launched with -ScreenshotFixture -ScreenshotTab board -ScreenshotDate 2026-11-01T18:00:00Z -ScreenshotShare (opens the sheet as tapping Share would). The screenshot fixture's data includes niko-vane, who always fails to load and ranks 6th with \"—\"; the fixture's clock differs from the unit test's, so counts differ slightly from the renders. On the 2nd the sheet offers only the four live styles (BoardShareTests.afterThe1stTheBoardOffersOnlyTheLiveStyles)."
+    },
+    {
+      "file": "101/person-sheet.png",
+      "caption": "#101 iPhone person view as a sheet over the Board (closed Duo): ines-volk's streaks, active days 10 of 10, November's bars over October's in grey, today's bar selected",
+      "capture": {
+        "device": "iPhone Duo Simulator (persistent, closed)",
+        "os": "iOS 27.1",
+        "sourceCommit": "6f2ec4d0b1999eaa60172ce61051e776a822eb7c",
+        "fixture": true
+      },
+      "notes": "Runtime capture (xcrun simctl io screenshot --display=1) of a Debug build on the persistent iPhone Duo (closed), launched with -ScreenshotFixture -ScreenshotTab board -ScreenshotPerson <login> (opens the person view as a tap on the row would): the Sample board's made-up calendars, real clock (November 10, 2026), so This month is 10 days in. niko-vane always fails in the fixture, so Final standings count 6 people. The iPhone app is dark only (RootView forces .preferredColorScheme(.dark)), so there is no light capture. Not captured: the second pane on the open iPhone Duo. simctl can't fold the Duo, the Device Hub Open pose needs the GUI, and Xcode's device-interaction tools need an approval this session couldn't give; the pane-vs-sheet rule is covered by BoardArrangementTests. No before capture: the person view is new."
+    },
+    {
+      "file": "101/person-selected-bar.png",
+      "caption": "#101 iPhone person view, another bar selected: November 4 · 10 contributions beside October 4 · 2; weekly day ticks; past months with medals and share buttons",
+      "capture": {
+        "device": "iPhone Duo Simulator (persistent, closed)",
+        "os": "iOS 27.1",
+        "sourceCommit": "6f2ec4d0b1999eaa60172ce61051e776a822eb7c",
+        "fixture": true
+      },
+      "notes": "Runtime capture (xcrun simctl io screenshot --display=1) of a Debug build on the persistent iPhone Duo (closed), launched with -ScreenshotFixture -ScreenshotTab board -ScreenshotPerson <login> (opens the person view as a tap on the row would): the Sample board's made-up calendars, real clock (November 10, 2026), so This month is 10 days in. niko-vane always fails in the fixture, so Final standings count 6 people. The iPhone app is dark only (RootView forces .preferredColorScheme(.dark)), so there is no light capture. Not captured: the second pane on the open iPhone Duo. simctl can't fold the Duo, the Device Hub Open pose needs the GUI, and Xcode's device-interaction tools need an approval this session couldn't give; the pane-vs-sheet rule is covered by BoardArrangementTests. No before capture: the person view is new. Also -ScreenshotPersonDay 4 (selects the 4th's bar, as a tap would)."
+    },
+    {
+      "file": "101/person-waiting.png",
+      "caption": "#101 iPhone person view waiting for a count: niko-vane never loads, so it says it's waiting (GitHub didn't answer) instead of drawing zeros",
+      "capture": {
+        "device": "iPhone Duo Simulator (persistent, closed)",
+        "os": "iOS 27.1",
+        "sourceCommit": "6f2ec4d0b1999eaa60172ce61051e776a822eb7c",
+        "fixture": true
+      },
+      "notes": "Runtime capture (xcrun simctl io screenshot --display=1) of a Debug build on the persistent iPhone Duo (closed), launched with -ScreenshotFixture -ScreenshotTab board -ScreenshotPerson <login> (opens the person view as a tap on the row would): the Sample board's made-up calendars, real clock (November 10, 2026), so This month is 10 days in. niko-vane always fails in the fixture, so Final standings count 6 people. The iPhone app is dark only (RootView forces .preferredColorScheme(.dark)), so there is no light capture. Not captured: the second pane on the open iPhone Duo. simctl can't fold the Duo, the Device Hub Open pose needs the GUI, and Xcode's device-interaction tools need an approval this session couldn't give; the pane-vs-sheet rule is covered by BoardArrangementTests. No before capture: the person view is new."
+    },
+    {
+      "file": "101/person-you.png",
+      "caption": "#101 iPhone person view of yourself: the you badge, 14-day current and 24-day longest streak, October bronze",
+      "capture": {
+        "device": "iPhone Duo Simulator (persistent, closed)",
+        "os": "iOS 27.1",
+        "sourceCommit": "6f2ec4d0b1999eaa60172ce61051e776a822eb7c",
+        "fixture": true
+      },
+      "notes": "Runtime capture (xcrun simctl io screenshot --display=1) of a Debug build on the persistent iPhone Duo (closed), launched with -ScreenshotFixture -ScreenshotTab board -ScreenshotPerson <login> (opens the person view as a tap on the row would): the Sample board's made-up calendars, real clock (November 10, 2026), so This month is 10 days in. niko-vane always fails in the fixture, so Final standings count 6 people. The iPhone app is dark only (RootView forces .preferredColorScheme(.dark)), so there is no light capture. Not captured: the second pane on the open iPhone Duo. simctl can't fold the Duo, the Device Hub Open pose needs the GUI, and Xcode's device-interaction tools need an approval this session couldn't give; the pane-vs-sheet rule is covered by BoardArrangementTests. No before capture: the person view is new."
+    },
+    {
+      "file": "101/person-you-end.png",
+      "caption": "#101 iPhone person view of yourself, scrolled to the end: past months back to December 2025, the private-contributions tip (always shown here) and What this number can't show (#89)",
+      "capture": {
+        "device": "iPhone Duo Simulator (persistent, closed)",
+        "os": "iOS 27.1",
+        "sourceCommit": "acfb104d8c224a0271c54237c7fa70abc1c2a416",
+        "fixture": true
+      },
+      "notes": "Runtime capture (xcrun simctl io screenshot --display=1) of a Debug build on the persistent iPhone Duo (closed), launched with -ScreenshotFixture -ScreenshotTab board -ScreenshotPerson <login> (opens the person view as a tap on the row would): the Sample board's made-up calendars, real clock (November 10, 2026), so This month is 10 days in. niko-vane always fails in the fixture, so Final standings count 6 people. The iPhone app is dark only (RootView forces .preferredColorScheme(.dark)), so there is no light capture. Not captured: the second pane on the open iPhone Duo. simctl can't fold the Duo, the Device Hub Open pose needs the GUI, and Xcode's device-interaction tools need an approval this session couldn't give; the pane-vs-sheet rule is covered by BoardArrangementTests. No before capture: the person view is new. Also -ScreenshotPersonEnd (opens scrolled to the end). The Done button floats over the scrolled list, as iOS 27's glass toolbar does. Recaptured for the final review: the private-contributions tip is now the shared PrivateContributionsTip in the iPhone style (PrivateContributionsTipStyle.committed), drawn as before."
+    },
+    {
+      "file": "101/person-streak-365.png",
+      "caption": "#101 iPhone person view past GitHub's calendar: odile-m's current and longest streaks read 365+ days",
+      "capture": {
+        "device": "iPhone Duo Simulator (persistent, closed)",
+        "os": "iOS 27.1",
+        "sourceCommit": "6f2ec4d0b1999eaa60172ce61051e776a822eb7c",
+        "fixture": true
+      },
+      "notes": "Runtime capture (xcrun simctl io screenshot --display=1) of a Debug build on the persistent iPhone Duo (closed), launched with -ScreenshotFixture -ScreenshotTab board -ScreenshotPerson <login> (opens the person view as a tap on the row would): the Sample board's made-up calendars, real clock (November 10, 2026), so This month is 10 days in. niko-vane always fails in the fixture, so Final standings count 6 people. The iPhone app is dark only (RootView forces .preferredColorScheme(.dark)), so there is no light capture. Not captured: the second pane on the open iPhone Duo. simctl can't fold the Duo, the Device Hub Open pose needs the GUI, and Xcode's device-interaction tools need an approval this session couldn't give; the pane-vs-sheet rule is covered by BoardArrangementTests. No before capture: the person view is new."
+    },
+    {
+      "file": "102/person-light.png",
+      "caption": "#102 Mac person window, light: hubot's streaks, active days, November's bars over October's in grey with today selected, and past months with medals",
+      "capture": {
+        "device": "Mac Studio (M1 Max), fixture host (scripts/build-flow-capture.py)",
+        "os": "macOS 27.0.1",
+        "sourceCommit": "909b34248faaaecfae3a9169b50f9820cd442892",
+        "fixture": true
+      },
+      "notes": "Fixture-host capture: scripts/build-flow-capture.py's host (current tracked views, in-memory store, made-up calendars for the fixture's GitHub handles), launched with -CaptureDate 2026-11-22T18:00:00Z -CaptureSurface Person -CapturePerson <login> -CaptureSnapshot <file>; the host draws its own window into a PNG (NSView cacheDisplay) because the capturing shell has no Screen Recording permission. The Person surface is the real PersonWindowView (the person window's content) at the window's default 460 x 640 pt; the title is the window title the person window sets. No before capture: the person window is new. Not captured: a row click opening the window, or a second click focusing it (the shell can't click); that is the singleton Window mechanism the People window uses, and PersonWindowModelTests covers which person it shows."
+    },
+    {
+      "file": "102/person-dark.png",
+      "caption": "#102 Mac person window, dark: the same view in Dark Mode",
+      "capture": {
+        "device": "Mac Studio (M1 Max), fixture host (scripts/build-flow-capture.py)",
+        "os": "macOS 27.0.1",
+        "sourceCommit": "909b34248faaaecfae3a9169b50f9820cd442892",
+        "fixture": true
+      },
+      "notes": "Fixture-host capture: scripts/build-flow-capture.py's host (current tracked views, in-memory store, made-up calendars for the fixture's GitHub handles), launched with -CaptureDate 2026-11-22T18:00:00Z -CaptureSurface Person -CapturePerson <login> -CaptureSnapshot <file>; the host draws its own window into a PNG (NSView cacheDisplay) because the capturing shell has no Screen Recording permission. The Person surface is the real PersonWindowView (the person window's content) at the window's default 460 x 640 pt; the title is the window title the person window sets. No before capture: the person window is new. Not captured: a row click opening the window, or a second click focusing it (the shell can't click); that is the singleton Window mechanism the People window uses, and PersonWindowModelTests covers which person it shows. Also -CaptureAppearance dark."
+    },
+    {
+      "file": "102/person-selected-bar.png",
+      "caption": "#102 Mac person window with another bar selected: November 8 · 12 contributions beside October 8",
+      "capture": {
+        "device": "Mac Studio (M1 Max), fixture host (scripts/build-flow-capture.py)",
+        "os": "macOS 27.0.1",
+        "sourceCommit": "909b34248faaaecfae3a9169b50f9820cd442892",
+        "fixture": true
+      },
+      "notes": "Fixture-host capture: scripts/build-flow-capture.py's host (current tracked views, in-memory store, made-up calendars for the fixture's GitHub handles), launched with -CaptureDate 2026-11-22T18:00:00Z -CaptureSurface Person -CapturePerson <login> -CaptureSnapshot <file>; the host draws its own window into a PNG (NSView cacheDisplay) because the capturing shell has no Screen Recording permission. The Person surface is the real PersonWindowView (the person window's content) at the window's default 460 x 640 pt; the title is the window title the person window sets. No before capture: the person window is new. Not captured: a row click opening the window, or a second click focusing it (the shell can't click); that is the singleton Window mechanism the People window uses, and PersonWindowModelTests covers which person it shows. Also -CapturePersonDay 8 (selects that bar, as a click on it would)."
+    },
+    {
+      "file": "102/person-waiting.png",
+      "caption": "#102 Mac person window waiting: mojombo's count hasn't loaded, so it says it's waiting instead of drawing zeros",
+      "capture": {
+        "device": "Mac Studio (M1 Max), fixture host (scripts/build-flow-capture.py)",
+        "os": "macOS 27.0.1",
+        "sourceCommit": "909b34248faaaecfae3a9169b50f9820cd442892",
+        "fixture": true
+      },
+      "notes": "Fixture-host capture: scripts/build-flow-capture.py's host (current tracked views, in-memory store, made-up calendars for the fixture's GitHub handles), launched with -CaptureDate 2026-11-22T18:00:00Z -CaptureSurface Person -CapturePerson <login> -CaptureSnapshot <file>; the host draws its own window into a PNG (NSView cacheDisplay) because the capturing shell has no Screen Recording permission. The Person surface is the real PersonWindowView (the person window's content) at the window's default 460 x 640 pt; the title is the window title the person window sets. No before capture: the person window is new. Not captured: a row click opening the window, or a second click focusing it (the shell can't click); that is the singleton Window mechanism the People window uses, and PersonWindowModelTests covers which person it shows. Also -CaptureWaiting mojombo (leaves their calendar unloaded)."
+    },
+    {
+      "file": "102/person-you.png",
+      "caption": "#102 Mac person window for yourself: octocat with the you badge; the window is titled Your month",
+      "capture": {
+        "device": "Mac Studio (M1 Max), fixture host (scripts/build-flow-capture.py)",
+        "os": "macOS 27.0.1",
+        "sourceCommit": "909b34248faaaecfae3a9169b50f9820cd442892",
+        "fixture": true
+      },
+      "notes": "Fixture-host capture: scripts/build-flow-capture.py's host (current tracked views, in-memory store, made-up calendars for the fixture's GitHub handles), launched with -CaptureDate 2026-11-22T18:00:00Z -CaptureSurface Person -CapturePerson <login> -CaptureSnapshot <file>; the host draws its own window into a PNG (NSView cacheDisplay) because the capturing shell has no Screen Recording permission. The Person surface is the real PersonWindowView (the person window's content) at the window's default 460 x 640 pt; the title is the window title the person window sets. No before capture: the person window is new. Not captured: a row click opening the window, or a second click focusing it (the shell can't click); that is the singleton Window mechanism the People window uses, and PersonWindowModelTests covers which person it shows."
+    },
+    {
+      "file": "102/person-you-end.png",
+      "caption": "#102 Mac person window for yourself, scrolled to the end: past months back to December 2025, the private-contributions tip (always shown here) and What this number can't show (#89)",
+      "capture": {
+        "device": "Mac Studio (M1 Max), fixture host (scripts/build-flow-capture.py)",
+        "os": "macOS 27.0.1",
+        "sourceCommit": "909b34248faaaecfae3a9169b50f9820cd442892",
+        "fixture": true
+      },
+      "notes": "Fixture-host capture: scripts/build-flow-capture.py's host (current tracked views, in-memory store, made-up calendars for the fixture's GitHub handles), launched with -CaptureDate 2026-11-22T18:00:00Z -CaptureSurface Person -CapturePerson <login> -CaptureSnapshot <file>; the host draws its own window into a PNG (NSView cacheDisplay) because the capturing shell has no Screen Recording permission. The Person surface is the real PersonWindowView (the person window's content) at the window's default 460 x 640 pt; the title is the window title the person window sets. No before capture: the person window is new. Not captured: a row click opening the window, or a second click focusing it (the shell can't click); that is the singleton Window mechanism the People window uses, and PersonWindowModelTests covers which person it shows. Also -CapturePersonScrolledToEnd YES. The snapshot doesn't draw the title bar's scroll-edge blur, so the Past months heading shows through the title bar; on screen it is blurred."
+    },
+    {
+      "file": "102/person-nobody.png",
+      "caption": "#102 Mac person window with nobody chosen (before any row is clicked, or once that person leaves the board)",
+      "capture": {
+        "device": "Mac Studio (M1 Max), fixture host (scripts/build-flow-capture.py)",
+        "os": "macOS 27.0.1",
+        "sourceCommit": "909b34248faaaecfae3a9169b50f9820cd442892",
+        "fixture": true
+      },
+      "notes": "Fixture-host capture: scripts/build-flow-capture.py's host (current tracked views, in-memory store, made-up calendars for the fixture's GitHub handles), launched with -CaptureDate 2026-11-22T18:00:00Z -CaptureSurface Person -CapturePerson <login> -CaptureSnapshot <file>; the host draws its own window into a PNG (NSView cacheDisplay) because the capturing shell has no Screen Recording permission. The Person surface is the real PersonWindowView (the person window's content) at the window's default 460 x 640 pt; the title is the window title the person window sets. No before capture: the person window is new. Not captured: a row click opening the window, or a second click focusing it (the shell can't click); that is the singleton Window mechanism the People window uses, and PersonWindowModelTests covers which person it shows. -CapturePerson nobody (not on the board)."
+    }
+  ]
+}

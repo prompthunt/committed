@@ -23,19 +23,23 @@ struct BoardView: View {
     var body: some View {
         NavigationStack {
             ArrangementView {
-                BoardLeaderboard(
-                    summaryPlacement: BoardArrangement.summaryPlacement(
-                        arrangement: arrangementFrame, leaderboard: leaderboardFrame, summary: summaryFrame
-                    )
-                )
+                BoardLeaderboard(summaryPlacement: summaryPlacement)
                 .onGeometryChange(for: CGRect.self) { $0.frame(in: .named(Self.arrangementSpace)) } action: {
                     leaderboardFrame = $0
                 }
             } secondary: {
-                BoardSummaryPane()
-                    .onGeometryChange(for: CGRect.self) { $0.frame(in: .named(Self.arrangementSpace)) } action: {
-                        summaryFrame = $0
+                // The person view takes your summary's pane when it has one. The frame is reported
+                // from around either, so the placement doesn't change under it.
+                Group {
+                    if personPlacement == .secondaryPane, let person = model.shownPerson {
+                        PersonPane(person: person)
+                    } else {
+                        BoardSummaryPane()
                     }
+                }
+                .onGeometryChange(for: CGRect.self) { $0.frame(in: .named(Self.arrangementSpace)) } action: {
+                    summaryFrame = $0
+                }
             }
             .coordinateSpace(.named(Self.arrangementSpace))
             .onGeometryChange(for: CGRect.self) { $0.frame(in: .local) } action: { arrangementFrame = $0 }
@@ -50,28 +54,62 @@ struct BoardView: View {
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Share board", systemImage: "square.and.arrow.up") {
-                        sharing = model.boardToShare().map(BoardShareRequest.init)
+                        sharing = model.boardShareRequest()
                     }
                     .disabled(!store.hasSelf)
                 }
             }
             .sheet(item: $sharing) { request in
-                BoardShareSheet(snapshot: request.snapshot)
+                BoardShareSheet(request: request)
+            }
+            .sheet(item: personSheet) { _ in
+                PersonSheet()
             }
             .refreshable { await model.pullToRefresh() }
+            #if DEBUG
+            .task {
+                guard ScreenshotFixture.opensShare else { return }
+                try? await Task.sleep(for: .seconds(3))
+                sharing = model.boardShareRequest()
+            }
+            #endif
         }
         .onChange(of: store.selectedWindow) {
             Task { await model.windowDidChange() }
         }
     }
 
+    private var summaryPlacement: BoardArrangement.SummaryPlacement {
+        BoardArrangement.summaryPlacement(arrangement: arrangementFrame, leaderboard: leaderboardFrame, summary: summaryFrame)
+    }
+
+    private var personPlacement: BoardArrangement.PersonPlacement {
+        BoardArrangement.personPlacement(summary: summaryPlacement)
+    }
+
+    /// The chosen person, as a sheet, wherever the Board has one pane. Opening iPhone Duo moves
+    /// them to the second pane (the sheet closes without forgetting them); closing it brings the
+    /// sheet back. Done, or swiping the sheet away, forgets them. Someone who leaves the board
+    /// (hidden) closes it.
+    private var personSheet: Binding<PersonRequest?> {
+        Binding(
+            get: {
+                guard personPlacement == .sheet, let person = model.shownPerson else { return nil }
+                return PersonRequest(login: person.login)
+            },
+            set: { request in
+                if request == nil, personPlacement == .sheet { model.selectedPerson = nil }
+            }
+        )
+    }
+
     private nonisolated static let arrangementSpace = "BoardArrangement"
 }
 
-/// A board to share, with an identity for `.sheet(item:)`.
-struct BoardShareRequest: Identifiable {
-    let id = UUID()
-    let snapshot: WidgetSnapshot
+/// The person whose view the sheet shows, with an identity for `.sheet(item:)`.
+struct PersonRequest: Identifiable {
+    let login: String
+    var id: String { login }
 }
 
 /// The ranked list, headed by your summary whenever the summary has no pane of its own.
@@ -106,7 +144,32 @@ struct BoardLeaderboard: View {
                     .listRowSeparator(.hidden)
                     .listRowBackground(Color.clear)
                 }
-            } else {
+            } else if !store.rivals.isEmpty, let finals = refresh.offeredFinalStandings {
+                // On the 1st: last month's Final standings, which the board opens on.
+                Section {
+                    FinalStandingsToggle(finals: finals)
+                        .buttonStyle(.bordered)
+                        .controlSize(.large)
+                        .tint(.lime)
+                        .listRowSeparator(.hidden)
+                        .listRowBackground(Color.clear)
+                        .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 0, trailing: 16))
+                }
+                if refresh.showsFinalStandings {
+                    Section {
+                        ForEach(finals.entries) { entry in
+                            PersonRowButton(login: entry.competitor.username) { finals.row(entry) }
+                                .listRowSeparator(.hidden)
+                                .listRowBackground(Color.clear)
+                                .listRowInsets(EdgeInsets(top: 1, leading: 8, bottom: 1, trailing: 8))
+                        }
+                    } header: {
+                        FolioHeader(finals.statusLine ?? "\(finals.month.name) final")
+                            .padding(.top, 6)
+                    }
+                }
+            }
+            if store.hasSelf, !(refresh.showsFinalStandings && !store.rivals.isEmpty) {
                 Section {
                     if isInitialLoad(entries: entries) {
                         InitialLoadRow()
@@ -114,7 +177,9 @@ struct BoardLeaderboard: View {
                             .listRowBackground(Color.clear)
                     }
                     ForEach(entries) { entry in
-                        board.row(entry, store: store, refresh: refresh)
+                        PersonRowButton(login: entry.competitor.username) {
+                            board.row(entry, store: store, refresh: refresh)
+                        }
                         .listRowSeparator(.hidden)
                         .listRowBackground(Color.clear)
                         .listRowInsets(EdgeInsets(top: 1, leading: 8, bottom: 1, trailing: 8))
@@ -208,56 +273,14 @@ private struct AroundYou: View {
                     .padding(.horizontal, 6)
                 VStack(spacing: 2) {
                     ForEach(entries[max(0, mine - 1)...min(entries.count - 1, mine + 1)]) { entry in
-                        board.row(entry, store: store, refresh: refresh)
+                        PersonRowButton(login: entry.competitor.username) {
+                            board.row(entry, store: store, refresh: refresh)
+                        }
                     }
                 }
                 .padding(6)
                 .tileCard()
             }
-        }
-    }
-}
-
-/// The Mac's private-contributions tip (`PrivateContributionsTip`, same copy and dismissal) in the
-/// iPhone's materials: a tile card, a soft icon, and a tile button rather than a lime one.
-private struct PrivateWorkTip: View {
-    @AppStorage("dismissedPrivateContribTip") private var dismissed = false
-
-    var body: some View {
-        if !dismissed {
-            VStack(alignment: .leading, spacing: 10) {
-                HStack(spacing: 8) {
-                    Image(systemName: "lock.open").foregroundStyle(Color.soft)
-                    Text("Want your private work to count?")
-                        .font(.callout.weight(.semibold))
-                    Spacer()
-                    Button {
-                        dismissed = true
-                    } label: {
-                        Image(systemName: "xmark").imageScale(.small).foregroundStyle(Color.muted)
-                            .frame(minWidth: 44, minHeight: 44)
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel("Dismiss tip")
-                }
-                .padding(.bottom, -10)
-                Text("Include private repo and org activity: on your GitHub profile, above the green squares, choose **Contribution settings → Private contributions**.")
-                    .font(.footnote)
-                    .foregroundStyle(Color.soft)
-                    .fixedSize(horizontal: false, vertical: true)
-                Text("Only daily counts are shared. Your code and repo details stay private.")
-                    .font(.footnote)
-                    .foregroundStyle(Color.muted)
-                    .fixedSize(horizontal: false, vertical: true)
-                Link(destination: URL(string: "https://docs.github.com/en/account-and-profile/how-tos/contribution-settings/manage-visibility-settings-for-private-contributions-and-achievements")!) {
-                    Label("How to enable on GitHub", systemImage: "arrow.up.right")
-                        .labelStyle(.titleAndIcon)
-                }
-                .buttonStyle(TileButtonStyle())
-                .padding(.top, 4)
-            }
-            .padding(16)
-            .tileCard()
         }
     }
 }
@@ -326,7 +349,8 @@ private struct RankedBoard {
             .map(\.contributions).max() ?? 0
     }
 
-    /// The shared row for `entry`, with today's movement on Today.
+    /// The shared row for `entry`, with today's movement on Today and This month, and the person's
+    /// streak.
     func row(_ entry: Ranking.Entry, store: StandingsStore, refresh: RefreshCoordinator) -> StandingRow {
         StandingRow(
             rank: entry.rank,
@@ -334,7 +358,8 @@ private struct RankedBoard {
             standing: store.standing(for: entry.competitor.username, window: window),
             window: window,
             maxContributions: maxContributions,
-            rankDelta: window == .daily ? refresh.rankDelta(for: entry.competitor.username) : nil
+            rankDelta: refresh.rankDelta(for: entry.competitor.username, in: window),
+            streak: refresh.streak(for: entry.competitor.username)
         )
     }
 }

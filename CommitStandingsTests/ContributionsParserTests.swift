@@ -18,9 +18,9 @@ struct ContributionsParserTests {
         <tool-tip for="cd-2">12 contributions on Thursday May 28, 2026</tool-tip>
         """
         let days = try ContributionsParser.parseDays(html: html)
-        #expect(days[ymd(2026, 5, 22)] == 3)
-        #expect(days[ymd(2026, 5, 23)] == 0)
-        #expect(days[ymd(2026, 5, 28)] == 12)
+        #expect(days["2026-05-22"] == 3)
+        #expect(days["2026-05-23"] == 0)
+        #expect(days["2026-05-28"] == 12)
     }
 
     @Test func legacyAriaLabel_extractsCount() throws {
@@ -29,14 +29,14 @@ struct ContributionsParserTests {
         <td data-date="2026-05-27" aria-label="No contributions on Wednesday, May 27, 2026"></td>
         """
         let days = try ContributionsParser.parseDays(html: html)
-        #expect(days[ymd(2026, 5, 28)] == 7)
-        #expect(days[ymd(2026, 5, 27)] == 0)
+        #expect(days["2026-05-28"] == 7)
+        #expect(days["2026-05-27"] == 0)
     }
 
     @Test func legacyDataCount_extractsCount() throws {
         let html = #"<td data-date="2026-05-28" data-count="9"></td>"#
         let days = try ContributionsParser.parseDays(html: html)
-        #expect(days[ymd(2026, 5, 28)] == 9)
+        #expect(days["2026-05-28"] == 9)
     }
 
     @Test func parsesCommaSeparatedCount() throws {
@@ -45,7 +45,7 @@ struct ContributionsParserTests {
         <tool-tip for="cd-x">1,234 contributions on Thursday May 28, 2026</tool-tip>
         """
         let days = try ContributionsParser.parseDays(html: html)
-        #expect(days[ymd(2026, 5, 28)] == 1234)
+        #expect(days["2026-05-28"] == 1234)
     }
 
     @Test func emptyHTML_throwsParseFailed() {
@@ -54,117 +54,95 @@ struct ContributionsParserTests {
         }
     }
 
-    // MARK: - Windows
-
-    @Test func dailyWindow_includesOnlyToday() {
-        let days: [Date: Int] = [
-            ymd(2026, 5, 27): 100,
-            ymd(2026, 5, 28): 7
-        ]
-        let asOf = ymd(2026, 5, 28)
-        #expect(ContributionsParser.sum(days: days, window: .daily, asOf: asOf) == 7)
-    }
-
-    @Test func weeklyWindow_includesTodayAndPriorSix() {
-        // asOf 2026-05-28; window is 05-22..05-28 inclusive.
-        let days: [Date: Int] = [
-            ymd(2026, 5, 21): 100, // outside window (day 8)
-            ymd(2026, 5, 22): 1,
-            ymd(2026, 5, 23): 2,
-            ymd(2026, 5, 24): 3,
-            ymd(2026, 5, 25): 4,
-            ymd(2026, 5, 26): 5,
-            ymd(2026, 5, 27): 6,
-            ymd(2026, 5, 28): 7,
-            ymd(2026, 5, 29): 100 // outside window (future)
-        ]
-        let asOf = ymd(2026, 5, 28)
-        #expect(ContributionsParser.sum(days: days, window: .weekly, asOf: asOf) == 28)
-    }
-
-    @Test func monthlyWindow_includesTodayAndPriorTwentyNine() {
-        let asOf = ymd(2026, 5, 30)
-        let days: [Date: Int] = [
-            ymd(2026, 4, 30): 100, // outside 30-day trailing window
-            ymd(2026, 5, 1): 1,
-            ymd(2026, 5, 15): 2,
-            ymd(2026, 5, 30): 3,
-            ymd(2026, 5, 31): 100
-        ]
-        #expect(ContributionsParser.sum(days: days, window: .monthly, asOf: asOf) == 6)
-    }
-
     @Test func zeroActivity_returnsZeroNotError() throws {
         let html = """
         <td data-date="2026-05-28" id="cd-z"></td>
         <tool-tip for="cd-z">No contributions on Thursday May 28, 2026</tool-tip>
         """
-        let days = try ContributionsParser.parseDays(html: html)
-        let asOf = ymd(2026, 5, 28)
-        #expect(ContributionsParser.sum(days: days, window: .weekly, asOf: asOf) == 0)
+        let utc = TimeZone(identifier: "UTC")!
+        let history = try ContributionsParser.parseHistory(html: html, timeZone: utc)
+        #expect(history.days == ["2026-05-28": 0])
+        let asOf = Date(timeIntervalSince1970: 1_779_969_600) // 2026-05-28 12:00 UTC
+        #expect(history.total(for: .weekly, asOf: asOf) == 0)
     }
 
-    // MARK: - Helpers
+    /// GitHub's days are civil dates: they're kept as written, whatever the reading time zone,
+    /// and the history records the zone so its Windows know which day is today.
+    @Test func parseHistory_keepsCivilDaysAndRecordsTheTimeZone() throws {
+        let html = #"<td data-date="2026-05-28" data-count="9"></td><td data-date="2026-01-01" data-count="1"></td>"#
+        let tokyo = TimeZone(identifier: "Asia/Tokyo")!
+        let history = try ContributionsParser.parseHistory(html: html, timeZone: tokyo)
+        #expect(history.days == ["2026-05-28": 9, "2026-01-01": 1])
+        #expect(history.timeZone == tokyo)
+    }
 
     // MARK: - Trolling
 
-    /// Sixty days before May 28 at a steady 20 a day, so their usual big day is 20.
-    private func steadyHistory(_ count: Int = 20) -> [Date: Int] {
-        var days: [Date: Int] = [:]
+    private static let utc = TimeZone(identifier: "UTC")!
+
+    /// Sixty days before May 28 at a steady 20 a day, so their usual big day is 20, plus `extra`.
+    private func steadyHistory(_ count: Int = 20, _ extra: [String: Int] = [:]) -> ContributionHistory {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = Self.utc
+        var days: [String: Int] = [:]
         for offset in 1...60 {
-            days[ContributionsParser.isoCalendar().date(byAdding: .day, value: -offset, to: ymd(2026, 5, 28))!] = count
+            days[ContributionHistory.key(for: calendar.date(byAdding: .day, value: -offset, to: ymd(2026, 5, 28))!,
+                                         in: calendar)] = count
         }
-        return days
+        days.merge(extra) { $1 }
+        return ContributionHistory(days: days, timeZone: Self.utc)
     }
 
     @Test func trolling_flagsADayFarAboveTheirUsualBigDay() {
-        var days = steadyHistory()
-        days[ymd(2026, 5, 28)] = 784
-        let burst = ContributionsParser.burst(days: days, window: .daily, asOf: ymd(2026, 5, 28))
+        let history = steadyHistory(20, ["2026-05-28": 784])
+        let burst = history.burst(for: .daily, asOf: ymd(2026, 5, 28))
         #expect(burst == Burst(day: ymd(2026, 5, 28), count: 784, usual: 20))
         #expect(burst?.multiple == 39)
+        #expect(StandingCounts(history: history, window: .daily, asOf: ymd(2026, 5, 28)).burst == burst)
     }
 
     @Test func trolling_ignoresABusyDayUnderFiveTimesTheirUsual() {
-        var days = steadyHistory(40)
-        days[ymd(2026, 5, 28)] = 200 // exactly 5×: not over the line
-        #expect(ContributionsParser.burst(days: days, window: .daily, asOf: ymd(2026, 5, 28)) == nil)
+        let history = steadyHistory(40, ["2026-05-28": 200]) // exactly 5×: not over the line
+        #expect(history.burst(for: .daily, asOf: ymd(2026, 5, 28)) == nil)
     }
 
     @Test func trolling_needsMoreThanAHundred() {
-        var days = steadyHistory(2)
-        days[ymd(2026, 5, 28)] = 100 // 50× a quiet account's usual, but not over the floor
-        #expect(ContributionsParser.burst(days: days, window: .daily, asOf: ymd(2026, 5, 28)) == nil)
-        days[ymd(2026, 5, 28)] = 101
-        #expect(ContributionsParser.burst(days: days, window: .daily, asOf: ymd(2026, 5, 28))?.count == 101)
+        // 50× a quiet account's usual, but not over the floor
+        #expect(steadyHistory(2, ["2026-05-28": 100]).burst(for: .daily, asOf: ymd(2026, 5, 28)) == nil)
+        #expect(steadyHistory(2, ["2026-05-28": 101]).burst(for: .daily, asOf: ymd(2026, 5, 28))?.count == 101)
     }
 
     @Test func trolling_newAccountOverTheFloorIsTrolling() {
-        let days = [ymd(2026, 5, 28): 150]
-        let burst = ContributionsParser.burst(days: days, window: .daily, asOf: ymd(2026, 5, 28))
+        let history = ContributionHistory(days: ["2026-05-28": 150], timeZone: Self.utc)
+        let burst = history.burst(for: .daily, asOf: ymd(2026, 5, 28))
         #expect(burst == Burst(day: ymd(2026, 5, 28), count: 150, usual: 0))
         #expect(burst?.multiple == nil)
     }
 
     @Test func trolling_staysInLongerWindowsUntilTheDayLeaves() {
-        var days = steadyHistory()
-        days[ymd(2026, 5, 25)] = 500
-        days[ymd(2026, 5, 28)] = 20
+        let history = steadyHistory(20, ["2026-05-25": 500, "2026-05-28": 20])
         let asOf = ymd(2026, 5, 28)
-        #expect(ContributionsParser.burst(days: days, window: .daily, asOf: asOf) == nil)
-        #expect(ContributionsParser.burst(days: days, window: .weekly, asOf: asOf)?.count == 500)
-        #expect(ContributionsParser.burst(days: days, window: .monthly, asOf: asOf)?.day == ymd(2026, 5, 25))
+        #expect(history.burst(for: .daily, asOf: asOf) == nil)
+        #expect(history.burst(for: .weekly, asOf: asOf)?.count == 500)
+        #expect(history.burst(for: .monthly, asOf: asOf)?.day == ymd(2026, 5, 25))
+    }
+
+    /// This month covers the 1st through today, so a trolling day last month isn't on it.
+    @Test func trolling_thisMonthCoversOnlyTheCalendarMonth() {
+        let history = steadyHistory(20, ["2026-04-30": 500, "2026-05-02": 20])
+        #expect(history.burst(for: .monthly, asOf: ymd(2026, 5, 2))?.count == 500)
+        #expect(history.burst(for: .month, asOf: ymd(2026, 5, 2)) == nil)
+        let may = steadyHistory(20, ["2026-05-01": 600])
+        #expect(may.burst(for: .month, asOf: ymd(2026, 5, 28))?.day == ymd(2026, 5, 1))
     }
 
     @Test func trolling_judgesEachDayOnlyAgainstTheDaysBeforeIt() {
-        var days = steadyHistory()
-        days[ymd(2026, 5, 27)] = 300
-        days[ymd(2026, 5, 28)] = 5_000
+        let history = steadyHistory(20, ["2026-05-27": 300, "2026-05-28": 5_000])
         // The later huge day doesn't raise the bar for the earlier one…
-        #expect(ContributionsParser.burst(days: days, window: .daily, asOf: ymd(2026, 5, 27))
+        #expect(history.burst(for: .daily, asOf: ymd(2026, 5, 27))
             == Burst(day: ymd(2026, 5, 27), count: 300, usual: 20))
         // …and a window with two reports the bigger.
-        #expect(ContributionsParser.burst(days: days, window: .weekly, asOf: ymd(2026, 5, 28))
+        #expect(history.burst(for: .weekly, asOf: ymd(2026, 5, 28))
             == Burst(day: ymd(2026, 5, 28), count: 5_000, usual: 20))
     }
 
@@ -175,8 +153,10 @@ struct ContributionsParserTests {
         #expect(TrollCheck.usualBigDay([0] + Array(1...20)) == 19)
     }
 
+    /// Midnight UTC on that day.
     func ymd(_ y: Int, _ m: Int, _ d: Int) -> Date {
-        let cal = ContributionsParser.isoCalendar()
-        return cal.date(from: DateComponents(year: y, month: m, day: d))!
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = Self.utc
+        return calendar.date(from: DateComponents(year: y, month: m, day: d))!
     }
 }

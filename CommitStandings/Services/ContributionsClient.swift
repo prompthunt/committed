@@ -16,20 +16,25 @@ protocol ContributionsFetching: Sendable {
 
 /// Fetches a competitor's contributions for a window by scraping the public
 /// `github.com/users/<name>/contributions` HTML (anonymously — no token, even when signed
-/// in). The page carries a full year of per-day counts, so any window is summed locally.
+/// in). The page carries a full year of per-day counts; the result keeps them, and its total for
+/// `window` is worked out from them.
 struct ContributionsClient: ContributionsFetching {
     private let session: URLSession
     private let baseURL: URL
     private let userAgent: String
+    /// The zone the calendar is read in, asked at each fetch: the device's, unless a test pins it.
+    private let timeZone: @Sendable () -> TimeZone
 
     init(
         session: URLSession = .shared,
         baseURL: URL = URL(string: "https://github.com")!,
-        userAgent: String = "CommitStandings/0.1 (+https://github.com)"
+        userAgent: String = "CommitStandings/0.1 (+https://github.com)",
+        timeZone: @escaping @Sendable () -> TimeZone = { .current }
     ) {
         self.session = session
         self.baseURL = baseURL
         self.userAgent = userAgent
+        self.timeZone = timeZone
     }
 
     func standingCounts(
@@ -37,6 +42,13 @@ struct ContributionsClient: ContributionsFetching {
         window: ContributionWindow,
         asOf reference: Date
     ) async -> Result<StandingCounts, ContributionsError> {
+        await history(for: username).map { history in
+            StandingCounts(history: history, window: window, asOf: reference)
+        }
+    }
+
+    /// The person's whole calendar (about 53 weeks), from one page.
+    private func history(for username: String) async -> Result<ContributionHistory, ContributionsError> {
         let url = baseURL.appendingPathComponent("users/\(username)/contributions")
         var request = URLRequest(url: url)
         request.setValue(userAgent, forHTTPHeaderField: "User-Agent")
@@ -60,11 +72,7 @@ struct ContributionsClient: ContributionsFetching {
                 return .failure(.parseFailed("Non-UTF8 body"))
             }
             do {
-                let days = try ContributionsParser.parseDays(html: html)
-                return .success(StandingCounts(
-                    contributions: ContributionsParser.sum(days: days, window: window, asOf: reference),
-                    burst: ContributionsParser.burst(days: days, window: window, asOf: reference)
-                ))
+                return .success(try ContributionsParser.parseHistory(html: html, timeZone: timeZone()))
             } catch let error as ContributionsError {
                 return .failure(error)
             } catch {

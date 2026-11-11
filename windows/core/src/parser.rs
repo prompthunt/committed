@@ -1,7 +1,8 @@
-use chrono::{Duration, NaiveDate};
+use chrono::NaiveDate;
 use scraper::{Html, Selector};
 use serde::Serialize;
 use std::collections::BTreeMap;
+use std::ops::RangeInclusive;
 
 fn count(label: &str) -> Option<u32> {
     let label = label.trim().to_ascii_lowercase();
@@ -52,12 +53,6 @@ pub fn parse(html: &str) -> Result<BTreeMap<NaiveDate, u32>, String> {
         Ok(days)
     }
 }
-pub fn sum(days: &BTreeMap<NaiveDate, u32>, length: i64, today: NaiveDate) -> u32 {
-    days.range((today - Duration::days(length - 1))..=today)
-        .map(|(_, count)| count)
-        .sum()
-}
-
 /// A trolling day is more than this many times the person's usual big day…
 pub const TROLL_MULTIPLE: u32 = 5;
 /// …and more than this many contributions. Matches the Mac and iPhone (`TrollCheck`).
@@ -84,10 +79,10 @@ pub fn usual_big_day(counts: impl Iterator<Item = u32>) -> u32 {
     active[index.min(active.len() - 1)]
 }
 
-/// The window's biggest trolling day, each day judged only against the days before it.
-pub fn burst(days: &BTreeMap<NaiveDate, u32>, length: i64, today: NaiveDate) -> Option<Burst> {
-    let earliest = today - Duration::days(length - 1);
-    days.range(earliest..=today)
+/// The biggest trolling day in `range` (a Window's days, `history::range`), each day judged only
+/// against the calendar's days before it. Swift's `ContributionHistory.burst(for:asOf:)`.
+pub fn burst(days: &BTreeMap<NaiveDate, u32>, range: RangeInclusive<NaiveDate>) -> Option<Burst> {
+    days.range(range)
         .filter(|(_, &count)| count > TROLL_FLOOR)
         .filter_map(|(&date, &count)| {
             let usual = usual_big_day(days.range(..date).map(|(_, &c)| c));
@@ -103,6 +98,7 @@ pub fn burst(days: &BTreeMap<NaiveDate, u32>, length: i64, today: NaiveDate) -> 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::{history, Window};
 
     fn day(d: u32) -> NaiveDate {
         NaiveDate::from_ymd_opt(2026, 5, d).unwrap()
@@ -117,7 +113,7 @@ mod tests {
         let mut days = steady(20);
         days.insert(day(28), 784);
         assert_eq!(
-            burst(&days, 1, day(28)),
+            burst(&days, day(28)..=day(28)),
             Some(Burst {
                 date: day(28),
                 count: 784,
@@ -130,16 +126,16 @@ mod tests {
     fn five_times_usual_is_not_over_the_line() {
         let mut days = steady(40);
         days.insert(day(28), 200);
-        assert_eq!(burst(&days, 1, day(28)), None);
+        assert_eq!(burst(&days, day(28)..=day(28)), None);
     }
 
     #[test]
     fn needs_more_than_a_hundred() {
         let mut days = steady(2);
         days.insert(day(28), 100);
-        assert_eq!(burst(&days, 1, day(28)), None);
+        assert_eq!(burst(&days, day(28)..=day(28)), None);
         days.insert(day(28), 101);
-        assert_eq!(burst(&days, 1, day(28)).map(|b| b.count), Some(101));
+        assert_eq!(burst(&days, day(28)..=day(28)).map(|b| b.count), Some(101));
     }
 
     #[test]
@@ -147,8 +143,29 @@ mod tests {
         let mut days = steady(20);
         days.insert(day(25), 500);
         days.insert(day(28), 20);
-        assert_eq!(burst(&days, 1, day(28)), None);
-        assert_eq!(burst(&days, 7, day(28)).map(|b| b.date), Some(day(25)));
+        assert_eq!(burst(&days, day(28)..=day(28)), None);
+        assert_eq!(
+            burst(&days, day(22)..=day(28)).map(|b| b.date),
+            Some(day(25))
+        );
+    }
+
+    /// This month covers the 1st through today: last month's trolling day isn't on it.
+    #[test]
+    fn this_month_covers_only_the_calendar_month() {
+        let april_30 = NaiveDate::from_ymd_opt(2026, 4, 30).unwrap();
+        let mut days: BTreeMap<NaiveDate, u32> = (1..=29)
+            .map(|d| (NaiveDate::from_ymd_opt(2026, 4, d).unwrap(), 20))
+            .collect();
+        days.insert(april_30, 500);
+        days.insert(day(1), 20);
+        days.insert(day(2), 20);
+        let thirty = history::range(Window::Monthly, day(2));
+        assert_eq!(burst(&days, thirty).map(|b| b.date), Some(april_30));
+        assert_eq!(
+            burst(&days, history::range(Window::ThisMonth, day(2))),
+            None
+        );
     }
 
     #[test]
@@ -156,8 +173,11 @@ mod tests {
         let mut days = steady(20);
         days.insert(day(27), 300);
         days.insert(day(28), 5_000);
-        assert_eq!(burst(&days, 1, day(27)).map(|b| b.usual), Some(20));
-        assert_eq!(burst(&days, 7, day(28)).map(|b| b.count), Some(5_000));
+        assert_eq!(burst(&days, day(27)..=day(27)).map(|b| b.usual), Some(20));
+        assert_eq!(
+            burst(&days, day(22)..=day(28)).map(|b| b.count),
+            Some(5_000)
+        );
     }
 
     #[test]

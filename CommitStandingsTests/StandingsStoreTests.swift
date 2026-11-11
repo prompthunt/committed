@@ -293,3 +293,99 @@ struct UsernameNormalizationTests {
         #expect(UsernameNormalization.normalize("kowal-ski") == "kowal-ski")
     }
 }
+
+/// Each Competitor's daily counts are saved once per person, beside (not inside) the cached
+/// standings, so a relaunch has them right away and an old cache still loads.
+@MainActor
+struct ContributionHistoryStoreTests {
+    private let utc = TimeZone(identifier: "UTC")!
+    private var ada: ContributionHistory { ContributionHistory(days: ["2026-05-27": 2, "2026-05-28": 3], timeZone: utc) }
+    private let at = Date(timeIntervalSince1970: 1_779_969_600) // 2026-05-28 12:00 UTC
+
+    private func store(
+        _ competitors: InMemoryCompetitorPersistence,
+        _ snapshot: StandingsSnapshotPersistence = InMemoryStandingsSnapshotPersistence(),
+        _ histories: any ContributionHistoryPersistence
+    ) -> StandingsStore {
+        StandingsStore(persistence: competitors, snapshotPersistence: snapshot, historyPersistence: histories)
+    }
+
+    @Test func dailyCountsSurviveARelaunch() throws {
+        let competitors = InMemoryCompetitorPersistence()
+        let histories = InMemoryContributionHistoryPersistence()
+        let first = store(competitors, InMemoryStandingsSnapshotPersistence(), histories)
+        first.replaceRoster(owner: "me", members: ["ada"])
+        first.updateHistories(["ada": ada])
+
+        let relaunched = store(competitors, InMemoryStandingsSnapshotPersistence(), histories)
+        #expect(relaunched.history(for: "ada") == ada)
+        #expect(relaunched.history(for: "me") == nil)
+    }
+
+    @Test func dailyCountsSurviveARelaunchOnDisk() throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let file = directory.appendingPathComponent("contribution-history.json")
+        let competitors = InMemoryCompetitorPersistence()
+        let first = store(competitors, InMemoryStandingsSnapshotPersistence(), FileContributionHistoryPersistence(url: file))
+        first.replaceRoster(owner: "me", members: ["ada"])
+        first.updateHistories(["ada": ada])
+
+        let relaunched = store(competitors, InMemoryStandingsSnapshotPersistence(), FileContributionHistoryPersistence(url: file))
+        #expect(relaunched.history(for: "ada") == ada)
+    }
+
+    /// A cache from before daily counts were kept: the standings load as they always did, and
+    /// everyone is "no history yet" (nil, never zeros) until the next Refresh fills it in.
+    @Test func anOldCacheWithoutDailyCountsLoadsAsNoHistoryYet() throws {
+        let suite = "Committed.OldCache.\(UUID().uuidString)"
+        let defaults = try #require(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        // standings.v1 exactly as an older build wrote it.
+        defaults.set(Data(#"[{"username":"ada","contributions":5,"window":"daily","lastUpdated":800000000,"state":{"loaded":{}}}]"#.utf8),
+                     forKey: "standings.v1")
+        let missing = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString).appendingPathComponent("contribution-history.json")
+        let competitors = InMemoryCompetitorPersistence()
+        competitors.save([Competitor(username: "me", isSelf: true), Competitor(username: "ada", isSelf: false)])
+
+        let loaded = store(competitors, UserDefaultsStandingsSnapshotPersistence(defaults: defaults),
+                           FileContributionHistoryPersistence(url: missing))
+
+        #expect(loaded.standing(for: "ada", window: .daily)?.contributions == 5)
+        #expect(loaded.history(for: "ada") == nil)
+        loaded.updateHistories(["ada": ada])
+        #expect(loaded.history(for: "ada") == ada)
+    }
+
+    @Test func unreadableSavedDailyCountsLoadAsNoHistoryYet() throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        let file = directory.appendingPathComponent("contribution-history.json")
+        try Data("not json".utf8).write(to: file)
+        let competitors = InMemoryCompetitorPersistence()
+        competitors.save([Competitor(username: "me", isSelf: true)])
+
+        let loaded = store(competitors, InMemoryStandingsSnapshotPersistence(), FileContributionHistoryPersistence(url: file))
+        #expect(loaded.history(for: "me") == nil)
+    }
+
+    @Test func peopleWhoLeaveTheBoardTakeTheirDailyCountsWithThem() throws {
+        let competitors = InMemoryCompetitorPersistence()
+        let histories = InMemoryContributionHistoryPersistence()
+        let board = store(competitors, InMemoryStandingsSnapshotPersistence(), histories)
+        board.replaceRoster(owner: "me", members: ["ada", "bo"])
+        board.updateHistories(["ada": ada, "bo": ada, "stranger": ada])
+        #expect(board.history(for: "stranger") == nil)
+
+        board.replaceRoster(owner: "me", members: ["bo"])
+        #expect(board.history(for: "ada") == nil)
+        #expect(board.history(for: "bo") == ada)
+        #expect(histories.load().keys.sorted() == ["bo"])
+
+        board.reset()
+        #expect(board.history(for: "bo") == nil)
+        #expect(histories.load().isEmpty)
+    }
+}

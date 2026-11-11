@@ -35,6 +35,9 @@ final class AppModel {
     }
 
     var selectedTab: AppTab = .board
+    /// The Competitor whose person view is open (a sheet, or the second pane on iPhone Duo), by
+    /// login; nil when none is. Forgotten when the graph on screen changes.
+    var selectedPerson: String?
     /// The switch in Settings asked for the relay disclosure.
     private var liveRankDisclosureRequested = false
 
@@ -139,7 +142,7 @@ final class AppModel {
             relay: relay,
             preferences: preferences,
             isSignedIn: { auth.isSignedIn },
-            rankDelta: { refresh.rankDelta(for: $0) },
+            rankDelta: { refresh.rankDelta(for: $0, in: $1) },
             now: now,
             isSampleBoard: isSampleBoard
         )
@@ -198,6 +201,7 @@ final class AppModel {
         wire(sample, liveRank: sampleLiveRank, avatars: NoAvatarPrefetching())
         realServices.refresh.pauseTimer()
         services = sample
+        selectedPerson = nil
         liveRank = sampleLiveRank
         didRefreshIdentity = false
     }
@@ -226,6 +230,7 @@ final class AppModel {
         sample.refresh.pauseTimer()
         sample.auth.signOut()
         services = realServices
+        selectedPerson = nil
         liveRank = realLiveRank
         didRefreshIdentity = false
         liveRankDisclosureRequested = false
@@ -248,7 +253,7 @@ final class AppModel {
     func publishWidgets() {
         let refresh = services.refresh
         var snapshot = auth.isSignedIn
-            ? WidgetSnapshot.board(store, window: liveRank.window, rankDelta: { refresh.rankDelta(for: $0) }, now: now())
+            ? WidgetSnapshot.board(store, window: liveRank.window, rankDelta: { [window = liveRank.window] in refresh.rankDelta(for: $0, in: window) }, now: now())
             : nil
         if mode == .sampleBoard { snapshot?.isSampleBoard = true }
         widgets.publish(snapshot)
@@ -259,11 +264,29 @@ final class AppModel {
     func boardToShare() -> WidgetSnapshot? {
         let refresh = services.refresh
         var snapshot = WidgetSnapshot.board(
-            store, window: store.selectedWindow, rankDelta: { refresh.rankDelta(for: $0) }, now: now(),
+            store, window: store.selectedWindow, rankDelta: { [window = store.selectedWindow] in refresh.rankDelta(for: $0, in: window) }, now: now(),
             rows: BoardShareFormat.maxBoardRows
         )
         if mode == .sampleBoard { snapshot?.isSampleBoard = true }
         return snapshot
+    }
+
+    /// What Share board offers: the board as it stands, and on the 1st last month's Final standings
+    /// (when the Board offers them: you have rivals and a calendar covering the month), opening on
+    /// them while the Board shows them.
+    func boardShareRequest() -> BoardShareRequest? {
+        guard let snapshot = boardToShare() else { return nil }
+        let finals = store.rivals.isEmpty ? nil : refresh.offeredFinalStandings?.month
+        return BoardShareRequest(snapshot: snapshot, finals: finals.flatMap(finalStandingsToShare(for:)),
+                                 opensOnFinals: refresh.showsFinalStandings)
+    }
+
+    /// `month`'s Final standings for Share board, or nil when your calendar doesn't cover it. Open
+    /// them alone with `BoardShareSheet(finals:)` (the person view's past months).
+    func finalStandingsToShare(for month: CalendarMonth) -> FinalStandingsShare? {
+        store.finalStandings(for: month).flatMap {
+            FinalStandingsShare($0, isSampleBoard: mode == .sampleBoard, now: now())
+        }
     }
 
     /// Saved avatars for the board, read before the network: none on the Sample board, whose
@@ -362,6 +385,17 @@ final class AppModel {
     }
 
     /// Hiding or showing someone updates Live rank and the widgets right away while the app is open.
+    /// Opens `login`'s person view, as tapping their row on the Board does.
+    func showPerson(_ login: String) {
+        selectedPerson = login
+    }
+
+    /// The open person view's content as of now, or nil: nobody chosen, or they've left the board
+    /// (hidden, or gone from your people), which closes it.
+    var shownPerson: PersonSummary? {
+        selectedPerson.flatMap { store.person($0, asOf: now(), calendar: .current) }
+    }
+
     func visibilityDidChange() async {
         await liveRank.sync()
         publishWidgets()
@@ -380,6 +414,8 @@ final class AppModel {
 
     /// Switching Window shows cached numbers instantly and fetches only when they're stale.
     func windowDidChange() async {
+        // Picking a Window goes back to the live board from the 1st's Final standings.
+        refresh.showFinalStandings(false)
         guard auth.isSignedIn, refresh.needsRefresh(for: store.selectedWindow) else { return }
         await refresh.refreshAll(reason: .windowChanged)
     }

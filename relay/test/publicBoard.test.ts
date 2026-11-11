@@ -52,11 +52,19 @@ describe("GET /v1/board", () => {
       rank: 2,
       competitorCount: 3,
       contributions: 5,
-      above: { login: "alice", contributions: 9, movementToday: 0 },
-      below: { login: "bob", contributions: 1, movementToday: 0 },
+      above: { login: "alice", contributions: 9, movementToday: 0, streak: 1 },
+      below: { login: "bob", contributions: 1, movementToday: 0, streak: 1 },
       movementToday: 0,
+      streak: 1,
       updatedAt: T0,
     });
+  });
+
+  it("sums This month from the 1st in the board's time zone", async () => {
+    const res = await get("login=me&competitors=alice,bob&window=month&tz=America/New_York");
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { window: string; rank: number; contributions: number; above: { login: string } };
+    expect(body).toMatchObject({ window: "month", rank: 2, contributions: 15, above: { login: "bob" } });
   });
 
   it("sums the 7-day window", async () => {

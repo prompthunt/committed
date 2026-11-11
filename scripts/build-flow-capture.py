@@ -30,7 +30,8 @@ helpers = app_file.read_text().split("enum MenuPopoverLayout", 1)[1]
 app_file.write_text(r'''import SwiftUI
 
 @main struct FlowCaptureApp: App {
-    @State private var surface = "Board"
+    // `-CaptureSurface Person` starts on that Captures entry (for `-CaptureSnapshot`).
+    @State private var surface = UserDefaults.standard.string(forKey: "CaptureSurface") ?? "Board"
     @State private var store: StandingsStore
     @State private var refresh: RefreshCoordinator
     @State private var roster: GitHubRoster
@@ -38,6 +39,7 @@ app_file.write_text(r'''import SwiftUI
     @State private var signedOut = AuthModel(credentials: InMemoryGitHubCredentialStore(), auth: GitHubAuth(clientID: "fixture", scope: ""))
     @State private var notifications = NotificationService()
     @State private var updater = AppUpdater(startingUpdater: false)
+    @State private var personWindow: PersonWindowModel
 
     init() {
         let s = StandingsStore(persistence: InMemoryCompetitorPersistence())
@@ -46,18 +48,21 @@ app_file.write_text(r'''import SwiftUI
         if LARGE_BOARD {
             for number in 1...14 { try! s.addRival(username: "sample-rival-\(number)") }
         }
+        let now = captureNow()
+        // `-CaptureWaiting <login>` leaves that person's count unloaded: their row and person view wait.
+        let waiting = UserDefaults.standard.string(forKey: "CaptureWaiting")
+        let loaded = s.competitors.filter { $0.username != waiting }
+        s.updateHistories(Dictionary(uniqueKeysWithValues: loaded.map { ($0.username, captureHistory($0.username, asOf: now)) }))
         for window in ContributionWindow.allCases {
-            for (index, entry) in s.competitors.enumerated() {
-                s.updateStanding(Standing(username: entry.username, contributions: (s.competitors.count-index)*8*window.dayCount,
-                    window: window, lastUpdated: Date(), state: .loaded))
+            for entry in loaded {
+                let counts = StandingCounts(history: captureHistory(entry.username, asOf: now), window: window, asOf: now)
+                s.updateStanding(Standing(username: entry.username, contributions: counts.contributions,
+                    window: window, lastUpdated: now, state: .loaded, burst: counts.burst))
             }
         }
-        if TROLL_FIXTURE {
-            let burst = Burst(day: Calendar.current.startOfDay(for: Date()), count: 784, usual: 102)
-            for window in ContributionWindow.allCases {
-                s.updateStanding(Standing(username: "hubot", contributions: 784 + 32*window.dayCount, window: window,
-                    lastUpdated: Date(), state: .loaded, burst: burst))
-            }
+        // `-CaptureWindow month` opens the board on that Window (a ContributionWindow raw value).
+        if let window = UserDefaults.standard.string(forKey: "CaptureWindow").flatMap(ContributionWindow.init(rawValue:)) {
+            s.selectedWindow = window
         }
         let sources = GitHubRosterSnapshot(owner: "octocat", sources: [
             GitHubRosterSource(id: "org:github", title: "github", members: ["octocat", "hubot", "monalisa"]),
@@ -68,7 +73,11 @@ app_file.write_text(r'''import SwiftUI
         })
         _roster = State(initialValue: roster)
         _store = State(initialValue: s)
-        _refresh = State(initialValue: RefreshCoordinator(store: s, client: CaptureCounts(), beforeRefresh: { reason in
+        // `-CapturePerson <login>` is who the person window shows (as if their row was clicked).
+        let personWindow = PersonWindowModel(store: s, now: captureNow)
+        personWindow.show(UserDefaults.standard.string(forKey: "CapturePerson") ?? "hubot")
+        _personWindow = State(initialValue: personWindow)
+        _refresh = State(initialValue: RefreshCoordinator(store: s, client: CaptureCounts(), now: captureNow, beforeRefresh: { reason in
             await roster.refresh(force: reason == .manual)
         }))
     }
@@ -80,12 +89,20 @@ app_file.write_text(r'''import SwiftUI
                 case "Sign in": SignInView().environment(signedOut).padding(28).frame(width: 516, height: 476)
                 case "People": FullRankingsView().frame(width: 420, height: 480)
                 case "Help": ContributionsExplainerView()
+                // `-CapturePersonDay 8` selects that day's bar instead of today's;
+                // `-CapturePersonScrolledToEnd YES` shows the bottom (your view's tip and note).
+                case "Person": PersonWindowView(
+                    initialDay: UserDefaults.standard.string(forKey: "CapturePersonDay").flatMap { Int($0) },
+                    scrollAnchor: UserDefaults.standard.bool(forKey: "CapturePersonScrolledToEnd") ? .bottom : .top
+                ).frame(width: PersonWindow.defaultWidth, height: 640)
                 case "Signed-out popover": MenuContentView(updater: updater).environment(signedOut)
                 default: MenuContentView(updater: updater)
                 }
             }
             .environment(store).environment(refresh).environment(auth).environment(roster).environment(notifications)
-            .preferredColorScheme(.light)
+            .environment(personWindow)
+            // `-CaptureAppearance dark` captures in Dark Mode.
+            .preferredColorScheme(UserDefaults.standard.string(forKey: "CaptureAppearance") == "dark" ? .dark : .light)
             .task { await roster.refresh() }
             .task { await snapshotIfRequested() }
         }
@@ -97,6 +114,7 @@ app_file.write_text(r'''import SwiftUI
                 Button("Sign in") { surface = "Sign in" }.keyboardShortcut("3")
                 Button("Help") { surface = "Help" }.keyboardShortcut("4")
                 Button("Signed-out popover") { surface = "Signed-out popover" }.keyboardShortcut("5")
+                Button("Person") { surface = "Person" }.keyboardShortcut("6")
             }
         }
         Window("People", id: FullRankingsWindow.id) {
@@ -104,6 +122,10 @@ app_file.write_text(r'''import SwiftUI
         }.defaultSize(width: 420, height: 480).windowResizability(.contentMinSize).windowToolbarStyle(.unifiedCompact)
         Window("How contributions are counted", id: ExplainerWindow.id) { ContributionsExplainerView() }
             .windowResizability(.contentSize)
+        // Clicking a Board row opens the real person window, as in the app.
+        Window("Person", id: PersonWindow.id) { PersonWindowView().environment(personWindow) }
+            .defaultSize(width: PersonWindow.defaultWidth, height: 640).windowResizability(.contentMinSize)
+            .windowToolbarStyle(.unifiedCompact)
     }
 }
 
@@ -119,15 +141,36 @@ app_file.write_text(r'''import SwiftUI
     NSApp.terminate(nil)
 }
 
+/// `-CaptureDate 2026-11-01T10:00:00Z` sets the host's clock, so the 1st's Final standings show.
+private func captureNow() -> Date {
+    UserDefaults.standard.string(forKey: "CaptureDate").flatMap { try? Date($0, strategy: .iso8601) } ?? Date()
+}
+
 private struct CaptureCounts: ContributionsFetching {
     func standingCounts(for username: String, window: ContributionWindow, asOf reference: Date) async -> Result<StandingCounts, ContributionsError> {
-        let count = (["octocat":40,"hubot":32,"monalisa":24,"defunkt":16,"mojombo":8][username] ?? 4) * window.dayCount
-        if TROLL_FIXTURE, username == "hubot" {
-            let burst = Burst(day: Calendar.current.startOfDay(for: reference), count: 784, usual: 102)
-            return .success(StandingCounts(contributions: count + 784, burst: burst))
-        }
-        return .success(StandingCounts(contributions: count))
+        .success(StandingCounts(history: captureHistory(username, asOf: reference), window: window, asOf: reference))
     }
+}
+
+/// A made-up year of days: a fixed count a day, a streak of the listed length (nothing the day
+/// before it), then most days. monalisa's runs the whole calendar ("365+"); defunkt has none.
+/// With `--troll`, hubot has 784 more today: the real trolling rule marks the row.
+private func captureHistory(_ username: String, asOf reference: Date) -> ContributionHistory {
+    let perDay = ["octocat": 5, "hubot": 4, "monalisa": 3, "defunkt": 2, "mojombo": 1][username] ?? 1
+    let streak = ["octocat": 14, "hubot": 6, "monalisa": 371, "defunkt": 0, "mojombo": 2][username] ?? 1
+    var calendar = Calendar(identifier: .gregorian)
+    calendar.timeZone = .current
+    let today = calendar.startOfDay(for: reference)
+    var days: [String: Int] = [:]
+    for offset in 0..<371 {
+        let day = calendar.date(byAdding: .day, value: -offset, to: today)!
+        let active = offset < streak || (offset > max(streak, 1) && offset % 5 != 0)
+        days[ContributionHistory.key(for: day, in: calendar)] = active ? perDay * (1 + offset % 3) : 0
+    }
+    if TROLL_FIXTURE, username == "hubot" {
+        days[ContributionHistory.key(for: today, in: calendar), default: 0] += 784
+    }
+    return ContributionHistory(days: days, timeZone: .current)
 }
 
 enum MenuPopoverLayout'''.replace('LARGE_BOARD', str(args.large_board).lower()).replace('TROLL_FIXTURE', str(args.troll).lower()) + helpers)

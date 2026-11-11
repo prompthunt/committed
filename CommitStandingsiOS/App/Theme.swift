@@ -32,10 +32,33 @@ extension StandingRowStyle {
         // Losing a place is news: brighter than secondary text, never alarm-orange.
         movementDownColor: .soft,
         movementFont: .caption2.weight(.heavy),
+        // Quieter than the count beside it, on the board's numerals; never muted (it's news).
+        streakFont: CommittedType.numeral(14, relativeTo: .footnote),
+        streakColor: .soft,
         // The Mac's 2×2 squares glyph, tinted on the site's ramp; Live rank's rows match.
         squares: .shadedSymbol(Color.rowGlyphs),
         // The troll face reads at a glance only a little larger than the squares glyph.
         trollSize: CGSize(width: 25, height: 21)
+    )
+}
+
+extension PersonViewStyle {
+    /// The person view on iPhone: Inter Tight for names and numbers, lime for this month's bars
+    /// and you, last month in the site's dimmest square green, on tile cards.
+    static let committed = PersonViewStyle(
+        nameFont: CommittedType.display(26, relativeTo: .title2),
+        sectionFont: CommittedType.display(19, relativeTo: .headline),
+        statValueFont: CommittedType.display(20, relativeTo: .title3),
+        statLabelFont: .caption.weight(.medium),
+        bodyFont: .callout,
+        captionFont: .footnote,
+        avatarSize: 56,
+        accent: .lime,
+        badgeForeground: .onLime,
+        pastBarColor: .white.opacity(0.16),
+        secondaryColor: .muted,
+        cardColor: .tile,
+        cornerRadius: 16
     )
 }
 

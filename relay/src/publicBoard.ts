@@ -1,4 +1,4 @@
-import { standingsFor } from "./board";
+import { standingsFor, streaksFor } from "./board";
 import { loadContributions } from "./cycle";
 import type { Store } from "./db";
 import { deriveLiveRankState, type LiveRankState } from "./liveRank";
@@ -56,6 +56,7 @@ export async function boardState(
     window: query.window,
     // Movement needs a per-board daily baseline, which a stateless read doesn't keep.
     rankDeltas: {},
+    streaks: streaksFor(query.competitors, data, today),
     now: standings[query.login] ? data.get(query.login)!.fetchedAt : deps.now,
   });
 }
