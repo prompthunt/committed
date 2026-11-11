@@ -648,7 +648,7 @@ html.embedded body {
 [data-state="stale"] .movement { color: #8bc41a; }
 [data-state="stale"] .movement[data-direction="down"] { color: #8e9288; }
 
-/* MARK: Messages in place of the board: revoked, gone, not set up */
+/* MARK: Messages in place of the board: revoked, gone, not set up, size not supported */
 
 .message {
   display: none;
@@ -684,12 +684,14 @@ html.embedded body {
 
 [data-state="revoked"] .panes,
 [data-state="gone"] .panes,
-[data-state="setup"] .panes {
+[data-state="setup"] .panes,
+[data-state="unsupported"] .panes {
   display: none;
 }
 
 [data-state="revoked"] .message,
 [data-state="gone"] .message,
-[data-state="setup"] .message {
+[data-state="setup"] .message,
+[data-state="unsupported"] .message {
   display: flex;
 }
