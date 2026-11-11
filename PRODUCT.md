@@ -33,6 +33,7 @@ Clicking the menu-bar icon opens a popover with your contribution summary and a 
 - **Contributions** — the single ranking metric: the GitHub contribution-graph "green squares" count for the selected window. Rows are sorted by contributions, highest first.
 - **Your summary** — your avatar, name or handle, and contribution count appear above the list. Your rank also appears in the menu bar when you have visible rivals.
 - **Today's movement** — small chevrons show rank changes since the first refresh of the day. Hiding or showing people starts a new movement baseline.
+- **Trolling** — a day far above someone's usual is marked as trolling: their count turns red and a troll face takes the place of their contribution squares, with "Problem?" and how far over their usual on hover (and for VoiceOver). A day counts as trolling when it's over 100 and more than 5 times their usual big day (the count 9 in 10 of their earlier active days stay under, from the year on their contribution graph). The mark stays on 7 days and 30 days until that day leaves the window. It doesn't change their count or rank; widgets and Live rank don't show it.
 - **Leaderboard Notifications** — opt in through `⋯` to receive a notification when someone passes you or you pass them.
 
 ### Time windows
@@ -185,5 +186,6 @@ The app is intentionally **not sandboxed** to support its Sparkle update path. B
 | Contributions | The count behind GitHub's contribution graph ("green squares") for the window. The single ranking metric. |
 | Refresh | Reloading contribution counts on a ~5-minute timer, stale menu-open, or stale window switch. Manual **Refresh** also reloads the people list. |
 | Live rank | The Live Activity that shows your current rank, your Contributions, and the people just above and below you in the Dynamic Island and on the Lock Screen, for a Window you choose in Settings. Say "Live rank", not "widget" or "Live Activity" in product copy. |
+| Trolling | A day over 100 contributions and more than 5 times the person's usual big day. Marked with the troll face and a red count; ranking is unchanged. |
 | Committed relay | The push service that keeps Live rank current with the iPhone app closed. It receives public GitHub usernames, Live rank's Window, the time zone, and Apple push tokens, never the GitHub token. Say "Committed relay" or "the relay", not "server", "backend", or "sync". |
 | Sample board | Committed running on built-in sample data instead of a connected GitHub account, opened with **Try a sample board** on the Connect GitHub screen. Everything works on it, and nothing leaves the device. Say "sample board", never "demo account", "guest", or "sign in". |

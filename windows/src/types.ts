@@ -12,6 +12,14 @@ export interface Row extends Person {
   is_you: boolean;
   movement: number;
   status: "loaded" | "loading" | "cached" | "failed" | "missing";
+  /** The window's trolling day, if any: far above their usual, so the row wears the troll face. */
+  burst?: Burst | null;
+}
+export interface Burst {
+  date: string;
+  count: number;
+  /** Their usual big day before it: the count 9 in 10 of their earlier active days stay under. */
+  usual: number;
 }
 export interface Board {
   window: Window;

@@ -36,6 +36,9 @@ enum SampleServices {
         var includesFailingCompetitor = false
         /// Organizations that won't list their members for Committed, as People shows them.
         var restrictedOrganizations: [String]?
+        /// This person trolls: 784 more today, far above their usual, so their row wears the troll
+        /// face (screenshot fixture only).
+        var trollPerson: String?
     }
 
     static func make(_ options: Options = Options(), now: @escaping @Sendable () -> Date = { Date() })
@@ -49,7 +52,7 @@ enum SampleServices {
         return CommittedServices(
             store: StandingsStore(persistence: InMemoryCompetitorPersistence()),
             credentials: InMemoryGitHubCredentialStore(token: "sample"),
-            contributions: SampleContributions(),
+            contributions: SampleContributions(trollPerson: options.trollPerson),
             // Even a stray Connect GitHub on this graph stays on the phone.
             gitHubAuth: GitHubAuth(clientID: "sample", session: session),
             accountFactory: { GitHubAccountClient(token: $0, session: session) },
@@ -67,6 +70,11 @@ enum SampleServices {
     /// second on, Ari Linden has 7 today and passes Ezra Q. Extra people count down from 39.
     private actor SampleContributions: ContributionsFetching {
         private var rounds: [String: Int] = [:]
+        private let trollPerson: String?
+
+        init(trollPerson: String? = nil) {
+            self.trollPerson = trollPerson
+        }
 
         func standingCounts(for username: String, window: ContributionWindow, asOf reference: Date)
             async -> Result<StandingCounts, ContributionsError> {
@@ -84,6 +92,11 @@ enum SampleServices {
                 return .success(StandingCounts(contributions: max(0, 40 - number)))
             }
             guard let count = counts[username]?[window] else { return .failure(.network("offline")) }
+            if username == trollPerson {
+                let today = ContributionsParser.contributionCalendar().startOfDay(for: reference)
+                return .success(StandingCounts(contributions: count + 784,
+                                               burst: Burst(day: today, count: 784, usual: 102)))
+            }
             return .success(StandingCounts(contributions: count))
         }
     }

@@ -37,15 +37,6 @@ struct ContributionsClient: ContributionsFetching {
         window: ContributionWindow,
         asOf reference: Date
     ) async -> Result<StandingCounts, ContributionsError> {
-        await contributionCount(for: username, window: window, asOf: reference)
-            .map { StandingCounts(contributions: $0) }
-    }
-
-    private func contributionCount(
-        for username: String,
-        window: ContributionWindow,
-        asOf reference: Date
-    ) async -> Result<Int, ContributionsError> {
         let url = baseURL.appendingPathComponent("users/\(username)/contributions")
         var request = URLRequest(url: url)
         request.setValue(userAgent, forHTTPHeaderField: "User-Agent")
@@ -70,7 +61,10 @@ struct ContributionsClient: ContributionsFetching {
             }
             do {
                 let days = try ContributionsParser.parseDays(html: html)
-                return .success(ContributionsParser.sum(days: days, window: window, asOf: reference))
+                return .success(StandingCounts(
+                    contributions: ContributionsParser.sum(days: days, window: window, asOf: reference),
+                    burst: ContributionsParser.burst(days: days, window: window, asOf: reference)
+                ))
             } catch let error as ContributionsError {
                 return .failure(error)
             } catch {
