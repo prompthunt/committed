@@ -23,7 +23,7 @@ struct LiveRankRelayLifecycleTests {
         relay.pushUpdates = .token
     }
 
-    private func makeModel(signedIn: Bool = true, relay: (any LiveRankRegistrar)? = nil) -> AppModel {
+    private func makeModel(signedIn: Bool = true) -> AppModel {
         let session: URLSession = {
             let config = URLSessionConfiguration.ephemeral
             config.protocolClasses = [ApprovingGitHubProtocol.self]
@@ -47,7 +47,7 @@ struct LiveRankRelayLifecycleTests {
         )
         return AppModel(
             services: services, backgroundTime: FakeBackgroundTime(),
-            liveRankActivities: activities, liveRankPreferences: preferences, liveRankRelay: relay ?? self.relay
+            liveRankActivities: activities, liveRankPreferences: preferences, liveRankRelay: relay
         )
     }
 
@@ -170,61 +170,6 @@ struct LiveRankRelayLifecycleTests {
 
         #expect(activities.startedPushUpdates == [.none])
         #expect(model.liveRank.status == .live)
-    }
-
-    // MARK: A relay older than This month
-
-    /// A relay that can't rank This month leaves Live rank to the app: the This month activity
-    /// starts without a push token and the app keeps it up to date, as without a relay. The relay
-    /// stays configured, so the disclosure isn't asked again.
-    @Test func aRelayThatCannotRankTheWindowLeavesLiveRankToTheApp() async {
-        preferences.save(LiveRankPreferences(isEnabled: true, relayDisclosureAccepted: true))
-        relay.unservedWindows = [.month]
-        let model = makeModel()
-        await model.sceneDidBecomeActive()
-        #expect(model.liveRank.isRelayKeepingCurrent)
-
-        await model.setLiveRankWindow(.month)
-
-        #expect(activities.startedPushUpdates == [.token, .none])
-        #expect(activities.running.count == 1)
-        #expect(activities.states.first?.window == "month")
-        #expect(model.liveRank.status == .live)
-        #expect(!model.liveRank.isRelayKeepingCurrent)
-        #expect(model.liveRank.isRelayConfigured)
-        #expect(model.liveRank.isEnabled)
-    }
-
-    /// End to end with the relay client: an older relay answers `invalid_window` to This month. The
-    /// app takes its registration back, starts the activity without a push token, and keeps it
-    /// current on its own refreshes, never asking the relay again in this launch.
-    @Test func anOlderRelayFallsBackToTheAppCleanly() async {
-        preferences.save(LiveRankPreferences(isEnabled: true, relayDisclosureAccepted: true))
-        let api = FakeRelayAPI()
-        let registrar = RelayLiveRankRegistrar(
-            api: api, installations: InMemoryRelayInstallationStore(), apnsEnvironment: .sandbox,
-            timeZone: { TimeZone(identifier: "UTC")! }, notificationCenter: NotificationCenter()
-        )
-        api.rejectedWindows = ["month"]
-        let model = makeModel(relay: registrar)
-        await model.sceneDidBecomeActive()
-        #expect(api.registrations.map(\.window) == ["daily"])
-
-        await model.setLiveRankWindow(.month)
-
-        #expect(api.calls.last == .unregister)
-        #expect(activities.startedPushUpdates == [.token, .none])
-        #expect(activities.states.first?.window == "month")
-        #expect(model.liveRank.status == .live)
-
-        let attempts = api.registerAttempts
-        clock.advance(300)
-        await model.pullToRefresh()
-        await model.sceneDidBecomeActive()
-        await model.backgroundRefresh()
-
-        #expect(api.registerAttempts == attempts)
-        #expect(activities.states.first?.updatedAt == Int(clock.now.timeIntervalSince1970))
     }
 
     // MARK: Re-registration

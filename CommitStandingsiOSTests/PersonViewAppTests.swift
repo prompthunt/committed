@@ -7,7 +7,7 @@ import Testing
 @MainActor
 struct PersonViewAppTests {
     /// November 10, 2026, noon on this device: inside the 8th–29th, where the Sample board's
-    /// This month totals are fixed.
+    /// month-so-far totals are fixed.
     nonisolated static let november10: Date = Calendar.current.date(
         from: DateComponents(year: 2026, month: 11, day: 10, hour: 12)
     )!
@@ -41,7 +41,6 @@ struct PersonViewAppTests {
         #expect(ines.login == "ines-volk")
         #expect(ines.dayOfMonth == 10)
         #expect(days.thisMonth.count == 10)
-        // The same 84 the Board shows on This month.
         #expect(days.thisMonth.reduce(0, +) == 84)
         #expect(days.lastMonth.count == 31)
         #expect(days.currentStreak == 47)
@@ -58,33 +57,6 @@ struct PersonViewAppTests {
         #expect(streaks == ["ines-volk 47 days", "odile-m 365+ days", "ezra-q 3 days", "ari-linden 14 days", "bram-ott 0 days"])
         model.showPerson("odile-m")
         #expect(model.shownPerson?.days?.longestStreak == 371)
-    }
-
-    @Test func theSampleBoardHasPastMonthsWithOneGoldEach() async throws {
-        let model = await sampleBoard()
-        var golds: [CalendarMonth: [String]] = [:]
-        for login in SampleServices.people {
-            model.showPerson(login)
-            let finishes = try #require(model.shownPerson?.days?.finishes)
-            // December 2025 (the calendar's first full month) through October, newest first.
-            #expect(finishes.first?.month == CalendarMonth(year: 2026, month: 10))
-            #expect(finishes.last?.month == CalendarMonth(year: 2025, month: 12))
-            #expect(finishes.count == 11)
-            #expect(finishes.allSatisfy { $0.of == 5 })
-            for finish in finishes where finish.medal == .gold { golds[finish.month, default: []].append(login) }
-        }
-        #expect(golds.count == 11)
-        #expect(golds.values.allSatisfy { $0.count == 1 })
-    }
-
-    @Test func everyPastMonthInThePersonViewCanBeShared() async throws {
-        let model = await sampleBoard()
-        model.showPerson("ines-volk")
-        let finishes = try #require(model.shownPerson?.days?.finishes)
-        #expect(!finishes.isEmpty)
-        #expect(finishes.allSatisfy { model.finalStandingsToShare(for: $0.month) != nil })
-        // A month before your calendar's first full month isn't shared.
-        #expect(model.finalStandingsToShare(for: CalendarMonth(year: 2025, month: 10)) == nil)
     }
 
     @Test func yourOwnViewIsMarkedAsYours() async throws {

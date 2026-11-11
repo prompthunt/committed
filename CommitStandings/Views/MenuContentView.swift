@@ -90,8 +90,6 @@ struct MenuContentView: View {
         )
         .onExitCommand { showOverflow = false }
         .onChange(of: store.selectedWindow) {
-            // Picking a Window goes back to the live board.
-            refresh.showFinalStandings(false)
             // Only refresh when the new window's data is actually stale/missing — otherwise
             // toggling between Today/7/30 days flashed "updating…" on every switch. Cached
             // windows show instantly. `.windowChanged` doesn't force a LOC re-sync.
@@ -117,13 +115,6 @@ struct MenuContentView: View {
                     // window. Sits above the list in both states.
                     HeroCard()
                         .padding(.bottom, 14)
-                    // On the 1st: last month's Final standings, which the board opens on.
-                    if !store.rivals.isEmpty, let finals = refresh.offeredFinalStandings {
-                        FinalStandingsToggle(finals: finals)
-                            .buttonStyle(.bordered)
-                            .controlSize(.large)
-                            .padding(.bottom, 12)
-                    }
                 }
                 if !store.hasSelf {
                     EmptyStateView()

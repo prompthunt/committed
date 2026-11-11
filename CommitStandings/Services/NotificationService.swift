@@ -6,10 +6,6 @@ import UserNotifications
 @MainActor
 protocol RankChangeNotifying: AnyObject {
     func post(_ events: [RankChangeEvent])
-    /// A finished month's result ("October final" / "You finished #2 of 8"). Returns whether it
-    /// goes out: only with Leaderboard Notifications on.
-    @discardableResult
-    func postMonthFinal(id: String, title: String, body: String) -> Bool
 }
 
 /// Posts local notifications (Mac and iPhone) for position changes, gated by the opt-in toggle and the
@@ -63,16 +59,6 @@ final class NotificationService: RankChangeNotifying {
     func post(_ events: [RankChangeEvent]) {
         guard isEnabled, !events.isEmpty else { return }
         Task { await deliver(events) }
-    }
-
-    @discardableResult
-    func postMonthFinal(id: String, title: String, body: String) -> Bool {
-        guard isEnabled else { return false }
-        Task {
-            guard isEnabled, await center.notificationSettings().authorizationStatus == .authorized else { return }
-            await add(id: id, title: title, body: body)
-        }
-        return true
     }
 
     private func deliver(_ events: [RankChangeEvent]) async {

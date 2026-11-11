@@ -11,11 +11,6 @@ struct HeroCard: View {
     @Environment(AuthModel.self) private var auth
     @Environment(RefreshCoordinator.self) private var refresh
 
-    /// Last month's Final standings while the board shows them: the card shows your total for it.
-    private var finals: FinalStandings? {
-        refresh.showsFinalStandings && !store.rivals.isEmpty ? refresh.offeredFinalStandings : nil
-    }
-
     var body: some View {
         if let me = store.selfCompetitor {
             let standing = store.standing(for: me.username, window: store.selectedWindow)
@@ -61,22 +56,6 @@ struct HeroCard: View {
                         .tracking(8 * 0.14)
                         .textCase(.uppercase)
                         .foregroundStyle(.secondary)
-                    // This month: "Day 10 of 30", so you know how much race is left.
-                    if let finals {
-                        Text("in \(finals.month.name)")
-                            .font(.system(size: 8, weight: .medium, design: .monospaced))
-                            .tracking(8 * 0.14)
-                            .textCase(.uppercase)
-                            .foregroundStyle(.tint)
-                            .padding(.top, 2)
-                    } else if let day = store.selectedWindow.dayOfMonth(asOf: Date()) {
-                        Text(day)
-                            .font(.system(size: 8, weight: .medium, design: .monospaced))
-                            .tracking(8 * 0.14)
-                            .textCase(.uppercase)
-                            .foregroundStyle(.tint)
-                            .padding(.top, 2)
-                    }
                 }
             }
             .padding(14)
@@ -89,14 +68,12 @@ struct HeroCard: View {
             .accessibilityElement(children: .ignore)
             .accessibilityLabel(Self.accessibilityLabel(
                 username: me.username, contributions: value(for: standing),
-                window: store.selectedWindow, dayOfMonth: store.selectedWindow.dayOfMonth(asOf: Date()),
-                streak: streak, period: finals?.month.name))
+                window: store.selectedWindow, streak: streak))
         }
     }
 
     /// The contribution count once it has actually loaded (nil while first loading / on failure).
     private func value(for standing: Standing?) -> Int? {
-        if let finals { return finals.you?.contributions }
         guard let standing, standing.lastUpdated != .distantPast else { return nil }
         return standing.contributions
     }
@@ -105,19 +82,14 @@ struct HeroCard: View {
         value(for: standing).map { $0.formatted() } ?? "—"
     }
 
-    /// One sentence for the card. The streak is read only beside a loaded count. `period` is the
-    /// finished month ("October") while the board shows its Final standings.
+    /// One sentence for the card. The streak is read only beside a loaded count.
     static func accessibilityLabel(username: String, contributions: Int?, window: ContributionWindow,
-                                   dayOfMonth: String? = nil, streak: Int?, period: String? = nil) -> String {
+                                   streak: Int?) -> String {
         guard let contributions else {
             return "@\(username), no contributions data yet"
         }
         let streak = StreakLabel.spoken(streak).map { ", " + $0 } ?? ""
-        if let period {
-            return "@\(username), \(contributions) contributions in \(period)\(streak)"
-        }
-        let day = dayOfMonth.map { ", \($0.lowercased())" } ?? ""
-        return "@\(username), \(contributions) contributions for \(window.accessibilityDescription)\(day)\(streak)"
+        return "@\(username), \(contributions) contributions for \(window.accessibilityDescription)\(streak)"
     }
 }
 

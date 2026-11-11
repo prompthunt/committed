@@ -90,27 +90,25 @@ extension LiveRankState {
     var hasLadder: Bool { competitorCount > 1 && contributions != nil }
 }
 
-/// The trophy and the Window ("Today", "7 days", "30 days", "This month") at 16 pt, heading Live rank and every
+/// The trophy and the Window ("Today", "7 days", "30 days") at 16 pt, heading Live rank and every
 /// system-size widget.
 struct LiveRankWindowLabel: View {
     let state: LiveRankState
     var accessibilityName = "Live rank"
-    /// Said in place of the Window ("October final"); nil for the Window.
-    var title: String? = nil
     @Environment(\.liveRankIsStale) private var isStale
 
     var body: some View {
         HStack(spacing: 6) {
             TrophyMark(size: 17, color: isStale ? .limeDeep : .lime)
-            if let text = title ?? state.contributionWindow?.shortTitle {
-                Text(text)
+            if let window = state.contributionWindow {
+                Text(window.shortTitle)
                     .font(.system(size: 16))
                     .foregroundStyle(Color.soft)
                     .fixedSize()
             }
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel((title ?? state.contributionWindow?.accessibilityDescription).map { "\(accessibilityName), \($0)" } ?? accessibilityName)
+        .accessibilityLabel(state.contributionWindow.map { "\(accessibilityName), \($0.accessibilityDescription)" } ?? accessibilityName)
     }
 }
 
@@ -140,11 +138,10 @@ struct UpdateAge: View {
 struct LiveRankHeader: View {
     let state: LiveRankState
     var accessibilityName = "Live rank"
-    var title: String? = nil
 
     var body: some View {
         HStack(alignment: .firstTextBaseline, spacing: 8) {
-            LiveRankWindowLabel(state: state, accessibilityName: accessibilityName, title: title)
+            LiveRankWindowLabel(state: state, accessibilityName: accessibilityName)
             Spacer(minLength: 8)
             UpdateAge(date: state.updatedDate)
         }

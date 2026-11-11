@@ -18,8 +18,8 @@
   var STALE_SECONDS = 20 * 60;
   var REQUEST_TIMEOUT_MS = 20 * 1000;
   /** ContributionWindow.shortTitle, and the Window's place in the app's switch (the folio's number). */
-  var WINDOW_TITLES = { daily: "Today", weekly: "7 days", monthly: "30 days", month: "This month" };
-  var WINDOW_NUMBERS = { daily: "01", weekly: "02", monthly: "03", month: "04" };
+  var WINDOW_TITLES = { daily: "Today", weekly: "7 days", monthly: "30 days" };
+  var WINDOW_NUMBERS = { daily: "01", weekly: "02", monthly: "03" };
   /** A row's height plus its margin, in rem (standby.css .row). */
   var ROW_PITCH_REM = 2.55;
   /** The rank's size before fitting, in rem: beside the board, and stacked over it. */
@@ -182,8 +182,7 @@
     // Rank only: with a rank, your count lives on your row, not on the card.
     setCount(state.rank === null ? state.contributions : null, animate);
 
-    // Movement on Today and This month only, as the app's showsTodaysMovement.
-    renderMovement(state.window === "daily" || state.window === "month" ? state.movementToday || 0 : 0);
+    renderMovement(state.window === "daily" ? state.movementToday || 0 : 0);
 
     var status = byId("status");
     var line = emptyStateLine(state);

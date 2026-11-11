@@ -242,7 +242,6 @@ test("without a public name the card shows your @login alone", async ({ page }) 
 for (const [windowName, number, title] of [
   ["weekly", "02", "7 days"],
   ["monthly", "03", "30 days"],
-  ["month", "04", "This month"],
 ] as const) {
   test(`the ${windowName} window titles the folio and the list as the app does (${title})`, async ({ page }) => {
     const harness = await open(
@@ -255,6 +254,12 @@ for (const [windowName, number, title] of [
     expect(harness.requests.find((r) => r.url.includes("/board"))!.url).toContain(`window=${windowName}`);
   });
 }
+
+test("a Window the widget doesn't know reads as Today", async ({ page }) => {
+  const harness = await open(page, { status: 200, body: board() }, `${WIDGET_URL}&window=month`);
+  await expect(card(page).getByTestId("folio")).toHaveText(/^01 · Today$/i);
+  expect(harness.requests.find((r) => r.url.includes("/board"))!.url).toContain("window=daily");
+});
 
 test("the hero's square field sits inside the card, behind its text", async ({ page }) => {
   await open(page, { status: 200, body: board() });

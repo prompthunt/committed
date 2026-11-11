@@ -1,11 +1,9 @@
 import Foundation
 
 /// What a person view shows for one Competitor: their month day by day with last month's beside
-/// it, their current and longest streaks, active days this month ("18 of 22") and their past
-/// months' finishes with medals. Worked out from their saved calendar (`ContributionHistory`) and
-/// the Final standings of each finished month, so it agrees with the Board. The iPhone sheet or
-/// pane and the Mac window draw it with `PersonViewContent`; the Windows core's
-/// `BoardCore::person` follows the same rules.
+/// it, their current and longest streaks and active days this month ("18 of 22"). Worked out from
+/// their saved calendar (`ContributionHistory`). The iPhone sheet or pane and the Mac window draw
+/// it with `PersonViewContent`; the Windows core's `BoardCore::person` follows the same rules.
 ///
 /// Before their calendar loads, `days` is nil: the view says it's waiting rather than drawing
 /// zeros.
@@ -19,17 +17,6 @@ struct PersonSummary: Equatable, Sendable {
         case failed
     }
 
-    /// Their place in one finished month among the people on the board now.
-    struct Finish: Identifiable, Equatable, Sendable {
-        let month: CalendarMonth
-        let rank: Int
-        /// How many people that month was ranked among: "#3 of 8".
-        let of: Int
-        let contributions: Int
-        let medal: Medal?
-        var id: CalendarMonth { month }
-    }
-
     /// The loaded part: everything drawn from their calendar.
     struct Days: Equatable, Sendable {
         /// Each day's count from the 1st through today.
@@ -41,8 +28,6 @@ struct PersonSummary: Equatable, Sendable {
         let longestStreak: Int
         /// Days this month with a contribution: the 18 in "18 of 22".
         let activeDays: Int
-        /// Every finished month offered as Final standings, newest first.
-        let finishes: [Finish]
     }
 
     let competitor: Competitor
@@ -103,17 +88,6 @@ struct PersonSummary: Equatable, Sendable {
         return "\(lastMonth.name) \(day) · \(count.formatted())"
     }
 
-    /// "October", or "December 2025" for a month in another year than this one.
-    func finishName(_ finish: Finish) -> String {
-        finish.month.year == month.year ? finish.month.name : "\(finish.month.name) \(finish.month.year)"
-    }
-
-    /// "October: #2 of 6, 41 contributions, silver medal".
-    func finishSpoken(_ finish: Finish) -> String {
-        "\(finishName(finish)): #\(finish.rank) of \(finish.of), \(Self.plural(finish.contributions, "contribution"))"
-            + (finish.medal.map { ", \($0) medal" } ?? "")
-    }
-
     var waitingTitle: String { "Waiting for \(login)’s count" }
 
     var waitingDetail: String {
@@ -139,8 +113,8 @@ extension ContributionHistory {
 
 extension StandingsStore {
     /// `login`'s person view as of `reference`, or nil for anyone hidden or not on the board. This
-    /// month and today come from their calendar's own time zone (the one the Board's This month
-    /// uses), or `calendar` (the device's) before it loads.
+    /// month and today come from their calendar's own time zone (the one the Board's Windows use),
+    /// or `calendar` (the device's) before it loads.
     func person(_ login: String, asOf reference: Date, calendar: Calendar) -> PersonSummary? {
         guard let competitor = visibleCompetitors.first(where: { $0.username == login }) else { return nil }
         let history = history(for: login)
@@ -157,21 +131,12 @@ extension StandingsStore {
 
         let days = history.map { history in
             let thisMonth = history.dailyCounts(in: month, through: dayOfMonth)
-            let finishes = finishedMonths(asOf: reference, calendar: calendar).compactMap { finished
-                -> PersonSummary.Finish? in
-                guard let standings = finalStandings(for: finished), let entry = standings.entry(for: login) else {
-                    return nil
-                }
-                return PersonSummary.Finish(month: finished, rank: entry.rank, of: standings.entries.count,
-                                            contributions: entry.contributions ?? 0, medal: entry.medal)
-            }
             return PersonSummary.Days(
                 thisMonth: thisMonth,
                 lastMonth: history.dailyCounts(in: month.previous),
                 currentStreak: history.currentStreak(asOf: reference),
                 longestStreak: history.longestStreak(asOf: reference),
-                activeDays: thisMonth.filter { $0 > 0 }.count,
-                finishes: finishes
+                activeDays: thisMonth.filter { $0 > 0 }.count
             )
         }
         return PersonSummary(competitor: competitor, status: status, month: month, dayOfMonth: dayOfMonth, days: days)

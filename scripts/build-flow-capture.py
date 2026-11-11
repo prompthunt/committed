@@ -60,7 +60,7 @@ app_file.write_text(r'''import SwiftUI
                     window: window, lastUpdated: now, state: .loaded, burst: counts.burst))
             }
         }
-        // `-CaptureWindow month` opens the board on that Window (a ContributionWindow raw value).
+        // `-CaptureWindow monthly` opens the board on that Window (a ContributionWindow raw value).
         if let window = UserDefaults.standard.string(forKey: "CaptureWindow").flatMap(ContributionWindow.init(rawValue:)) {
             s.selectedWindow = window
         }
@@ -141,7 +141,7 @@ app_file.write_text(r'''import SwiftUI
     NSApp.terminate(nil)
 }
 
-/// `-CaptureDate 2026-11-01T10:00:00Z` sets the host's clock, so the 1st's Final standings show.
+/// `-CaptureDate 2026-11-01T10:00:00Z` sets the host's clock, for a fixed person view or board.
 private func captureNow() -> Date {
     UserDefaults.standard.string(forKey: "CaptureDate").flatMap { try? Date($0, strategy: .iso8601) } ?? Date()
 }

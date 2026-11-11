@@ -1,10 +1,9 @@
 // @vitest-environment jsdom
 import { afterEach, expect, test, vi } from "vitest";
 import { mockIPC, clearMocks } from "@tauri-apps/api/mocks";
-import { emit } from "@tauri-apps/api/event";
 import { start } from "./app";
 import { sampleBoard, samplePeople, samplePerson } from "./sample-board";
-import type { PersonView, Window } from "./types";
+import type { PersonView } from "./types";
 
 const board = {
   window: "today",
@@ -14,9 +13,6 @@ const board = {
   people_error: null,
   last_updated: 1779969600,
   people_updated: 1779969600,
-  day_of_month: 10,
-  days_in_month: 30,
-  final_standings: null,
   rows: [
     {
       login: "octocat",
@@ -210,7 +206,7 @@ test("the fixture page's Sample board renders every streak case", async () => {
   expect(document.querySelector(".summary .streak")?.textContent).toBe("🔥 12");
   dispose();
 });
-test("the picker offers This month fourth and keyboard navigation wraps across all four", async () => {
+test("the picker offers three Windows and keyboard navigation wraps across them", async () => {
   const dispose = await mount(board);
   const labels = [...document.querySelectorAll("[data-window]")].map(
     (button) => [button.getAttribute("data-window"), button.textContent],
@@ -219,7 +215,6 @@ test("the picker offers This month fourth and keyboard navigation wraps across a
     ["today", "Today"],
     ["week", "7 days"],
     ["monthly", "30 days"],
-    ["month", "This month"],
   ]);
   const press = async (key: string, expected: string) => {
     (document.activeElement as HTMLElement).dispatchEvent(
@@ -232,23 +227,22 @@ test("the picker offers This month fourth and keyboard navigation wraps across a
     );
   };
   document.querySelector<HTMLButtonElement>('[data-window="today"]')!.focus();
-  await press("ArrowLeft", "month");
-  await press("ArrowRight", "today");
-  await press("End", "month");
   await press("ArrowLeft", "monthly");
+  await press("ArrowRight", "today");
+  await press("ArrowRight", "week");
+  await press("End", "monthly");
+  await press("ArrowLeft", "week");
   await press("Home", "today");
   dispose();
 });
-test("This month shows the day of the month and today's movement", async () => {
-  const calls: string[] = [];
+test("movement chevrons show on Today only", async () => {
   const windows: unknown[] = [];
   mockIPC((command, args) => {
-    calls.push(command);
     if (command === "get_board") {
       const window = (args as { window: string }).window;
       windows.push(window);
-      // The core owns movement: it reports it on Today and This month, 0 on the others.
-      const movement = ["today", "month"].includes(window) ? 2 : 0;
+      // The core owns movement: it reports it on Today, 0 on the others.
+      const movement = window === "today" ? 2 : 0;
       return { ...board, window, rows: [{ ...board.rows[0], movement }] };
     }
     if (command === "get_settings")
@@ -264,145 +258,18 @@ test("This month shows the day of the month and today's movement", async () => {
   });
   document.body.innerHTML = '<main id="app"></main>';
   const dispose = await start(document.querySelector("main")!, "board");
-  expect(document.querySelector(".status")?.textContent).not.toContain("Day");
-  document.querySelector<HTMLButtonElement>('[data-window="month"]')!.click();
-  await vi.waitFor(() =>
-    expect(document.querySelector(".status")?.textContent).toContain(
-      "This month · Day 10 of 30 ·",
-    ),
-  );
-  expect(windows).toContain("month");
+  expect(document.querySelector(".status")?.textContent).toContain("Today ·");
   expect(
     document.querySelector('.movement[aria-label="Moved up 2"]'),
   ).not.toBeNull();
-  expect(document.querySelector(".sr-only")?.textContent).toContain(
-    "Day 10 of 30",
-  );
   document.querySelector<HTMLButtonElement>('[data-window="monthly"]')!.click();
   await vi.waitFor(() =>
     expect(document.querySelector(".status")?.textContent).toContain(
       "30 days ·",
     ),
   );
-  expect(document.querySelector(".status")?.textContent).not.toContain("Day");
+  expect(windows).toContain("monthly");
   expect(document.querySelector(".movement")).toBeNull();
-  dispose();
-});
-// Nov 1 2026, noon UTC: the 1st everywhere from UTC-11 to UTC+11.
-const firstOfNovember = Date.UTC(2026, 10, 1, 12) / 1000;
-test("on the 1st the board opens on last month's Final standings with medals", async () => {
-  const dispose = await mount(sampleBoard("today", firstOfNovember));
-  const toggle = document.querySelector<HTMLButtonElement>(
-    '[data-action="final"]',
-  )!;
-  expect(toggle.textContent).toContain("October final");
-  expect(toggle.getAttribute("aria-pressed")).toBe("true");
-  expect(document.querySelector(".status")?.textContent).toBe(
-    "October final · You finished #2 of 6",
-  );
-  expect(document.querySelector(".sr-only")?.textContent).toBe(
-    "October final · You finished #2 of 6",
-  );
-  expect(
-    [...document.querySelectorAll(".standing .medal")].map(
-      (medal) => medal.textContent,
-    ),
-  ).toEqual(["🥇", "🥈", "🥉"]);
-  for (const spoken of [
-    "Rank 1, Ines Volk, 212 Contributions, gold medal",
-    "Rank 2, Ari Linden, 160 Contributions, silver medal, you",
-    "Rank 3, Odile M., 160 Contributions, bronze medal",
-    "Rank 5, Bram Ott, 0 Contributions",
-    "Rank 6, Niko Vane, Contributions unavailable",
-  ])
-    expect(
-      document.querySelector(`[aria-label="${spoken}"]`),
-      spoken,
-    ).not.toBeNull();
-  expect(document.querySelector(".summary-count")?.textContent).toBe(
-    "160In October",
-  );
-  // No Window is the list while Final standings shows, and no flames or movement either.
-  expect(document.querySelector('[aria-checked="true"]')).toBeNull();
-  expect(document.querySelector(".standing .streak")).toBeNull();
-  expect(document.querySelector(".movement")).toBeNull();
-
-  // The toggle goes back to the live board, which never shows medals, and keeps focus.
-  toggle.focus();
-  toggle.click();
-  await vi.waitFor(() =>
-    expect(
-      document
-        .querySelector('[data-action="final"]')
-        ?.getAttribute("aria-pressed"),
-    ).toBe("false"),
-  );
-  expect(document.activeElement?.getAttribute("data-action")).toBe("final");
-  expect(document.querySelector(".medal")).toBeNull();
-  expect(
-    document
-      .querySelector('[data-window="today"]')
-      ?.getAttribute("aria-checked"),
-  ).toBe("true");
-  expect(document.querySelector(".status")?.textContent).toContain("Today ·");
-  document.querySelector<HTMLButtonElement>('[data-action="final"]')!.click();
-  await vi.waitFor(() =>
-    expect(document.querySelectorAll(".medal")).toHaveLength(3),
-  );
-  // Choosing a Window shows that Window.
-  document.querySelector<HTMLButtonElement>('[data-window="month"]')!.click();
-  await vi.waitFor(() =>
-    expect(document.querySelector(".status")?.textContent).toContain(
-      "This month · Day 1 of 30",
-    ),
-  );
-  expect(document.querySelector(".medal")).toBeNull();
-  dispose();
-});
-test("other days offer no Final standings", async () => {
-  const dispose = await mount(sampleBoard("today", 1779969600));
-  expect(document.querySelector('[data-action="final"]')).toBeNull();
-  expect(document.querySelector(".medal")).toBeNull();
-  dispose();
-});
-test("each new 1st opens on Final standings again, even after picking a Window last month", async () => {
-  // The board's webview lives for weeks in the tray, so a Window picked on one 1st must not
-  // keep the next 1st's Final standings closed.
-  let now = firstOfNovember;
-  mockIPC(
-    (command, args) => {
-      if (command === "get_board")
-        return sampleBoard((args as { window: Window }).window, now);
-      if (command === "get_settings")
-        return {
-          notifications: false,
-          automatic_updates: true,
-          private_tip_dismissed: true,
-        };
-      if (command === "get_desktop_settings")
-        return { launch_at_login: false, version: "0.1.50" };
-      return null;
-    },
-    { shouldMockEvents: true },
-  );
-  document.body.innerHTML = '<main id="app"></main>';
-  const dispose = await start(document.querySelector("main")!, "board");
-  const pressed = () =>
-    document
-      .querySelector('[data-action="final"]')
-      ?.getAttribute("aria-pressed");
-  document.querySelector<HTMLButtonElement>('[data-window="week"]')!.click();
-  await vi.waitFor(() => expect(pressed()).toBe("false"));
-  // Nov 20: nothing to offer. Dec 1: the board opens on November's final again.
-  now = Date.UTC(2026, 10, 20, 12) / 1000;
-  await emit("board-changed");
-  await vi.waitFor(() => expect(pressed()).toBeUndefined());
-  now = Date.UTC(2026, 11, 1, 12) / 1000;
-  await emit("board-changed");
-  await vi.waitFor(() => expect(pressed()).toBe("true"));
-  expect(document.querySelector(".status")?.textContent).toContain(
-    "November final",
-  );
   dispose();
 });
 
@@ -428,24 +295,6 @@ const person: PersonView = {
     current_streak: 2,
     longest_streak: 371,
     active_days: 3,
-    finishes: [
-      {
-        month: "2026-10-01",
-        month_name: "October",
-        rank: 1,
-        of: 6,
-        total: 105,
-        medal: "gold",
-      },
-      {
-        month: "2025-12-01",
-        month_name: "December",
-        rank: 4,
-        of: 6,
-        total: 40,
-        medal: null,
-      },
-    ],
   },
 };
 async function mountPerson(
@@ -501,7 +350,7 @@ test("clicking a row opens that person's view in its own window", async () => {
   dispose();
 });
 
-test("the person view shows this month's bars over last month's, streaks, active days and finishes", async () => {
+test("the person view shows this month's bars over last month's, streaks and active days", async () => {
   const dispose = await mountPerson(person);
   expect(document.querySelector("h1")?.textContent).toContain("Odile M.");
   const chart = document.querySelector("svg.chart")!;
@@ -533,14 +382,6 @@ test("the person view shows this month's bars over last month's, streaks, active
   );
   expect(longest.querySelector(".sr-only")?.textContent).toBe("365-plus days");
   expect(stats).toMatch(/Active days\s*3 of 4/);
-  const finishes = Array.from(document.querySelectorAll(".finishes li"), (li) =>
-    li.getAttribute("aria-label"),
-  );
-  expect(finishes).toEqual([
-    "October: #1 of 6, 105 contributions, gold medal",
-    "December 2025: #4 of 6, 40 contributions",
-  ]);
-  expect(document.querySelector(".finishes li")?.textContent).toContain("🥇");
   dispose();
 });
 
@@ -627,19 +468,16 @@ test("the fixture's Sample people have consistent person views", () => {
       continue;
     }
     const history = view.history!;
-    const board = sampleBoard("month", now);
-    const row = board.rows.find((r) => r.login === login)!;
+    const sample = samplePeople.find((p) => p.login === login)!;
+    const row = sampleBoard("today", now).rows.find((r) => r.login === login)!;
     expect(history.this_month).toHaveLength(22);
     expect(history.this_month.reduce((a, b) => a + b, 0)).toBe(
-      row.contributions,
+      sample.thisMonth,
     );
-    expect(history.this_month[21]).toBe(
-      sampleBoard("today", now).rows.find((r) => r.login === login)!
-        .contributions,
-    );
+    expect(history.this_month[21]).toBe(row.contributions);
     expect(history.last_month).toHaveLength(31);
     expect(history.last_month.reduce((a, b) => a + b, 0)).toBe(
-      samplePeople.find((p) => p.login === login)!.lastMonth ?? 0,
+      sample.lastMonth ?? 0,
     );
     expect(
       [...history.this_month, ...history.last_month].every((n) => n >= 0),
@@ -651,7 +489,6 @@ test("the fixture's Sample people have consistent person views", () => {
     expect(history.longest_streak).toBeGreaterThanOrEqual(
       history.current_streak,
     );
-    expect(history.finishes[0].month_name).toBe("October");
   }
   expect(samplePerson("stranger", now)).toBeNull();
 });

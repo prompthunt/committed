@@ -127,15 +127,6 @@ struct ContributionsParserTests {
         #expect(history.burst(for: .monthly, asOf: asOf)?.day == ymd(2026, 5, 25))
     }
 
-    /// This month covers the 1st through today, so a trolling day last month isn't on it.
-    @Test func trolling_thisMonthCoversOnlyTheCalendarMonth() {
-        let history = steadyHistory(20, ["2026-04-30": 500, "2026-05-02": 20])
-        #expect(history.burst(for: .monthly, asOf: ymd(2026, 5, 2))?.count == 500)
-        #expect(history.burst(for: .month, asOf: ymd(2026, 5, 2)) == nil)
-        let may = steadyHistory(20, ["2026-05-01": 600])
-        #expect(may.burst(for: .month, asOf: ymd(2026, 5, 28))?.day == ymd(2026, 5, 1))
-    }
-
     @Test func trolling_judgesEachDayOnlyAgainstTheDaysBeforeIt() {
         let history = steadyHistory(20, ["2026-05-27": 300, "2026-05-28": 5_000])
         // The later huge day doesn't raise the bar for the earlier one…

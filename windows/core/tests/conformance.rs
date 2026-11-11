@@ -50,15 +50,14 @@ struct Placed {
     rank: usize,
 }
 
-/// The fixture uses Swift's Window raw values. Windows' `Window` shares `"monthly"` (30 days) and
-/// `"month"` (This month) but still calls Today and 7 days `"today"` and `"week"`, so the strings
-/// are mapped here rather than deserialized into it.
+/// The fixture uses Swift's Window raw values. Windows' `Window` shares `"monthly"` (30 days) but
+/// still calls Today and 7 days `"today"` and `"week"`, so the strings are mapped here rather than
+/// deserialized into it.
 fn window(raw: &str) -> Option<Window> {
     match raw {
         "daily" => Some(Window::Today),
         "weekly" => Some(Window::Week),
         "monthly" => Some(Window::Monthly),
-        "month" => Some(Window::ThisMonth),
         _ => None,
     }
 }

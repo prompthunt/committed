@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import fixture from "../../fixtures/ranking-conformance.json";
 import { localDate } from "../src/parser";
 import { createRelay } from "../src/relay";
-import { showsTodaysMovement, type Standing, type Window } from "../src/ranking";
+import type { Standing, Window } from "../src/ranking";
 import { Clock, FakeApns, FakeGitHub, MINUTE } from "./support/fakes";
 
 const ID = "inst-board-0001";
@@ -120,7 +120,7 @@ describe("GET /v1/installations/{id}/board", () => {
       for (const [login, standing] of Object.entries(input.standings ?? {})) {
         if (standing.window === input.window) await seedCache(login, { [today]: standing.contributions }, input.now);
       }
-      if (showsTodaysMovement(input.window)) {
+      if (input.window === "daily") {
         const baseline: Record<string, number> = {};
         for (const entry of expected.order) {
           const delta = input.rankDeltas[entry.login];
@@ -179,33 +179,6 @@ describe("GET /v1/installations/{id}/board", () => {
     });
     expect(github.requests).toEqual([]);
     expect(github.nameRequests).toEqual([]);
-  });
-
-  it("moves rows on This month when that's the installation's Window, and not on Today", async () => {
-    github.set("me", { "2026-11-02": 10, "2026-11-05": 5 });
-    github.set("alice", { "2026-11-05": 30 });
-    github.set("bob", { "2026-10-31": 90, "2026-11-05": 1 });
-    await register(ID, { window: "month" });
-    await mint(TOKEN, ID);
-    await relay.runCycle(); // This month's baseline: alice 1, me 2, bob 3 (October doesn't count)
-    clock.advance(6 * MINUTE);
-    github.set("bob", { "2026-11-05": 20 });
-    await relay.runCycle(); // bob passes me this month
-
-    const month = (await (await board(ID, "?window=month")).json()) as {
-      movementToday: number;
-      streak: number;
-      rows: { login: string; contributions: number; movementToday: number }[];
-    };
-    expect(month.rows.map(({ login, contributions, movementToday }) => [login, contributions, movementToday])).toEqual([
-      ["alice", 30, 0],
-      ["bob", 20, 1],
-      ["me", 15, -1],
-    ]);
-    expect(month.movementToday).toBe(-1);
-    expect(month.streak).toBe(1);
-    const today = (await (await board(ID, "?window=daily")).json()) as { rows: { movementToday: number }[] };
-    expect(today.rows.map((row) => row.movementToday)).toEqual([0, 0, 0]);
   });
 
   it("reports each row's movement since the cycle's baseline, and changes nothing when read", async () => {
@@ -357,6 +330,7 @@ describe("GET /v1/installations/{id}/board", () => {
 
     it("400 for an unknown window", async () => {
       await expectError(await board(ID, "?window=yearly"), 400, "invalid_window");
+      await expectError(await board(ID, "?window=month"), 400, "invalid_window");
       expect((await board(ID, "?window=weekly")).status).toBe(200);
     });
 

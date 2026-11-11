@@ -271,24 +271,6 @@ final class AppModel {
         return snapshot
     }
 
-    /// What Share board offers: the board as it stands, and on the 1st last month's Final standings
-    /// (when the Board offers them: you have rivals and a calendar covering the month), opening on
-    /// them while the Board shows them.
-    func boardShareRequest() -> BoardShareRequest? {
-        guard let snapshot = boardToShare() else { return nil }
-        let finals = store.rivals.isEmpty ? nil : refresh.offeredFinalStandings?.month
-        return BoardShareRequest(snapshot: snapshot, finals: finals.flatMap(finalStandingsToShare(for:)),
-                                 opensOnFinals: refresh.showsFinalStandings)
-    }
-
-    /// `month`'s Final standings for Share board, or nil when your calendar doesn't cover it. Open
-    /// them alone with `BoardShareSheet(finals:)` (the person view's past months).
-    func finalStandingsToShare(for month: CalendarMonth) -> FinalStandingsShare? {
-        store.finalStandings(for: month).flatMap {
-            FinalStandingsShare($0, isSampleBoard: mode == .sampleBoard, now: now())
-        }
-    }
-
     /// Saved avatars for the board, read before the network: none on the Sample board, whose
     /// made-up logins could match a real person's saved face. Its people show initials.
     var savedAvatars: AvatarCache? {
@@ -384,7 +366,6 @@ final class AppModel {
         await refreshLiveRankIfStale()
     }
 
-    /// Hiding or showing someone updates Live rank and the widgets right away while the app is open.
     /// Opens `login`'s person view, as tapping their row on the Board does.
     func showPerson(_ login: String) {
         selectedPerson = login
@@ -396,6 +377,7 @@ final class AppModel {
         selectedPerson.flatMap { store.person($0, asOf: now(), calendar: .current) }
     }
 
+    /// Hiding or showing someone updates Live rank and the widgets right away while the app is open.
     func visibilityDidChange() async {
         await liveRank.sync()
         publishWidgets()
@@ -414,8 +396,6 @@ final class AppModel {
 
     /// Switching Window shows cached numbers instantly and fetches only when they're stale.
     func windowDidChange() async {
-        // Picking a Window goes back to the live board from the 1st's Final standings.
-        refresh.showFinalStandings(false)
         guard auth.isSignedIn, refresh.needsRefresh(for: store.selectedWindow) else { return }
         await refresh.refreshAll(reason: .windowChanged)
     }

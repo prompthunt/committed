@@ -1,16 +1,7 @@
 // Made-up board data for the dev fixture page (`fixture.html`) and the UI tests: the Sample
 // board's people and counts (`CommitStandingsiOS/App/SampleServices.swift`), with streaks that
 // cover every display case. Never read by the shipped app.
-import type {
-  Board,
-  FinalStandings,
-  Medal,
-  MonthFinish,
-  PersonView,
-  PersonVisibility,
-  Row,
-  Window,
-} from "./types";
+import type { Board, PersonView, PersonVisibility, Row, Window } from "./types";
 
 interface SamplePerson {
   login: string;
@@ -18,7 +9,8 @@ interface SamplePerson {
   counts: Record<Window, number> | null;
   streak: number | null;
   movement?: number;
-  /** Last month's total, for Final standings on the 1st. */
+  /** This month's and last month's totals, for the person view's bars. */
+  thisMonth: number | null;
   lastMonth: number | null;
 }
 export const samplePeople: SamplePerson[] = [
@@ -26,41 +18,44 @@ export const samplePeople: SamplePerson[] = [
   {
     login: "ines-volk",
     name: "Ines Volk",
-    counts: { today: 12, week: 61, monthly: 240, month: 224 },
+    counts: { today: 12, week: 61, monthly: 240 },
     streak: 371,
+    thisMonth: 224,
     lastMonth: 212,
   },
   {
     login: "odile-m",
     name: "Odile M.",
-    counts: { today: 9, week: 44, monthly: 198, month: 185 },
+    counts: { today: 9, week: 44, monthly: 198 },
     streak: 23,
+    thisMonth: 185,
     lastMonth: 160,
   },
   {
     login: "ari-linden",
     name: "Ari Linden",
-    counts: { today: 7, week: 38, monthly: 171, month: 160 },
+    counts: { today: 7, week: 38, monthly: 171 },
     streak: 12,
     movement: 1,
-    // Ties odile-m last month: you win ties, so you take silver.
+    thisMonth: 160,
     lastMonth: 160,
   },
   {
     login: "ezra-q",
     name: "Ezra Q.",
-    counts: { today: 6, week: 52, monthly: 160, month: 149 },
+    counts: { today: 6, week: 52, monthly: 160 },
     streak: 2,
     movement: -1,
+    thisMonth: 149,
     lastMonth: 98,
   },
   // Nothing today, something yesterday: a 1-day streak, which isn't shown.
   {
     login: "bram-ott",
     name: "Bram Ott",
-    counts: { today: 0, week: 11, monthly: 57, month: 50 },
+    counts: { today: 0, week: 11, monthly: 57 },
     streak: 1,
-    // Nothing last month: no medal, whatever the rank.
+    thisMonth: 50,
     lastMonth: 0,
   },
   // Never loads: no count and no streak.
@@ -69,6 +64,7 @@ export const samplePeople: SamplePerson[] = [
     name: "Niko Vane",
     counts: null,
     streak: null,
+    thisMonth: null,
     lastMonth: null,
   },
 ];
@@ -88,32 +84,8 @@ function ranked(count: (person: SamplePerson) => number | null) {
     .map(({ person }) => person);
 }
 
-/** Last month's Final standings, like the core's `final_standings`: medals for ranks 1–3 above 0. */
-function sampleFinalStandings(date: Date): FinalStandings {
-  const month = new Date(date.getFullYear(), date.getMonth() - 1, 1);
-  const medals = ["gold", "silver", "bronze"] as const;
-  return {
-    month: `${month.getFullYear()}-${String(month.getMonth() + 1).padStart(2, "0")}-01`,
-    month_name: month.toLocaleString("en-US", { month: "long" }),
-    rows: ranked((person) => person.lastMonth).map((person, index) => ({
-      login: person.login,
-      name: person.name,
-      avatar_url: null,
-      rank: index + 1,
-      contributions: person.lastMonth,
-      streak: null,
-      is_you: person.login === sampleOwner,
-      movement: 0,
-      status: person.lastMonth === null ? "missing" : "loaded",
-      medal: person.lastMonth ? (medals[index] ?? null) : null,
-    })),
-  };
-}
-
 /** The board the core would send for `window`, ranked like `committed_core::order`. */
 export function sampleBoard(window: Window, now: number): Board {
-  // The core sends today's local day of the month and the month's length (This month's "Day X of Y").
-  const date = new Date(now * 1000);
   const rows: Row[] = ranked((person) => person.counts?.[window] ?? null).map(
     (person, index) => ({
       login: person.login,
@@ -123,8 +95,7 @@ export function sampleBoard(window: Window, now: number): Board {
       contributions: person.counts?.[window] ?? null,
       streak: person.streak,
       is_you: person.login === sampleOwner,
-      movement:
-        window === "today" || window === "month" ? (person.movement ?? 0) : 0,
+      movement: window === "today" ? (person.movement ?? 0) : 0,
       status: person.counts ? "loaded" : "failed",
     }),
   );
@@ -137,13 +108,6 @@ export function sampleBoard(window: Window, now: number): Board {
     error: null,
     people_updated: now - 600,
     people_error: null,
-    day_of_month: date.getDate(),
-    days_in_month: new Date(
-      date.getFullYear(),
-      date.getMonth() + 1,
-      0,
-    ).getDate(),
-    final_standings: date.getDate() === 1 ? sampleFinalStandings(date) : null,
   };
 }
 
@@ -201,8 +165,8 @@ const monthName = (date: Date) =>
 
 /**
  * The person view the core would send for a Sample person on the day `now` falls on: this
- * month's days add up to their This month count with today's count last and the current streak
- * ending today, last month's add up to last month's total, and six finished months with medals.
+ * month's days add up to their month so far with today's count last and the current streak
+ * ending today, and last month's add up to last month's total.
  * Niko never loads, so his view waits. Consistent on the 2nd to the 29th; made up all the same.
  */
 export function samplePerson(login: string, now: number): PersonView | null {
@@ -231,7 +195,8 @@ export function samplePerson(login: string, now: number): PersonView | null {
     ).getDate(),
     history: null,
   };
-  if (!person.counts || person.streak === null) return view;
+  if (!person.counts || person.streak === null || person.thisMonth === null)
+    return view;
   const today = person.counts.today;
   const streak = person.streak;
   // The streak's run ends today, or yesterday when today has nothing yet.
@@ -244,7 +209,7 @@ export function samplePerson(login: string, now: number): PersonView | null {
     return noise(login, d) < 0.72;
   });
   const thisMonth = [
-    ...spread(login, 0, active, person.counts.month - today),
+    ...spread(login, 0, active, person.thisMonth - today),
     today,
   ];
   // Last month: its days before this month's run are free; a run that reaches back stays whole.
@@ -268,35 +233,6 @@ export function samplePerson(login: string, now: number): PersonView | null {
         9 + Math.floor(noise(login, 999) * 20),
       ),
       active_days: thisMonth.filter((n) => n > 0).length,
-      finishes: sampleFinishes(login, date),
     },
   };
-}
-
-/** Six finished months, newest first: last month's Final standings, then made-up earlier ones. */
-function sampleFinishes(login: string, date: Date): MonthFinish[] {
-  const medals: Medal[] = ["gold", "silver", "bronze"];
-  return Array.from({ length: 6 }, (_, i) => {
-    const month = new Date(date.getFullYear(), date.getMonth() - 1 - i, 1);
-    const total = (person: SamplePerson) =>
-      person.lastMonth === null
-        ? null
-        : i === 0
-          ? person.lastMonth
-          : Math.round(
-              (person.counts?.monthly ?? 0) *
-                (0.45 + noise(person.login, 500 + i)),
-            );
-    const order = ranked(total);
-    const rank = order.findIndex((p) => p.login === login) + 1;
-    const mine = total(order[rank - 1]) ?? 0;
-    return {
-      month: iso(month),
-      month_name: monthName(month),
-      rank,
-      of: order.length,
-      total: mine,
-      medal: mine > 0 ? (medals[rank - 1] ?? null) : null,
-    };
-  });
 }

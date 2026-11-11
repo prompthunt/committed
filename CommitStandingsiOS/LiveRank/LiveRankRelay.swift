@@ -19,15 +19,10 @@ protocol LiveRankRegistrar: AnyObject {
     /// Try again whatever an earlier call couldn't send (offline, relay down). The app calls it on
     /// becoming active and in background refresh.
     func retryPendingWork() async
-    /// Whether the relay ranks `window`. False once a relay from before This month rejected it
-    /// (`invalid_window`): Live rank on that Window then gets no push token, and the app keeps it
-    /// current itself.
-    func serves(_ window: ContributionWindow) -> Bool
 }
 
 extension LiveRankRegistrar {
     func retryPendingWork() async {}
-    func serves(_ window: ContributionWindow) -> Bool { true }
 }
 
 /// Phase 1: no relay. Live rank updates only when the app refreshes.
