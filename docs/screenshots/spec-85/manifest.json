@@ -245,14 +245,14 @@
     },
     {
       "file": "103/person-you-tip-light.png",
-      "caption": "#103 Windows person view for you (ari-linden), light, window resized taller: \"Active days 18 of 22\", past finishes with gold and silver, and the private-contributions tip at the bottom",
+      "caption": "#103 Windows person view for you (ari-linden), light, window resized taller: \"Active days 18 of 22\", past finishes with gold and silver, the private-contributions tip, and What this number can't show (#89) at the bottom",
       "capture": {
         "device": "Chromium (in-app browser) on macOS, mocked Tauri IPC, 460×980 person window at 2x",
         "os": "macOS 27.0",
-        "sourceCommit": "414f41299b0ba9dda63665a8b79f33ac23800617",
+        "sourceCommit": "acfb104d8c224a0271c54237c7fa70abc1c2a416",
         "fixture": true
       },
-      "notes": "Windows person window, not WebView2 on Windows: the real app UI (windows/src/app.ts and style.css) served by vite and fed the Sample people through windows/fixture.html (mocked Tauri IPC, data from samplePerson in windows/src/sample-board.ts) with ?view=person&date=2026-11-22, so the fixture's today is November 22. macOS system fonts instead of Segoe UI; no window chrome. No before capture: the person view is new (rows used to open the GitHub profile). Recipe: cd windows && npm run dev -- --port <port>, open /fixture.html?view=person&date=2026-11-22&login=<login>. Your own view always shows the private-contributions tip (Mac copy), even after the board's tip is dismissed (the fixture has it dismissed). The window is resizable; 980 px tall shows the whole view without scrolling."
+      "notes": "Windows person window, not WebView2 on Windows: the real app UI (windows/src/app.ts and style.css) served by vite and fed the Sample people through windows/fixture.html (mocked Tauri IPC, data from samplePerson in windows/src/sample-board.ts) with ?view=person&date=2026-11-22, so the fixture's today is November 22. macOS system fonts instead of Segoe UI; no window chrome. No before capture: the person view is new (rows used to open the GitHub profile). Recipe: cd windows && npm run dev -- --port <port>, open /fixture.html?view=person&date=2026-11-22&login=<login>. Your own view always shows the private-contributions tip (Mac copy), even after the board's tip is dismissed (the fixture has it dismissed). The window is resizable; 980 px tall shows the whole view without scrolling. Recaptured for the final review, which added the #89 note (same copy as the Mac and iPhone; also shown while your count is waiting)."
     },
     {
       "file": "94/widgets-fresh.png",
@@ -366,14 +366,14 @@
     },
     {
       "file": "98/iphone-final-standings.png",
-      "caption": "#98 iPhone Board on the 1st (Sample board): the 🏅 October final standings switch, on, then \"October final · You finished #3 of 6\" and the rows with 🥇 ines-volk, 🥈 odile-m and 🥉 ari-linden (you)",
+      "caption": "#98 iPhone Board on the 1st (Sample board): your summary card shows your October finish, \"October final · Your finish\", #3 of 6 and 178 contributions in October (as the Mac's card does), over the 🏅 October final standings switch, \"October final · You finished #3 of 6\" and the rows with 🥇 ines-volk, 🥈 odile-m and 🥉 ari-linden (you)",
       "capture": {
         "device": "iPhone Duo Simulator (closed)",
         "os": "iOS 27.1",
-        "sourceCommit": "92f9d0619a3cae97fcc000ca466424e96aea1920",
+        "sourceCommit": "acfb104d8c224a0271c54237c7fa70abc1c2a416",
         "fixture": true
       },
-      "notes": "Runtime capture (xcrun simctl io screenshot --display=1) of a Debug build on the persistent iPhone Duo, launched with -ScreenshotFixture -ScreenshotTab board -ScreenshotDate 2026-11-01T18:00:00Z: the Sample board's made-up calendars (niko-vane always fails and ranks 6th below the fold). \"Updated 9 days ago\" comes from the fixture's fixed past clock against today's date, not from the feature. The summary card stays on the live Window on iPhone."
+      "notes": "Runtime capture (xcrun simctl io screenshot --display=1) of a Debug build on the persistent iPhone Duo, launched with -ScreenshotFixture -ScreenshotTab board -ScreenshotDate 2026-11-01T18:00:00Z: the Sample board's made-up calendars (niko-vane always fails and ranks 6th below the fold). \"Updated 9 days ago\" comes from the fixture's fixed past clock against today's date, not from the feature. Recaptured for the final review: the summary card used to stay on the live Window on iPhone; it now shows your result for the finished month (BoardSummary.make(finals:))."
     },
     {
       "file": "98/iphone-board-the-2nd.png",
@@ -469,10 +469,10 @@
       "capture": {
         "device": "iPhone Duo Simulator (persistent, closed)",
         "os": "iOS 27.1",
-        "sourceCommit": "6f2ec4d0b1999eaa60172ce61051e776a822eb7c",
+        "sourceCommit": "acfb104d8c224a0271c54237c7fa70abc1c2a416",
         "fixture": true
       },
-      "notes": "Runtime capture (xcrun simctl io screenshot --display=1) of a Debug build on the persistent iPhone Duo (closed), launched with -ScreenshotFixture -ScreenshotTab board -ScreenshotPerson <login> (opens the person view as a tap on the row would): the Sample board's made-up calendars, real clock (November 10, 2026), so This month is 10 days in. niko-vane always fails in the fixture, so Final standings count 6 people. The iPhone app is dark only (RootView forces .preferredColorScheme(.dark)), so there is no light capture. Not captured: the second pane on the open iPhone Duo. simctl can't fold the Duo, the Device Hub Open pose needs the GUI, and Xcode's device-interaction tools need an approval this session couldn't give; the pane-vs-sheet rule is covered by BoardArrangementTests. No before capture: the person view is new. Also -ScreenshotPersonEnd (opens scrolled to the end). The Done button floats over the scrolled list, as iOS 27's glass toolbar does."
+      "notes": "Runtime capture (xcrun simctl io screenshot --display=1) of a Debug build on the persistent iPhone Duo (closed), launched with -ScreenshotFixture -ScreenshotTab board -ScreenshotPerson <login> (opens the person view as a tap on the row would): the Sample board's made-up calendars, real clock (November 10, 2026), so This month is 10 days in. niko-vane always fails in the fixture, so Final standings count 6 people. The iPhone app is dark only (RootView forces .preferredColorScheme(.dark)), so there is no light capture. Not captured: the second pane on the open iPhone Duo. simctl can't fold the Duo, the Device Hub Open pose needs the GUI, and Xcode's device-interaction tools need an approval this session couldn't give; the pane-vs-sheet rule is covered by BoardArrangementTests. No before capture: the person view is new. Also -ScreenshotPersonEnd (opens scrolled to the end). The Done button floats over the scrolled list, as iOS 27's glass toolbar does. Recaptured for the final review: the private-contributions tip is now the shared PrivateContributionsTip in the iPhone style (PrivateContributionsTipStyle.committed), drawn as before."
     },
     {
       "file": "101/person-streak-365.png",
