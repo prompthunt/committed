@@ -1136,3 +1136,121 @@ async fn the_month_final_waits_for_a_refresh_where_every_saved_calendar_reloads(
         [october_final()]
     );
 }
+
+fn day(y: i32, m: u32, d: u32) -> chrono::NaiveDate {
+    chrono::NaiveDate::from_ymd_opt(y, m, d).unwrap()
+}
+
+#[tokio::test]
+async fn the_person_view_shows_a_visible_persons_month_streaks_and_finishes() {
+    use Medal::*;
+    let f = Fixture::new();
+    *f.clock.0.lock().unwrap() = noon(2026, 11, 3);
+    october_board(&f).await;
+    f.core.refresh(RefreshReason::Manual).await.unwrap();
+
+    let bob = f.core.person("bob").expect("bob is on the board");
+    assert_eq!(bob.person.login, "bob");
+    assert!(!bob.is_you);
+    assert_eq!(bob.status, "loaded");
+    assert_eq!(
+        (bob.month, bob.month_name.as_str()),
+        (day(2026, 11, 1), "November")
+    );
+    assert_eq!(
+        (bob.last_month, bob.last_month_name.as_str()),
+        (day(2026, 10, 1), "October")
+    );
+    assert_eq!((bob.day_of_month, bob.days_in_month), (3, 30));
+    let history = bob.history.expect("bob's calendar loaded");
+    // November 1 to today, then all 31 days of October.
+    assert_eq!(history.this_month, [9, 0, 0]);
+    assert_eq!(history.last_month.len(), 31);
+    assert_eq!(history.last_month[1], 12);
+    assert_eq!(history.last_month.iter().sum::<u32>(), 12);
+    // Nothing on the 2nd or yet today: the run is over.
+    assert_eq!(history.current_streak, 0);
+    assert_eq!(history.longest_streak, 1);
+    assert_eq!(history.active_days, 1);
+    // bob ties you on 12 in October; you win ties, so bob takes bronze.
+    assert_eq!(
+        history.finishes,
+        [MonthFinish {
+            month: day(2026, 10, 1),
+            month_name: "October".into(),
+            rank: 3,
+            of: 4,
+            total: 12,
+            medal: Some(Bronze),
+        }]
+    );
+
+    assert!(f.core.person("octocat").unwrap().is_you);
+    // Before someone's count loads there's no history: the view waits instead of drawing zeros.
+    let offline = f.core.person("offline").unwrap();
+    assert!(offline.history.is_none());
+    assert_eq!(offline.status, "failed");
+    // Only people on the board have a person view.
+    assert!(f.core.person("stranger").is_none());
+    f.core.set_hidden("alice", true).unwrap();
+    assert!(f.core.person("alice").is_none());
+    // Hiding alice changes October's finishes, the same as the board.
+    let finish = &f.core.person("bob").unwrap().history.unwrap().finishes[0];
+    assert_eq!((finish.rank, finish.of, finish.medal), (2, 3, Some(Silver)));
+}
+
+#[tokio::test]
+async fn the_person_view_lists_every_finished_month_newest_first() {
+    use Medal::*;
+    let f = Fixture::new();
+    *f.clock.0.lock().unwrap() = noon(2026, 11, 3);
+    // The calendar starts Sunday August 30, so September is its first full month.
+    f.contributions(
+        "octocat",
+        &cells(&[
+            ("2026-08-30", 4),
+            ("2026-09-05", 3),
+            ("2026-10-10", 1),
+            ("2026-10-11", 1),
+            ("2026-10-12", 1),
+            ("2026-10-13", 1),
+            ("2026-10-14", 1),
+            ("2026-11-02", 1),
+            ("2026-11-03", 2),
+        ]),
+    );
+    f.core.preview("octocat").await.unwrap();
+    let history = f.core.person("octocat").unwrap().history.unwrap();
+    assert_eq!(history.this_month, [0, 1, 2]);
+    assert_eq!(history.current_streak, 2);
+    assert_eq!(history.longest_streak, 5);
+    assert_eq!(history.active_days, 2);
+    let finishes: Vec<_> = history
+        .finishes
+        .iter()
+        .map(|f| (f.month_name.as_str(), f.rank, f.of, f.total, f.medal))
+        .collect();
+    assert_eq!(
+        finishes,
+        [
+            ("October", 1, 1, 5, Some(Gold)),
+            ("September", 1, 1, 3, Some(Gold))
+        ]
+    );
+}
+
+#[tokio::test]
+async fn selecting_a_person_remembers_them_for_the_person_window() {
+    let f = Fixture::new();
+    *f.clock.0.lock().unwrap() = noon(2026, 11, 3);
+    october_board(&f).await;
+    f.core.refresh(RefreshReason::Manual).await.unwrap();
+    assert_eq!(f.core.selected_person(), None);
+    f.core.select_person("Bob").unwrap();
+    assert_eq!(f.core.selected_person().as_deref(), Some("bob"));
+    assert!(f.core.select_person("stranger").is_err());
+    assert_eq!(f.core.selected_person().as_deref(), Some("bob"));
+    // Disconnecting forgets the selection with the board.
+    f.core.disconnect().unwrap();
+    assert_eq!(f.core.selected_person(), None);
+}

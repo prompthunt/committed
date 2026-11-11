@@ -78,6 +78,30 @@ fn open_profile(app: tauri::AppHandle, login: String) -> Result<(), String> {
         .open_url(format!("https://github.com/{login}"), None::<&str>)
         .map_err(|e| e.to_string())
 }
+/// Shows `login`'s person view in its own window; clicking the same person again focuses it.
+#[tauri::command]
+fn open_person(
+    app: tauri::AppHandle,
+    state: tauri::State<Desktop>,
+    login: String,
+) -> Result<(), String> {
+    state.core.select_person(&login)?;
+    if let (Some(window), Some(view)) =
+        (app.get_webview_window("person"), state.core.person(&login))
+    {
+        let name = view.person.name.unwrap_or(view.person.login);
+        let _ = window.set_title(&format!("{name} — Committed"));
+    }
+    let _ = app.emit("board-changed", ());
+    show_window(&app, "person")
+}
+#[tauri::command]
+fn get_person(state: tauri::State<Desktop>) -> Option<PersonView> {
+    state
+        .core
+        .selected_person()
+        .and_then(|login| state.core.person(&login))
+}
 #[tauri::command]
 fn get_board(state: tauri::State<Desktop>, window: Window) -> Board {
     state.core.board(window)
@@ -368,6 +392,8 @@ pub fn run() {
             set_setting,
             set_hidden,
             open_profile,
+            open_person,
+            get_person,
             updates::get_update_status,
             updates::check_updates,
             updates::install_update

@@ -27,6 +27,41 @@ export interface FinalStandings {
   month_name: string;
   rows: Row[];
 }
+/** One person's view (`get_person`): their month day by day beside last month's. */
+export interface PersonView extends Person {
+  is_you: boolean;
+  status: Row["status"];
+  /** This month's 1st, "2026-11-01", and its name, "November". */
+  month: string;
+  month_name: string;
+  /** Last month's 1st and name: the grey bars. */
+  last_month: string;
+  last_month_name: string;
+  day_of_month: number;
+  days_in_month: number;
+  /** Null until this person's calendar loads: the view waits instead of drawing zeros. */
+  history: PersonHistory | null;
+}
+export interface PersonHistory {
+  /** Each day's count from the 1st through today. */
+  this_month: number[];
+  /** Each day's count for every day of last month. */
+  last_month: number[];
+  current_streak: number;
+  longest_streak: number;
+  /** Days this month with a contribution: "Active days: 18 of 22". */
+  active_days: number;
+  /** Finished months, newest first. */
+  finishes: MonthFinish[];
+}
+export interface MonthFinish {
+  month: string;
+  month_name: string;
+  rank: number;
+  of: number;
+  total: number;
+  medal: Medal | null;
+}
 export interface Board {
   window: Window;
   rows: Row[];
