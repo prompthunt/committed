@@ -91,8 +91,11 @@ pub fn burst(days: &BTreeMap<NaiveDate, u32>, length: i64, today: NaiveDate) -> 
         .filter(|(_, &count)| count > TROLL_FLOOR)
         .filter_map(|(&date, &count)| {
             let usual = usual_big_day(days.range(..date).map(|(_, &c)| c));
-            (count > TROLL_FLOOR.max(TROLL_MULTIPLE.saturating_mul(usual)))
-                .then_some(Burst { date, count, usual })
+            (count > TROLL_FLOOR.max(TROLL_MULTIPLE.saturating_mul(usual))).then_some(Burst {
+                date,
+                count,
+                usual,
+            })
         })
         .max_by_key(|burst| burst.count)
 }
@@ -113,7 +116,14 @@ mod tests {
     fn flags_a_day_far_above_their_usual_big_day() {
         let mut days = steady(20);
         days.insert(day(28), 784);
-        assert_eq!(burst(&days, 1, day(28)), Some(Burst { date: day(28), count: 784, usual: 20 }));
+        assert_eq!(
+            burst(&days, 1, day(28)),
+            Some(Burst {
+                date: day(28),
+                count: 784,
+                usual: 20
+            })
+        );
     }
 
     #[test]
@@ -153,7 +163,7 @@ mod tests {
     #[test]
     fn usual_big_day_is_the_ninetieth_percentile_of_active_days() {
         assert_eq!(usual_big_day([].into_iter()), 0);
-        assert_eq!(usual_big_day((1..=10).into_iter()), 10);
+        assert_eq!(usual_big_day(1..=10), 10);
         assert_eq!(usual_big_day([0].into_iter().chain(1..=20)), 19);
     }
 }
