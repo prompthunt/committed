@@ -17,8 +17,7 @@ struct PersonViewStyle {
     var bodyFont: Font = .callout
     var captionFont: Font = .caption
     var avatarSize: CGFloat = 52
-    /// Controls: the GitHub link, the "you" badge, share buttons and the progress spinner.
-    /// nil = `.tint`.
+    /// Controls: the GitHub link, the "you" badge and the progress spinner. nil = `.tint`.
     var accent: Color? = nil
     /// The person's contributions: this month's bars, their race line and the race's number.
     /// nil = `Color.contributionGreen`, lime on dark and deep green on light, as on Windows.
@@ -29,8 +28,7 @@ struct PersonViewStyle {
     var pastBarColor: Color = .gray.opacity(0.35)
     /// Quiet text. nil = `.secondary`.
     var secondaryColor: Color? = nil
-    /// The stat boxes', waiting card's and past months' background. nil = the system's quaternary
-    /// fill.
+    /// The stat boxes' and waiting card's background. nil = the system's quaternary fill.
     var cardColor: Color? = nil
     var cornerRadius: CGFloat = 12
 
@@ -43,19 +41,14 @@ extension EnvironmentValues {
 
 /// A Competitor's person view, shared by the iPhone (sheet, or the second pane on iPhone Duo) and
 /// the Mac window: who they are and a link to their GitHub profile; on a rival's view, their race
-/// with you this month (the gap, who passed whom, both running totals); their streak and active
-/// days; this month's bars over last month's in grey with a selectable bar; and their past months'
-/// finishes with medals, beside yours on a rival's view. Before their count loads it says it's
-/// waiting. Your own view adds the private-contributions tip (`privateTip`, which each platform
-/// styles) and what the number can't show.
+/// with you over the Board's 30 days (the gap, who passed whom, both running totals); their streak
+/// and active days; and this month's bars over last month's in grey with a selectable bar. Before
+/// their count loads it says it's waiting. Your own view adds the private-contributions tip
+/// (`privateTip`, which each platform styles) and what the number can't show.
 ///
 /// The host scrolls it and sets its width; this view has no platform-only types.
 struct PersonViewContent<Tip: View>: View {
     let person: PersonSummary
-    /// Called with a past month to share its Final standings; nil hides the share buttons.
-    var shareFinish: ((CalendarMonth) -> Void)?
-    /// Which past months can be shared, when `shareFinish` is set.
-    var canShareFinish: (CalendarMonth) -> Bool
     private let privateTip: Tip
     @Environment(\.personViewStyle) private var style
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
@@ -63,12 +56,8 @@ struct PersonViewContent<Tip: View>: View {
     @State private var selectedDay: Int
     @State private var touchedBar: String?
 
-    init(person: PersonSummary, initialDay: Int? = nil, shareFinish: ((CalendarMonth) -> Void)? = nil,
-         canShareFinish: @escaping (CalendarMonth) -> Bool = { _ in true },
-         @ViewBuilder privateTip: () -> Tip) {
+    init(person: PersonSummary, initialDay: Int? = nil, @ViewBuilder privateTip: () -> Tip) {
         self.person = person
-        self.shareFinish = shareFinish
-        self.canShareFinish = canShareFinish
         self.privateTip = privateTip()
         _selectedDay = State(initialValue: initialDay ?? person.dayOfMonth)
     }
@@ -93,7 +82,6 @@ struct PersonViewContent<Tip: View>: View {
                 }
                 stats(days)
                 month(days)
-                finishes(days)
             } else {
                 waiting
             }
@@ -155,7 +143,7 @@ struct PersonViewContent<Tip: View>: View {
 
     @ViewBuilder
     private func statBoxes(_ days: PersonSummary.Days) -> some View {
-        // One streak box: the longest shows in its caption only when it differs (#102 review).
+        // One streak box: the longest shows in its caption only when it differs.
         stat("🔥 Streak", PersonSummary.streakValue(days.currentStreak),
              caption: PersonSummary.streakCaption(current: days.currentStreak, longest: days.longestStreak),
              spoken: "Streak",
@@ -198,9 +186,9 @@ struct PersonViewContent<Tip: View>: View {
 
     // MARK: Race
 
-    /// You against them this month: the gap in the Board's words, who passed whom, and both
-    /// running totals with the latest change of lead marked. Their line is drawn in the data color
-    /// like their bars; yours is the quiet one.
+    /// You against them over the Board's 30 days: the gap in the Board's words, who passed whom,
+    /// and both running totals with the latest change of lead marked. Their line is drawn in the
+    /// data color like their bars; yours is the quiet one.
     private func raceCard(_ race: PersonSummary.Race) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             if let title = person.raceTitle {
@@ -291,8 +279,12 @@ struct PersonViewContent<Tip: View>: View {
         // Headroom above the leader so the top label stays inside the chart, clear of the story.
         .chartYScale(domain: 0...(Double(max(1, race.theirTotal, race.yourTotal)) * 1.3))
         .chartXAxis {
-            AxisMarks(values: [1, days]) { _ in
-                AxisValueLabel()
+            AxisMarks(values: [1, days]) { value in
+                AxisValueLabel {
+                    if let day = value.as(Int.self) {
+                        Text(day == days ? "Today" : race.dates.first ?? "")
+                    }
+                }
             }
         }
         .chartYAxis(.hidden)
@@ -408,81 +400,6 @@ struct PersonViewContent<Tip: View>: View {
         .accessibilityLabel(person.chartSummary ?? "")
     }
 
-    // MARK: Past months
-
-    private func finishes(_ days: PersonSummary.Days) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(alignment: .firstTextBaseline) {
-                Text("Past months")
-                    .font(style.sectionFont)
-                    .accessibilityAddTraits(.isHeader)
-                Spacer(minLength: 8)
-                if let record = person.recordText {
-                    Text(record)
-                        .font(style.captionFont.weight(.semibold))
-                        .monospacedDigit()
-                        .foregroundStyle(secondary)
-                        .accessibilityLabel(person.recordSpoken ?? record)
-                }
-            }
-            if days.finishes.isEmpty {
-                Text("No finished months yet.")
-                    .font(style.bodyFont)
-                    .foregroundStyle(secondary)
-            } else {
-                VStack(spacing: 0) {
-                    ForEach(days.finishes) { finish in
-                        finishRow(finish)
-                        if finish.id != days.finishes.last?.id {
-                            Divider().padding(.leading, 12)
-                        }
-                    }
-                }
-                .background(card)
-            }
-        }
-    }
-
-    private func finishRow(_ finish: PersonSummary.Finish) -> some View {
-        HStack(spacing: 10) {
-            Text(finish.medal?.emoji ?? "")
-                .frame(width: 24)
-                .accessibilityHidden(true)
-            VStack(alignment: .leading, spacing: 1) {
-                Text(person.finishName(finish))
-                    .font(style.bodyFont)
-                if let yourRank = finish.yourRank {
-                    // Yours beside theirs: emphasized the months you finished above them.
-                    Text("You #\(yourRank)")
-                        .font(style.captionFont.weight(finish.youWereAhead ? .semibold : .regular))
-                        .monospacedDigit()
-                        .foregroundStyle(finish.youWereAhead ? AnyShapeStyle(.primary) : secondary)
-                }
-            }
-            Spacer(minLength: 8)
-            Text("#\(finish.rank) of \(finish.of)")
-                .font(style.bodyFont)
-                .monospacedDigit()
-                .foregroundStyle(secondary)
-            Text(finish.contributions.formatted())
-                .font(style.bodyFont.weight(.semibold))
-                .monospacedDigit()
-                .frame(minWidth: 40, alignment: .trailing)
-            if let shareFinish, canShareFinish(finish.month) {
-                Button("Share \(person.finishName(finish)) final standings", systemImage: "square.and.arrow.up") {
-                    shareFinish(finish.month)
-                }
-                .labelStyle(.iconOnly)
-                .buttonStyle(.borderless)
-                .tint(accent)
-            }
-        }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 10)
-        .accessibilityElement(children: shareFinish != nil && canShareFinish(finish.month) ? .contain : .ignore)
-        .accessibilityLabel(person.finishSpoken(finish))
-    }
-
     // MARK: Waiting
 
     private var waiting: some View {
@@ -512,9 +429,8 @@ struct PersonViewContent<Tip: View>: View {
 
 extension PersonViewContent where Tip == PrivateContributionsTip {
     /// The person view with the Mac's private-contributions tip, always shown on your own view.
-    init(person: PersonSummary, initialDay: Int? = nil, shareFinish: ((CalendarMonth) -> Void)? = nil,
-         canShareFinish: @escaping (CalendarMonth) -> Bool = { _ in true }) {
-        self.init(person: person, initialDay: initialDay, shareFinish: shareFinish, canShareFinish: canShareFinish) {
+    init(person: PersonSummary, initialDay: Int? = nil) {
+        self.init(person: person, initialDay: initialDay) {
             PrivateContributionsTip(dismissible: false)
         }
     }

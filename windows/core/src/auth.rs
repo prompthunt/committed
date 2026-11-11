@@ -184,7 +184,7 @@ impl BoardCore {
                 state.people_attempt = None;
                 state.people_error = None;
                 state.failed.clear();
-                state.baselines.clear();
+                state.baseline = None;
                 state.previous.clear();
             }
             state.saved.owner = Some(owner.login.clone());

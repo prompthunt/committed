@@ -186,7 +186,7 @@ impl BoardCore {
                     let before: Vec<_> = state.saved.people.iter().map(|p| &p.login).collect();
                     let after: Vec<_> = people.iter().map(|p| &p.login).collect();
                     if before != after {
-                        state.baselines.clear();
+                        state.baseline = None;
                         state.previous.clear();
                     }
                     state.saved.people = people;

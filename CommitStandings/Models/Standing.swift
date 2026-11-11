@@ -79,15 +79,13 @@ struct StandingCounts: Equatable, Sendable {
     }
 }
 
-/// The time range Contributions are counted over. Today, 7 days and 30 days are trailing; This
-/// month is the local calendar month so far and resets to zero on the 1st. Raw values are saved
-/// (settings, caches, Live rank, the relay), so 30 days stays `"monthly"` and This month is
-/// `"month"`. Which days each one covers is `ContributionHistory.days(in:asOf:)`.
+/// The time range Contributions are counted over: today, or the trailing 7 or 30 days. Raw values
+/// are saved (settings, caches, Live rank, the relay), so 30 days stays `"monthly"`. Which days
+/// each one covers is `ContributionHistory.days(in:asOf:)`.
 enum ContributionWindow: String, CaseIterable, Identifiable, Codable, Sendable {
     case daily
     case weekly
     case monthly
-    case month
 
     var id: String { rawValue }
 
@@ -96,7 +94,6 @@ enum ContributionWindow: String, CaseIterable, Identifiable, Codable, Sendable {
         case .daily: return "Daily"
         case .weekly: return "Weekly"
         case .monthly: return "Monthly"
-        case .month: return "This month"
         }
     }
 
@@ -105,7 +102,6 @@ enum ContributionWindow: String, CaseIterable, Identifiable, Codable, Sendable {
         case .daily: return "Today"
         case .weekly: return "7 days"
         case .monthly: return "30 days"
-        case .month: return "This month"
         }
     }
 
@@ -114,22 +110,12 @@ enum ContributionWindow: String, CaseIterable, Identifiable, Codable, Sendable {
         case .daily: return "today"
         case .weekly: return "the last 7 days"
         case .monthly: return "the last 30 days"
-        case .month: return "this month"
         }
     }
 
-    /// Whether the board shows today's movement chevrons on this Window: Today, and This month
-    /// (each measured from the day's first ranking). The trailing 7 and 30 days barely move hour to
-    /// hour.
+    /// Whether the board shows today's movement chevrons on this Window: Today only, measured from
+    /// the day's first ranking. The trailing 7 and 30 days barely move hour to hour.
     var showsTodaysMovement: Bool {
-        self == .daily || self == .month
-    }
-
-    /// "Day 10 of 30" on This month: the day of the month as of `reference` in `calendar` (the
-    /// device's), and how many days the month has. nil on the other Windows.
-    func dayOfMonth(asOf reference: Date, calendar: Calendar = .current) -> String? {
-        guard self == .month,
-              let length = calendar.range(of: .day, in: .month, for: reference)?.count else { return nil }
-        return "Day \(calendar.component(.day, from: reference)) of \(length)"
+        self == .daily
     }
 }

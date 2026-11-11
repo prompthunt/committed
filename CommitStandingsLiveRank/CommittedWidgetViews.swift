@@ -107,8 +107,6 @@ struct CommittedWidgetMedium: View {
 /// you're further down.
 struct CommittedWidgetLarge: View {
     let snapshot: WidgetSnapshot
-    /// What the header says in place of the Window: "October final" on Share board's Final standings.
-    var title: String? = nil
     @Environment(\.liveRankIsStale) private var isStale
 
     var body: some View {
@@ -117,7 +115,7 @@ struct CommittedWidgetLarge: View {
         let shown = snapshot.top + (snapshot.selfIsInTop ? [] : snapshot.selfRow.map { [$0] } ?? [])
         let busiest = shown.compactMap(\.contributions).max() ?? 0
         VStack(alignment: .leading, spacing: 8) {
-            LiveRankHeader(state: state, accessibilityName: "Committed", title: title)
+            LiveRankHeader(state: state, accessibilityName: "Committed")
             VStack(spacing: 8) {
                 ForEach(snapshot.top, id: \.rank) { row in
                     WidgetBoardRow(row: row, window: window, updated: state.updatedDate, busiest: busiest)
@@ -222,8 +220,7 @@ private struct WidgetBoardRow: View {
             window: window,
             maxContributions: busiest,
             rankDelta: row.movement,
-            streak: showsStreak ? row.streak : nil,
-            medal: row.medal
+            streak: showsStreak ? row.streak : nil
         )
     }
 }

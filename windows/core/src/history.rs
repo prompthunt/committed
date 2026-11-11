@@ -1,22 +1,20 @@
 //! Pure calculations over one person's daily contribution counts: the Windows mirror of Swift's
 //! `ContributionHistory`. Keys are GitHub's civil days and `today` is the local day from the
-//! `Clock`, so nothing here reads the time or a time zone. Finished months (`month_range`,
-//! `month_total`, `first_full_month`) feed Final standings; the Swift functions share these names
-//! in camelCase.
+//! `Clock`, so nothing here reads the time or a time zone. `series`, `active_days`,
+//! `month_range` and `days_in_month` serve the person view.
 use crate::Window;
 use chrono::{Datelike, Duration, NaiveDate};
 use serde::Serialize;
 use std::collections::BTreeMap;
 use std::ops::RangeInclusive;
 
-/// The days `window` covers as of `today`, inclusive. Today, 7 days and 30 days end today and
-/// reach back a fixed number of days; This month starts on the 1st of today's month.
+/// The days `window` covers as of `today`, inclusive: each Window ends today and reaches back a
+/// fixed number of days.
 pub fn range(window: Window, today: NaiveDate) -> RangeInclusive<NaiveDate> {
     let start = match window {
         Window::Today => today,
         Window::Week => today - Duration::days(6),
         Window::Monthly => today - Duration::days(29),
-        Window::ThisMonth => first_of_month(today),
     };
     start..=today
 }
@@ -71,8 +69,8 @@ pub fn longest_streak(days: &BTreeMap<NaiveDate, u32>, today: NaiveDate) -> u32 
 }
 
 /// The person view's bars: each day's count in `range`, first day first, 0 for a day the
-/// calendar doesn't have. Pass `range(Window::ThisMonth, today)` for this month to date and
-/// `month_range(month)` for a whole finished month.
+/// calendar doesn't have: the 1st through today for this month, `month_range(month)` for last
+/// month.
 pub fn series(days: &BTreeMap<NaiveDate, u32>, range: RangeInclusive<NaiveDate>) -> Vec<u32> {
     range
         .start()
@@ -87,33 +85,14 @@ pub fn active_days(days: &BTreeMap<NaiveDate, u32>, range: RangeInclusive<NaiveD
     days.range(range).filter(|(_, count)| **count > 0).count() as u32
 }
 
-/// Every day of the month that contains `month` (any day of it names the month), 1st to last.
-/// Final standings use it for a finished month; This month is `range(Window::ThisMonth, today)`.
+/// Every day of the month that contains `month` (any day of it names the month), 1st to last:
+/// the person view's last month.
 pub fn month_range(month: NaiveDate) -> RangeInclusive<NaiveDate> {
     let first = first_of_month(month);
     first..=next_month(first) - Duration::days(1)
 }
 
-/// Contributions in the whole month that contains `month`; a day missing from the calendar adds 0.
-pub fn month_total(days: &BTreeMap<NaiveDate, u32>, month: NaiveDate) -> u32 {
-    days.range(month_range(month)).map(|(_, count)| count).sum()
-}
-
-/// The 1st of the first month this calendar covers in full: the calendar's first month when it
-/// starts on a 1st, otherwise the month after. Earlier months aren't offered as finished months,
-/// because part of them is missing. `None` for an empty calendar. GitHub renders every day of the
-/// calendar, zeros included, so the first key is the first day it covers.
-pub fn first_full_month(days: &BTreeMap<NaiveDate, u32>) -> Option<NaiveDate> {
-    let first = *days.keys().next()?;
-    let start = first_of_month(first);
-    Some(if first == start {
-        start
-    } else {
-        next_month(first)
-    })
-}
-
-/// How many days `today`'s month has (28 to 31): the "30" in "Day 10 of 30".
+/// How many days `today`'s month has (28 to 31): the person view's chart width.
 pub fn days_in_month(today: NaiveDate) -> u32 {
     (next_month(today) - first_of_month(today)).num_days() as u32
 }

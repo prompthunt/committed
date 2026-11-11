@@ -9,9 +9,9 @@ import UIKit
 ///
 /// Optional, after `-ScreenshotFixture`: `-ScreenshotTab people|settings` opens on that tab,
 /// `-ScreenshotHide <login>` hides that person before the first refresh (so Today still moves),
-/// `-ScreenshotWindow <raw value>` opens the board on that Window (`month` for This month),
-/// `-ScreenshotDate <ISO 8601>` sets the app's clock (`2026-11-01T10:00:00Z` shows the 1st's Final
-/// standings), `-ScreenshotShare` opens Share board once the board has loaded,
+/// `-ScreenshotWindow <raw value>` opens the board on that Window (`monthly` for 30 days),
+/// `-ScreenshotDate <ISO 8601>` sets the app's clock, `-ScreenshotShare` opens Share board once the
+/// board has loaded,
 /// `-ScreenshotPerson <login>` opens that person's view (a sheet, or the second pane on the open
 /// iPhone Duo) and `-ScreenshotPersonDay <n>` selects that day's bar instead of today's
 /// (`-ScreenshotPersonEnd` scrolls it to the end),
@@ -67,8 +67,8 @@ enum ScreenshotFixture {
     }
 
     /// `-ScreenshotShare`: open Share board a few seconds after launch, once the first refresh has
-    /// loaded the board, as tapping Share would, so captures can show the sheet (with
-    /// `-ScreenshotDate`, the 1st's Final standings). Honored on any Debug launch.
+    /// loaded the board, as tapping Share would, so captures can show the sheet. Honored on any
+    /// Debug launch.
     static var opensShare: Bool {
         ProcessInfo.processInfo.arguments.contains("-ScreenshotShare")
     }
@@ -170,18 +170,18 @@ enum ScreenshotFixture {
         }
     }
 
-    /// The Sample board's services (`SampleServices`) with the fixture's extras: one person who
-    /// always fails to load, `-ScreenshotRestrictedOrg <name>` and `-ScreenshotHide <login>`. It
-    /// loads at once, refreshing twice so Today shows movement chevrons.
-    ///
-    /// `extraPeople` adds that many followed people (`sample-pal-01`, …) below everyone else, for a
-    /// board long enough to scroll on the open iPhone Duo display (used by the #46 render tests).
     /// The app's clock: `-ScreenshotDate <ISO 8601>`, or the real time.
     static var now: @Sendable () -> Date {
         let date = value(after: "-ScreenshotDate").flatMap { try? Date($0, strategy: .iso8601) }
         return { date ?? Date() }
     }
 
+    /// The Sample board's services (`SampleServices`) with the fixture's extras: one person who
+    /// always fails to load, `-ScreenshotRestrictedOrg <name>` and `-ScreenshotHide <login>`. It
+    /// loads at once, refreshing twice so Today shows movement chevrons.
+    ///
+    /// `extraPeople` adds that many followed people (`sample-pal-01`, …) below everyone else, for a
+    /// board long enough to scroll on the open iPhone Duo display (used by the #46 render tests).
     static func services(extraPeople: Int = 0, failingCompetitor: Bool = true) -> CommittedServices {
         // `-ScreenshotRestrictedOrg <name>`: an organization that won't list its members for
         // Committed, as People shows it.
@@ -192,8 +192,7 @@ enum ScreenshotFixture {
             trollPerson: value(after: "-ScreenshotTroll")
         ), now: now)
         let hide = value(after: "-ScreenshotHide")
-        // `-ScreenshotWindow month`: the board opens on that Window (a raw value), so This month's
-        // first two refreshes move too.
+        // `-ScreenshotWindow monthly`: the board opens on that Window (a raw value).
         if let window = value(after: "-ScreenshotWindow").flatMap(ContributionWindow.init(rawValue:)) {
             services.store.selectedWindow = window
         }

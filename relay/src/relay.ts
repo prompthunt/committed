@@ -104,11 +104,9 @@ export function createRelay(deps: RelayDeps) {
       log("installation_created", { id, competitors: registration.competitors.length });
       return json(201, { ok: true });
     }
-    // A changed board (hide/show, roster sync) invalidates today's movement baseline, as a
-    // visibility change does in RefreshCoordinator. So does another Window: the baseline holds
-    // that Window's ranks (Today's or This month's).
-    const resetBaseline =
-      existing.competitors_json !== JSON.stringify(registration.competitors) || existing.window !== registration.window;
+    // A changed board (hide/show, roster sync) invalidates today's movement baseline,
+    // as a visibility change does in RefreshCoordinator.
+    const resetBaseline = existing.competitors_json !== JSON.stringify(registration.competitors);
     await store.update(id, registration, resetBaseline, deps.now());
     log("installation_updated", { id, competitors: registration.competitors.length });
     return json(200, { ok: true });
@@ -123,7 +121,7 @@ export function createRelay(deps: RelayDeps) {
   async function boardHandler(request: Request, url: URL, id: string): Promise<Response> {
     if (request.method !== "GET") return boardError(405, "method_not_allowed", "Use GET.");
     const window = parseWindow(url.searchParams.get("window"));
-    if (!window) return boardError(400, "invalid_window", "window must be daily, weekly, monthly or month.");
+    if (!window) return boardError(400, "invalid_window", "window must be daily, weekly or monthly.");
     const token = bearer(request);
     if (!token) return boardError(401, "unauthorized", "A board read token is required.");
     const row = ID_PATTERN.test(id) ? await store.get(id) : null;

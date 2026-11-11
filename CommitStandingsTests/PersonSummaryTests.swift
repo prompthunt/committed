@@ -3,7 +3,7 @@ import Foundation
 @testable import CommitStandings
 
 /// The person view's content (`StandingsStore.person`): one Competitor's month day by day beside
-/// last month, their streaks, active days and past finishes, from saved calendars. The iPhone sheet
+/// last month, their streaks and active days, from saved calendars. The iPhone sheet
 /// or pane and the Mac window (#102) draw exactly this; the Windows core's `BoardCore::person`
 /// follows the same rules.
 @MainActor
@@ -28,9 +28,20 @@ struct PersonSummaryTests {
         return store
     }
 
+    /// A UTC calendar with every day from `first` through `last` (zeros included, as GitHub's has),
+    /// and `counts` on top.
     static func history(from first: String = "2026-09-14", through last: String, _ counts: [String: Int])
         -> ContributionHistory {
-        FinalStandingsTests.history(from: first, through: last, counts)
+        let format = Date.ISO8601FormatStyle().year().month().day()
+        var day = try! format.parse(first)
+        let end = try! format.parse(last)
+        var days: [String: Int] = [:]
+        while day <= end {
+            days[ContributionHistory.key(for: day, in: utc)] = 0
+            day = utc.date(byAdding: .day, value: 1, to: day)!
+        }
+        days.merge(counts) { _, new in new }
+        return ContributionHistory(days: days, timeZone: .gmt)
     }
 
     /// November 22: Ana's November so far beside her whole October.
@@ -54,7 +65,7 @@ struct PersonSummaryTests {
         #expect(days.lastMonth.count == 31)
         #expect(days.lastMonth.first == 7)
         #expect(days.lastMonth.suffix(3) == [1, 4, 5])
-        #expect(days.thisMonth.reduce(0, +) == 50) // the row's This month count
+        #expect(days.thisMonth.reduce(0, +) == 50)
         #expect(days.lastMonth.reduce(0, +) == 17)
         #expect(days.currentStreak == 3)
         #expect(days.longestStreak == 4) // October 29 through November 1
@@ -86,27 +97,6 @@ struct PersonSummaryTests {
         let person = try #require(store.person("me", asOf: Self.noon("2026-11-03"), calendar: Self.utc))
         #expect(person.chartSummary == "1 active day this month, most on November 2 with 1")
         #expect(person.bar(day: 2)?.value == "1 contribution. October 2: 0")
-    }
-
-    @Test func pastFinishesNewestFirstWithMedalsAndTheYearWhenItDiffers() throws {
-        let store = Self.store(rivals: ["ana"], histories: [
-            "me": Self.history(from: "2025-11-20", through: "2026-02-10", ["2025-12-05": 10, "2026-01-05": 5]),
-            "ana": Self.history(from: "2025-11-20", through: "2026-02-10", ["2025-12-06": 20]),
-        ])
-        let me = try #require(store.person("me", asOf: Self.noon("2026-02-10"), calendar: Self.utc))
-        let finishes = try #require(me.days?.finishes)
-        #expect(finishes.map(\.month) == [CalendarMonth(year: 2026, month: 1), CalendarMonth(year: 2025, month: 12)])
-        #expect(finishes.map { me.finishName($0) } == ["January", "December 2025"])
-        #expect(finishes.map(\.rank) == [1, 2])
-        #expect(finishes.map(\.of) == [2, 2])
-        #expect(finishes.map(\.contributions) == [5, 10])
-        #expect(finishes.map(\.medal) == [.gold, .silver])
-        #expect(me.finishSpoken(finishes[1]) == "December 2025: #2 of 2, 10 contributions, silver medal")
-
-        let ana = try #require(store.person("ana", asOf: Self.noon("2026-02-10"), calendar: Self.utc))
-        // A zero month ranks but never earns a medal.
-        #expect(ana.days?.finishes.map(\.medal) == [nil, .gold])
-        #expect(ana.finishSpoken(try #require(ana.days?.finishes.first)) == "January: #2 of 2, 0 contributions, you finished #1")
     }
 
     @Test func waitsInsteadOfDrawingZerosBeforeTheCountLoads() throws {
@@ -163,9 +153,10 @@ struct PersonSummaryTests {
         #expect(PersonSummary.streakSpoken(current: current, longest: longest) == spoken)
     }
 
-    // MARK: The race with you
+    // MARK: The race with you, over the Board's 30 days
 
-    /// Me and Odile on November 10: I lead the first week, she passes me on the 8th.
+    /// Me and Odile on November 10: nothing in October, I lead from November 1, she passes me on
+    /// the 8th.
     static func raceStore() -> StandingsStore {
         let mine = [3, 6, 10, 4, 4, 6, 7, 3, 7, 7]
         let hers = [2, 4, 6, 3, 5, 4, 12, 9, 8, 9]
@@ -175,24 +166,31 @@ struct PersonSummaryTests {
             })
         }
         return store(rivals: ["odile"], histories: [
-            "me": history(through: "2026-11-10", days(mine).merging(["2026-10-05": 4]) { a, _ in a }),
-            "odile": history(through: "2026-11-10", days(hers).merging(["2026-10-06": 9]) { a, _ in a }),
+            "me": history(through: "2026-11-10", days(mine).merging(["2026-10-05": 40]) { a, _ in a }),
+            "odile": history(through: "2026-11-10", days(hers)),
         ])
     }
 
-    @Test func aRivalsViewLeadsWithTheRaceThisMonth() throws {
-        let person = try #require(Self.raceStore().person("odile", asOf: Self.noon("2026-11-10"), calendar: Self.utc))
+    @Test func aRivalsViewLeadsWithTheRaceOverThe30Days() throws {
+        let store = Self.raceStore()
+        let person = try #require(store.person("odile", asOf: Self.noon("2026-11-10"), calendar: Self.utc))
         let race = try #require(person.race)
-        #expect(race.month == CalendarMonth(year: 2026, month: 11))
-        #expect(race.isFinal == false)
-        #expect(race.yours == [3, 9, 19, 23, 27, 33, 40, 43, 50, 57])
-        #expect(race.theirs == [2, 6, 12, 15, 20, 24, 36, 45, 53, 62])
-        #expect(race.story == .passed(.them, day: 8, changes: 1))
-        #expect(person.raceTitle == "You vs odile · November")
+        // October 12 through today; October 5's 40 is outside the 30 days.
+        #expect(race.dates.count == 30)
+        #expect(race.dates.first == "October 12")
+        #expect(race.dates.last == "November 10")
+        #expect(Array(race.yours.suffix(10)) == [3, 9, 19, 23, 27, 33, 40, 43, 50, 57])
+        #expect(Array(race.theirs.suffix(10)) == [2, 6, 12, 15, 20, 24, 36, 45, 53, 62])
+        // The same totals the Board ranks on 30 days.
+        #expect(race.yourTotal == store.history(for: "me")?.total(for: .monthly, asOf: Self.noon("2026-11-10")))
+        #expect(race.theirTotal == store.history(for: "odile")?.total(for: .monthly, asOf: Self.noon("2026-11-10")))
+        // Level through October, then I pulled ahead on November 1 (day 21) and she passed on the 8th.
+        #expect(race.story == .passed(.them, day: 28, changes: 1))
+        #expect(person.raceTitle == "You vs odile · 30 days")
         #expect(person.raceHeadline == "5 to pass odile")
         #expect(person.raceHeadlineNumber == "5")
         #expect(person.raceStory == "odile passed you on November 8")
-        #expect(person.raceSpoken == "You vs odile, November. 5 to pass odile. odile passed you on November 8. odile 62, you 57.")
+        #expect(person.raceSpoken == "You vs odile, 30 days. 5 to pass odile. odile passed you on November 8. odile 62, you 57.")
     }
 
     @Test func yourOwnViewHasNoRace() throws {
@@ -208,29 +206,11 @@ struct PersonSummaryTests {
         #expect(ana.race == nil)
     }
 
-    @Test func onTheFirstTheRaceIsLastMonthsFinishedOne() throws {
-        let store = Self.store(rivals: ["ana"], histories: [
-            "me": Self.history(through: "2026-11-01", ["2026-10-03": 10, "2026-10-20": 2]),
-            "ana": Self.history(through: "2026-11-01", ["2026-10-10": 30, "2026-11-01": 4]),
-        ])
-        let ana = try #require(store.person("ana", asOf: Self.noon("2026-11-01"), calendar: Self.utc))
-        let race = try #require(ana.race)
-        #expect(race.month == CalendarMonth(year: 2026, month: 10))
-        #expect(race.isFinal)
-        #expect(race.yours.count == 31)
-        #expect(race.yourTotal == 12)
-        #expect(race.theirTotal == 30)
-        #expect(race.story == .passed(.them, day: 10, changes: 1))
-        #expect(ana.raceTitle == "You vs ana · October final")
-        #expect(ana.raceHeadline == "ana beat you by 18")
-        #expect(ana.raceHeadlineNumber == nil)
-    }
-
     @Test(arguments: [
         // [yours], [theirs], story, headline, story line
-        ([1, 2, 3], [1, 2, 3], PersonSummary.Story.level, "Level with ana", "Level all month"),
-        ([2, 4, 6], [1, 2, 3], .led(.you), "3 ahead of ana", "You’ve led all month"),
-        ([1, 2, 3], [2, 4, 6], .led(.them), "3 to pass ana", "ana has led all month"),
+        ([1, 2, 3], [1, 2, 3], PersonSummary.Story.level, "Level with ana", "Level for all 3 days"),
+        ([2, 4, 6], [1, 2, 3], .led(.you), "3 ahead of ana", "You’ve led for all 3 days"),
+        ([1, 2, 3], [2, 4, 6], .led(.them), "3 to pass ana", "ana has led for all 3 days"),
         ([0, 0, 1], [0, 2, 3], .pulledAhead(.them, day: 2), "2 to pass ana", "ana pulled ahead on November 2"),
         ([0, 3, 3], [1, 1, 5], .passed(.them, day: 3, changes: 2), "2 to pass ana",
          "ana passed you on November 3 · the lead changed 2 times"),
@@ -238,30 +218,11 @@ struct PersonSummaryTests {
     ])
     func theStoryFollowsTheLead(_ yours: [Int], _ theirs: [Int], _ story: PersonSummary.Story,
                                 _ headline: String, _ line: String) {
-        let race = PersonSummary.Race(month: CalendarMonth(year: 2026, month: 11), isFinal: false,
-                                      yours: yours, theirs: theirs)
+        let race = PersonSummary.Race(dates: ["November 1", "November 2", "November 3"], yours: yours, theirs: theirs)
         let person = PersonSummary(competitor: Competitor(username: "ana", isSelf: false), status: .loaded,
                                    month: CalendarMonth(year: 2026, month: 11), dayOfMonth: 3, days: nil, race: race)
         #expect(race.story == story)
         #expect(person.raceHeadline == headline)
         #expect(person.raceStory == line)
-    }
-
-    @Test func pastMonthsShowYourFinishBesideTheirs() throws {
-        let store = Self.store(rivals: ["ana"], histories: [
-            "me": Self.history(from: "2025-11-20", through: "2026-02-10", ["2025-12-05": 10, "2026-01-05": 5]),
-            "ana": Self.history(from: "2025-11-20", through: "2026-02-10", ["2025-12-06": 20]),
-        ])
-        let ana = try #require(store.person("ana", asOf: Self.noon("2026-02-10"), calendar: Self.utc))
-        let finishes = try #require(ana.days?.finishes)
-        #expect(finishes.map(\.yourRank) == [1, 2])
-        #expect(finishes.map(\.youWereAhead) == [true, false])
-        #expect(ana.recordText == "ana 1 · you 1")
-        #expect(ana.recordSpoken == "Months finished ahead: ana 1, you 1")
-        #expect(ana.finishSpoken(finishes[1]) == "December 2025: #1 of 2, 20 contributions, gold medal, you finished #2")
-
-        let me = try #require(store.person("me", asOf: Self.noon("2026-02-10"), calendar: Self.utc))
-        #expect(me.days?.finishes.allSatisfy { $0.yourRank == nil } == true)
-        #expect(me.recordText == nil)
     }
 }

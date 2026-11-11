@@ -98,7 +98,6 @@ pub fn burst(days: &BTreeMap<NaiveDate, u32>, range: RangeInclusive<NaiveDate>) 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{history, Window};
 
     fn day(d: u32) -> NaiveDate {
         NaiveDate::from_ymd_opt(2026, 5, d).unwrap()
@@ -147,24 +146,6 @@ mod tests {
         assert_eq!(
             burst(&days, day(22)..=day(28)).map(|b| b.date),
             Some(day(25))
-        );
-    }
-
-    /// This month covers the 1st through today: last month's trolling day isn't on it.
-    #[test]
-    fn this_month_covers_only_the_calendar_month() {
-        let april_30 = NaiveDate::from_ymd_opt(2026, 4, 30).unwrap();
-        let mut days: BTreeMap<NaiveDate, u32> = (1..=29)
-            .map(|d| (NaiveDate::from_ymd_opt(2026, 4, d).unwrap(), 20))
-            .collect();
-        days.insert(april_30, 500);
-        days.insert(day(1), 20);
-        days.insert(day(2), 20);
-        let thirty = history::range(Window::Monthly, day(2));
-        assert_eq!(burst(&days, thirty).map(|b| b.date), Some(april_30));
-        assert_eq!(
-            burst(&days, history::range(Window::ThisMonth, day(2))),
-            None
         );
     }
 

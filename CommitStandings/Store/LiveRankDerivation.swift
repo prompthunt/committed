@@ -9,9 +9,8 @@ extension LiveRankState {
     ///     lists you first (`StandingsStore.addSelf`/`replaceRoster`, the relay's `selfFirst`), so
     ///     `Ranking.order` gives you every tie, which `gapToPass` relies on.
     ///   - standings: counts by login. A missing entry, or one for another Window, is no data.
-    ///   - rankDeltas: today's movement by login (baseline − current); read only on Windows that
-    ///     show it (`showsTodaysMovement`: Today and This month). The relay's port reads Today only
-    ///     until it ranks This month (#97).
+    ///   - rankDeltas: today's movement by login (baseline − current); read only on Today
+    ///     (`showsTodaysMovement`).
     ///   - streaks: current streak by login (`ContributionHistory.currentStreak`), for everyone
     ///     with a calendar. Yours shows only beside your count; a missing entry is no streak.
     ///   - now: when the data was fetched. Becomes `updatedAt`, rounded down to whole seconds.

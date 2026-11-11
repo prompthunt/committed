@@ -273,11 +273,6 @@ struct SampleBoardTests {
         let shared = try #require(model.boardToShare())
         #expect(shared.isSampleBoard == true)
         #expect(shared.savedAvatars == nil)
-        // And Share board's Final standings.
-        let lastMonth = CalendarMonth(containing: clock.now, in: .current).previous
-        let finals = try #require(model.finalStandingsToShare(for: lastMonth))
-        #expect(finals.snapshot.isSampleBoard == true)
-        #expect(finals.snapshot.savedAvatars == nil)
 
         await model.connectGitHub()
 

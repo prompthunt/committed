@@ -45,24 +45,10 @@ struct LeaderboardView: View {
             .padding(.horizontal, 8)
             .padding(.bottom, 6)
 
-            if refresh.showsFinalStandings, let finals = refresh.offeredFinalStandings {
-                if let status = finals.statusLine {
-                    Text(status)
-                        .font(.caption.weight(.medium))
-                        .padding(.horizontal, 8)
-                        .padding(.bottom, 4)
-                }
-                LazyVStack(spacing: 0) {
-                    ForEach(finals.entries) { entry in
-                        PersonWindowRowButton(login: entry.competitor.username) { finals.row(entry) }
-                    }
-                }
-            } else {
-                LazyVStack(spacing: 0) {
-                    ForEach(entries) { item in
-                        PersonWindowRowButton(login: item.competitor.username) {
-                            row(for: item, maxContributions: maxContributions)
-                        }
+            LazyVStack(spacing: 0) {
+                ForEach(entries) { item in
+                    PersonWindowRowButton(login: item.competitor.username) {
+                        row(for: item, maxContributions: maxContributions)
                     }
                 }
             }
@@ -81,8 +67,8 @@ struct LeaderboardView: View {
         )
     }
 
-    /// Placement movement since the start of the day — only shown on Today and This month; the
-    /// trailing 7/30-day positions barely move hour to hour.
+    /// Placement movement since the start of the day — only shown on Today; the trailing
+    /// 7/30-day positions barely move hour to hour.
     private func rankDelta(for username: String) -> Int? {
         refresh.rankDelta(for: username, in: store.selectedWindow)
     }

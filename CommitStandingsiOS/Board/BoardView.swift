@@ -54,13 +54,13 @@ struct BoardView: View {
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Share board", systemImage: "square.and.arrow.up") {
-                        sharing = model.boardShareRequest()
+                        sharing = model.boardToShare().map(BoardShareRequest.init)
                     }
                     .disabled(!store.hasSelf)
                 }
             }
             .sheet(item: $sharing) { request in
-                BoardShareSheet(request: request)
+                BoardShareSheet(snapshot: request.snapshot)
             }
             .sheet(item: personSheet) { _ in
                 PersonSheet()
@@ -70,7 +70,7 @@ struct BoardView: View {
             .task {
                 guard ScreenshotFixture.opensShare else { return }
                 try? await Task.sleep(for: .seconds(3))
-                sharing = model.boardShareRequest()
+                sharing = model.boardToShare().map(BoardShareRequest.init)
             }
             #endif
         }
@@ -104,6 +104,12 @@ struct BoardView: View {
     }
 
     private nonisolated static let arrangementSpace = "BoardArrangement"
+}
+
+/// A board to share, with an identity for `.sheet(item:)`.
+struct BoardShareRequest: Identifiable {
+    let id = UUID()
+    let snapshot: WidgetSnapshot
 }
 
 /// The person whose view the sheet shows, with an identity for `.sheet(item:)`.
@@ -144,32 +150,7 @@ struct BoardLeaderboard: View {
                     .listRowSeparator(.hidden)
                     .listRowBackground(Color.clear)
                 }
-            } else if !store.rivals.isEmpty, let finals = refresh.offeredFinalStandings {
-                // On the 1st: last month's Final standings, which the board opens on.
-                Section {
-                    FinalStandingsToggle(finals: finals)
-                        .buttonStyle(.bordered)
-                        .controlSize(.large)
-                        .tint(.lime)
-                        .listRowSeparator(.hidden)
-                        .listRowBackground(Color.clear)
-                        .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 0, trailing: 16))
-                }
-                if refresh.showsFinalStandings {
-                    Section {
-                        ForEach(finals.entries) { entry in
-                            PersonRowButton(login: entry.competitor.username) { finals.row(entry) }
-                                .listRowSeparator(.hidden)
-                                .listRowBackground(Color.clear)
-                                .listRowInsets(EdgeInsets(top: 1, leading: 8, bottom: 1, trailing: 8))
-                        }
-                    } header: {
-                        FolioHeader(finals.statusLine ?? "\(finals.month.name) final")
-                            .padding(.top, 6)
-                    }
-                }
-            }
-            if store.hasSelf, !(refresh.showsFinalStandings && !store.rivals.isEmpty) {
+            } else {
                 Section {
                     if isInitialLoad(entries: entries) {
                         InitialLoadRow()
@@ -349,8 +330,7 @@ private struct RankedBoard {
             .map(\.contributions).max() ?? 0
     }
 
-    /// The shared row for `entry`, with today's movement on Today and This month, and the person's
-    /// streak.
+    /// The shared row for `entry`, with today's movement on Today, and the person's streak.
     func row(_ entry: Ranking.Entry, store: StandingsStore, refresh: RefreshCoordinator) -> StandingRow {
         StandingRow(
             rank: entry.rank,

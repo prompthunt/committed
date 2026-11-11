@@ -40,8 +40,7 @@ struct ContributionHistory: Codable, Equatable, Sendable {
     }
 
     /// The days `window` covers as of `reference`, in this history's time zone, as the start of
-    /// each first and last day: today and the 6 or 29 days before it for the trailing Windows, and
-    /// the 1st of the month through today for This month (so it resets on the 1st).
+    /// each first and last day: today, or today and the 6 or 29 days before it.
     func days(in window: ContributionWindow, asOf reference: Date) -> ClosedRange<Date> {
         let calendar = calendar
         let today = calendar.startOfDay(for: reference)
@@ -50,7 +49,6 @@ struct ContributionHistory: Codable, Equatable, Sendable {
         case .daily: first = today
         case .weekly: first = calendar.date(byAdding: .day, value: -6, to: today)
         case .monthly: first = calendar.date(byAdding: .day, value: -29, to: today)
-        case .month: first = calendar.dateInterval(of: .month, for: today)?.start
         }
         return (first ?? today)...today
     }

@@ -42,7 +42,7 @@
 		2B9F5363ADFAA87FFDADC4AD /* AvatarCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2BE7DBC6DD6B90696CF0B66 /* AvatarCache.swift */; };
 		2F3D22D68DE079BED51BA34F /* PeopleDirectory.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14D700EC17B9737E5660B89C /* PeopleDirectory.swift */; };
 		3032A47147EC780F188B1784 /* Competitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0E062D81143D59018AE88D4 /* Competitor.swift */; };
-		37D00A366B5F8EA0E34137FD /* FinalStandings.swift in Sources */ = {isa = PBXBuildFile; fileRef = F70177D8CD6DA190324F440A /* FinalStandings.swift */; };
+		37D00A366B5F8EA0E34137FD /* CalendarMonth.swift in Sources */ = {isa = PBXBuildFile; fileRef = F70177D8CD6DA190324F440A /* CalendarMonth.swift */; };
 		3E1E66E727D5D637EE37F7DD /* Persistence.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4E8F7283802C87D59603B81 /* Persistence.swift */; };
 		3E9600CDBCA81FA11A8617C7 /* AvatarColor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B3C587C1FCCF5F4B4F05B1C /* AvatarColor.swift */; };
 		3EB4C7C69C7D0A879A03A886 /* AvatarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A4640E60F739D66B0052E1DB /* AvatarView.swift */; };
@@ -84,11 +84,9 @@
 		851A1EF58E57494BE1955E5A /* WidgetSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = 07C847D32565E1A367F30DD4 /* WidgetSnapshot.swift */; };
 		8526DCDE44E0DB284545225A /* GitHubConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 97B1C9E37DF68B21D1A5888B /* GitHubConfig.swift */; };
 		85758BC52D8231928BF5FFE8 /* LiveRankDerivation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 284070E7C171FF3A46332457 /* LiveRankDerivation.swift */; };
-		860CBAD4FC71B9DEC80FF397 /* FinalStandingsViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 711333E71FC3C8912A825C3D /* FinalStandingsViews.swift */; };
 		8A757784E5352821C5229F8E /* Standing.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D7951BB34A16E4847FB3A75 /* Standing.swift */; };
 		8B6B59534FC172BD8D6750E6 /* RefreshCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = ABC6DA1FB2CD9C804A5518A0 /* RefreshCoordinator.swift */; };
 		8ED607616AA570FD7C8EFAD8 /* PersonSummaryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C531544A86D10873C21AB379 /* PersonSummaryTests.swift */; };
-		906F7B3661F4C2C8A07F4E02 /* FinalStandingsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0C8D160DB0613703D0093D /* FinalStandingsTests.swift */; };
 		914F13EB6C67C76FBF2E6EE5 /* DeepLink.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0D91579108402981623D843 /* DeepLink.swift */; };
 		91CEC08111EB05B33948FB40 /* StandingsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 898A1B0791B453A31529D80F /* StandingsStore.swift */; };
 		9231C5A18BEFA28ED9170221 /* GitHubAccountClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 82EC1D669C7B8DC1BFE57F26 /* GitHubAccountClient.swift */; };
@@ -123,7 +121,6 @@
 		CB4AF69B34234966E1E100A9 /* ContributionWindowPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB984BFA2EC81E758FDE6559 /* ContributionWindowPicker.swift */; };
 		CCB720008976A2D9A1A03753 /* UpdatePromptStateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45A478B0A1112D6FBA8C546C /* UpdatePromptStateTests.swift */; };
 		CD15D08ACEC8ADC3E89D85A6 /* DisplayNameTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4405F2DD88A6C31D1D4A1034 /* DisplayNameTests.swift */; };
-		CD40728701ABD3C246A3A2E1 /* FinalStandings.swift in Sources */ = {isa = PBXBuildFile; fileRef = F70177D8CD6DA190324F440A /* FinalStandings.swift */; };
 		CE6F02ED8E15F6E6312B28BE /* PersonViewContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A157757A91AC954545477FD /* PersonViewContent.swift */; };
 		D0780CC0EF36F2A1D5DF1977 /* OnboardingFlow.swift in Sources */ = {isa = PBXBuildFile; fileRef = D11835AEBA0843F9E9D675BE /* OnboardingFlow.swift */; };
 		D2CA62860FD68FCBB3D0EA13 /* ContributionsClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 90DF43E36794708D5DE09044 /* ContributionsClient.swift */; };
@@ -146,10 +143,9 @@
 		E8FD05B070B0A86C5984313B /* CommittedServices.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6B67DA147AA79BFA7435B025 /* CommittedServices.swift */; };
 		EA5A8949EECDAB985792F4C0 /* DisplayName.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE668B3C3B6EF707DF051853 /* DisplayName.swift */; };
 		F2000195E1621477F641F7DA /* PrivateContributionsTip.swift in Sources */ = {isa = PBXBuildFile; fileRef = C216DCA8F4A0082D45F4A186 /* PrivateContributionsTip.swift */; };
-		F2D075F6E6BAD05CE384BE53 /* FinalStandingsViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 711333E71FC3C8912A825C3D /* FinalStandingsViews.swift */; };
 		F4301337CE7212C0D089294A /* EmptyStateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47DC51560C3A580D21B51494 /* EmptyStateView.swift */; };
 		F4685CC2AD40B01F99AE916D /* Ranking.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BE6286655EE3892D7B537EF /* Ranking.swift */; };
-		F5F352A8F020BEC1AB797E30 /* FinalStandings.swift in Sources */ = {isa = PBXBuildFile; fileRef = F70177D8CD6DA190324F440A /* FinalStandings.swift */; };
+		F5F352A8F020BEC1AB797E30 /* CalendarMonth.swift in Sources */ = {isa = PBXBuildFile; fileRef = F70177D8CD6DA190324F440A /* CalendarMonth.swift */; };
 		F7E6335E335B91F0EC781079 /* PersonSummary.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2E3B5566401F1D1B16FB15B /* PersonSummary.swift */; };
 		FA396113AF347934582F4936 /* StandingRowStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 174BE2ECF11C8689CDA89AFB /* StandingRowStyle.swift */; };
 		FBCFB85E92EEF93ED3C89FE3 /* ActivityKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0CAA6B14EEB106C96EF47BC6 /* ActivityKit.framework */; };
@@ -206,7 +202,6 @@
 		1278902C8E1364C523CD07BA /* SoloView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoloView.swift; sourceTree = "<group>"; };
 		14D700EC17B9737E5660B89C /* PeopleDirectory.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PeopleDirectory.swift; sourceTree = "<group>"; };
 		174BE2ECF11C8689CDA89AFB /* StandingRowStyle.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = StandingRowStyle.swift; sourceTree = "<group>"; };
-		1A0C8D160DB0613703D0093D /* FinalStandingsTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = FinalStandingsTests.swift; sourceTree = "<group>"; };
 		1A157757A91AC954545477FD /* PersonViewContent.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PersonViewContent.swift; sourceTree = "<group>"; };
 		1B215A09A572661D0932EFE0 /* NotificationService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotificationService.swift; sourceTree = "<group>"; };
 		244D017B10D3447C59BBCE58 /* SignInView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignInView.swift; sourceTree = "<group>"; };
@@ -239,7 +234,6 @@
 		6B67DA147AA79BFA7435B025 /* CommittedServices.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CommittedServices.swift; sourceTree = "<group>"; };
 		6C62F24CB54A093905756EA7 /* LiveRankState.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = LiveRankState.swift; sourceTree = "<group>"; };
 		6E4235C3F328C5230A4C9E57 /* StandingRowRenderTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = StandingRowRenderTests.swift; sourceTree = "<group>"; };
-		711333E71FC3C8912A825C3D /* FinalStandingsViews.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = FinalStandingsViews.swift; sourceTree = "<group>"; };
 		7192384D63DE5967A162AC30 /* LoginItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginItem.swift; sourceTree = "<group>"; };
 		7F9769AEDC289028AB740605 /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS18.0.sdk/System/Library/Frameworks/SwiftUI.framework; sourceTree = DEVELOPER_DIR; };
 		821A52FA909DBC1D0B53A42D /* CommitStandingsLiveRank.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = CommitStandingsLiveRank.appex; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -292,7 +286,7 @@
 		EDACB5377CA771FD5242B764 /* GitHubCredentialStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GitHubCredentialStore.swift; sourceTree = "<group>"; };
 		EE668B3C3B6EF707DF051853 /* DisplayName.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DisplayName.swift; sourceTree = "<group>"; };
 		F0188A42BC6526DCF4088911 /* CommitStandingsiOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = CommitStandingsiOS.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		F70177D8CD6DA190324F440A /* FinalStandings.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = FinalStandings.swift; sourceTree = "<group>"; };
+		F70177D8CD6DA190324F440A /* CalendarMonth.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CalendarMonth.swift; sourceTree = "<group>"; };
 		FB58E10B74FF8CEFFBA9831E /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS18.0.sdk/System/Library/Frameworks/WidgetKit.framework; sourceTree = DEVELOPER_DIR; };
 /* End PBXFileReference section */
 
@@ -449,7 +443,6 @@
 				4420FCB1ACFF42951F076B4E /* NotificationToggleTests.swift */,
 				6E4235C3F328C5230A4C9E57 /* StandingRowRenderTests.swift */,
 				EDA5E23082887C998F9BD4FD /* ContributionHistoryTests.swift */,
-				1A0C8D160DB0613703D0093D /* FinalStandingsTests.swift */,
 				C531544A86D10873C21AB379 /* PersonSummaryTests.swift */,
 				0EE0332098F3017A9389286F /* PersonWindowModelTests.swift */,
 			);
@@ -498,7 +491,7 @@
 				14D700EC17B9737E5660B89C /* PeopleDirectory.swift */,
 				07C847D32565E1A367F30DD4 /* WidgetSnapshot.swift */,
 				6202CD8883133C82C88BC65F /* WidgetRefresh.swift */,
-				F70177D8CD6DA190324F440A /* FinalStandings.swift */,
+				F70177D8CD6DA190324F440A /* CalendarMonth.swift */,
 				E2E3B5566401F1D1B16FB15B /* PersonSummary.swift */,
 				36A2CD7851666B5604E42C94 /* PersonWindowModel.swift */,
 			);
@@ -544,7 +537,6 @@
 				4338259CFDF799D3722D35BB /* RosterStatusView.swift */,
 				AB984BFA2EC81E758FDE6559 /* ContributionWindowPicker.swift */,
 				174BE2ECF11C8689CDA89AFB /* StandingRowStyle.swift */,
-				711333E71FC3C8912A825C3D /* FinalStandingsViews.swift */,
 				1A157757A91AC954545477FD /* PersonViewContent.swift */,
 				4C1D05EFAB3F979746937DB9 /* PersonWindowView.swift */,
 			);
@@ -807,8 +799,7 @@
 				0DF25FFF4C060317A3590F0A /* WidgetSnapshot.swift in Sources */,
 				056AD58860E83DF3C95BF7F0 /* WidgetRefresh.swift in Sources */,
 				FC9207CAB3E6848F2436559A /* ContributionHistory.swift in Sources */,
-				37D00A366B5F8EA0E34137FD /* FinalStandings.swift in Sources */,
-				F2D075F6E6BAD05CE384BE53 /* FinalStandingsViews.swift in Sources */,
+				37D00A366B5F8EA0E34137FD /* CalendarMonth.swift in Sources */,
 				F7E6335E335B91F0EC781079 /* PersonSummary.swift in Sources */,
 				CE6F02ED8E15F6E6312B28BE /* PersonViewContent.swift in Sources */,
 			);
@@ -842,7 +833,6 @@
 				DA3206B4462A175C9B4B1526 /* NotificationToggleTests.swift in Sources */,
 				470E7BAC0634179DA17451CD /* StandingRowRenderTests.swift in Sources */,
 				A13928459C8E232F84685D67 /* ContributionHistoryTests.swift in Sources */,
-				906F7B3661F4C2C8A07F4E02 /* FinalStandingsTests.swift in Sources */,
 				8ED607616AA570FD7C8EFAD8 /* PersonSummaryTests.swift in Sources */,
 				7C2F398C5495B4C90BB3AAF5 /* PersonWindowModelTests.swift in Sources */,
 			);
@@ -900,8 +890,7 @@
 				2F3D22D68DE079BED51BA34F /* PeopleDirectory.swift in Sources */,
 				94EDD91FFCCBB3161EE07DCF /* StandingRowStyle.swift in Sources */,
 				E4FB6207357A590783427CD9 /* ContributionHistory.swift in Sources */,
-				F5F352A8F020BEC1AB797E30 /* FinalStandings.swift in Sources */,
-				860CBAD4FC71B9DEC80FF397 /* FinalStandingsViews.swift in Sources */,
+				F5F352A8F020BEC1AB797E30 /* CalendarMonth.swift in Sources */,
 				1EBFD8DE7ED73EBF7F96AEAB /* PersonSummary.swift in Sources */,
 				AE53B976F70A75EA176B5744 /* PersonViewContent.swift in Sources */,
 				548E9981B65827219520EDB0 /* PersonWindowModel.swift in Sources */,
@@ -931,7 +920,6 @@
 				4737159C4C60CCC28C9CA3AA /* ContributionsParser.swift in Sources */,
 				A5CFDF1C7AA003FF9D9A8341 /* WidgetRefresh.swift in Sources */,
 				B516369A096C31D0A560CFE6 /* ContributionHistory.swift in Sources */,
-				CD40728701ABD3C246A3A2E1 /* FinalStandings.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

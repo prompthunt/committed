@@ -12,14 +12,12 @@ struct WidgetSnapshot: Codable, Equatable, Sendable {
         var login: String
         /// nil while their count hasn't loaded: the row shows a placeholder, never zero.
         var contributions: Int?
-        /// Places moved today (+ up, − down). 0 outside Today and This month.
+        /// Places moved today (+ up, − down). 0 outside Today.
         var movement: Int
         var isSelf: Bool
         /// Their current streak, shown from 2 days beside a loaded count (`StreakLabel`). nil
         /// without their calendar, and in snapshots from before streaks.
         var streak: Int? = nil
-        /// A finished month's medal, on Share board's Final standings only; nil on every live board.
-        var medal: Medal? = nil
     }
 
     /// Your GitHub login.
@@ -94,10 +92,9 @@ struct WidgetSnapshot: Codable, Equatable, Sendable {
 extension WidgetSnapshot {
     /// The board re-ranked with new counts, as the app would rank it (`Ranking.order`, then
     /// `LiveRankState.derive`), dated `now`. Anyone missing from `counts` keeps their last count,
-    /// except where it no longer belongs to the Window: on Today after midnight (yesterday's), and on
-    /// This month from the 1st (last month's). They show no data instead.
-    /// Today's movement, on Today and This month, carries on from the saved board (the day's baseline
-    /// is the saved movement plus the saved rank) and starts again at 0 on a new day.
+    /// except on Today after midnight, when yesterday's count would be wrong: they show no data.
+    /// Today's movement carries on from the saved board (the day's baseline is the saved movement
+    /// plus the saved rank) and starts again at 0 on a new day.
     ///
     /// `streaks` come from the calendars just fetched. Anyone missing from it keeps their saved
     /// streak the same day; after midnight it may have grown or broken, so they show none rather
@@ -107,11 +104,7 @@ extension WidgetSnapshot {
         guard let people, let window = state.contributionWindow else { return self }
         let saved = Dictionary((board ?? top).map { ($0.login, $0) }, uniquingKeysWith: { first, _ in first })
         let sameDay = calendar.isDate(state.updatedDate, inSameDayAs: now)
-        let keepsOldCounts = switch window {
-        case .daily: sameDay
-        case .month: calendar.isDate(state.updatedDate, equalTo: now, toGranularity: .month)
-        case .weekly, .monthly: true
-        }
+        let keepsOldCounts = window != .daily || sameDay
 
         var standings: [String: Standing] = [:]
         for login in people {
