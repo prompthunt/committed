@@ -61,8 +61,6 @@ struct BoardView: View {
             .refreshable { await model.pullToRefresh() }
         }
         .onChange(of: store.selectedWindow) {
-            // Picking a Window goes back to the live board.
-            model.refresh.showFinalStandings(false)
             Task { await model.windowDidChange() }
         }
     }

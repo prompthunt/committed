@@ -9,7 +9,9 @@ import UIKit
 ///
 /// Optional, after `-ScreenshotFixture`: `-ScreenshotTab people|settings` opens on that tab,
 /// `-ScreenshotHide <login>` hides that person before the first refresh (so Today still moves),
-/// `-ScreenshotWindow <raw value>` opens the board on that Window (`month` for This month), and
+/// `-ScreenshotWindow <raw value>` opens the board on that Window (`month` for This month),
+/// `-ScreenshotDate <ISO 8601>` sets the app's clock (`2026-11-01T10:00:00Z` shows the 1st's Final
+/// standings), and
 /// `-LiveRankPayload <file.json>` shows a Live Activity push payload's content state in Live rank,
 /// and `-RelayDisclosureAccepted` starts with the Committed relay disclosure already accepted (for
 /// builds with `COMMITTED_RELAY_URL`; without it, a relay build shows the disclosure sheet).
@@ -147,6 +149,12 @@ enum ScreenshotFixture {
     ///
     /// `extraPeople` adds that many followed people (`sample-pal-01`, …) below everyone else, for a
     /// board long enough to scroll on the open iPhone Duo display (used by the #46 render tests).
+    /// The app's clock: `-ScreenshotDate <ISO 8601>`, or the real time.
+    static var now: @Sendable () -> Date {
+        let date = value(after: "-ScreenshotDate").flatMap { try? Date($0, strategy: .iso8601) }
+        return { date ?? Date() }
+    }
+
     static func services(extraPeople: Int = 0, failingCompetitor: Bool = true) -> CommittedServices {
         // `-ScreenshotRestrictedOrg <name>`: an organization that won't list its members for
         // Committed, as People shows it.
@@ -154,7 +162,7 @@ enum ScreenshotFixture {
             extraPeople: extraPeople,
             includesFailingCompetitor: failingCompetitor,
             restrictedOrganizations: value(after: "-ScreenshotRestrictedOrg").map { [$0] }
-        ))
+        ), now: now)
         let hide = value(after: "-ScreenshotHide")
         // `-ScreenshotWindow month`: the board opens on that Window (a raw value), so This month's
         // first two refreshes move too.

@@ -380,6 +380,8 @@ final class AppModel {
 
     /// Switching Window shows cached numbers instantly and fetches only when they're stale.
     func windowDidChange() async {
+        // Picking a Window goes back to the live board from the 1st's Final standings.
+        refresh.showFinalStandings(false)
         guard auth.isSignedIn, refresh.needsRefresh(for: store.selectedWindow) else { return }
         await refresh.refreshAll(reason: .windowChanged)
     }
