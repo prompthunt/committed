@@ -1,0 +1,104 @@
+{
+  "notes": "Person view rebuild (design critique, November 12, 2026): the race card plots the lead day by day against an even line; the month folds its legend into one header line, calls out the selected day on the chart and fades the days still to come; on iPhone the GitHub link moves into the bar and the you badge is a tint, so the only solid lime is data; wider than tall, the overview and the month sit side by side. Before captures: docs/screenshots/person-view-polish/iphone/.",
+  "screenshots": [
+    {
+      "file": "iphone/rival.png",
+      "caption": "iPhone person view for odile-m (sheet, closed Duo): GitHub and Done in the bar; the race as the lead, shaded below even, ending +27 odile-m; November 66 with October 195 beside it; today's bar called out",
+      "capture": {
+        "device": "iPhone Duo Simulator (persistent, closed)",
+        "os": "iOS 27.1",
+        "sourceCommit": "a79b9fb",
+        "fixture": true
+      },
+      "notes": "Runtime capture (xcrun simctl io screenshot --display=1) of a Debug build on the persistent iPhone Duo (closed), launched with -ScreenshotFixture -ScreenshotTab board -ScreenshotPerson <login> [-ScreenshotPersonDay <n>] [-ScreenshotPersonEnd]: the Sample board's made-up calendars, real clock (November 12, 2026). The iPhone app is dark only. Landscape is a render because the Duo simulator can't be rotated from the command line without Xcode's device tools."
+    },
+    {
+      "file": "iphone/rival-day.png",
+      "caption": "iPhone person view for odile-m with November 4 selected: the callout and rule move to that bar",
+      "capture": {
+        "device": "iPhone Duo Simulator (persistent, closed)",
+        "os": "iOS 27.1",
+        "sourceCommit": "a79b9fb",
+        "fixture": true
+      },
+      "notes": "Runtime capture (xcrun simctl io screenshot --display=1) of a Debug build on the persistent iPhone Duo (closed), launched with -ScreenshotFixture -ScreenshotTab board -ScreenshotPerson <login> [-ScreenshotPersonDay <n>] [-ScreenshotPersonEnd]: the Sample board's made-up calendars, real clock (November 12, 2026). The iPhone app is dark only. Landscape is a render because the Duo simulator can't be rotated from the command line without Xcode's device tools."
+    },
+    {
+      "file": "iphone/you.png",
+      "caption": "iPhone person view for yourself (ari-linden): the you badge as a lime tint, no race card, the month with today called out and the rest of the month faded",
+      "capture": {
+        "device": "iPhone Duo Simulator (persistent, closed)",
+        "os": "iOS 27.1",
+        "sourceCommit": "a79b9fb",
+        "fixture": true
+      },
+      "notes": "Runtime capture (xcrun simctl io screenshot --display=1) of a Debug build on the persistent iPhone Duo (closed), launched with -ScreenshotFixture -ScreenshotTab board -ScreenshotPerson <login> [-ScreenshotPersonDay <n>] [-ScreenshotPersonEnd]: the Sample board's made-up calendars, real clock (November 12, 2026). The iPhone app is dark only. Landscape is a render because the Duo simulator can't be rotated from the command line without Xcode's device tools."
+    },
+    {
+      "file": "iphone/you-end.png",
+      "caption": "Your own view scrolled to the end: the private-contributions tip and what the number can't show, under the bar's glass",
+      "capture": {
+        "device": "iPhone Duo Simulator (persistent, closed)",
+        "os": "iOS 27.1",
+        "sourceCommit": "a79b9fb",
+        "fixture": true
+      },
+      "notes": "Runtime capture (xcrun simctl io screenshot --display=1) of a Debug build on the persistent iPhone Duo (closed), launched with -ScreenshotFixture -ScreenshotTab board -ScreenshotPerson <login> [-ScreenshotPersonDay <n>] [-ScreenshotPersonEnd]: the Sample board's made-up calendars, real clock (November 12, 2026). The iPhone app is dark only. Landscape is a render because the Duo simulator can't be rotated from the command line without Xcode's device tools."
+    },
+    {
+      "file": "iphone/render-landscape.png",
+      "caption": "Render, not runtime capture: the person screen at the closed Duo's landscape size (678 x 466 pt): overview and month in two scrolling columns",
+      "capture": {
+        "device": "UIKit render in the iOS test host (iPhone Duo Simulator, iOS 27.1)",
+        "os": "iOS 27.1",
+        "sourceCommit": "216961b",
+        "fixture": true
+      },
+      "notes": "BoardArrangementRenderTests.personViewSideBySideInLandscape: the real PersonScreen with fixture data, hosted at 678 x 466 pt with no safe area (the test window can't be made wider than tall)."
+    },
+    {
+      "file": "iphone/render-open-pane.png",
+      "caption": "Render, not runtime capture: the open Duo, odile-m in the Board's second pane with Your standing and GitHub in its bar, one column",
+      "capture": {
+        "device": "UIKit render in the iOS test host (iPhone Duo Simulator, iOS 27.1)",
+        "os": "iOS 27.1",
+        "sourceCommit": "216961b",
+        "fixture": true
+      },
+      "notes": "BoardArrangementRenderTests.personViewAtEveryLayout at 951 x 669 pt, regular width. Renders have no hardware vertical bar, so the tab bar falls back to the middle, as in main's board renders."
+    },
+    {
+      "file": "mac/rival-light.png",
+      "caption": "Mac person window for hubot, light: the shared race as the lead (+51 you, shaded above even), November 144, the selected day called out, GitHub link kept in the header",
+      "capture": {
+        "device": "Mac fixture host (scripts/build-flow-capture.py), 460 x 640 pt person window",
+        "os": "macOS 27.0",
+        "sourceCommit": "216961b",
+        "fixture": true
+      },
+      "notes": "Fixture-host capture: scripts/build-flow-capture.py's host (current tracked views, in-memory store, made-up calendars), launched with -CaptureDate 2026-11-22T18:00:00Z -CaptureSurface Person -CapturePerson <login> [-CaptureAppearance dark] -CaptureSnapshot <file>; the host draws its own window into a PNG."
+    },
+    {
+      "file": "mac/rival-dark.png",
+      "caption": "Mac person window for hubot, dark",
+      "capture": {
+        "device": "Mac fixture host (scripts/build-flow-capture.py), 460 x 640 pt person window",
+        "os": "macOS 27.0",
+        "sourceCommit": "216961b",
+        "fixture": true
+      },
+      "notes": "Fixture-host capture: scripts/build-flow-capture.py's host (current tracked views, in-memory store, made-up calendars), launched with -CaptureDate 2026-11-22T18:00:00Z -CaptureSurface Person -CapturePerson <login> [-CaptureAppearance dark] -CaptureSnapshot <file>; the host draws its own window into a PNG."
+    },
+    {
+      "file": "mac/you-light.png",
+      "caption": "Mac person window for yourself (octocat), light",
+      "capture": {
+        "device": "Mac fixture host (scripts/build-flow-capture.py), 460 x 640 pt person window",
+        "os": "macOS 27.0",
+        "sourceCommit": "216961b",
+        "fixture": true
+      },
+      "notes": "Fixture-host capture: scripts/build-flow-capture.py's host (current tracked views, in-memory store, made-up calendars), launched with -CaptureDate 2026-11-22T18:00:00Z -CaptureSurface Person -CapturePerson <login> [-CaptureAppearance dark] -CaptureSnapshot <file>; the host draws its own window into a PNG."
+    }
+  ]
+}

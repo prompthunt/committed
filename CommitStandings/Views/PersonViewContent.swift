@@ -31,8 +31,20 @@ struct PersonViewStyle {
     /// The stat boxes' and waiting card's background. nil = the system's quaternary fill.
     var cardColor: Color? = nil
     var cornerRadius: CGFloat = 12
+    /// The GitHub link in the header. The iPhone turns it off and puts the link in its bar, so the
+    /// header's only bright color is the person's data.
+    var showsProfileLink = true
 
     static let standard = PersonViewStyle()
+}
+
+/// Which parts of the person view to draw. One column draws `.all`; a host with room for two puts
+/// `.overview` (who they are, the race, the stats and your notes) beside `.month`.
+enum PersonViewPart: Sendable {
+    case all, overview, month
+
+    var overview: Bool { self != .month }
+    var month: Bool { self != .overview }
 }
 
 extension EnvironmentValues {
@@ -41,14 +53,16 @@ extension EnvironmentValues {
 
 /// A Competitor's person view, shared by the iPhone (sheet, or the second pane on iPhone Duo) and
 /// the Mac window: who they are and a link to their GitHub profile; on a rival's view, their race
-/// with you over the Board's 30 days (the gap, who passed whom, both running totals); their streak
-/// and active days; and this month's bars over last month's in grey with a selectable bar. Before
+/// with you over the Board's 30 days (the gap, who passed whom, and the lead day by day); their
+/// streak and active days; and this month's bars over last month's in grey, with the selected day
+/// called out on the chart. Before
 /// their count loads it says it's waiting. Your own view adds the private-contributions tip
 /// (`privateTip`, which each platform styles) and what the number can't show.
 ///
 /// The host scrolls it and sets its width; this view has no platform-only types.
 struct PersonViewContent<Tip: View>: View {
     let person: PersonSummary
+    private let part: PersonViewPart
     private let privateTip: Tip
     @Environment(\.personViewStyle) private var style
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
@@ -56,8 +70,10 @@ struct PersonViewContent<Tip: View>: View {
     @State private var selectedDay: Int
     @State private var touchedBar: String?
 
-    init(person: PersonSummary, initialDay: Int? = nil, @ViewBuilder privateTip: () -> Tip) {
+    init(person: PersonSummary, initialDay: Int? = nil, part: PersonViewPart = .all,
+         @ViewBuilder privateTip: () -> Tip) {
         self.person = person
+        self.part = part
         self.privateTip = privateTip()
         _selectedDay = State(initialValue: initialDay ?? person.dayOfMonth)
     }
@@ -70,22 +86,28 @@ struct PersonViewContent<Tip: View>: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
-            header
+            if part.overview {
+                header
+            }
             if let days = person.days {
-                if person.status == .failed {
-                    Text("Refresh failed · showing saved counts")
-                        .font(style.captionFont)
-                        .foregroundStyle(secondary)
+                if part.overview {
+                    if person.status == .failed {
+                        Text("Refresh failed · showing saved counts")
+                            .font(style.captionFont)
+                            .foregroundStyle(secondary)
+                    }
+                    if let race = person.race {
+                        raceCard(race)
+                    }
+                    stats(days)
                 }
-                if let race = person.race {
-                    raceCard(race)
+                if part.month {
+                    month(days)
                 }
-                stats(days)
-                month(days)
-            } else {
+            } else if part.overview {
                 waiting
             }
-            if person.isYou {
+            if person.isYou, part.overview {
                 privateTip
                 ContributionLimitsNote()
             }
@@ -115,7 +137,14 @@ struct PersonViewContent<Tip: View>: View {
                 }
             }
             Spacer(minLength: 8)
-            Link(destination: person.profileURL) {
+            if style.showsProfileLink {
+                profileLink
+            }
+        }
+    }
+
+    private var profileLink: some View {
+        Link(destination: person.profileURL) {
                 Label("GitHub", systemImage: "arrow.up.right")
                     .font(style.bodyFont.weight(.semibold))
                     .labelStyle(.titleAndIcon)
@@ -125,7 +154,6 @@ struct PersonViewContent<Tip: View>: View {
             .tint(accent)
             .accessibilityLabel("GitHub profile")
             .accessibilityHint("Opens \(person.login) on GitHub")
-        }
     }
 
     // MARK: Stats
@@ -193,7 +221,7 @@ struct PersonViewContent<Tip: View>: View {
     // MARK: Race
 
     /// You against them over the Board's 30 days: the gap in the Board's words, who passed whom,
-    /// and both running totals with the latest change of lead marked. Their line is drawn in the
+    /// and the lead day by day with the latest change of lead marked. Their side is shaded in the
     /// data color like their bars; yours is the quiet one.
     private func raceCard(_ race: PersonSummary.Race) -> some View {
         VStack(alignment: .leading, spacing: 4) {
@@ -234,56 +262,69 @@ struct PersonViewContent<Tip: View>: View {
         return Text("\(Text(number).foregroundStyle(dataColor))\(String(headline.dropFirst(number.count)))")
     }
 
+    /// The race as the lead between you: above the even line you're ahead, below it they are,
+    /// shaded in the leader's color, so the gap the headline names is the distance from the line.
+    /// The latest change of lead is marked, and the end says by how much and for whom.
     private func raceChart(_ race: PersonSummary.Race) -> some View {
-        let days = max(race.yours.count, race.theirs.count)
-        let level = race.leader == nil
-        let marked = race.story.day.flatMap { day -> (day: Int, total: Int, side: PersonSummary.Side)? in
-            guard let side = race.story.side else { return nil }
-            let line = side == .you ? race.yours : race.theirs
-            return line.indices.contains(day - 1) ? (day, line[day - 1], side) : nil
-        }
+        let points = RacePoint.leads(race)
+        let days = max(points.count, 1)
+        // Fit the lead, but keep a band on each side of even so both labels have room and ahead
+        // always reads up.
+        let reach = Double(max(points.map { abs($0.lead) }.max() ?? 0, 1))
+        let top = max(Double(points.map(\.lead).max() ?? 0), reach * 0.3) * 1.2
+        let bottom = min(Double(points.map(\.lead).min() ?? 0), -reach * 0.3) * 1.2
+        let marked = race.story.day.flatMap { day in points.first { $0.day == day } }
+        let last = points.last
         return Chart {
-            ForEach(Array(race.yours.enumerated()), id: \.offset) { index, total in
-                LineMark(x: .value("Day", index + 1), y: .value("Running total", total),
-                         series: .value("Who", "you"))
-                    .foregroundStyle(secondaryColor)
+            RuleMark(y: .value("Lead", 0))
+                .foregroundStyle(secondaryColor.opacity(0.6))
+                .lineStyle(StrokeStyle(lineWidth: 1, dash: [3, 3]))
+            ForEach(points) { point in
+                AreaMark(x: .value("Day", point.day), yStart: .value("Lead", 0),
+                         yEnd: .value("Lead", max(point.lead, 0)), series: .value("Ahead", "you"))
+                    .foregroundStyle(secondaryColor.opacity(0.3))
+                    .interpolationMethod(.monotone)
+            }
+            ForEach(points) { point in
+                AreaMark(x: .value("Day", point.day), yStart: .value("Lead", 0),
+                         yEnd: .value("Lead", min(point.lead, 0)), series: .value("Ahead", "them"))
+                    .foregroundStyle(dataColor.opacity(0.3))
+                    .interpolationMethod(.monotone)
+            }
+            ForEach(points) { point in
+                LineMark(x: .value("Day", point.day), y: .value("Lead", point.lead),
+                         series: .value("Ahead", "lead"))
+                    .foregroundStyle(Color.primary)
                     .lineStyle(StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round))
+                    .interpolationMethod(.monotone)
             }
-            ForEach(Array(race.theirs.enumerated()), id: \.offset) { index, total in
-                LineMark(x: .value("Day", index + 1), y: .value("Running total", total),
-                         series: .value("Who", "them"))
-                    .foregroundStyle(dataColor)
-                    .lineStyle(StrokeStyle(lineWidth: 2.5, lineCap: .round, lineJoin: .round))
+            // Which side is which, quietly, at the start of each half.
+            PointMark(x: .value("Day", 1), y: .value("Lead", top))
+                .opacity(0)
+                .annotation(position: .bottomTrailing, alignment: .leading, spacing: 0) {
+                    bandLabel("You ahead")
+                }
+            PointMark(x: .value("Day", 1), y: .value("Lead", bottom))
+                .opacity(0)
+                .annotation(position: .topTrailing, alignment: .leading, spacing: 0) {
+                    bandLabel("\(person.login) ahead")
+                }
+            if let marked, let side = race.story.side {
+                PointMark(x: .value("Day", marked.day), y: .value("Lead", marked.lead))
+                    .foregroundStyle(side == .you ? secondaryColor : dataColor)
+                    .symbolSize(44)
             }
-            if let marked {
-                PointMark(x: .value("Day", marked.day), y: .value("Running total", marked.total))
-                    .foregroundStyle(marked.side == .you ? secondaryColor : dataColor)
-                    .symbolSize(48)
-            }
-            // Each line's total at its end, the higher one above the lower so they never collide.
-            if level {
-                PointMark(x: .value("Day", days), y: .value("Running total", race.theirTotal))
-                    .opacity(0)
+            if let last {
+                PointMark(x: .value("Day", last.day), y: .value("Lead", last.lead))
+                    .foregroundStyle(endColor(race.leader))
+                    .symbolSize(30)
                     .annotation(position: .trailing, spacing: 6) {
-                        endLabel("\(race.theirTotal.formatted()) each", color: style.secondaryColor)
-                    }
-            } else {
-                let theyLead = race.leader == .them
-                PointMark(x: .value("Day", days), y: .value("Running total", race.theirTotal))
-                    .opacity(0)
-                    .annotation(position: theyLead ? .topTrailing : .bottomTrailing, spacing: 2) {
-                        endLabel("\(race.theirTotal.formatted()) \(person.login)", color: dataColor)
-                    }
-                PointMark(x: .value("Day", days), y: .value("Running total", race.yourTotal))
-                    .opacity(0)
-                    .annotation(position: theyLead ? .bottomTrailing : .topTrailing, spacing: 2) {
-                        endLabel("\(race.yourTotal.formatted()) you", color: style.secondaryColor)
+                        endLabel(endText(race), color: race.leader == .them ? dataColor : style.secondaryColor)
                     }
             }
         }
-        .chartXScale(domain: 1...max(2, days), range: .plotDimension(endPadding: 88))
-        // Headroom above the leader so the top label stays inside the chart, clear of the story.
-        .chartYScale(domain: 0...(Double(max(1, race.theirTotal, race.yourTotal)) * 1.3))
+        .chartXScale(domain: 1...max(2, days), range: .plotDimension(endPadding: 76))
+        .chartYScale(domain: bottom...top)
         .chartXAxis {
             AxisMarks(values: [1, days]) { value in
                 AxisValueLabel {
@@ -294,7 +335,28 @@ struct PersonViewContent<Tip: View>: View {
             }
         }
         .chartYAxis(.hidden)
-        .frame(height: 96)
+        .frame(height: 120)
+    }
+
+    /// "+27 odile-m", "+12 you" or "Level".
+    private func endText(_ race: PersonSummary.Race) -> String {
+        switch race.leader {
+        case .them: "+\(race.gap.formatted()) \(person.login)"
+        case .you: "+\(race.gap.formatted()) you"
+        case nil: "Level"
+        }
+    }
+
+    private func endColor(_ leader: PersonSummary.Side?) -> Color {
+        leader == .them ? dataColor : secondaryColor
+    }
+
+    private func bandLabel(_ text: String) -> some View {
+        Text(text)
+            .font(style.captionFont)
+            .foregroundStyle(secondary)
+            .lineLimit(1)
+            .fixedSize()
     }
 
     private var secondaryColor: Color { style.secondaryColor ?? .secondary }
@@ -310,77 +372,112 @@ struct PersonViewContent<Tip: View>: View {
 
     // MARK: Month
 
+    /// This month's name and total (in the bars' color, so it doubles as their key), last month's
+    /// beside it, and the bars with the selected day called out on the chart itself.
     private func month(_ days: PersonSummary.Days) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(alignment: .firstTextBaseline) {
-                Text(person.month.name)
-                    .font(style.sectionFont)
-                    .accessibilityAddTraits(.isHeader)
-                Spacer(minLength: 8)
-                legend(days)
-            }
-            let day = min(max(1, selectedDay), max(1, days.thisMonth.count))
-            ViewThatFits(in: .horizontal) {
-                HStack(spacing: 8) { selectedCaption(day) }
-                VStack(alignment: .leading, spacing: 2) { selectedCaption(day) }
-            }
-            .accessibilityElement(children: .combine)
+        let day = min(max(1, selectedDay), max(1, days.thisMonth.count))
+        return VStack(alignment: .leading, spacing: 10) {
+            monthHeader(days)
             chart(days, selected: day)
         }
     }
 
-    private func legend(_ days: PersonSummary.Days) -> some View {
-        HStack(spacing: 10) {
-            legendItem(dataColor, person.month.name, days.thisMonth.reduce(0, +))
-            legendItem(style.pastBarColor, person.lastMonth.name, days.lastMonth.reduce(0, +))
+    private func monthHeader(_ days: PersonSummary.Days) -> some View {
+        let total = days.thisMonth.reduce(0, +)
+        let pastTotal = days.lastMonth.reduce(0, +)
+        return ViewThatFits(in: .horizontal) {
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                monthTitle(total)
+                Spacer(minLength: 8)
+                pastLegend(pastTotal)
+            }
+            VStack(alignment: .leading, spacing: 4) {
+                monthTitle(total)
+                pastLegend(pastTotal)
+            }
         }
-        .font(style.captionFont)
-        .accessibilityElement(children: .combine)
     }
 
-    private func legendItem(_ color: Color, _ name: String, _ total: Int) -> some View {
+    private func monthTitle(_ total: Int) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 6) {
+            Text(person.month.name)
+            Text(total.formatted())
+                .foregroundStyle(dataColor)
+                .monospacedDigit()
+        }
+        .font(style.sectionFont)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(person.month.name), \(PersonSummary.plural(total, "contribution"))")
+        .accessibilityAddTraits(.isHeader)
+    }
+
+    private func pastLegend(_ total: Int) -> some View {
         HStack(spacing: 4) {
-            RoundedRectangle(cornerRadius: 2).fill(color).frame(width: 8, height: 8)
+            RoundedRectangle(cornerRadius: 2).fill(style.pastBarColor).frame(width: 8, height: 8)
                 .accessibilityHidden(true)
-            Text(name).foregroundStyle(secondary)
+            Text(person.lastMonth.name).foregroundStyle(secondary)
             Text(total.formatted()).fontWeight(.semibold).monospacedDigit()
         }
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(name), \(PersonSummary.plural(total, "contribution"))")
+        .font(style.captionFont)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(person.lastMonth.name), \(PersonSummary.plural(total, "contribution"))")
     }
 
-    @ViewBuilder
-    private func selectedCaption(_ day: Int) -> some View {
-        if let text = person.selectedDayText(day) {
-            Text(text).font(style.bodyFont.weight(.semibold)).monospacedDigit()
+    /// The selected day's callout above its bar: this month's count, then last month's same day.
+    private func callout(_ day: Int) -> some View {
+        VStack(alignment: .leading, spacing: 1) {
+            if let text = person.selectedDayText(day) {
+                Text(text).font(style.captionFont.weight(.semibold))
+            }
+            if let comparison = person.selectedDayComparison(day) {
+                Text(comparison).font(style.captionFont).foregroundStyle(secondary)
+            }
         }
-        if let comparison = person.selectedDayComparison(day) {
-            Text(comparison).font(style.bodyFont).monospacedDigit().foregroundStyle(secondary)
-        }
+        .monospacedDigit()
+        .lineLimit(1)
+        .fixedSize()
+        .padding(.horizontal, 8)
+        .padding(.vertical, 5)
+        .background(card)
     }
 
     private func chart(_ days: PersonSummary.Days, selected: Int) -> some View {
         let slots = max(person.daysInMonth, days.lastMonth.count)
+        let elapsed = days.thisMonth.count
+        let peak = Double(max(days.thisMonth.max() ?? 0, days.lastMonth.max() ?? 0, 1))
         return Chart {
-            ForEach(Array(days.lastMonth.enumerated()), id: \.offset) { index, count in
-                BarMark(x: .value("Day", String(index + 1)), y: .value("Contributions", count),
+            ForEach(DayBar.bars(days.lastMonth)) { bar in
+                // Days still to come this month fade, so last month reads as the comparison and not
+                // as this month's data.
+                BarMark(x: .value("Day", String(bar.day)), y: .value("Contributions", bar.count),
                         width: .ratio(0.86), stacking: .unstacked)
-                    .foregroundStyle(style.pastBarColor)
+                    .foregroundStyle(style.pastBarColor.opacity(bar.day > elapsed ? 0.45 : 1))
                     .cornerRadius(2)
                     .accessibilityHidden(true)
             }
-            ForEach(Array(days.thisMonth.enumerated()), id: \.offset) { index, count in
-                let day = index + 1
-                let bar = person.bar(day: day)
-                BarMark(x: .value("Day", String(day)), y: .value("Contributions", count),
+            ForEach(DayBar.bars(days.thisMonth)) { bar in
+                let label = person.bar(day: bar.day)
+                BarMark(x: .value("Day", String(bar.day)), y: .value("Contributions", bar.count),
                         width: .ratio(0.5), stacking: .unstacked)
-                    .foregroundStyle(day == selected ? dataColor : dataColor.opacity(0.55))
+                    .foregroundStyle(bar.day == selected ? dataColor : dataColor.opacity(0.55))
                     .cornerRadius(2)
-                    .accessibilityLabel(bar?.label ?? "")
-                    .accessibilityValue(bar?.value ?? "")
+                    .accessibilityLabel(label?.label ?? "")
+                    .accessibilityValue(label?.value ?? "")
             }
+            // The selection, drawn where it is: a rule up from the bar to its callout.
+            RuleMark(x: .value("Day", String(selected)), yStart: .value("Contributions", 0),
+                     yEnd: .value("Contributions", peak * 1.12))
+                .foregroundStyle(secondaryColor.opacity(0.55))
+                .lineStyle(StrokeStyle(lineWidth: 1))
+                .accessibilityHidden(true)
+                .annotation(position: .top, spacing: 2,
+                            overflowResolution: .init(x: .fit(to: .chart), y: .disabled)) {
+                    callout(selected)
+                }
         }
         .chartXScale(domain: (1...slots).map(String.init))
+        // Headroom above the tallest bar for the callout.
+        .chartYScale(domain: 0...(peak * 1.7))
         .chartXAxis {
             // Weekly ticks only (1, 8, 15, 22, 29): thirty-one labels don't fit.
             AxisMarks { value in
@@ -401,9 +498,12 @@ struct PersonViewContent<Tip: View>: View {
                 selectedDay = day
             }
         }
-        .frame(height: 160)
+        .frame(height: part == .month ? 260 : 190)
         .accessibilityElement(children: .contain)
         .accessibilityLabel(person.chartSummary ?? "")
+        .accessibilityValue([person.selectedDayText(selected), person.selectedDayComparison(selected)]
+            .compactMap { $0 }.joined(separator: ", "))
+        .accessibilityHint("Drag across the bars to pick a day")
     }
 
     // MARK: Waiting
@@ -433,10 +533,32 @@ struct PersonViewContent<Tip: View>: View {
     }
 }
 
+/// One raced day: your running total minus theirs, so above zero you lead.
+private struct RacePoint: Identifiable {
+    let day: Int
+    let lead: Int
+    var id: Int { day }
+
+    static func leads(_ race: PersonSummary.Race) -> [RacePoint] {
+        zip(race.yours, race.theirs).enumerated().map { RacePoint(day: $0.offset + 1, lead: $0.element.0 - $0.element.1) }
+    }
+}
+
+/// One day's count in the month chart, identified by its day.
+private struct DayBar: Identifiable {
+    let day: Int
+    let count: Int
+    var id: Int { day }
+
+    static func bars(_ counts: [Int]) -> [DayBar] {
+        counts.enumerated().map { DayBar(day: $0.offset + 1, count: $0.element) }
+    }
+}
+
 extension PersonViewContent where Tip == PrivateContributionsTip {
     /// The person view with the Mac's private-contributions tip, always shown on your own view.
-    init(person: PersonSummary, initialDay: Int? = nil) {
-        self.init(person: person, initialDay: initialDay) {
+    init(person: PersonSummary, initialDay: Int? = nil, part: PersonViewPart = .all) {
+        self.init(person: person, initialDay: initialDay, part: part) {
             PrivateContributionsTip(dismissible: false)
         }
     }
