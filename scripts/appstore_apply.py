@@ -20,14 +20,24 @@ import sys
 import tempfile
 
 APP_ID = '6831797452'
-VERSION = '1.0.2'
+METADATA = Path(__file__).resolve().parent.parent / 'appstore' / 'metadata'
+
+
+def listing_version(metadata=METADATA):
+    """The App Store version the listing is for: the one folder under metadata/version/."""
+    versions = sorted(path.name for path in (Path(metadata) / 'version').iterdir() if path.is_dir())
+    if len(versions) != 1:
+        sys.exit(f'appstore/metadata/version/ should hold exactly one version folder; it holds {versions}.')
+    return versions[0]
+
+
+VERSION = listing_version()
 PLATFORM = 'IOS'
 LOCALE = 'en-US'
 COPYRIGHT = '2026 Prompt Hunt, Inc.'
 CONTENT_RIGHTS = 'USES_THIRD_PARTY_CONTENT'  # GitHub usernames and avatars, under GitHub's API terms
 RELEASE_TYPE = 'AFTER_APPROVAL'
 INCLUDE = 'localizations,categories,age-rating,review-information'
-METADATA = Path(__file__).resolve().parent.parent / 'appstore' / 'metadata'
 
 # Apple's limits, in characters unless noted.
 LIMITS = {

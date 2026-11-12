@@ -1,7 +1,8 @@
 # App Store listing
 
 The App Store listing for Committed for iPhone ("Committed: Commit Leaderboard", app
-`6831797452`, version 1.0.2, en-US). Change it here in a PR, then re-apply it.
+`6831797452`, en-US). Change it here in a PR, then re-apply it. The version it's for is the one
+folder under `metadata/version/`, and `appstore_apply.py` reads it from there.
 
 ## What's here
 
@@ -10,7 +11,7 @@ The App Store listing for Committed for iPhone ("Committed: Commit Leaderboard",
 | File | Holds |
 |---|---|
 | `app-info/en-US.json` | Name, subtitle, privacy policy URL |
-| `version/1.0.2/en-US.json` | Description, keywords, promotional text, What's New, support and marketing URLs |
+| `version/<version>/en-US.json` | Description, keywords, promotional text, What's New, support and marketing URLs |
 | `categories.json` | Developer Tools, with Productivity as the secondary |
 | `age-rating.json` | Every answer none or false (4+) |
 | `review-information.json` | App Review notes; no demo account |
@@ -39,7 +40,7 @@ Store Connect first and writes only what differs, so a second run prints "No cha
 Then check the version:
 
 ```bash
-asc validate --app 6831797452 --version-id <1.0.2's version id> --platform IOS
+asc validate --app 6831797452 --version-id <the version's id> --platform IOS
 ```
 
 `python3 -m unittest discover -s scripts -p 'test_*.py'` checks the files against Apple's
@@ -48,6 +49,17 @@ limits and the glossary before anything reaches App Store Connect.
 The script never runs `asc web` (an Apple ID sign-in). If Apple ever refuses a step through the
 API, such as first-time availability, the script prints the command or App Store Connect page
 to use and exits with status 2.
+
+## Submit a build
+
+`scripts/testflight.sh` submits every build to App Review after TestFlight (see
+[distribution](../docs/distribution.md#testflight)). To finish a submission it couldn't make, such
+as one that waited for the previous version's release:
+
+```bash
+python3 scripts/appstore_submit.py --build-number <n> --dry-run   # what it would do
+python3 scripts/appstore_submit.py --build-number <n>
+```
 
 ## App Privacy label
 

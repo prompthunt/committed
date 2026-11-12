@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 #
-# Upload the iPhone app to TestFlight and release it to every tester, internal and external.
-# Run this for every TestFlight upload, so outside testers never fall behind. See
-# docs/distribution.md → TestFlight.
+# Upload the iPhone app to TestFlight, release it to every tester, internal and external, and
+# submit it to the App Store. Run this for every iPhone upload, so outside testers and the App
+# Store never fall behind. See docs/distribution.md → TestFlight.
 #
 #   1. Takes the next build number from App Store Connect (highest uploaded + 1), so the
 #      project's CURRENT_PROJECT_VERSION doesn't need a commit per upload.
@@ -10,9 +10,15 @@
 #   3. Waits for processing, adds the build to the external "Friends" group, and submits it
 #      for TestFlight beta review. Testers get it once Apple approves it. The internal
 #      "Prompt Hunt" group gets every build without review.
+#   4. Submits the build to App Review as the version appstore/metadata is for
+#      (scripts/appstore_submit.py), released as soon as Apple approves it. Skip this with
+#      --testflight-only, only when someone asked for a TestFlight-only build. While an earlier
+#      version is still in review, the build stays on TestFlight and the script prints the
+#      appstore_submit.py command to run once that version is out.
 #
 # Usage:
 #   scripts/testflight.sh --notes-file notes.txt
+#   scripts/testflight.sh --notes-file notes.txt --testflight-only
 #
 # The notes are the build's "What to Test" text, written with the release-notes skill as
 # .agents/rules/testflight-notes.md requires: plain text, category headings and bullets kept.
@@ -46,10 +52,12 @@ if [[ "${BRANCH}" != "main" && "$(git rev-parse HEAD)" != "$(git rev-parse origi
 fi
 
 NOTES_FILE=""
+APP_STORE=1
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --notes-file) NOTES_FILE="${2:-}"; shift 2 ;;
-    *) echo "error: unknown argument '$1'. Usage: scripts/testflight.sh --notes-file <file>" >&2; exit 1 ;;
+    --testflight-only) APP_STORE=0; shift ;;
+    *) echo "error: unknown argument '$1'. Usage: scripts/testflight.sh --notes-file <file> [--testflight-only]" >&2; exit 1 ;;
   esac
 done
 if [[ -z "${NOTES_FILE}" || ! -s "${NOTES_FILE}" ]]; then
@@ -86,6 +94,15 @@ print(max(nums, default=0))')"
 BUILD=$((LAST_BUILD + 1))
 VERSION="$(xcodebuild -showBuildSettings -project CommitStandings.xcodeproj -target CommitStandingsiOS \
   -configuration Release 2>/dev/null | awk '$1 == "MARKETING_VERSION" { print $3 }')"
+
+LISTING_VERSION="$(python3 -I -c '
+import sys; sys.path.insert(0, sys.argv[1]); import appstore_apply; print(appstore_apply.VERSION)' "${ROOT_DIR}/scripts")"
+if (( APP_STORE )) && [[ "${LISTING_VERSION}" != "${VERSION}" ]]; then
+  echo "error: the app is ${VERSION} but appstore/metadata is for ${LISTING_VERSION}." >&2
+  echo "  Rename appstore/metadata/version/${LISTING_VERSION} to ${VERSION} and update What's New," >&2
+  echo "  or pass --testflight-only if this build isn't going to the App Store." >&2
+  exit 1
+fi
 
 echo "==> Committed ${VERSION} (${BUILD}) from $(git rev-parse --short HEAD) → TestFlight (${BETA_GROUPS})"
 
@@ -148,4 +165,16 @@ import json, sys
 for note in json.load(sys.stdin).get("data", []):
     print(note["attributes"].get("whatsNew") or "")'
 
-echo "==> Done: ${VERSION} (${BUILD}). Internal testers have it now; ${BETA_GROUPS} get it after beta review."
+echo "==> TestFlight: ${VERSION} (${BUILD}). Internal testers have it now; ${BETA_GROUPS} get it after beta review."
+
+if (( ! APP_STORE )); then
+  echo "==> App Store: skipped (--testflight-only)."
+  exit 0
+fi
+echo "==> App Store: submitting ${VERSION} (${BUILD}) for App Review"
+status=0
+python3 "${ROOT_DIR}/scripts/appstore_submit.py" --build-number "${BUILD}" || status=$?
+if (( status == 3 )); then
+  exit 0  # blocked by an earlier version; appstore_submit.py printed the command to run later
+fi
+exit "${status}"
