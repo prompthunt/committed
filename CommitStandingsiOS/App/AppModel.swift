@@ -35,7 +35,7 @@ final class AppModel {
     }
 
     var selectedTab: AppTab = .board
-    /// The Competitor whose person view is open (a sheet, or the second pane on iPhone Duo), by
+    /// The Competitor whose person view is open (pushed onto the Board, or the second pane on iPhone Duo), by
     /// login; nil when none is. Forgotten when the graph on screen changes.
     var selectedPerson: String?
     /// The switch in Settings asked for the relay disclosure.

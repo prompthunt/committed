@@ -30,14 +30,15 @@ enum BoardArrangement {
     }
 
     enum PersonPlacement: Equatable {
-        case sheet
+        /// Pushed onto the Board's navigation stack, with a back button.
+        case pushed
         case secondaryPane
     }
 
     /// Where a tapped Competitor's person view goes: in the second pane, in place of your summary,
-    /// whenever the summary has a pane of its own (iPhone Duo open), otherwise a sheet over the
+    /// whenever the summary has a pane of its own (iPhone Duo open), otherwise pushed onto the
     /// Board. The same frames decide both, so the person view never lands in a hidden pane.
     static func personPlacement(summary: SummaryPlacement) -> PersonPlacement {
-        summary == .secondaryPane ? .secondaryPane : .sheet
+        summary == .secondaryPane ? .secondaryPane : .pushed
     }
 }

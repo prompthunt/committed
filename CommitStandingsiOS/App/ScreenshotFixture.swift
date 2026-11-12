@@ -12,7 +12,7 @@ import UIKit
 /// `-ScreenshotWindow <raw value>` opens the board on that Window (`monthly` for 30 days),
 /// `-ScreenshotDate <ISO 8601>` sets the app's clock, `-ScreenshotShare` opens Share board once the
 /// board has loaded,
-/// `-ScreenshotPerson <login>` opens that person's view (a sheet, or the second pane on the open
+/// `-ScreenshotPerson <login>` opens that person's view (pushed onto the Board, or the second pane on the open
 /// iPhone Duo) and `-ScreenshotPersonDay <n>` selects that day's bar instead of today's
 /// (`-ScreenshotPersonEnd` scrolls it to the end),
 /// `-ScreenshotTroll <login>` gives that person a trolling day (784 more, the troll face), and
