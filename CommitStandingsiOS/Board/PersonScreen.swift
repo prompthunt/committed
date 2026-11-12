@@ -4,25 +4,25 @@ import SwiftUI
 /// ink, with the iPhone's private-contributions tip on your own view. `BoardView` shows it in a
 /// sheet, or in the second pane on iPhone Duo when the panes sit side by side.
 ///
-/// Wherever it's wider than tall and has room for two readable columns (a phone or the closed
-/// iPhone Duo in landscape), the overview and the month sit side by side in a split arrangement,
-/// each scrolling on its own; the arrangement puts the split at the fold when there is one. Taller
-/// than wide, it's one column that scrolls, which needs nothing from the fold.
+/// Wherever it's wider than tall and has room for two readable columns (the closed iPhone Duo or
+/// another phone in landscape), the overview and the month sit side by side, each scrolling on its
+/// own. That's an `HStack`, not a split `ArrangementView`: an arrangement shows only its primary
+/// view on a closed iPhone Duo in landscape, which would hide the month. The person view never
+/// spans the fold: on the open iPhone Duo it's the Board's second pane, one column, and taller
+/// than wide it's one column that scrolls, which needs nothing from the fold.
 struct PersonScreen: View {
     let person: PersonSummary
-    /// Off in the Board's second pane, which is itself one half of an arrangement.
+    /// Off in the Board's second pane, which is already one half of the Board.
     var allowsColumns = true
     @State private var size: CGSize = .zero
 
     var body: some View {
         Group {
             if usesColumns {
-                ArrangementView {
+                HStack(spacing: 0) {
                     column(.overview)
-                } secondary: {
                     column(.month)
                 }
-                .arrangementViewStyle(.split.axes(.horizontal))
             } else {
                 column(.all)
             }
