@@ -44,5 +44,33 @@ class PlanTests(unittest.TestCase):
         self.assertIn('new version', reason)
 
 
+class ScreenshotTests(unittest.TestCase):
+    """Which screenshots a submission uploads."""
+
+    shots = [('01-board.png', 10), ('02-live-rank.png', 20), ('03-widgets.png', 30)]
+
+    def test_nothing_when_the_version_already_shows_them(self):
+        listed = [(name, size, 'COMPLETE') for name, size in self.shots]
+        self.assertEqual(submit.screenshots_to_upload(self.shots, listed), ([], False))
+
+    def test_only_the_missing_tail_after_a_partial_upload(self):
+        listed = [('01-board.png', 10, 'COMPLETE')]
+        self.assertEqual(submit.screenshots_to_upload(self.shots, listed), (self.shots[1:], False))
+
+    def test_everything_into_an_empty_set(self):
+        self.assertEqual(submit.screenshots_to_upload(self.shots, []), (self.shots, False))
+
+    def test_a_screenshot_still_processing_counts_as_there(self):
+        listed = [('01-board.png', 10, 'UPLOAD_COMPLETE')]
+        self.assertEqual(submit.screenshots_to_upload(self.shots, listed), (self.shots[1:], False))
+
+    def test_replaces_a_changed_set(self):
+        for listed in ([('01-board.png', 11, 'COMPLETE')],
+                       [('02-live-rank.png', 20, 'COMPLETE')],
+                       [(name, size, 'COMPLETE') for name, size in self.shots] + [('07-extra.png', 5, 'COMPLETE')]):
+            with self.subTest(listed=listed):
+                self.assertEqual(submit.screenshots_to_upload(self.shots, listed), (self.shots, True))
+
+
 if __name__ == '__main__':
     unittest.main()
