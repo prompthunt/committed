@@ -4,5 +4,5 @@
   "promotionalText": "See who shipped more today. Committed ranks you against friends and teammates by GitHub Contributions, with Live rank in the Dynamic Island and widgets.",
   "supportUrl": "https://gitcommitted.app/support",
   "marketingUrl": "https://gitcommitted.app",
-  "whatsNew": "Streaks: the Board and your summary show how many days in a row each person has contributed.\n\nPerson view: tap anyone on the Board to see your race with them over 30 days, their month day by day, and their streak.\n\nTrolling days: when someone posts a day far above their usual, their count turns red and the troll face takes the place of their squares.\n\nStandBy: the Committed Board widget now gives StandBy to the board itself, with the Window and update time on one small line underneath."
+  "whatsNew": "A clearer person view. The race with each rival now shows the lead day by day, so you can see how far ahead or behind you are and when it changed hands.\n\nThe month chart labels the day you pick right on the chart, and the days still to come fade into the background.\n\nTurn your iPhone sideways to see the race and the month side by side."
 }
