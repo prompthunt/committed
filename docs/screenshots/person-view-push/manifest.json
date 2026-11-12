@@ -1,0 +1,60 @@
+{
+  "notes": "The person view is pushed onto the Board with a back button instead of shown as a sheet with Done. Opening iPhone Duo moves it to the second pane; closing pushes it again. Before captures: docs/screenshots/person-view-rebuild/iphone/.",
+  "screenshots": [
+    {
+      "file": "rival.png",
+      "caption": "odile-m pushed onto the Board (closed Duo): back button in the side bar, odile-m's month as the title, GitHub top right, tab bar still showing",
+      "capture": {
+        "device": "iPhone Duo Simulator (persistent, closed)",
+        "os": "iOS 27.1",
+        "sourceCommit": "person-view-push working tree (this PR's head)",
+        "fixture": true
+      },
+      "notes": "Runtime capture (xcrun simctl io screenshot --display=1) of a Debug build on the persistent iPhone Duo (closed), launched with -ScreenshotFixture -ScreenshotTab board -ScreenshotPerson <login>: Sample board data, real clock (November 12, 2026)."
+    },
+    {
+      "file": "you.png",
+      "caption": "Your own view pushed: Your month",
+      "capture": {
+        "device": "iPhone Duo Simulator (persistent, closed)",
+        "os": "iOS 27.1",
+        "sourceCommit": "person-view-push working tree (this PR's head)",
+        "fixture": true
+      },
+      "notes": "Runtime capture (xcrun simctl io screenshot --display=1) of a Debug build on the persistent iPhone Duo (closed), launched with -ScreenshotFixture -ScreenshotTab board -ScreenshotPerson <login>: Sample board data, real clock (November 12, 2026)."
+    },
+    {
+      "file": "render-1-closed.png",
+      "caption": "Render, not runtime capture: pushed on the closed display",
+      "capture": {
+        "device": "UIKit render in the iOS test host (iPhone Duo Simulator, iOS 27.1)",
+        "os": "iOS 27.1",
+        "sourceCommit": "person-view-push working tree (this PR's head)",
+        "fixture": true
+      },
+      "notes": "BoardArrangementRenderTests.personViewAcrossOpenAndClose: one window resized closed (466 x 678 pt) -> open (951 x 669 pt, regular width) -> closed, with odile-m chosen throughout. Renders have no hardware vertical bar, so on the open size the tab bar falls back to the middle, as in main's board renders."
+    },
+    {
+      "file": "render-2-open.png",
+      "caption": "Render, not runtime capture: the Duo opens and odile-m moves to the second pane, with Your standing and GitHub",
+      "capture": {
+        "device": "UIKit render in the iOS test host (iPhone Duo Simulator, iOS 27.1)",
+        "os": "iOS 27.1",
+        "sourceCommit": "person-view-push working tree (this PR's head)",
+        "fixture": true
+      },
+      "notes": "BoardArrangementRenderTests.personViewAcrossOpenAndClose: one window resized closed (466 x 678 pt) -> open (951 x 669 pt, regular width) -> closed, with odile-m chosen throughout. Renders have no hardware vertical bar, so on the open size the tab bar falls back to the middle, as in main's board renders."
+    },
+    {
+      "file": "render-3-closed-again.png",
+      "caption": "Render, not runtime capture: closed again, odile-m is pushed again",
+      "capture": {
+        "device": "UIKit render in the iOS test host (iPhone Duo Simulator, iOS 27.1)",
+        "os": "iOS 27.1",
+        "sourceCommit": "person-view-push working tree (this PR's head)",
+        "fixture": true
+      },
+      "notes": "BoardArrangementRenderTests.personViewAcrossOpenAndClose: one window resized closed (466 x 678 pt) -> open (951 x 669 pt, regular width) -> closed, with odile-m chosen throughout. Renders have no hardware vertical bar, so on the open size the tab bar falls back to the middle, as in main's board renders."
+    }
+  ]
+}

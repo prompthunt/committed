@@ -11,6 +11,9 @@ struct BoardView: View {
     @Environment(StandingsStore.self) private var store
     /// Read here, not in the toolbar: bar items see a capped text size, never an accessibility one.
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    /// Changes when iPhone Duo opens or closes, which the panes can't report while a pushed person
+    /// view covers them.
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     /// Where the two panes are, as they last reported. Lives above the arrangement so it survives
     /// the panes being rebuilt when the device opens, closes, or folds.
     @State private var arrangementFrame: CGRect?
@@ -19,6 +22,8 @@ struct BoardView: View {
     /// The board being shared, frozen when Share is tapped so a refresh can't change the image
     /// under the carousel.
     @State private var sharing: BoardShareRequest?
+    /// True while a pushed person view steps back so the panes can measure the new display.
+    @State private var remeasuring = false
 
     var body: some View {
         NavigationStack {
@@ -62,8 +67,8 @@ struct BoardView: View {
             .sheet(item: $sharing) { request in
                 BoardShareSheet(snapshot: request.snapshot)
             }
-            .sheet(item: personSheet) { _ in
-                PersonSheet()
+            .navigationDestination(item: personPush) { _ in
+                PersonDestination()
             }
             .refreshable { await model.pullToRefresh() }
             #if DEBUG
@@ -77,6 +82,25 @@ struct BoardView: View {
         .onChange(of: store.selectedWindow) {
             Task { await model.windowDidChange() }
         }
+        .onChange(of: horizontalSizeClass) {
+            remeasure()
+        }
+        .onChange(of: summaryPlacement) {
+            remeasuring = false
+        }
+    }
+
+    /// While someone's view is pushed, the Board under it is off screen and its panes stop
+    /// reporting, so opening iPhone Duo would leave the person full screen instead of in the second
+    /// pane. On a size-class change, pop it without forgetting them; once the panes report (or
+    /// after a moment, if nothing moved), it goes to the second pane or is pushed again.
+    private func remeasure() {
+        guard personPlacement == .pushed, model.shownPerson != nil else { return }
+        remeasuring = true
+        Task {
+            try? await Task.sleep(for: .milliseconds(600))
+            remeasuring = false
+        }
     }
 
     private var summaryPlacement: BoardArrangement.SummaryPlacement {
@@ -87,18 +111,18 @@ struct BoardView: View {
         BoardArrangement.personPlacement(summary: summaryPlacement)
     }
 
-    /// The chosen person, as a sheet, wherever the Board has one pane. Opening iPhone Duo moves
-    /// them to the second pane (the sheet closes without forgetting them); closing it brings the
-    /// sheet back. Done, or swiping the sheet away, forgets them. Someone who leaves the board
-    /// (hidden) closes it.
-    private var personSheet: Binding<PersonRequest?> {
+    /// The chosen person, pushed onto the Board, wherever the Board has one pane. Opening iPhone
+    /// Duo moves them to the second pane (the push pops without forgetting them); closing it pushes
+    /// them again. Back, or swiping back from the edge, forgets them. Someone who leaves the board
+    /// (hidden) pops it.
+    private var personPush: Binding<PersonRequest?> {
         Binding(
             get: {
-                guard personPlacement == .sheet, let person = model.shownPerson else { return nil }
+                guard personPlacement == .pushed, !remeasuring, let person = model.shownPerson else { return nil }
                 return PersonRequest(login: person.login)
             },
             set: { request in
-                if request == nil, personPlacement == .sheet { model.selectedPerson = nil }
+                if request == nil, personPlacement == .pushed, !remeasuring { model.selectedPerson = nil }
             }
         )
     }
@@ -112,8 +136,8 @@ struct BoardShareRequest: Identifiable {
     let snapshot: WidgetSnapshot
 }
 
-/// The person whose view the sheet shows, with an identity for `.sheet(item:)`.
-struct PersonRequest: Identifiable {
+/// The person whose view is pushed, with an identity for `.navigationDestination(item:)`.
+struct PersonRequest: Identifiable, Hashable {
     let login: String
     var id: String { login }
 }

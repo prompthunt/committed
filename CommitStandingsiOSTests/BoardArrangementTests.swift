@@ -49,10 +49,10 @@ struct BoardArrangementTests {
         #expect(BoardArrangement.personPlacement(summary: .secondaryPane) == .secondaryPane)
     }
 
-    @Test func personViewIsASheetWhereverThereIsOnlyOnePane() {
+    @Test func personViewIsPushedWhereverThereIsOnlyOnePane() {
         // Closed, open in portrait, Split View, or before the panes report.
-        #expect(BoardArrangement.personPlacement(summary: .leaderboardHeader) == .sheet)
-        #expect(BoardArrangement.personPlacement(summary: placement(closed, closed, closed)) == .sheet)
-        #expect(BoardArrangement.personPlacement(summary: placement(nil, nil, nil)) == .sheet)
+        #expect(BoardArrangement.personPlacement(summary: .leaderboardHeader) == .pushed)
+        #expect(BoardArrangement.personPlacement(summary: placement(closed, closed, closed)) == .pushed)
+        #expect(BoardArrangement.personPlacement(summary: placement(nil, nil, nil)) == .pushed)
     }
 }

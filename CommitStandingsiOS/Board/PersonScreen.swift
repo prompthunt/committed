@@ -1,8 +1,8 @@
 import SwiftUI
 
 /// The person view on iPhone: the shared `PersonViewContent` in the app's materials, scrolling on
-/// ink, with the iPhone's private-contributions tip on your own view. `BoardView` shows it in a
-/// sheet, or in the second pane on iPhone Duo when the panes sit side by side.
+/// ink, with the iPhone's private-contributions tip on your own view. `BoardView` pushes it onto
+/// the Board, or shows it in the second pane on iPhone Duo when the panes sit side by side.
 ///
 /// Wherever it's wider than tall and has room for two readable columns (the closed iPhone Duo or
 /// another phone in landscape), the overview and the month sit side by side, each scrolling on its
@@ -73,8 +73,8 @@ struct PersonScreen: View {
     }
 }
 
-/// Their GitHub profile, in the bar beside Done or Your standing rather than in the header, so
-/// the header's only bright color is their data.
+/// Their GitHub profile, in the bar rather than in the header, so the header's only bright color
+/// is their data.
 struct PersonProfileLink: View {
     let person: PersonSummary
 
@@ -87,34 +87,27 @@ struct PersonProfileLink: View {
     }
 }
 
-/// The person view as a sheet over the Board, with Done to close it and their GitHub profile.
-struct PersonSheet: View {
+/// The person view pushed onto the Board: back to the Board on the leading side, their GitHub
+/// profile on the trailing side, and the tab bar still there.
+struct PersonDestination: View {
     @Environment(AppModel.self) private var model
-    @Environment(\.dismiss) private var dismiss
 
     var body: some View {
-        NavigationStack {
-            Group {
-                if let person = model.shownPerson {
-                    PersonScreen(person: person)
-                } else {
-                    Color.ink
-                }
-            }
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                if let person = model.shownPerson {
-                    ToolbarItem(placement: .topBarLeading) {
-                        PersonProfileLink(person: person)
+        Group {
+            if let person = model.shownPerson {
+                PersonScreen(person: person)
+                    .navigationTitle(person.isYou ? "Your month" : "\(person.login)’s month")
+                    .toolbar {
+                        ToolbarItem(placement: .topBarTrailing) {
+                            PersonProfileLink(person: person)
+                        }
                     }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Done") { dismiss() }
-                }
+            } else {
+                Color.ink
             }
         }
-        .presentationDetents([.large])
-        .presentationBackground(Color.ink)
+        .navigationBarTitleDisplayMode(.inline)
+        .background(Color.ink)
     }
 }
 

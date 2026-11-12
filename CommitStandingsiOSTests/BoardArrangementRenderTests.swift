@@ -66,17 +66,19 @@ struct BoardArrangementRenderTests {
         window.isHidden = true
     }
 
-    /// A rival's person view: a sheet on the closed display and the second pane (one column beside
-    /// the board) on the open one.
-    @Test func personViewAtEveryLayout() async throws {
+    /// A rival's person view through a fold: pushed onto the Board on the closed display, moved to
+    /// the second pane (one column beside the board) when it opens, and pushed again when it
+    /// closes. They stay chosen throughout.
+    @Test func personViewAcrossOpenAndClose() async throws {
         let model = AppModel(services: ScreenshotFixture.services(), backgroundTime: NoBackgroundTime())
         let window = try makeWindow(model: model)
         // Let the fixture's first refresh land before opening someone.
         try await render(window, layout: .closed, name: "person-0-board")
         model.showPerson("odile-m")
-        for layout in [Layout.closed, .openLandscape] {
-            try await render(window, layout: layout, name: "person-\(layout.rawValue)")
-        }
+        try await render(window, layout: .closed, name: "person-1-closed")
+        try await render(window, layout: .openLandscape, name: "person-2-openLandscape")
+        try await render(window, layout: .closed, name: "person-3-closed-again")
+        #expect(model.selectedPerson == "odile-m")
         window.isHidden = true
     }
 
