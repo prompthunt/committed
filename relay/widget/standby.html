@@ -9,11 +9,18 @@
 </head>
 <body>
 <!--
-  Committed's StandBy pair as a web page (relay/README.md, "Web widget"): the iPhone app's hero card
-  (rank only) beside the board list. No data is in this file. The page reads #installation=…&token=… from its own address
-  and asks the board route for the board with the token in an Authorization header.
+  Committed's widget as a web page (relay/README.md, "Web widget"), in the iPhone widget's sizes: small is
+  the rank card, medium the StandBy pair (the iPhone app's hero card, rank only, beside the board list), large
+  the top of the board. standby.js reads ?size= and sets data-size on <html>; standby.css shows that size's
+  parts. No data is in this file. The page reads #installation=…&token=… from its own address and asks the
+  board route for the board with the token in an Authorization header.
 -->
 <main class="widget" id="widget">
+  <!-- Large only: LiveRankHeader, the Window on the left and the age on the right. -->
+  <header class="board-head" id="board-head" data-testid="board-head">
+    <span class="window-label"><svg class="trophy" viewBox="0 0 16 16" aria-hidden="true"><use href="#trophy"></use></svg><span class="window-title" data-testid="window-title">Today</span></span>
+    <span class="age board-age" id="board-age" data-testid="board-age"></span>
+  </header>
   <div class="panes">
     <!-- The iPhone app's hero card (BoardSummaryView), rank only. -->
     <section class="card loading" id="card" data-testid="card" aria-label="Your rank">
@@ -50,6 +57,21 @@
     <section class="board" data-testid="board" aria-label="Board">
       <header class="list-head eyebrow" id="list-head" data-testid="list-head"></header>
       <ol class="rows" id="rows"></ol>
+      <p class="board-status" data-testid="board-status">Your board is loading</p>
+    </section>
+    <!-- Small only: the iPhone's small widget (CommittedWidgetSmall). The Window, your rank big, your
+         count, square and streak, then the age. No rows. -->
+    <section class="mini" id="mini" data-testid="mini" aria-label="Your rank">
+      <header class="window-label"><svg class="trophy" viewBox="0 0 16 16" aria-hidden="true"><use href="#trophy"></use></svg><span class="window-title" data-testid="window-title">Today</span></header>
+      <div class="mini-body" id="mini-body">
+        <div class="mini-rank" id="mini-rank" data-testid="mini-rank">–</div>
+        <div class="mini-count-line" id="mini-count-line" data-testid="mini-count-line">
+          <span class="count mini-count" id="mini-count" data-testid="mini-count">–</span>
+          <span class="square" id="mini-square" data-testid="mini-square" data-level="0"></span>
+          <span class="streak" id="mini-streak" data-testid="mini-streak"><svg class="streak-mark" viewBox="0 0 16 16" aria-hidden="true"><use href="#streak"></use></svg><span class="streak-number" id="mini-streak-number"></span></span>
+        </div>
+        <div class="mini-status age quiet" id="mini-status" data-testid="mini-status">Your board is loading</div>
+      </div>
     </section>
   </div>
   <section class="message" id="message" aria-live="polite">
@@ -64,6 +86,8 @@
   <defs>
     <!-- The Committed mark, docs/design/committed-trophy-glyph.svg. -->
     <path id="trophy" fill="currentColor" d="M 0.945 3.391 C 1.309 3.184 1.699 3.16 2.09 3.152 C 2.359 3.148 2.629 3.152 2.895 3.148 C 3.066 3.148 3.082 3.125 3.062 2.961 C 3 2.359 3.023 1.758 3.18 1.172 C 3.266 0.848 3.551 0.672 3.879 0.746 C 4.508 0.883 5.012 1.238 5.488 1.648 C 5.508 1.668 5.531 1.684 5.543 1.703 C 5.75 2.004 6 2.02 6.348 1.918 C 7.281 1.645 8.238 1.613 9.203 1.793 C 9.477 1.848 9.746 1.914 10.008 1.996 C 10.113 2.031 10.18 2.012 10.254 1.934 C 10.695 1.453 11.219 1.082 11.824 0.84 C 12.039 0.754 12.262 0.656 12.508 0.758 C 12.68 0.824 12.793 0.938 12.855 1.105 C 12.945 1.348 12.98 1.605 13 1.863 C 13.023 2.215 13.039 2.57 12.988 2.926 C 12.957 3.137 12.977 3.148 13.191 3.152 C 13.578 3.16 13.965 3.145 14.352 3.172 C 15.027 3.215 15.68 3.73 15.887 4.379 C 16.055 4.895 16.008 5.414 15.93 5.934 C 15.832 6.57 15.602 7.16 15.262 7.711 C 14.785 8.484 14.148 9.086 13.359 9.523 C 12.438 10.035 11.441 10.293 10.391 10.371 C 9.973 10.398 9.625 10.648 9.633 11.141 C 9.637 11.574 9.594 12.008 9.707 12.43 C 9.863 13.016 10.199 13.445 10.824 13.578 C 10.973 13.613 11.129 13.605 11.277 13.648 C 11.828 13.812 12.066 14.555 11.703 14.996 C 11.555 15.176 11.359 15.246 11.129 15.246 C 9.688 15.242 8.246 15.246 6.805 15.246 C 6.199 15.246 5.598 15.246 4.996 15.246 C 4.555 15.246 4.262 15.012 4.195 14.609 C 4.129 14.207 4.371 13.793 4.75 13.664 C 4.887 13.621 5.031 13.609 5.172 13.586 C 5.609 13.512 5.938 13.27 6.152 12.883 C 6.316 12.59 6.395 12.27 6.41 11.938 C 6.426 11.672 6.414 11.402 6.414 11.133 C 6.418 10.664 6.086 10.387 5.645 10.363 C 4.465 10.297 3.363 9.977 2.363 9.344 C 1.344 8.695 0.664 7.777 0.254 6.648 C 0.016 5.988 -0.059 5.312 0.043 4.625 C 0.125 4.078 0.445 3.668 0.945 3.391 Z M 1.68 6.645 C 2.086 7.574 3.492 8.773 4.082 8.695 C 4.082 8.684 4.082 8.672 4.078 8.664 C 4.055 8.621 4.027 8.574 3.996 8.535 C 3.551 7.879 3.238 7.168 3.086 6.391 C 2.969 5.781 2.906 5.16 2.984 4.535 C 3 4.41 2.961 4.355 2.828 4.359 C 2.59 4.363 2.352 4.355 2.117 4.359 C 1.723 4.367 1.422 4.629 1.391 5 C 1.34 5.562 1.426 6.109 1.68 6.645 Z M 14.621 5.926 C 14.672 5.676 14.707 5.422 14.695 5.16 C 14.676 4.648 14.391 4.363 13.879 4.359 C 13.68 4.359 13.484 4.367 13.289 4.355 C 13.152 4.352 13.113 4.395 13.129 4.535 C 13.203 5.246 13.137 5.953 12.961 6.645 C 12.812 7.234 12.566 7.789 12.25 8.312 C 12.176 8.434 12.078 8.539 12.031 8.684 C 12.992 8.461 14.246 7.473 14.621 5.926 Z"/>
+    <!-- The streak mark, docs/design/committed-streak-glyph.svg: a flame with a square at its heart. -->
+    <path id="streak" fill="currentColor" fill-rule="evenodd" d="M8 15.6C4.6 15.6 2.3 13.2 2.3 10.2C2.3 8.4 3.1 6.9 4.2 5.8C4.4 7.2 5 8 5.8 8.4C5.6 5.4 7 2.6 9 0.4C11.8 2.8 13.7 6.2 13.7 10.2C13.7 13.2 11.4 15.6 8 15.6ZM5.9 9.7h4.2v4.2h-4.2z"/>
   </defs>
 </svg>
 <script src="/v1/widget/standby.js"></script>

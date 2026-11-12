@@ -225,22 +225,27 @@ A revoked token gets `403` from then on.
 
 ## Web widget
 
-Committed's StandBy pair as a web page, so any screen can show your board: the iPhone app's hero
-card (`BoardSummaryView`, rank only) beside the board list. Glance on the office Frame iframes it (ticket #83; ADR 0001 in `addisonk/glance`).
+Committed's widget as a web page, so any screen can show your board, in the iPhone widget's
+sizes: **small** is its rank card, **medium** the StandBy pair (the iPhone app's hero card,
+`BoardSummaryView`, rank only, beside the board list), **large** the top of the board. Glance on
+the office Frame iframes it (ticket #83; ADR 0001 in `addisonk/glance`).
 
-### `GET /v1/widget?size=medium`
+### `GET /v1/widget?size=small|medium|large`
 
 - **Public, static, no data.** `widget/standby.html`, `standby.css`, `standby.js`, the Inter
   Tight Regular and ExtraBold fonts and JetBrains Mono Medium (the eyebrows' monospace; the TV has
   none), subset to Basic Latin, `·`, `–` and `…` (about 10 KB), are bundled into the Worker (the `rules` in
   `wrangler.jsonc`) and served by `src/widget.ts` under `/v1/widget/`. The page may be framed from any origin.
-- **Size:** the widget is asked for by tile size, Apple's widget sizes (ADR 0002 in `addisonk/glance`,
-  matching the iPhone widget families). `size=medium` is the StandBy pair, and the default with no
-  `size`. Any other `size` (`small`, `large`, `extraLarge`, …) gets `200` with the same page in a
-  quiet "Size not supported" state that never asks for a board; the asked-for size isn't echoed.
-  `layout=standby`, the address from before sizes, still serves the pair; another `layout` is a
-  `404`. With both, `size` decides.
-- **Address:** `https://committed-relay.prompt-hunt.workers.dev/v1/widget?size=medium#installation=<id>&token=<board read token>`.
+- **Size:** the widget is asked for by tile size, Apple's widget sizes (ADR 0002 in `addisonk/glance`),
+  in the families the iPhone widget comes in (`CommittedWidget`'s `systemSmall`, `systemMedium`,
+  `systemLarge`; `WIDGET_SIZES` in `src/widget.ts`). One page serves all three: `standby.js` reads
+  `size` from the query and sets `data-size` on `<html>`, and `standby.css` shows that size's parts.
+  `size=medium` is the default with no `size`. Any other `size` (`extraLarge`, `Small`, …) gets `200`
+  with the same page in a quiet "Size not supported" state that never asks for a board; the
+  asked-for size isn't echoed. `layout=standby`, the address from before sizes, still serves
+  medium; another `layout` is a `404`. With both, `size` decides.
+- **Address:** `https://committed-relay.prompt-hunt.workers.dev/v1/widget?size=medium#installation=<id>&token=<board read token>`,
+  and the same with `size=small` or `size=large`: only `size` changes.
   The installation ID and token are in the **fragment**, which browsers never send to a server.
   The page calls `GET /v1/installations/{id}/board?window=daily` on the same origin (no CORS)
   with `Authorization: Bearer <token>`; the token never appears in a request URL. Add
@@ -258,18 +263,37 @@ card (`BoardSummaryView`, rank only) beside the board list. Glance on the office
   | No count of yours yet | The trophy, "Waiting for your first count" |
   | `401` / `403` | "This screen's access was revoked" |
   | `404` | "Live rank is off on your iPhone" |
-  | No fragment | How to add the installation ID and token |
-  | A `size` other than `medium` | "Size not supported", and how to ask for medium |
+  | No fragment | How to add the installation ID and token, at this `size` |
+  | A `size` other than `small`, `medium` or `large` | "Size not supported", and how to ask for medium |
 
-- **The card:** a folio ("01 · TODAY", "02 · 7 DAYS", "03 · 30 DAYS" … "YOUR RANK") over a
+  Small shows the loading, stale and empty states in its own lines (below); large says "Your
+  board is loading" under its header until the first board.
+
+- **Small** (`CommittedWidgetSmall`, Glance's 440×492 tile): the trophy and the Window ("Today")
+  at the top; at the bottom your rank huge ("#3", no "of N"), then your count in lime with one
+  contribution square (lime once you've contributed, empty at 0 or with no count) and your streak
+  (the streak mark and "12", from 2 days, "365+" past GitHub's year), then "Updated 1 min ago", or
+  in its place what the board is waiting for ("Just you so far", "Waiting for your first count").
+  With nobody else on the board there's no rank: your count takes its place at the rank's size. No
+  rows, no movement and no card, as on the iPhone, where it's read at a glance from CarPlay or
+  StandBy. The rank shrinks to fit the width. Before the first board: a `–` and "Your board is
+  loading". Stale: the rank to grey, the count, square and streak mark a step down.
+- **Large** (`CommittedWidgetLarge`, Glance's 912×1016 tile): `LiveRankHeader`, the trophy and the
+  Window on the left and "Updated 1 min ago" on the right, then the board's top six
+  (`WidgetSnapshot.topCount`) in the medium's rows (rank, avatar, login, "you", today's chevrons,
+  count, squares glyph), then a hairline rule and your row when you're further down and have a
+  count. Top-aligned, with the space left below, as on the iPhone. The rows' streaks aren't shown:
+  the board route carries a streak only for you and your neighbours.
+- **Medium, the card:** a folio ("01 · TODAY", "02 · 7 DAYS", "03 · 30 DAYS" … "YOUR RANK") over a
   hairline; your avatar with a lime ring, your first name (`displayName`'s first word, as the app
   shows it) over `@login`, or `@login` alone; your rank huge with "of N"; then today's movement
   ("Up 2 today" in lime, "Down 1 today" in soft, nothing when you held), the pass line ("5 to pass
   mossbyte", none at #1) and "Updated 6 min ago" (the app's coarse age). Your count stays on your
   row. Behind the rank sits the app's square field, drawn still for the card's size with its
   masks folded into each square's opacity. The list's header is the eyebrow "12 PEOPLE · TODAY".
-- **Layout:** one rem scales with the box, so the pair fills whatever size it's given (a box
-  taller than wide stacks the card over the list). The rank shrinks to fit the card; in a box too
+- **Layout:** one rem scales with the box. Small and large scale to their tiles' shape (an 18×20 rem
+  box, a 22×24.5 rem box), so the type is about the same size in a small tile as in a medium one.
+  Medium's pair fills whatever size it's given (a box taller than wide stacks the card over the list). The rank shrinks to fit the card; in a box too
   small for it the card drops your identity first, then the age, the movement line and the
   folio's label. The list shows as many rows as fit, chosen
   as the small Board widget chooses them (`WidgetSnapshot.boardRows`): the leaders, or the first
@@ -281,7 +305,9 @@ card (`BoardSummaryView`, rank only) beside the board list. Glance on the office
   plain alpha white, in place of fixed greys (Glance's ADR 0004): `label-secondary`
   (`rgba(255,255,255,0.60)`) for the list's eyebrow, row ranks, the folio, `@login`, "of N", the
   age, "down" movement and the stale step-down (were muted `#8e9288` and soft `#d6d9d0`);
-  `label-tertiary` (0.25) for an empty row glyph; `separator` (0.10) for the card's hairlines.
+  `label-tertiary` (0.25) for an empty row glyph and small's empty square; `separator` (0.10) for
+  the card's hairlines and large's rule. Small's and large's Window title, age and streak number
+  are `label-secondary`; small draws no card, so it meets the contract's "no card when framed".
   The card's tile is the one exception: Apple's `fill-secondary` (white at 7%) washed it out on
   glass, so it's a translucent dark, `rgba(0,0,0,0.25)` (was `#0e100b`). Lime, your row's
   highlight and the avatars don't change. Opened on its own, the page looks as before. On flat
@@ -301,7 +327,8 @@ card (`BoardSummaryView`, rank only) beside the board list. Glance on the office
   - `accented` (the tinted Home Screen): lime and deep lime go white, the supporting text stays
     `label-secondary`, the rank card, your row and the avatars' circles use `fill-secondary`
     (`rgba(255,255,255,0.07)`), the "you" badge and your row's edge `fill-primary` (0.20), and the
-    squares keep their ramp in white. Avatars render greyscale (`filter: grayscale(1)`).
+    squares keep their ramp in white. Small's square goes white and its streak mark white beside a
+    `label-secondary` number. Avatars render greyscale (`filter: grayscale(1)`).
   - `vibrant` (StandBy's Night Mode): every piece of text and every icon in night red `#ff453a`
     (Apple's dark systemRed, 6.2:1 on black), with no alpha hierarchy; fills and hairlines are the
     same red at Apple's fill alphas. Avatars render greyscale tinted toward the red.
@@ -322,7 +349,10 @@ checks all of this in `npm test` against the exact files the route serves (ES5 v
 
 `browser/widget.spec.ts` drives the page in Playwright against a stubbed board route: every
 state above, the poll, the stale switch, the token staying out of URLs, the row swap and count
-tick, each rendering mode from a framing page's message (and messages it must ignore), and no overflow at 1280×1080, 852×393, 360×240 and 400×900.
+tick, each rendering mode from a framing page's message (and messages it must ignore), and no
+overflow at 1280×1080, 852×393, 360×240 and 400×900. Small and large have their own: each state,
+large's six leaders and the rule above you, and every size in every rendering mode framed at
+Glance's tile size (440×492, 912×492, 912×1016) with nothing outside the box.
 
 ```bash
 npx playwright install chromium   # once

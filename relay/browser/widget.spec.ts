@@ -413,11 +413,11 @@ test("a missing fragment says how to set the page up, without calling the relay"
 });
 
 test("an unsupported size says so, hides the board and never calls the relay", async ({ page }) => {
-  // The relay serves this page, already marked unsupported, for any size but medium (src/widget.ts).
+  // The relay serves this page, already marked unsupported, for any size but small, medium and large (src/widget.ts).
   const html = readFileSync(path.join(WIDGET_DIR, "standby.html"), "utf8")
     .replace('data-state="loading"', 'data-state="unsupported"')
     .replace('<p class="message-title" id="message-title"></p>', '<p class="message-title" id="message-title">Size not supported</p>');
-  const harness = await open(page, { status: 200, body: board() }, WIDGET_URL.replace("size=medium", "size=large"), html);
+  const harness = await open(page, { status: 200, body: board() }, WIDGET_URL.replace("size=medium", "size=extraLarge"), html);
   await expect(page.getByText("Size not supported")).toBeVisible();
   await expect(page.locator(".panes")).toBeHidden();
   await page.clock.runFor(6 * 60 * 1000);
@@ -856,5 +856,326 @@ for (const [mode, filter] of AVATAR_FILTERS) {
       await expect.poll(() => img.evaluate((el) => getComputedStyle(el).opacity)).toBe("1");
       expect(await img.evaluate((el) => getComputedStyle(el).filter)).toBe(filter);
     }
+  });
+}
+
+// MARK: Small and large: the iPhone widget's other sizes, at Glance's tile sizes
+
+/** Glance's tile boxes (ADR 0002 in addisonk/glance). */
+const TILES = { small: [440, 492], medium: [912, 492], large: [912, 1016] } as const;
+const urlFor = (size: string, query = "") => `${ORIGIN}/v1/widget?size=${size}${query}#installation=${INSTALLATION}&token=${TOKEN}`;
+const mini = (page: Page) => page.getByTestId("mini");
+const miniRank = (page: Page) => page.getByTestId("mini-rank");
+const miniCount = (page: Page) => page.getByTestId("mini-count");
+const miniStatus = (page: Page) => page.getByTestId("mini-status");
+
+/** Fourteen people, you tenth: below the large widget's six leaders. */
+function longBoard(overrides: Record<string, unknown> = {}) {
+  const many: Row[] = Array.from({ length: 14 }, (_, i) => ({
+    rank: i + 1,
+    login: i === 9 ? "addisonk" : `rival-number-${i + 1}`,
+    contributions: 40 - i * 2,
+    movementToday: i === 9 ? 1 : i % 3 === 0 ? 1 : 0,
+    isSelf: i === 9,
+  }));
+  return board(
+    { rank: 10, contributions: 22, above: { login: "rival-number-9", contributions: 24, movementToday: 0 }, gapToPass: 2, ...overrides },
+    many,
+  );
+}
+
+/** Elements drawn outside the page's box, and the page's scroll size. */
+const overflowOf = (frame: { evaluate: Page["evaluate"] }) =>
+  frame.evaluate(() => {
+    const root = document.documentElement;
+    const bad: string[] = [];
+    document.querySelectorAll("body *").forEach((el) => {
+      const r = el.getBoundingClientRect();
+      if (r.width === 0 && r.height === 0) return;
+      if (r.left < -0.5 || r.top < -0.5 || r.right > root.clientWidth + 0.5 || r.bottom > root.clientHeight + 0.5) {
+        bad.push(`${el.tagName}.${el.getAttribute("class")} ${Math.round(r.left)},${Math.round(r.top)},${Math.round(r.right)},${Math.round(r.bottom)}`);
+      }
+    });
+    return { bad, scrollW: root.scrollWidth - root.clientWidth, scrollH: root.scrollHeight - root.clientHeight };
+  });
+
+test("small: before the first board, a quiet placeholder and never zero", async ({ page }) => {
+  await page.setViewportSize({ width: 440, height: 492 });
+  await open(page, "hang", urlFor("small"));
+  await expect(page.locator("html")).toHaveAttribute("data-size", "small");
+  await expect(mini(page)).toBeVisible();
+  await expect(miniRank(page)).toHaveText("–");
+  await expect(miniStatus(page)).toHaveText("Your board is loading");
+  await expect(page.getByTestId("mini-count-line")).toBeHidden();
+  await expect(page.locator("body")).not.toContainText(/\b0\b/);
+  await screenshot(page, "small-first-load");
+});
+
+test("small: the iPhone's small widget — the Window, your rank, your count, square and streak, then the age", async ({ page }) => {
+  await page.setViewportSize({ width: 440, height: 492 });
+  const harness = await open(page, { status: 200, body: board({ streak: 12 }) }, urlFor("small"));
+  await expect(miniRank(page)).toHaveText("#3");
+  await expect(mini(page).getByTestId("window-title")).toHaveText("Today");
+  await expect(miniCount(page)).toHaveText("12");
+  expect(await color(miniCount(page))).toBe(LIME);
+  await expect(page.getByTestId("mini-square")).toHaveAttribute("data-level", "4");
+  await expect(page.getByTestId("mini-streak")).toBeVisible();
+  await expect(page.getByTestId("mini-streak")).toHaveText("12");
+  await expect(miniStatus(page)).toHaveText("Updated 1 min ago");
+  // No rows, no "of N", no card: the iPhone's small widget is read at a glance.
+  await expect(card(page)).toBeHidden();
+  await expect(page.getByTestId("board")).toBeHidden();
+  await expect(rows(page)).toHaveCount(0);
+  await expect(page.locator("body")).not.toContainText("of 5");
+  // Top to bottom: the Window, the rank, the count, the age.
+  const top = async (id: string) => (await mini(page).getByTestId(id).boundingBox())!.y;
+  expect(await top("window-title")).toBeLessThan(await top("mini-rank"));
+  expect(await top("mini-rank")).toBeLessThan(await top("mini-count"));
+  expect(await top("mini-count")).toBeLessThan(await top("mini-status"));
+  // The same board call, token in the header only; no avatars to fetch.
+  const boardCalls = harness.requests.filter((r) => r.url.includes("/board"));
+  expect(boardCalls).toHaveLength(1);
+  expect(boardCalls[0]!.authorization).toBe(`Bearer ${TOKEN}`);
+  for (const request of harness.requests) expect(request.url).not.toContain(TOKEN);
+  expect(harness.requests.filter((r) => r.url.includes("github"))).toHaveLength(0);
+  await screenshot(page, "small");
+});
+
+test("small: a streak shows from 2 days, and past GitHub's year as 365+", async ({ page }) => {
+  await page.setViewportSize({ width: 440, height: 492 });
+  const harness = await open(page, { status: 200, body: board({ streak: 1 }) }, urlFor("small"));
+  await expect(miniRank(page)).toHaveText("#3");
+  await expect(page.getByTestId("mini-streak")).toBeHidden();
+  harness.reply({ status: 200, body: board({ streak: 400, updatedAt: NOW + 200 }) });
+  await page.clock.runFor(5 * 60_000);
+  await expect(page.getByTestId("mini-streak")).toHaveText("365+");
+});
+
+test("small: with no rivals your count takes the rank's place", async ({ page }) => {
+  await page.setViewportSize({ width: 440, height: 492 });
+  await open(
+    page,
+    {
+      status: 200,
+      body: board(
+        { rank: null, competitorCount: 1, contributions: 7, streak: 4, above: null, below: null, gapToPass: null, movementToday: 0 },
+        [{ rank: 1, login: "addisonk", contributions: 7, movementToday: 0, isSelf: true }],
+      ),
+    },
+    urlFor("small"),
+  );
+  await expect(miniCount(page)).toHaveText("7");
+  await expect(miniRank(page)).toBeHidden();
+  await expect(miniStatus(page)).toHaveText("Just you so far");
+  // At the rank's size, not the count's.
+  const sizes = await page.evaluate(() => {
+    const px = (sel: string) => parseFloat(getComputedStyle(document.querySelector(sel)!).fontSize);
+    return { count: px("#mini-count"), rem: parseFloat(getComputedStyle(document.documentElement).fontSize) };
+  });
+  expect(sizes.count).toBeGreaterThan(sizes.rem * 6);
+  await expect(page.locator("body")).not.toContainText("#1");
+  await screenshot(page, "small-no-rivals");
+});
+
+test("small: before your first count, a dash for the rank and the count, and what it waits for", async ({ page }) => {
+  await page.setViewportSize({ width: 440, height: 492 });
+  await open(
+    page,
+    {
+      status: 200,
+      body: board({ rank: null, contributions: null, streak: 5, above: null, below: null, gapToPass: null, movementToday: 0 }, [
+        { rank: 1, login: "jordan", contributions: 21, movementToday: 0, isSelf: false },
+        { rank: 2, login: "addisonk", contributions: null, movementToday: 0, isSelf: true },
+      ]),
+    },
+    urlFor("small"),
+  );
+  await expect(miniStatus(page)).toHaveText("Waiting for your first count");
+  await expect(miniRank(page)).toHaveText("–");
+  await expect(miniCount(page)).toHaveText("–");
+  await expect(page.getByTestId("mini-square")).toHaveAttribute("data-level", "0");
+  await expect(page.getByTestId("mini-streak")).toBeHidden();
+});
+
+test("small: stale steps the colours down, as Live rank's do", async ({ page }) => {
+  await page.setViewportSize({ width: 440, height: 492 });
+  await open(page, { status: 200, body: board({ streak: 12, updatedAt: NOW - 45 * 60 }) }, urlFor("small"));
+  await expect(page.locator("html")).toHaveAttribute("data-state", "stale");
+  expect(await color(miniRank(page))).toBe(MUTED);
+  expect(await color(miniCount(page))).toBe(LIME_DEEP);
+  expect(await page.getByTestId("mini-square").evaluate((el) => getComputedStyle(el).backgroundColor)).toBe("rgb(106, 168, 26)");
+});
+
+test("large: before the first board, the Window and a quiet wait, never zero", async ({ page }) => {
+  await page.setViewportSize({ width: 912, height: 1016 });
+  await open(page, "hang", urlFor("large"));
+  await expect(page.locator("html")).toHaveAttribute("data-size", "large");
+  await expect(page.getByTestId("board-head").getByTestId("window-title")).toHaveText("Today");
+  await expect(page.getByTestId("board-status")).toHaveText("Your board is loading");
+  await expect(card(page)).toBeHidden();
+  await expect(page.locator("body")).not.toContainText(/\b0\b/);
+});
+
+test("large: the iPhone's large widget — the six leaders, then you below a rule", async ({ page }) => {
+  await page.setViewportSize({ width: 912, height: 1016 });
+  const harness = await open(page, { status: 200, body: longBoard() }, urlFor("large"));
+  await expect(rows(page)).toHaveCount(7);
+  for (let i = 0; i < 6; i++) {
+    await expect(rows(page).nth(i)).toContainText(`#${i + 1}`);
+    await expect(rows(page).nth(i)).toHaveAttribute("data-detached", "false");
+  }
+  const me = rows(page).nth(6);
+  await expect(me).toHaveAttribute("data-self", "true");
+  await expect(me).toHaveAttribute("data-detached", "true");
+  await expect(me).toContainText("#10");
+  await expect(me).toContainText("you");
+  await expect(me.getByTestId("movement")).toHaveAttribute("data-direction", "up");
+  // The rule sits between the leaders and you.
+  const rule = await me.evaluate((el) => {
+    const before = getComputedStyle(el, "::before");
+    return { content: before.content, height: before.height, bg: before.backgroundColor };
+  });
+  expect(rule).toEqual({ content: '""', height: "1px", bg: "rgba(142, 146, 136, 0.4)" });
+  // LiveRankHeader: the Window on the left, the age on the right; no card, no "N people" eyebrow.
+  const head = page.getByTestId("board-head");
+  await expect(head.getByTestId("window-title")).toHaveText("Today");
+  await expect(page.getByTestId("board-age")).toHaveText("Updated 1 min ago");
+  expect((await head.getByTestId("window-title").boundingBox())!.x).toBeLessThan((await page.getByTestId("board-age").boundingBox())!.x);
+  await expect(card(page)).toBeHidden();
+  await expect(page.getByTestId("list-head")).toBeHidden();
+  await expect(page.getByTestId("board-status")).toBeHidden();
+  // No hidden card loading your avatar: only the seven rows' avatars are asked for.
+  await expect.poll(() => harness.requests.filter((r) => r.url.startsWith("https://github.com/")).length).toBe(7);
+  await screenshot(page, "large");
+});
+
+test("large: among the leaders, you're in your place and there's no rule", async ({ page }) => {
+  await page.setViewportSize({ width: 912, height: 1016 });
+  await open(page, { status: 200, body: board() }, urlFor("large"));
+  await expect(rows(page)).toHaveCount(5);
+  await expect(rows(page).nth(2)).toHaveAttribute("data-self", "true");
+  await expect(page.locator('[data-testid="row"][data-detached="true"]')).toHaveCount(0);
+});
+
+test("large: you below the leaders without a count stay off the board, as on the iPhone", async ({ page }) => {
+  await page.setViewportSize({ width: 912, height: 1016 });
+  const body = longBoard({ rank: null, contributions: null, above: null, gapToPass: null });
+  (body.rows as Row[])[9]!.contributions = null;
+  await open(page, { status: 200, body }, urlFor("large"));
+  await expect(rows(page)).toHaveCount(6);
+  await expect(page.locator('[data-testid="row"][data-self="true"]')).toHaveCount(0);
+});
+
+test("large: a rank change slides the rows, and you join the leaders", async ({ page }) => {
+  await page.setViewportSize({ width: 912, height: 1016 });
+  const harness = await open(page, { status: 200, body: longBoard() }, urlFor("large"));
+  await expect(rows(page).nth(6)).toHaveAttribute("data-detached", "true");
+  const climbed = longBoard({ rank: 6, contributions: 31, updatedAt: NOW + 290 });
+  const list = climbed.rows as Row[];
+  const me = list.splice(9, 1)[0]!;
+  list.splice(5, 0, { ...me, contributions: 31 });
+  list.forEach((row, i) => (row.rank = i + 1));
+  harness.reply({ status: 200, body: climbed });
+  await page.clock.runFor(5 * 60_000);
+  await expect(rows(page)).toHaveCount(6);
+  await expect(rows(page).nth(5)).toHaveAttribute("data-self", "true");
+  await expect(rows(page).nth(5)).toHaveAttribute("data-detached", "false");
+});
+
+for (const [size, [width, height]] of Object.entries(TILES)) {
+  for (const mode of ["fullColor", "accented", "vibrant"] as const) {
+    test(`${size} fills Glance's ${width}×${height} tile in ${mode} without overflowing`, async ({ page }) => {
+      await page.setViewportSize({ width, height });
+      const HOST = "https://host.test/";
+      const post = JSON.stringify({ type: "glance:rendering-mode", renderingMode: mode });
+      await page.route(HOST, (route) =>
+        route.fulfill({
+          status: 200,
+          contentType: "text/html",
+          body: `<!doctype html><body style="margin:0;background:#141416"><iframe id="w" src="${urlFor(size)}" scrolling="no" onload='this.contentWindow.postMessage(${post}, "*")' style="border:0;display:block;width:${width}px;height:${height}px"></iframe></body>`,
+        })
+      );
+      await open(page, { status: 200, body: longBoard({ streak: 12 }) }, HOST);
+      const frame = page.frameLocator("#w");
+      await expect(frame.locator("html")).toHaveAttribute("data-state", "live");
+      const widget = page.frames().find((f) => f.url().startsWith(ORIGIN))!;
+      await expect.poll(() => htmlClasses(widget)).toEqual(["embedded", `rendering-${mode === "fullColor" ? "full-color" : mode}`]);
+      expect(await widget.evaluate(() => document.documentElement.getAttribute("data-size"))).toBe(size);
+      await widget.evaluate(() => document.fonts.ready);
+      // Transparent, so Glance's surface shows through.
+      expect(await widget.evaluate(() => getComputedStyle(document.body).backgroundColor)).toBe("rgba(0, 0, 0, 0)");
+      const overflow = await overflowOf(widget);
+      expect(overflow.bad).toEqual([]);
+      expect(overflow.scrollW).toBeLessThanOrEqual(0);
+      expect(overflow.scrollH).toBeLessThanOrEqual(0);
+      if (size === "small") {
+        await expect(frame.getByTestId("mini-rank")).toHaveText("#10");
+        await expect(frame.getByTestId("mini-count")).toHaveText("22");
+        await expect(frame.getByTestId("mini-streak")).toHaveText("12");
+      } else if (size === "large") {
+        await expect(frame.getByTestId("row")).toHaveCount(7);
+      } else {
+        await expect(frame.getByTestId("rank")).toHaveText("#10");
+      }
+      const ink = await inkColours(widget);
+      expect(Object.keys(ink).length).toBeGreaterThan(3);
+      if (mode === "vibrant") {
+        for (const [what, value] of Object.entries(ink)) expect(value, what).toBe(NIGHT_RED);
+      } else if (mode === "accented") {
+        // Everything is white, at Apple's label alphas: no lime left.
+        for (const [what, value] of Object.entries(ink)) expect([WHITE, LABEL_SECONDARY], what).toContain(value);
+      } else {
+        // Committed's own colours stay in fullColor: lime, the streak mark's deep lime, and the
+        // avatars' initials (the avatars don't change when framed).
+        for (const [what, value] of Object.entries(ink)) {
+          expect([WHITE, LABEL_SECONDARY, LIME, ...(/initials|streak-mark|badge/.test(what) ? [SOFT, LIME_DEEP, "rgb(30, 36, 16)"] : [])], what).toContain(value);
+        }
+      }
+      await screenshot(page, `tile-${size}-${mode}`);
+    });
+  }
+}
+
+for (const size of ["small", "large"] as const) {
+  test(`${size}: framed, the supporting text is label-secondary`, async ({ page }) => {
+    const [width, height] = TILES[size];
+    await page.setViewportSize({ width, height });
+    const HOST = `https://host.test/${size}`;
+    await page.route(HOST, (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: "text/html",
+        body: `<!doctype html><body style="margin:0;background:#141416"><iframe id="w" src="${urlFor(size)}" style="border:0;width:${width}px;height:${height}px"></iframe></body>`,
+      })
+    );
+    await open(page, { status: 200, body: longBoard({ streak: 12 }) }, HOST);
+    const frame = page.frameLocator("#w");
+    await expect(frame.locator("html")).toHaveAttribute("data-state", "live");
+    const head = frame.locator(size === "small" ? '[data-testid="mini"]' : '[data-testid="board-head"]');
+    expect(await color(head.getByTestId("window-title")), size).toBe(LABEL_SECONDARY);
+    expect(await color(frame.getByTestId(size === "small" ? "mini-status" : "board-age")), size).toBe(LABEL_SECONDARY);
+    if (size === "small") expect(await color(frame.locator(".streak-number"))).toBe(LABEL_SECONDARY);
+    // Committed's lime is its own: the trophy keeps it in fullColor.
+    expect(await color(head.locator(".trophy"))).toBe(LIME);
+  });
+}
+
+for (const size of ["small", "large"] as const) {
+  test(`${size}: the messages fit the tile too`, async ({ page }) => {
+    const [width, height] = TILES[size];
+    await page.setViewportSize({ width, height });
+    await open(page, { status: 403, body: { error: "revoked", message: "x" } }, urlFor(size));
+    await expect(page.getByText("This screen's access was revoked")).toBeVisible();
+    await expect(page.locator(".panes")).toBeHidden();
+    expect((await overflowOf(page)).bad).toEqual([]);
+    await screenshot(page, `${size}-revoked`);
+  });
+
+  test(`${size}: without a fragment it says how to set up this size`, async ({ page }) => {
+    const [width, height] = TILES[size];
+    await page.setViewportSize({ width, height });
+    await open(page, { status: 200, body: board() }, `${ORIGIN}/v1/widget?size=${size}`);
+    await expect(page.locator("#message-detail")).toContainText(`/v1/widget?size=${size}#installation=`);
+    expect((await overflowOf(page)).bad).toEqual([]);
   });
 }
