@@ -86,16 +86,42 @@ def build_marketing_version(build_id):
     return (data.get('attributes') or {}).get('version')
 
 
+def listed_screenshots(version_string):
+    """The version's screenshots in order, as (file name, size, delivery state)."""
+    data = appstore.asc_json('screenshots', 'list', '--app', APP_ID, '--version', version_string,
+                             '--locale', appstore.LOCALE)
+    return [(a.get('fileName'), a.get('fileSize'), (a.get('assetDeliveryState') or {}).get('state'))
+            for found in data.get('sets') or [] for a in (s['attributes'] for s in found.get('screenshots') or [])]
+
+
+def screenshots_to_upload(shots, listed):
+    """What to send, and whether to replace the set: nothing when the version already shows these
+    files, only the missing tail when an earlier upload stopped partway, otherwise all of them.
+    `shots` is [(name, size)]. Apple's screenshot processing can be slow enough that a full replace
+    times out again and again, so a resubmission shouldn't redo it."""
+    # A screenshot Apple is still processing counts as there; replacing it restarts the wait.
+    there = [(name, size) for name, size, _ in listed]
+    if there == shots[:len(there)]:
+        return shots[len(there):], False
+    return shots, True
+
+
 def upload_screenshots(version_string):
-    shots = sorted(SCREENSHOTS.glob('[0-9][0-9]-*.png'))
-    if not shots:
+    files = sorted(SCREENSHOTS.glob('[0-9][0-9]-*.png'))
+    if not files:
         sys.exit(f'No screenshots in {SCREENSHOTS}.')
+    shots = [(f.name, f.stat().st_size) for f in files]
+    send, replace = screenshots_to_upload(shots, listed_screenshots(version_string))
+    if not send:
+        print(f'  unchanged ({len(shots)} screenshots)')
+        return
     with tempfile.TemporaryDirectory(prefix='appstore-shots-') as stage:
-        for shot in shots:
-            shutil.copy2(shot, stage)
+        for name, _ in send:
+            shutil.copy2(SCREENSHOTS / name, stage)
         appstore.asc('screenshots', 'upload', '--app', APP_ID, '--version', version_string, '--locale',
-                     appstore.LOCALE, '--device-type', DEVICE_TYPE, '--path', stage, '--replace', '--confirm')
-    print(f'  {len(shots)} screenshots')
+                     appstore.LOCALE, '--device-type', DEVICE_TYPE, '--path', stage,
+                     *(['--replace', '--confirm'] if replace else []))
+    print(f'  {len(send)} of {len(shots)} screenshots uploaded' + (' (replaced the set)' if replace else ''))
 
 
 def blocking_checks(version_id):
