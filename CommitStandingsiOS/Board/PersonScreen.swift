@@ -3,16 +3,49 @@ import SwiftUI
 /// The person view on iPhone: the shared `PersonViewContent` in the app's materials, scrolling on
 /// ink, with the iPhone's private-contributions tip on your own view. `BoardView` shows it in a
 /// sheet, or in the second pane on iPhone Duo when the panes sit side by side.
+///
+/// Wherever it's wider than tall and has room for two readable columns (a phone or the closed
+/// iPhone Duo in landscape), the overview and the month sit side by side in a split arrangement,
+/// each scrolling on its own; the arrangement puts the split at the fold when there is one. Taller
+/// than wide, it's one column that scrolls, which needs nothing from the fold.
 struct PersonScreen: View {
-    @Environment(AppModel.self) private var model
     let person: PersonSummary
+    /// Off in the Board's second pane, which is itself one half of an arrangement.
+    var allowsColumns = true
+    @State private var size: CGSize = .zero
 
     var body: some View {
+        Group {
+            if usesColumns {
+                ArrangementView {
+                    column(.overview)
+                } secondary: {
+                    column(.month)
+                }
+                .arrangementViewStyle(.split.axes(.horizontal))
+            } else {
+                column(.all)
+            }
+        }
+        .onGeometryChange(for: CGSize.self) { $0.size } action: { size = $0 }
+        .background(Color.ink)
+        .environment(\.personViewStyle, .committed)
+        // A different person starts on their own today.
+        .id(person.login)
+    }
+
+    /// Two columns once the space is wide rather than tall and each column gets room for the stat
+    /// tiles side by side; the closed iPhone Duo in landscape has about 580 pt inside its safe
+    /// area. Before their count loads there's only the overview to show.
+    private var usesColumns: Bool {
+        allowsColumns && person.days != nil && size.width >= 2 * Self.minimumColumnWidth && size.width > size.height
+    }
+
+    private static let minimumColumnWidth: CGFloat = 280
+
+    private func column(_ part: PersonViewPart) -> some View {
         ScrollView {
-            PersonViewContent(
-                person: person,
-                initialDay: Self.initialDay
-            ) {
+            PersonViewContent(person: person, initialDay: Self.initialDay, part: part) {
                 PrivateWorkTip(dismissible: false)
             }
             .padding(16)
@@ -21,10 +54,6 @@ struct PersonScreen: View {
         }
         .defaultScrollAnchor(Self.scrollAnchor)
         .scrollContentBackground(.hidden)
-        .background(Color.ink)
-        .environment(\.personViewStyle, .committed)
-        // A different person starts on their own today.
-        .id(person.login)
     }
 
     private static var scrollAnchor: UnitPoint {
@@ -44,7 +73,21 @@ struct PersonScreen: View {
     }
 }
 
-/// The person view as a sheet over the Board, with Done to close it.
+/// Their GitHub profile, in the bar beside Done or Your standing rather than in the header, so
+/// the header's only bright color is their data.
+struct PersonProfileLink: View {
+    let person: PersonSummary
+
+    var body: some View {
+        // Text, not an icon: no symbol says "GitHub profile" on its own.
+        Link("GitHub", destination: person.profileURL)
+            .tint(.lime)
+        .accessibilityLabel("GitHub profile")
+        .accessibilityHint("Opens \(person.login) on GitHub")
+    }
+}
+
+/// The person view as a sheet over the Board, with Done to close it and their GitHub profile.
 struct PersonSheet: View {
     @Environment(AppModel.self) private var model
     @Environment(\.dismiss) private var dismiss
@@ -60,6 +103,11 @@ struct PersonSheet: View {
             }
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                if let person = model.shownPerson {
+                    ToolbarItem(placement: .topBarLeading) {
+                        PersonProfileLink(person: person)
+                    }
+                }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Done") { dismiss() }
                 }
@@ -71,7 +119,7 @@ struct PersonSheet: View {
 }
 
 /// The person view in the second pane on the open iPhone Duo, where your summary otherwise sits,
-/// with a button back to your summary.
+/// with a button back to your summary and their GitHub profile.
 struct PersonPane: View {
     @Environment(AppModel.self) private var model
     let person: PersonSummary
@@ -88,10 +136,12 @@ struct PersonPane: View {
                 .tint(.lime)
                 .accessibilityHint("Closes \(person.login)’s month")
                 Spacer()
+                PersonProfileLink(person: person)
+                    .font(.callout.weight(.semibold))
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 10)
-            PersonScreen(person: person)
+            PersonScreen(person: person, allowsColumns: false)
         }
         .background(Color.ink)
         .accessibilityElement(children: .contain)

@@ -66,11 +66,64 @@ struct BoardArrangementRenderTests {
         window.isHidden = true
     }
 
+    /// A rival's person view: a sheet on the closed display and the second pane (one column beside
+    /// the board) on the open one.
+    @Test func personViewAtEveryLayout() async throws {
+        let model = AppModel(services: ScreenshotFixture.services(), backgroundTime: NoBackgroundTime())
+        let window = try makeWindow(model: model)
+        // Let the fixture's first refresh land before opening someone.
+        try await render(window, layout: .closed, name: "person-0-board")
+        model.showPerson("odile-m")
+        for layout in [Layout.closed, .openLandscape] {
+            try await render(window, layout: layout, name: "person-\(layout.rawValue)")
+        }
+        window.isHidden = true
+    }
+
+    /// The person screen wider than tall (the closed iPhone Duo in landscape, 678 × 466 pt): the
+    /// overview and the month side by side. The test window can't be made wider than tall, so the
+    /// screen is hosted at that size inside it and drawn on its own.
+    @Test func personViewSideBySideInLandscape() async throws {
+        let model = AppModel(services: ScreenshotFixture.services(), backgroundTime: NoBackgroundTime())
+        let window = try makeWindow(model: model)
+        try await render(window, layout: .closed, name: "person-landscape-0-board")
+        model.showPerson("odile-m")
+        let person = try #require(model.shownPerson)
+        let host = UIHostingController(rootView: appEnvironment(PersonScreen(person: person), model: model))
+        host.traitOverrides.horizontalSizeClass = .compact
+        host.traitOverrides.verticalSizeClass = .compact
+        // The host sticks out past the portrait test window, which would read as a right inset.
+        host.safeAreaRegions = []
+        host.view.frame = CGRect(x: 0, y: 0, width: 678, height: 466)
+        window.rootViewController?.view.addSubview(host.view)
+        host.view.layoutIfNeeded()
+        try await Task.sleep(for: .seconds(2))
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 3
+        let image = UIGraphicsImageRenderer(bounds: host.view.bounds, format: format).image { _ in
+            _ = host.view.drawHierarchy(in: host.view.bounds, afterScreenUpdates: true)
+        }
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        try #require(image.pngData()).write(to: directory.appendingPathComponent("render-person-closedLandscape.png"))
+        host.view.removeFromSuperview()
+        window.isHidden = true
+    }
+
     // MARK: - Helpers
 
     private func makeWindow(model: AppModel) throws -> UIWindow {
         let scene = try #require(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first)
-        let root = RootView()
+        let root = appEnvironment(RootView(), model: model)
+        let window = UIWindow(windowScene: scene)
+        window.rootViewController = UIHostingController(rootView: root)
+        window.windowLevel = .normal + 1
+        window.isHidden = false
+        return window
+    }
+
+    /// The environment the app gives its views, with avatars off.
+    private func appEnvironment<Content: View>(_ content: Content, model: AppModel) -> some View {
+        content
             .environment(model)
             .environment(model.store)
             .environment(model.refresh)
@@ -78,11 +131,6 @@ struct BoardArrangementRenderTests {
             .environment(model.roster)
             .environment(model.services.notifications)
             .environment(\.loadsGitHubAvatars, false)
-        let window = UIWindow(windowScene: scene)
-        window.rootViewController = UIHostingController(rootView: root)
-        window.windowLevel = .normal + 1
-        window.isHidden = false
-        return window
     }
 
     private func render(_ window: UIWindow, layout: Layout, name: String) async throws {
