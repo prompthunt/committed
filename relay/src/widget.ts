@@ -28,10 +28,13 @@ export const WIDGET_FILES: Record<string, { body: string | ArrayBuffer; type: st
 };
 
 /**
- * Tile sizes this widget comes in (Glance's ADR 0002: Apple's widget sizes, asked for with `size`).
- * Medium is the StandBy pair. `layout=standby`, the address before sizes, still serves it.
+ * Tile sizes this widget comes in (Glance's ADR 0002: Apple's widget sizes, asked for with `size`),
+ * the iPhone widget's own families: small is its rank card (`CommittedWidgetSmall`), medium the
+ * StandBy pair, large the top of the board (`CommittedWidgetLarge`). One page serves all three;
+ * standby.js reads `size` and lays itself out for it. `layout=standby`, the address before sizes,
+ * still serves medium.
  */
-export const WIDGET_SIZES = ["medium"];
+export const WIDGET_SIZES = ["small", "medium", "large"];
 export const WIDGET_LAYOUTS = ["standby"];
 
 /** Replaces `find` in the page, failing at startup (and in tests) if the page no longer has it. */
@@ -49,14 +52,14 @@ const unsupportedHtml = [
   ['<p class="message-title" id="message-title"></p>', '<p class="message-title" id="message-title">Size not supported</p>'],
   [
     '<p class="message-detail" id="message-detail"></p>',
-    '<p class="message-detail" id="message-detail">Committed\'s widget comes in medium. Open it as /v1/widget?size=medium.</p>',
+    '<p class="message-detail" id="message-detail">Committed\'s widget comes in small, medium and large. Open it as /v1/widget?size=medium.</p>',
   ],
 ].reduce((page, [find, replacement]) => replaceOnce(page, find!, replacement!), standbyHtml);
 
 /** The served text, for the runtime-limit checks in test/widget-runtime.test.ts. */
 export { standbyCss, standbyHtml, standbyJs, unsupportedHtml };
 
-/** `GET /v1/widget[?size=medium]` (or the old `?layout=standby`) and its files, or null when the path isn't the widget's. */
+/** `GET /v1/widget[?size=small|medium|large]` (or the old `?layout=standby`) and its files, or null when the path isn't the widget's. */
 export function widgetResponse(request: Request, url: URL): Response | null {
   if (url.pathname !== "/v1/widget" && !url.pathname.startsWith("/v1/widget/")) return null;
   if (request.method !== "GET" && request.method !== "HEAD") {

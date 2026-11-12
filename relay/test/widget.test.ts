@@ -1,6 +1,7 @@
 import { env } from "cloudflare:workers";
 import { beforeEach, describe, expect, it } from "vitest";
 import { createRelay } from "../src/relay";
+import { WIDGET_SIZES } from "../src/widget";
 import { Clock, FakeApns, FakeGitHub } from "./support/fakes";
 
 let github: FakeGitHub;
@@ -24,8 +25,15 @@ function get(path: string, init?: RequestInit): Promise<Response> {
 }
 
 describe("GET /v1/widget", () => {
-  it("serves the StandBy pair for size=medium, the default and the old layout=standby", async () => {
-    for (const path of ["/v1/widget?size=medium", "/v1/widget", "/v1/widget?layout=standby"]) {
+  it("serves the page for small, medium and large, the default and the old layout=standby", async () => {
+    expect(WIDGET_SIZES).toEqual(["small", "medium", "large"]);
+    for (const path of [
+      "/v1/widget?size=small",
+      "/v1/widget?size=medium",
+      "/v1/widget?size=large",
+      "/v1/widget",
+      "/v1/widget?layout=standby",
+    ]) {
       const res = await get(path);
       expect(res.status).toBe(200);
       expect(res.headers.get("content-type")).toMatch(/^text\/html/);
@@ -33,17 +41,21 @@ describe("GET /v1/widget", () => {
       expect(html).toMatch(/<!doctype html>/i);
       expect(html).toContain("/v1/widget/standby.js");
       expect(html).toContain("/v1/widget/standby.css");
+      // The page lays itself out for the size (standby.js reads ?size=); it's never "unsupported".
+      expect(html, path).toMatch(/<html[^>]*data-state="loading"/);
+      expect(html, path).not.toContain("Size not supported");
     }
   });
 
   it("shows a quiet size-not-supported state, not an error, for any other size", async () => {
-    for (const size of ["small", "large", "extraLarge", "Medium", "", "<b>x</b>"]) {
+    for (const size of ["extraLarge", "Small", "Medium", "LARGE", "", "<b>x</b>"]) {
       const res = await get(`/v1/widget?size=${encodeURIComponent(size)}`);
       expect(res.status, size).toBe(200);
       expect(res.headers.get("content-type")).toMatch(/^text\/html/);
       const html = await res.text();
       expect(html).toMatch(/<html[^>]*data-state="unsupported"/);
       expect(html).toContain("Size not supported");
+      expect(html).toContain("small, medium and large");
       expect(html).toContain("size=medium");
       // The same page and files, so it looks like the widget and fits the tile.
       expect(html).toContain("/v1/widget/standby.css");
@@ -53,10 +65,12 @@ describe("GET /v1/widget", () => {
   });
 
   it("decides by size when both size and layout are given", async () => {
-    const unsupported = await get("/v1/widget?size=large&layout=standby");
+    const unsupported = await get("/v1/widget?size=extraLarge&layout=standby");
     expect(await unsupported.text()).toContain("Size not supported");
-    const medium = await get("/v1/widget?size=medium&layout=standby");
-    expect(await medium.text()).not.toContain("Size not supported");
+    for (const size of ["small", "medium", "large"]) {
+      const served = await get(`/v1/widget?size=${size}&layout=standby`);
+      expect(await served.text(), size).not.toContain("Size not supported");
+    }
   });
 
   it("serves its stylesheet, script and fonts from the relay", async () => {

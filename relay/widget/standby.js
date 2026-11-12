@@ -1,6 +1,8 @@
 /*
- * Committed's StandBy pair for other screens (relay/README.md, "Web widget"): the iPhone app's
- * hero card (BoardSummaryView, rank only) beside the board list.
+ * Committed's widget for other screens (relay/README.md, "Web widget"), in the iPhone widget's
+ * sizes (?size=): small is its rank card (CommittedWidgetSmall), medium the StandBy pair (the
+ * iPhone app's hero card, BoardSummaryView, rank only, beside the board list), large the top of
+ * the board (CommittedWidgetLarge).
  *
  * ES5 only: it runs on the Samsung Frame's Chromium 76, and test/widget-runtime.test.ts parses it
  * as ES5. The installation ID and board read token come from this page's fragment
@@ -27,6 +29,16 @@
   var RANK_STACKED_REM = 5;
   /** Below this the card gives up a line (identity, then the age, …) to keep the rank legible. */
   var RANK_MIN_REM = 2.6;
+  /** The sizes this page lays out (src/widget.ts WIDGET_SIZES); anything else lays out as medium. */
+  var SIZES = { small: true, medium: true, large: true };
+  /** The large widget's rows: the leaders (WidgetSnapshot.topCount), then you below a rule. */
+  var LARGE_TOP = 6;
+  /** Each size's box in rem: one rem is the largest that fits the box (fit()). */
+  var SMALL_BOX = [18, 20];
+  var LARGE_BOX = [22, 24.5];
+  /** StreakLabel: shown from 2 days, "365+" past GitHub's calendar. */
+  var STREAK_MIN = 2;
+  var STREAK_CAP = 365;
   /**
    * iOS widgets' rendering modes, under Apple's names, and the class each sets on <html>. Glance
    * posts { type: "glance:rendering-mode", renderingMode } to its tiles' frames; all the styling is
@@ -45,6 +57,10 @@
   var rankEl = byId("rank");
 
   var config = readFragment(location.hash);
+  /** small, medium or large, from ?size= (the relay serves only those; with none it's medium). */
+  var size = readQuery(location.search, "size");
+  if (!SIZES.hasOwnProperty(size)) size = "medium";
+  root.setAttribute("data-size", size);
   var windowName = WINDOW_TITLES.hasOwnProperty(config.window) ? config.window : "daily";
   var board = null;
   var shownCount = null;
@@ -162,6 +178,9 @@
     byId("rank-of").textContent = "";
     byId("age").textContent = "";
     byId("list-head").textContent = "";
+    byId("board-age").textContent = "";
+    byId("mini-rank").textContent = "–";
+    byId("mini-count").textContent = "–";
     setCardMode("loading");
     setState(state);
   }
@@ -176,7 +195,17 @@
     var people = state.competitorCount === 1 ? "1 person" : state.competitorCount + " people";
     setText(byId("list-head"), people + " · " + title);
 
-    renderWho(state);
+    var titles = doc.querySelectorAll(".window-title");
+    for (var t = 0; t < titles.length; t++) setText(titles[t], title);
+
+    if (size === "small") {
+      renderSmall(state);
+      tick();
+      return;
+    }
+
+    // The large widget has no card: no identity, so no avatar to fetch for it.
+    if (size !== "large") renderWho(state);
 
     // A rank with "of N"; without one, the trophy in its place (BoardSummaryView.rank). With
     // nobody else on the board your count stands beside it, as the app's numbers row does.
@@ -208,6 +237,50 @@
     tick();
     renderRows(animate);
     fitCard();
+  }
+
+  /**
+   * The small widget (CommittedWidgetSmall): your rank big, then your count with its square and
+   * your streak, then the age (tick) or what the board is waiting for. With nobody else on the
+   * board there's no rank: your count takes its place, at the rank's size.
+   */
+  function renderSmall(state) {
+    var ranked = state.rank !== null || state.competitorCount > 1;
+    var mini = byId("mini");
+    mini.className = ranked ? "mini" : "mini unranked";
+    setText(byId("mini-rank"), state.rank !== null ? "#" + state.rank : "–");
+    var counted = state.contributions !== null && state.contributions !== undefined;
+    setText(byId("mini-count"), counted ? String(state.contributions) : "–");
+    // ContributionSquare: lime once you've contributed (deep when stale, in CSS), empty otherwise.
+    byId("mini-square").setAttribute("data-level", counted && state.contributions > 0 ? "4" : "0");
+    var streak = counted ? streakNumber(state.streak) : null;
+    setText(byId("mini-streak-number"), streak || "");
+    byId("mini-streak").className = streak ? "streak" : "streak none";
+    fitSmall();
+  }
+
+  /** StreakLabel.number: "12", "365+", or null under 2 days. */
+  function streakNumber(streak) {
+    if (typeof streak !== "number" || streak < STREAK_MIN) return null;
+    return streak > STREAK_CAP ? STREAK_CAP + "+" : String(streak);
+  }
+
+  /** The small widget's last line: what the board is waiting for, or else the age. */
+  function smallStatus(state) {
+    if (state.contributions === null || state.competitorCount <= 1) return emptyStateLine(state);
+    return null;
+  }
+
+  /** The rank (or your count in its place) as large as the small widget's width allows. */
+  function fitSmall() {
+    var mini = byId("mini");
+    var line = mini.className.indexOf("unranked") >= 0 ? byId("mini-count-line") : byId("mini-rank");
+    var big = mini.className.indexOf("unranked") >= 0 ? byId("mini-count") : byId("mini-rank");
+    big.style.fontSize = "";
+    var room = byId("mini-body").clientWidth;
+    if (room && line.scrollWidth > room) {
+      big.style.fontSize = (parseFloat(getComputedStyle(big).fontSize) * room) / line.scrollWidth * 0.98 + "px";
+    }
   }
 
   /** Your avatar (lime ring), first name over @login, or @login alone (BoardSummaryView.identity). */
@@ -328,6 +401,22 @@
     return picked;
   }
 
+  /**
+   * The large widget's rows (CommittedWidgetLarge): the leaders, then you below a rule when you're
+   * further down and have a count (WidgetSnapshot.selfRow).
+   */
+  function largeRows(rows, state) {
+    var top = rows.slice(0, LARGE_TOP);
+    for (var i = 0; i < top.length; i++) {
+      if (top[i].isSelf) return top;
+    }
+    if (state.rank === null || state.contributions === null) return top;
+    for (i = LARGE_TOP; i < rows.length; i++) {
+      if (rows[i].isSelf) return top.concat([rows[i]]);
+    }
+    return top;
+  }
+
   /** How many rows fit the board's box. */
   function rowCapacity() {
     var pitch = unit * ROW_PITCH_REM;
@@ -343,12 +432,19 @@
       if (rowEls.hasOwnProperty(login)) before[login] = rowEls[login].getBoundingClientRect().top;
     }
 
-    // Measure the room with the board stretched to fill the box, then settle it.
-    var widget = byId("widget");
-    widget.className = "widget";
-    var capacity = rowCapacity();
-    var picked = pickRows(board.rows, capacity, board);
-    if (picked.length < capacity) widget.className = "widget compact";
+    var picked;
+    var detached = null;
+    if (size === "large") {
+      picked = largeRows(board.rows, board);
+      if (picked.length > LARGE_TOP) detached = picked[picked.length - 1].login;
+    } else {
+      // Measure the room with the board stretched to fill the box, then settle it.
+      var widget = byId("widget");
+      widget.className = "widget";
+      var capacity = rowCapacity();
+      picked = pickRows(board.rows, capacity, board);
+      if (picked.length < capacity) widget.className = "widget compact";
+    }
     var busiest = 0;
     for (var i = 0; i < picked.length; i++) {
       if (picked[i].contributions > busiest) busiest = picked[i].contributions;
@@ -361,6 +457,8 @@
       var isNew = !el;
       if (isNew) el = createRow(row.login, animate);
       updateRow(el, row, busiest, animate && !isNew);
+      // The large widget's rule above you, when you're below its leaders.
+      el.setAttribute("data-detached", row.login === detached ? "true" : "false");
       rowsEl.appendChild(el);
       next[row.login] = el;
     }
@@ -551,15 +649,22 @@
 
   function tick() {
     if (!board) return;
-    var age = byId("age");
-    if (board.updatedAt === null || board.updatedAt === undefined) {
-      setText(age, "");
-      setState("live");
-      return;
+    var text = "";
+    var state = "live";
+    if (board.updatedAt !== null && board.updatedAt !== undefined) {
+      var seconds = Math.max(0, Math.floor(nowSeconds() - board.updatedAt));
+      text = "Updated " + coarseAge(seconds);
+      if (seconds >= STALE_SECONDS) state = "stale";
     }
-    var seconds = Math.max(0, Math.floor(nowSeconds() - board.updatedAt));
-    setText(age, "Updated " + coarseAge(seconds));
-    setState(seconds >= STALE_SECONDS ? "stale" : "live");
+    if (size === "small") {
+      // The small widget says what it's waiting for in place of the age.
+      var waiting = smallStatus(board);
+      setText(byId("mini-status"), waiting || text);
+      byId("mini-status").className = waiting ? "mini-status age quiet" : "mini-status age";
+    } else {
+      setText(byId(size === "large" ? "board-age" : "age"), text);
+    }
+    setState(state);
   }
 
   /** CoarseAge: "just now", "4 min ago", "2 hr ago", "3 days ago". It never counts seconds. */
@@ -739,14 +844,14 @@
   }
 
   /**
-   * The test hook: ?renderingMode=<mode> in the query (the fragment holds the token). A known mode
+   * readQuery(search, "renderingMode") is the test hook: ?renderingMode=<mode> in the query (the fragment holds the token). A known mode
    * pins it, so a TV capture can force Night Mode while Glance posts fullColor by day.
    */
-  function readQuery(search) {
+  function readQuery(search, name) {
     var parts = (search || "").replace(/^\?/, "").split("&");
     for (var i = 0; i < parts.length; i++) {
       var pair = parts[i].split("=");
-      if (pair[0] === "renderingMode") return pair.slice(1).join("=");
+      if (pair[0] === name) return pair.slice(1).join("=");
     }
     return null;
   }
@@ -761,15 +866,34 @@
 
   // MARK: - Fitting the box
 
-  /** One rem scales with the box the page is given, so the pair fills it at any size. */
+  /**
+   * One rem scales with the box the page is given, so each size fills it: the pair at any shape
+   * (a tall box stacks it), and small and large at the shape of their tiles.
+   */
   function fit() {
     var width = root.clientWidth || window.innerWidth;
     var height = root.clientHeight || window.innerHeight;
-    stacked = height > width * 1.2;
-    unit = stacked ? Math.min(width / 20, height / 28) : Math.min(width / 36, height / 15);
+    if (size === "small") {
+      stacked = false;
+      unit = Math.min(width / SMALL_BOX[0], height / SMALL_BOX[1]);
+    } else if (size === "large") {
+      stacked = false;
+      unit = Math.min(width / LARGE_BOX[0], height / LARGE_BOX[1]);
+    } else {
+      stacked = height > width * 1.2;
+      unit = stacked ? Math.min(width / 20, height / 28) : Math.min(width / 36, height / 15);
+    }
     root.style.fontSize = unit + "px";
     applyClasses();
-    if (board) {
+    relayout();
+  }
+
+  /** Re-measures what depends on the box or the fonts: the rows and the card, or the small rank. */
+  function relayout() {
+    if (!board) return;
+    if (size === "small") {
+      fitSmall();
+    } else {
       renderRows(false);
       fitCard();
     }
@@ -778,17 +902,12 @@
   // MARK: - Start
 
   setText(byId("folio"), WINDOW_NUMBERS[windowName] + " · " + WINDOW_TITLES[windowName]);
-  renderingModePinned = setRenderingMode(readQuery(location.search));
+  renderingModePinned = setRenderingMode(readQuery(location.search, "renderingMode"));
   window.addEventListener("message", onMessage);
   fit();
   window.addEventListener("resize", fit);
   if (doc.fonts && doc.fonts.ready) {
-    doc.fonts.ready.then(function () {
-      if (board) {
-        renderRows(false);
-        fitCard();
-      }
-    });
+    doc.fonts.ready.then(relayout);
   }
 
   // The relay served this page for a size it doesn't have: it says so (already in the page) and
@@ -799,7 +918,7 @@
     showMessage(
       "setup",
       "Add this screen's board token",
-      "Open this page as /v1/widget?size=medium#installation=…&token=… with your installation ID and a board read token."
+      "Open this page as /v1/widget?size=" + size + "#installation=…&token=… with your installation ID and a board read token."
     );
     return;
   }
