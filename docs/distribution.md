@@ -248,8 +248,11 @@ The notes are the build's **What to Test** text. Write them with the
 [TestFlight release notes](../.agents/rules/testflight-notes.md) requires; the script won't
 upload without them and prints back what App Store Connect saved.
 
-It takes the next build number from App Store Connect, archives the Release build, uploads it, and
-releases it to every tester:
+**Every TestFlight build also goes to the App Store** unless the request says TestFlight only
+(`--testflight-only`). The script takes the next build number from App Store Connect, archives the
+Release build, uploads it, releases it to every tester, and then submits it to App Review.
+
+TestFlight:
 
 - **Prompt Hunt** (internal, team members) gets every build as soon as it processes.
 - **Friends** (external, for example people outside the team) gets each build after TestFlight beta
@@ -257,9 +260,23 @@ releases it to every tester:
   later builds are usually approved quickly. Add people with
   `asc testflight testers add --app 6831797452 --email <email> --group Friends`.
 
-Uploading from Xcode's Organizer instead skips the Friends group and beta review, so outside
-testers would fall behind. Bump `MARKETING_VERSION` on the iOS targets for a new version; build
-numbers need no bump.
+App Store, through [`scripts/appstore_submit.py`](../scripts/appstore_submit.py):
+
+- It submits the build as the version [`appstore/metadata`](../appstore/README.md) is for: it
+  creates that version if needed, applies the listing with `appstore_apply.py`, uploads the
+  screenshots in `docs/screenshots/app-store/`, validates, attaches the build and submits it.
+  The release type is after approval, so Apple releases it as soon as it's approved.
+- App Store Connect holds one unreleased version at a time. While an earlier version is waiting for
+  review, in review or pending release, the build stays on TestFlight, and the script prints the
+  command to submit it once that version is out:
+  `python3 scripts/appstore_submit.py --build-number <n>`. A version already submitted with another
+  build isn't swapped; cancel that submission first if this build should replace it.
+
+Uploading from Xcode's Organizer instead skips the Friends group, beta review and the App Store,
+so outside testers would fall behind. For a new version, bump `MARKETING_VERSION` on the iOS
+targets and rename `appstore/metadata/version/<old>` to the new number with a new What's New;
+`testflight.sh` refuses to upload when the two differ (unless `--testflight-only`). Build numbers
+need no bump.
 
 The App Store privacy label lists the GitHub username and the usernames of people on your board,
 linked to device identifiers, for app functionality (sent to the Committed relay).
