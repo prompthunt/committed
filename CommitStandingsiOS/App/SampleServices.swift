@@ -39,6 +39,9 @@ enum SampleServices {
         /// This person trolls: 784 more today, far above their usual, so their row wears the troll
         /// face (screenshot fixture only).
         var trollPerson: String?
+        /// Every person's counts multiplied by this, for the widest numbers a real board shows
+        /// (screenshot fixture only). Streaks stay as they are.
+        var countScale = 1
     }
 
     static func make(_ options: Options = Options(), now: @escaping @Sendable () -> Date = { Date() })
@@ -52,7 +55,7 @@ enum SampleServices {
         return CommittedServices(
             store: StandingsStore(persistence: InMemoryCompetitorPersistence()),
             credentials: InMemoryGitHubCredentialStore(token: "sample"),
-            contributions: SampleContributions(trollPerson: options.trollPerson),
+            contributions: SampleContributions(trollPerson: options.trollPerson, countScale: options.countScale),
             // Even a stray Connect GitHub on this graph stays on the phone.
             gitHubAuth: GitHubAuth(clientID: "sample", session: session),
             accountFactory: { GitHubAccountClient(token: $0, session: session) },
@@ -75,23 +78,29 @@ enum SampleServices {
     private actor SampleContributions: ContributionsFetching {
         private var rounds: [String: Int] = [:]
         private let trollPerson: String?
+        private let countScale: Int
 
-        init(trollPerson: String? = nil) {
+        init(trollPerson: String? = nil, countScale: Int = 1) {
             self.trollPerson = trollPerson
+            self.countScale = countScale
         }
 
         func standingCounts(for username: String, window: ContributionWindow, asOf reference: Date)
             async -> Result<StandingCounts, ContributionsError> {
             let round = rounds[username, default: 0]
             rounds[username] = round + 1
+            let k = countScale
             let people: [String: SampleCalendar] = [
-                "ines-volk": SampleCalendar(today: 12, week: 61, month: 240, thisMonth: 84, streak: 47, seed: 1),
-                "odile-m": SampleCalendar(today: 9, week: 44, month: 198, thisMonth: 66,
+                "ines-volk": SampleCalendar(today: 12 * k, week: 61 * k, month: 240 * k, thisMonth: 84 * k,
+                                            streak: 47, seed: 1),
+                "odile-m": SampleCalendar(today: 9 * k, week: 44 * k, month: 198 * k, thisMonth: 66 * k,
                                           streak: SampleCalendar.length, seed: 2),
-                "ari-linden": SampleCalendar(today: round == 0 ? 5 : 7, week: 38, month: 171,
-                                             thisMonth: round == 0 ? 55 : 57, streak: 14, seed: 3),
-                "ezra-q": SampleCalendar(today: 6, week: 52, month: 160, thisMonth: 56, streak: 3, seed: 4),
-                "bram-ott": SampleCalendar(today: 0, week: 11, month: 57, thisMonth: 19, streak: 0, seed: 5),
+                "ari-linden": SampleCalendar(today: (round == 0 ? 5 : 7) * k, week: 38 * k, month: 171 * k,
+                                             thisMonth: (round == 0 ? 55 : 57) * k, streak: 14, seed: 3),
+                "ezra-q": SampleCalendar(today: 6 * k, week: 52 * k, month: 160 * k, thisMonth: 56 * k,
+                                         streak: 3, seed: 4),
+                "bram-ott": SampleCalendar(today: 0, week: 11 * k, month: 57 * k, thisMonth: 19 * k,
+                                           streak: 0, seed: 5),
             ]
             let timeZone = TimeZone.current
             var history: ContributionHistory

@@ -210,9 +210,9 @@ struct CommittedWidgetBoardSmall: View {
 }
 
 extension StandingRowStyle {
-    /// Live rank's row, cut to a small widget's width: smaller type and avatar, counts kept whole
-    /// with no column minimum, no squares glyph, and no "you" badge (your row's highlight marks
-    /// you). Names truncate first.
+    /// Live rank's row, cut to a small widget's width: smaller type and avatar, no count column
+    /// minimum, no squares glyph, and no "you" badge (your row's highlight marks you). Names
+    /// truncate first, as on every row.
     static func widgetBoard(stale: Bool) -> StandingRowStyle {
         var style = StandingRowStyle.liveRank(stale: stale)
         style.rankFont = CommittedType.numeral(11, relativeTo: .caption2)
@@ -226,7 +226,6 @@ extension StandingRowStyle {
         style.horizontalPadding = 6
         style.verticalPadding = 3
         style.countMinWidth = 0
-        style.keepsCountWhole = true
         style.showsSelfBadge = false
         style.squares = .hidden
         style.cornerRadius = 8

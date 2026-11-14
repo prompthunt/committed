@@ -15,7 +15,9 @@ import UIKit
 /// `-ScreenshotPerson <login>` opens that person's view (pushed onto the Board, or the second pane on the open
 /// iPhone Duo) and `-ScreenshotPersonDay <n>` selects that day's bar instead of today's
 /// (`-ScreenshotPersonEnd` scrolls it to the end),
-/// `-ScreenshotTroll <login>` gives that person a trolling day (784 more, the troll face), and
+/// `-ScreenshotTroll <login>` gives that person a trolling day (784 more, the troll face),
+/// `-ScreenshotCountScale <n>` multiplies everyone's counts by n (30 puts every 30-day count in
+/// the thousands beside the streaks, the board's widest rows), and
 /// `-LiveRankPayload <file.json>` shows a Live Activity push payload's content state in Live rank,
 /// and `-RelayDisclosureAccepted` starts with the Committed relay disclosure already accepted (for
 /// builds with `COMMITTED_RELAY_URL`; without it, a relay build shows the disclosure sheet).
@@ -189,7 +191,8 @@ enum ScreenshotFixture {
             extraPeople: extraPeople,
             includesFailingCompetitor: failingCompetitor,
             restrictedOrganizations: value(after: "-ScreenshotRestrictedOrg").map { [$0] },
-            trollPerson: value(after: "-ScreenshotTroll")
+            trollPerson: value(after: "-ScreenshotTroll"),
+            countScale: value(after: "-ScreenshotCountScale").flatMap(Int.init).map { max(1, $0) } ?? 1
         ), now: now)
         let hide = value(after: "-ScreenshotHide")
         // `-ScreenshotWindow monthly`: the board opens on that Window (a raw value).

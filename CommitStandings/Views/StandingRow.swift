@@ -72,13 +72,18 @@ struct StandingRow: View {
                 }
             }
             Spacer(minLength: 6)
+            // Numbers are never cut or wrapped ("6,28" over "7"): this group lays out first, so the
+            // name truncates before the count gives up any width. Only where even the count can't
+            // fit (the largest text sizes) does it shrink a little, still on one line.
             HStack(spacing: 4) {
                 rankDeltaIndicator
                 if showsStreak { streakLabel }
                 contributionsLabel
-                    .fixedSize(horizontal: style.keepsCountWhole, vertical: false)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.6)
                     .frame(minWidth: style.countMinWidth, alignment: .trailing)
             }
+            .layoutPriority(1)
             contributionSquare
         }
     }
