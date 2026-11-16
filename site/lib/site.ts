@@ -8,9 +8,9 @@ export const ISSUES_URL = "https://github.com/prompthunt/committed/issues";
 export const SECURITY_REPORT_URL = "https://github.com/prompthunt/committed/security/advisories/new";
 export const PRIVACY_EFFECTIVE_DATE = "November 15, 2026";
 
-export const TITLE = "Committed — A GitHub leaderboard for Mac and Windows";
+export const TITLE = "Committed — A GitHub leaderboard for iPhone, Mac and Windows";
 export const DESCRIPTION =
-  "A free, open-source GitHub leaderboard for your Mac’s menu bar or Windows tray. Compare contributions with friends and teammates, and get alerts when ranks change.";
+  "A free, open-source GitHub leaderboard for your iPhone, your Mac’s menu bar or your Windows tray. Compare contributions with friends and teammates, and get alerts when ranks change.";
 
 /** Answers are plain text: they render on the page and go verbatim into the FAQPage schema. */
 export const FAQ = [
