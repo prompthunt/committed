@@ -193,7 +193,7 @@ The single metric comes from one GitHub source, computed for the selected window
 
 - **Contributions** — the app reads the public `github.com/users/<name>/contributions` page anonymously, even when GitHub is connected. It sums the daily counts for the selected window locally. Private activity contributes to this public count only when the person has enabled GitHub’s private-contribution visibility setting.
 
-The app saves the people list and loaded counts locally, so relaunches can show saved numbers while new data loads. Rows distinguish loading, cached data, and failed requests. A person with no contribution data shows a placeholder rather than a zero count.
+The app saves the people list and loaded counts locally, so relaunches can show saved numbers while new data loads. Rows distinguish loading, cached data, and failed requests. A failed refresh keeps the person's last loaded count, however many refreshes in a row fail: GitHub can fail a very busy account's contributions page for hours. A person with no contribution data shows a placeholder rather than a zero count.
 
 The popover uses native SwiftUI material for a translucent background. It uses an opaque background when Reduce Transparency or increased contrast is enabled.
 

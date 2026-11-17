@@ -214,6 +214,30 @@ struct RefreshCoordinatorTests {
         }
     }
 
+    /// GitHub can fail someone's contributions page for hours (a 502 for a very busy account).
+    /// Every failure after the first must keep the last good count too, not blank the row to "--".
+    @Test func repeatedFailures_keepTheLastGoodCount() async throws {
+        let store = StandingsStore(persistence: InMemoryCompetitorPersistence())
+        _ = try store.addSelf(username: "addisonk")
+        _ = try store.addRival(username: "mvanhorn")
+        let fetcher = StubFetcher()
+        await fetcher.setSuccess(contributions: 8, for: "addisonk")
+        await fetcher.setSuccess(contributions: 81, for: "mvanhorn")
+        let coord = RefreshCoordinator(store: store, client: fetcher, interval: 9_999)
+        await coord.refreshAll(reason: .manual)
+        let loadedAt = try #require(store.standing(for: "mvanhorn", window: .daily)?.lastUpdated)
+
+        await fetcher.setResponse(.failure(.network("HTTP 502")), for: "mvanhorn")
+        await coord.refreshAll(reason: .manual)
+        await coord.refreshAll(reason: .manual)
+        await coord.refreshOne(username: "mvanhorn", reason: .manual)
+
+        let standing = try #require(store.standing(for: "mvanhorn", window: .daily))
+        #expect(standing.contributions == 81, "a third and fourth failure still keep the last good count")
+        #expect(standing.lastUpdated == loadedAt, "the age stays the last good fetch's")
+        if case .failed = standing.state {} else { Issue.record("expected failed state") }
+    }
+
     @Test func refreshAll_firstFetchFailure_writesZeroFailed() async throws {
         let store = StandingsStore(persistence: InMemoryCompetitorPersistence())
         _ = try store.addSelf(username: "addisonk")

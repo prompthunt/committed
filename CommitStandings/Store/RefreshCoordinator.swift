@@ -378,8 +378,10 @@ final class RefreshCoordinator {
                 burst: counts.burst
             ))
         case .failure(let error):
-            if let prior, prior.window == window, case .loaded = prior.state {
-                // Preserve the prior good count + timestamp; flag it stale rather than blank.
+            if let prior, prior.window == window, prior.lastUpdated != .distantPast {
+                // Preserve the last good count + timestamp; flag it stale rather than blank. The
+                // prior may itself be a failure that kept a count, or a cut-off refresh's
+                // `.loading`: a loaded count lives on through any number of failures in a row.
                 store.updateStanding(Standing(
                     username: username,
                     contributions: prior.contributions,
