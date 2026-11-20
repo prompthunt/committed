@@ -1,7 +1,6 @@
 import Foundation
 
-/// Saves avatars for the people on the board into `AvatarCache`, so Live rank can show them.
-/// `AppModel` calls it after every refresh, before Live rank updates.
+/// Saves small avatars for Live rank, widgets, and share images.
 protocol AvatarPrefetching: Sendable {
     func prefetch(_ logins: [String]) async
 }
@@ -12,8 +11,7 @@ struct NoAvatarPrefetching: AvatarPrefetching {
 }
 
 /// Fetches `github.com/<login>.png` for each login without a saved avatar from the last day, all at
-/// once, and saves the small copy. A failure leaves that person on their initials until the next
-/// refresh tries again.
+/// once, and saves the small copy. A failed request leaves an older thumbnail available.
 struct GitHubAvatarPrefetcher: AvatarPrefetching {
     /// How long a saved avatar is used before it's fetched again (people do change them).
     static let maxAge: TimeInterval = 24 * 60 * 60
@@ -27,8 +25,7 @@ struct GitHubAvatarPrefetcher: AvatarPrefetching {
         return URL(string: "https://github.com/\(name).png?size=\(AvatarCache.pixelSize)")
     }
 
-    /// The live prefetcher: the shared App Group cache, fetched with a short timeout so a slow
-    /// avatar never holds up Live rank for long.
+    /// Apply the same short request timeout to Live rank and share image preparation.
     static func live() -> GitHubAvatarPrefetcher {
         let config = URLSessionConfiguration.default
         config.timeoutIntervalForRequest = 10

@@ -1,27 +1,39 @@
 import Foundation
 import ImageIO
-import UIKit
 import UniformTypeIdentifiers
+#if os(macOS)
+import AppKit
+#else
+import UIKit
+#endif
 
 /// Small GitHub avatars on disk in the App Group container, by login. Live rank's extension can't
 /// load network images (`AsyncImage` there silently shows its placeholder), so the iPhone app saves
 /// a ~90 px copy of everyone on the board after each refresh, and `AvatarView` reads it first, in
 /// the app and in Live rank alike. Never part of Live rank's content state (4 KB push cap).
 ///
-/// iPhone app and Live rank extension only. The Mac doesn't compile it: it has no App Group, and
-/// its avatars load straight from the network as before.
+/// Mac share images use the same thumbnails from an app-local cache. Both platforms can render
+/// avatars synchronously from disk after prefetching them.
 struct AvatarCache: Sendable {
-    static let appGroup = "group.com.addisonk.CommitStandings"
     /// 30 pt at 3x, Live rank's largest avatar. Live Activities render blank with large images.
     static let pixelSize = 90
 
-    /// The shared cache, in the App Group container. nil (no caching) when the container isn't
-    /// available, as in a build without the App Group entitlement.
+    #if os(macOS)
+    static let shared = AvatarCache(
+        directory: URL.cachesDirectory
+            .appending(path: Bundle.main.bundleIdentifier ?? "com.addisonk.CommitStandings", directoryHint: .isDirectory)
+            .appending(path: "Avatars", directoryHint: .isDirectory)
+    )
+    #else
+    static let appGroup = "group.com.addisonk.CommitStandings"
+
+    /// The shared cache in the App Group container, if the entitlement makes it available.
     static let shared = AvatarCache(
         directory: FileManager.default
             .containerURL(forSecurityApplicationGroupIdentifier: appGroup)?
             .appending(path: "Library/Caches/Avatars", directoryHint: .isDirectory)
     )
+    #endif
 
     let directory: URL?
 
@@ -32,11 +44,17 @@ struct AvatarCache: Sendable {
         return directory.appending(path: "\(name).png", directoryHint: .notDirectory)
     }
 
-    /// The saved avatar, or nil when there isn't one.
+    #if os(macOS)
+    func image(for login: String) -> NSImage? {
+        guard let url = fileURL(for: login) else { return nil }
+        return NSImage(contentsOf: url)
+    }
+    #else
     func image(for login: String) -> UIImage? {
         guard let url = fileURL(for: login) else { return nil }
         return UIImage(contentsOfFile: url.path(percentEncoded: false))
     }
+    #endif
 
     /// When `login`'s avatar was saved, or nil when it hasn't been.
     func savedDate(for login: String) -> Date? {

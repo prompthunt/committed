@@ -183,6 +183,13 @@
 		C632758BF19B4B05ADAF6C1D /* CommittedTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDEB58E67067041FBF4B42A7 /* CommittedTheme.swift */; };
 		31B00316874E4C1782967671 /* WidgetSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = 07C847D32565E1A367F30DD4 /* WidgetSnapshot.swift */; };
 		118A2DE86E464F01AB7016B6 /* BoardShareRenderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A65902C66FE5433DA304D51F /* BoardShareRenderTests.swift */; };
+		8E1FFAD942F74676AF316CEE /* AvatarPrefetcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 748565946E1F4BE8BAB94D30 /* AvatarPrefetcher.swift */; };
+		F26D67D8FE8C415E8847A273 /* AvatarPrefetcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 748565946E1F4BE8BAB94D30 /* AvatarPrefetcher.swift */; };
+		7B0401EF0B2E49B3840AD546 /* AvatarCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2BE7DBC6DD6B90696CF0B66 /* AvatarCache.swift */; };
+		0A691BAE8EDE46A8A76FCF19 /* BoardShareRenderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A65902C66FE5433DA304D51F /* BoardShareRenderTests.swift */; };
+		D0A27910D62148DD82C6D291 /* InterTight-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = B5D9D8A6728543B880B6E355 /* InterTight-Regular.ttf */; };
+		AD8962C1A2E7433DB7BD2D13 /* InterTight-ExtraBold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = E074B72FB2064AC9A6FABEAE /* InterTight-ExtraBold.ttf */; };
+		BB0241A0DD7045189C506E2D /* OFL.txt in Resources */ = {isa = PBXBuildFile; fileRef = C77385C7E50C401AA5BDEB21 /* OFL.txt */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -337,6 +344,10 @@
 		B76A9A686BAB413EBD56AE17 /* RankCardViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RankCardViews.swift; sourceTree = "<group>"; };
 		02B9545FD06F4A8EAC116CC1 /* ShareImageRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareImageRenderer.swift; sourceTree = "<group>"; };
 		A65902C66FE5433DA304D51F /* BoardShareRenderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BoardShareRenderTests.swift; sourceTree = "<group>"; };
+		748565946E1F4BE8BAB94D30 /* AvatarPrefetcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AvatarPrefetcher.swift"; sourceTree = "<group>"; };
+		B5D9D8A6728543B880B6E355 /* InterTight-Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; name = "InterTight-Regular.ttf"; path = "CommitStandingsiOS/Fonts/InterTight-Regular.ttf"; sourceTree = "SOURCE_ROOT"; };
+		E074B72FB2064AC9A6FABEAE /* InterTight-ExtraBold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; name = "InterTight-ExtraBold.ttf"; path = "CommitStandingsiOS/Fonts/InterTight-ExtraBold.ttf"; sourceTree = "SOURCE_ROOT"; };
+		C77385C7E50C401AA5BDEB21 /* OFL.txt */ = {isa = PBXFileReference; lastKnownFileType = text; name = "OFL.txt"; path = "CommitStandingsiOS/Fonts/OFL.txt"; sourceTree = "SOURCE_ROOT"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -519,6 +530,9 @@
 		9F45CBA6A5FEFF8DFB1188F4 = {
 			isa = PBXGroup;
 			children = (
+				C77385C7E50C401AA5BDEB21 /* OFL.txt */,
+				E074B72FB2064AC9A6FABEAE /* InterTight-ExtraBold.ttf */,
+				B5D9D8A6728543B880B6E355 /* InterTight-Regular.ttf */,
 				3F23C08F61AD65E67912E1C2 /* CommitStandings */,
 				86AD73D9CF93FF33C5C0299B /* CommitStandingsTests */,
 				5E9EE23908636887511ACA29 /* CommitStandingsiOS */,
@@ -617,6 +631,7 @@
 		EA74F4551BDCB9CE1491AED6 /* Support */ = {
 			isa = PBXGroup;
 			children = (
+				748565946E1F4BE8BAB94D30 /* AvatarPrefetcher.swift */,
 				BCDF02E7632940AA9545EE06 /* RelativeTimeFormatter.swift */,
 				4B3C587C1FCCF5F4B4F05B1C /* AvatarColor.swift */,
 				B4E8F7283802C87D59603B81 /* Persistence.swift */,
@@ -817,6 +832,9 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				BB0241A0DD7045189C506E2D /* OFL.txt in Resources */,
+				AD8962C1A2E7433DB7BD2D13 /* InterTight-ExtraBold.ttf in Resources */,
+				D0A27910D62148DD82C6D291 /* InterTight-Regular.ttf in Resources */,
 				07C88B09D0D50A44A722248A /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -835,6 +853,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F26D67D8FE8C415E8847A273 /* AvatarPrefetcher.swift in Sources */,
 				D14BB93343A847D6A4049949 /* ShareImageRenderer.swift in Sources */,
 				17260D20D60D4D96932E49F0 /* RankCardViews.swift in Sources */,
 				B02596EB97A7416C89D9DF33 /* LiveRankRows.swift in Sources */,
@@ -932,6 +951,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				7B0401EF0B2E49B3840AD546 /* AvatarCache.swift in Sources */,
+				8E1FFAD942F74676AF316CEE /* AvatarPrefetcher.swift in Sources */,
 				31B00316874E4C1782967671 /* WidgetSnapshot.swift in Sources */,
 				C632758BF19B4B05ADAF6C1D /* CommittedTheme.swift in Sources */,
 				614F5DE335FC4E49AF2777DD /* ShareImageRenderer.swift in Sources */,
@@ -1033,6 +1054,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				0A691BAE8EDE46A8A76FCF19 /* BoardShareRenderTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

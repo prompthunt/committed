@@ -8,8 +8,8 @@ documentation. Third-party dependencies and assets retain their respective terms
   Manager retrieves it; the release packaging includes the framework's resources.
 - Inter Tight fonts are distributed under the SIL Open Font License, included at
   [site/app/fonts/OFL.txt](site/app/fonts/OFL.txt) and, for the launch film's variable
-  font, [video/launch/assets/fonts/OFL.txt](video/launch/assets/fonts/OFL.txt). The iPhone
-  app and its Live rank extension bundle the same Regular and ExtraBold faces with their
+  font, [video/launch/assets/fonts/OFL.txt](video/launch/assets/fonts/OFL.txt). The Mac and iPhone
+  apps and the Live rank extension bundle the same Regular and ExtraBold faces with their
   license ([CommitStandingsiOS/Fonts/OFL.txt](CommitStandingsiOS/Fonts/OFL.txt),
   [CommitStandingsLiveRank/Fonts/OFL.txt](CommitStandingsLiveRank/Fonts/OFL.txt)). The relay
   serves the same two faces to its web widget, with their license at

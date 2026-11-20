@@ -3,8 +3,8 @@ import SwiftUI
 /// Avatar showing the user's real GitHub avatar (`github.com/{username}.png`),
 /// falling back to a colored initials circle while loading or on failure.
 ///
-/// On iPhone (the app and Live rank) a copy saved in `AvatarCache` comes first: Live rank can't
-/// load network images, and it's the same face the board shows. The Mac has no cache.
+/// Live rank and share images read saved thumbnails so the renderer can draw the avatars without
+/// waiting for the network.
 struct AvatarView: View {
     let username: String
     var size: CGFloat = 32
@@ -15,9 +15,13 @@ struct AvatarView: View {
     }
 
     var body: some View {
-        #if os(iOS)
         if usesSavedCopy, let saved = savedAvatars?.image(for: username) {
-            Image(uiImage: saved)
+            #if os(macOS)
+            let image = Image(nsImage: saved)
+            #else
+            let image = Image(uiImage: saved)
+            #endif
+            image
                 .resizable()
                 .scaledToFill()
                 .frame(width: size, height: size)
@@ -26,12 +30,8 @@ struct AvatarView: View {
         } else {
             remote
         }
-        #else
-        remote
-        #endif
     }
 
-    #if os(iOS)
     @Environment(\.displayScale) private var displayScale
     @Environment(\.savedAvatars) private var savedAvatars
 
@@ -40,7 +40,6 @@ struct AvatarView: View {
     private var usesSavedCopy: Bool {
         !loadsGitHubAvatars || size * displayScale <= CGFloat(AvatarCache.pixelSize)
     }
-    #endif
 
     private var remote: some View {
         AsyncImage(url: loadsGitHubAvatars ? avatarURL : nil) { phase in
@@ -104,12 +103,11 @@ extension EnvironmentValues {
     /// Off for sample and screenshot data, so a made-up username never shows a real account's
     /// avatar; rows show colored initials instead.
     @Entry var loadsGitHubAvatars = true
-}
 
-#if os(iOS)
-extension EnvironmentValues {
-    /// Where saved avatars are read from first: the App Group's `AvatarCache`, or nil for none.
-    /// The Sample board sets nil, since a made-up login can match a real person's saved face.
+    /// The iPhone uses its shared cache by default. Mac share cards opt in to the Mac cache.
+    #if os(macOS)
+    @Entry var savedAvatars: AvatarCache? = nil
+    #else
     @Entry var savedAvatars: AvatarCache? = .shared
+    #endif
 }
-#endif

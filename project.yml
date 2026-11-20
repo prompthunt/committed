@@ -36,7 +36,8 @@ targets:
       - path: CommitStandings
         excludes: # iPhone app + Live rank extension only
           - Store/LiveRankAttributes.swift # ActivityKit
-          - Support/AvatarCache.swift # App Group avatars for Live rank; the Mac has no App Group
+      - path: CommitStandingsiOS/Fonts
+        buildPhase: resources
     dependencies:
       - package: Sparkle
         product: Sparkle
@@ -168,6 +169,7 @@ targets:
     deploymentTarget: "27.1"
     sources:
       - path: CommitStandingsiOSTests
+      - path: CommitStandingsTests/BoardShareRenderTests.swift
     dependencies:
       - target: CommitStandingsiOS
     settings:

@@ -103,6 +103,7 @@ struct BoardShareCard: View {
     let snapshot: WidgetSnapshot
     let style: BoardShareStyle
     let format: BoardShareFormat
+    var avatarCache: AvatarCache? = .shared
 
     var body: some View {
         let canvas = format.canvas
@@ -146,10 +147,8 @@ struct BoardShareCard: View {
         .environment(\.dynamicTypeSize, .large)
         .environment(\.avatarFallbackStyle, .committed)
         .environment(\.loadsGitHubAvatars, false)
-        #if os(iOS)
         // The Sample board's made-up people: initials, never a saved real avatar.
-        .environment(\.savedAvatars, snapshot.savedAvatars)
-        #endif
+        .environment(\.savedAvatars, snapshot.isSampleBoard == true ? nil : avatarCache)
         .environment(\.liveRankIsStale, false)
     }
 
@@ -329,10 +328,15 @@ enum BoardShareRenderer {
 
     /// The image as a PNG in a temporary folder, named for what it shows, for the share sheet. Each
     /// render replaces the last one of the same style and format.
-    static func file(_ snapshot: WidgetSnapshot, style: BoardShareStyle, format: BoardShareFormat) throws -> URL {
+    static func file(
+        _ snapshot: WidgetSnapshot,
+        style: BoardShareStyle,
+        format: BoardShareFormat,
+        avatarCache: AvatarCache? = .shared
+    ) throws -> URL {
         let window = (snapshot.state.contributionWindow ?? .daily).shortTitle.replacingOccurrences(of: " ", with: "-")
-        return try ShareImageRenderer.file(BoardShareCard(snapshot: snapshot, style: style, format: format),
-                                           folder: "board-share",
+        let card = BoardShareCard(snapshot: snapshot, style: style, format: format, avatarCache: avatarCache)
+        return try ShareImageRenderer.file(card, folder: "board-share",
                                            name: "Committed-\(window)-\(style.rawValue)-\(format.rawValue).png")
     }
 }
@@ -342,12 +346,13 @@ struct BoardSharePreview: View {
     let snapshot: WidgetSnapshot
     let style: BoardShareStyle
     let format: BoardShareFormat
+    var avatarCache: AvatarCache? = .shared
 
     var body: some View {
         GeometryReader { proxy in
             let canvas = format.canvas
             let scale = min(proxy.size.width / canvas.width, proxy.size.height / canvas.height)
-            BoardShareCard(snapshot: snapshot, style: style, format: format)
+            BoardShareCard(snapshot: snapshot, style: style, format: format, avatarCache: avatarCache)
                 .scaleEffect(scale)
                 .frame(width: canvas.width * scale, height: canvas.height * scale)
                 .clipShape(.rect(cornerRadius: 18))

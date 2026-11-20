@@ -20,16 +20,19 @@ struct BoardShareWindow: Scene {
 }
 
 private struct BoardShareWindowContent: View {
+    private static let avatars = GitHubAvatarPrefetcher.live()
     let snapshot: WidgetSnapshot
     @State private var style: BoardShareStyle = .board
     @State private var format: BoardShareFormat = .square
     @State private var exportURL: URL?
     @State private var errorMessage: String?
+    @State private var preparedSnapshot: WidgetSnapshot?
 
     private struct Selection: Equatable {
         let snapshot: WidgetSnapshot
         let style: BoardShareStyle
         let format: BoardShareFormat
+        let avatarsReady: Bool
     }
 
     var body: some View {
@@ -49,16 +52,20 @@ private struct BoardShareWindowContent: View {
                 .pickerStyle(.segmented)
             }
 
-            BoardSharePreview(snapshot: snapshot, style: style, format: format)
+            BoardSharePreview(snapshot: snapshot, style: style, format: format,
+                              avatarCache: preparedSnapshot == snapshot ? .shared : nil)
 
             HStack {
                 if let errorMessage {
                     Text(errorMessage)
                         .font(.callout)
                         .foregroundStyle(.secondary)
+                } else if preparedSnapshot != snapshot {
+                    ProgressView("Preparing image…")
+                        .controlSize(.small)
                 }
                 Spacer()
-                if let exportURL {
+                if preparedSnapshot == snapshot, let exportURL {
                     Button("Save PNG…") { save(exportURL) }
                     ShareLink(item: exportURL)
                 } else {
@@ -71,14 +78,31 @@ private struct BoardShareWindowContent: View {
         }
         .padding(20)
         .frame(width: 460, height: 574)
-        .onChange(of: Selection(snapshot: snapshot, style: style, format: format), initial: true) {
+        .task(id: snapshot) {
+            preparedSnapshot = nil
             errorMessage = nil
-            do {
-                exportURL = try BoardShareRenderer.file(snapshot, style: style, format: format)
-            } catch {
-                exportURL = nil
-                errorMessage = "Couldn’t prepare the image."
+            if snapshot.isSampleBoard != true {
+                let neighbors = [snapshot.state.above?.login, snapshot.state.below?.login].compactMap { $0 }
+                let logins = Set(snapshot.top.map(\.login) + neighbors + [snapshot.selfLogin])
+                await Self.avatars.prefetch(logins.sorted())
             }
+            guard !Task.isCancelled else { return }
+            preparedSnapshot = snapshot
+        }
+        .onChange(of: Selection(snapshot: snapshot, style: style, format: format,
+                                avatarsReady: preparedSnapshot == snapshot), initial: true) {
+            prepareExport()
+        }
+    }
+
+    private func prepareExport() {
+        guard preparedSnapshot == snapshot else { return }
+        errorMessage = nil
+        do {
+            exportURL = try BoardShareRenderer.file(snapshot, style: style, format: format)
+        } catch {
+            exportURL = nil
+            errorMessage = "Couldn’t prepare the image."
         }
     }
 
