@@ -128,9 +128,19 @@ enum CommittedType {
     }()
     #endif
 
+    /// Widget labels keep Dynamic Type on iPhone. Mac share images match the iPhone's
+    /// default point sizes because named text styles have different sizes on Mac.
+    static func widgetText(_ style: Font.TextStyle, size: CGFloat, weight: Font.Weight = .regular) -> Font {
+        #if os(macOS)
+        .system(size: size, weight: weight)
+        #else
+        .system(style, design: .default, weight: weight)
+        #endif
+    }
+
     /// Eyebrows and folios ("CONTRIBUTIONS", "6 PEOPLE · TODAY"): the site's monospace labels
     /// (`font-mono text-[11px] font-medium tracking-[.06em]`), uppercase.
-    static let label = Font.caption2.monospaced().weight(.medium)
+    static let label = widgetText(.caption2, size: 11, weight: .medium).monospaced()
     /// The site's .06em at 11 pt.
     static let labelTracking: CGFloat = 0.7
 }

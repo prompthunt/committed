@@ -138,7 +138,7 @@ struct LiveRankRankLabel: View {
             Text("#\(rank)")
         } else if style == .lockScreen, state.competitorCount <= 1, let line = state.emptyStateLine {
             Text(line)
-                .font(.headline)
+                .font(CommittedType.widgetText(.headline, size: 17, weight: .semibold))
                 .foregroundStyle(isStale ? Color.muted : Color.soft)
         } else if state.competitorCount > 1, style != .lockScreen {
             // Rivals but no count of yours yet. The dash takes a rank's width, so the island
@@ -214,7 +214,7 @@ struct LiveRankCountLabel: View {
                     // Stale without relying on brightness: a clock beside the count, since
                     // compact has no room for the age.
                     Image(systemName: "clock.badge.exclamationmark")
-                        .font(.caption.weight(.semibold))
+                        .font(CommittedType.widgetText(.caption, size: 12, weight: .semibold))
                         .foregroundStyle(Color.warning)
                         .accessibilityHidden(true)
                 }
@@ -250,7 +250,7 @@ struct LiveRankStatusLine: View {
     var body: some View {
         if let line = Self.waiting(state) {
             Text(line)
-                .font(.caption)
+                .font(CommittedType.widgetText(.caption, size: 12))
                 .foregroundStyle(isStale ? Color.warning : Color.soft)
                 .lineLimit(1)
                 .minimumScaleFactor(0.8)

@@ -68,7 +68,7 @@ private struct WidgetStatusLine: View {
     var body: some View {
         if state.contributions == nil || state.competitorCount <= 1, let line = state.emptyStateLine {
             Text(line)
-                .font(.footnote)
+                .font(CommittedType.widgetText(.footnote, size: 13))
                 .foregroundStyle(Color.soft)
                 .lineLimit(1)
                 .minimumScaleFactor(0.8)
@@ -178,7 +178,7 @@ struct CommittedWidgetBoardSmall: View {
         if rows.isEmpty {
             Spacer(minLength: 0)
             Text(state.emptyStateLine ?? "Your board is loading")
-                .font(.footnote)
+                .font(CommittedType.widgetText(.footnote, size: 13))
                 .foregroundStyle(Color.soft)
                 .frame(maxWidth: .infinity, alignment: standBy ? .center : .leading)
                 .multilineTextAlignment(standBy ? .center : .leading)
@@ -219,8 +219,8 @@ extension StandingRowStyle {
         var style = StandingRowStyle.liveRank(stale: stale)
         style.rankFont = CommittedType.numeral(11, relativeTo: .caption2)
         style.rankWidthScale = 0.85
-        style.nameFont = .caption.weight(.medium)
-        style.selfNameFont = .caption.weight(.bold)
+        style.nameFont = CommittedType.widgetText(.caption, size: 12, weight: .medium)
+        style.selfNameFont = CommittedType.widgetText(.caption, size: 12, weight: .bold)
         style.countFont = CommittedType.numeral(13, relativeTo: .caption)
         style.selfCountFont = CommittedType.display(13, relativeTo: .caption)
         style.avatarSize = 16
