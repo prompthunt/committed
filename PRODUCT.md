@@ -51,6 +51,10 @@ There is no calendar-month race: no This month Window, monthly Final standings, 
 
 A **week** (Monday to Sunday in your time zone) isn't a Window either. The Board keeps Today, 7 days and 30 days; weeks are used only for the rivalry record, the week records in Your records and last week's final. A finished week is the 7 days Window as it stood at the end of Sunday, so weeks don't bring back the calendar-month race dropped in #85: there is no week-to-date board or week standings.
 
+### Share board
+
+On iPhone and Mac, choose **Share board** from the board header. The image uses the selected time window and the people visible on the board. Choose Board, Your race, Rank, or Top 4 in a 1080 × 1080 Square or a 1080 × 1920 Story. Share the PNG through the system share menu, or use **Save PNG…** on Mac.
+
 ### Person view
 
 Tapping someone on the iPhone Board (any row: the list or "Around you"), or clicking a row on the Mac or Windows board, opens their **person view**. On someone else's it leads with their race with you, then their month day by day.
