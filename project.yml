@@ -36,7 +36,6 @@ targets:
       - path: CommitStandings
         excludes: # iPhone app + Live rank extension only
           - Store/LiveRankAttributes.swift # ActivityKit
-          - Support/CommittedTheme.swift # iPhone theme; the Mac keeps its own look
           - Support/AvatarCache.swift # App Group avatars for Live rank; the Mac has no App Group
     dependencies:
       - package: Sparkle
@@ -94,6 +93,8 @@ targets:
       - path: CommitStandings/Views/PrivateContributionsTip.swift
       - path: CommitStandings/Views/ContributionsExplainerView.swift
       - path: CommitStandings/Views/PersonViewContent.swift
+      - path: CommitStandings/Views/Share
+        excludes: [BoardShareWindow.swift]
     dependencies:
       - target: CommitStandingsLiveRank
     settings:
@@ -138,6 +139,9 @@ targets:
       - path: CommitStandings/Views/StandingRow.swift
       - path: CommitStandings/Views/StandingRowStyle.swift
       - path: CommitStandings/Views/AvatarView.swift
+      - path: CommitStandings/Views/Share/BoardCardViews.swift
+      - path: CommitStandings/Views/Share/LiveRankRows.swift
+      - path: CommitStandings/Views/Share/RankCardViews.swift
       # The widgets' own 15-minute refresh: refetch public contribution counts and re-rank.
       - path: CommitStandings/Store/WidgetSnapshot.swift
       - path: CommitStandings/Store/WidgetRefresh.swift

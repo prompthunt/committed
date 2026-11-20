@@ -55,8 +55,10 @@ struct WidgetSnapshot: Codable, Equatable, Sendable {
     static let boardListKind = "CommittedBoardList"
     static let kinds = [widgetKind, boardListKind]
 
+    #if os(iOS)
     /// Saved avatars for the widgets' rows: none on the Sample board (initials only).
     var savedAvatars: AvatarCache? { isSampleBoard == true ? nil : .shared }
+    #endif
 
     /// Your row, when your count has loaded.
     var selfRow: Row? {
@@ -144,6 +146,7 @@ extension WidgetSnapshot {
 
 // MARK: - Storage
 
+#if os(iOS)
 extension WidgetSnapshot {
     /// `widget-snapshot.json` in the App Group, beside the avatar cache.
     static var fileURL: URL? {
@@ -168,6 +171,8 @@ extension WidgetSnapshot {
         try? FileManager.default.removeItem(at: url)
     }
 }
+
+#endif
 
 // MARK: - Placeholder
 

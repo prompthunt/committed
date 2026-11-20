@@ -6,6 +6,8 @@ struct MenuContentView: View {
     @Environment(AuthModel.self) private var auth
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     @Environment(\.colorSchemeContrast) private var contrast
+    @Environment(\.openWindow) private var openWindow
+    @Binding var shareSnapshot: WidgetSnapshot?
     @State private var showOverflow = false
     @State private var contentHeight: CGFloat?
     // Persisted so dismissing a version stays dismissed across launches; an empty string
@@ -24,7 +26,7 @@ struct MenuContentView: View {
     var body: some View {
         ZStack(alignment: .topTrailing) {
             VStack(spacing: 0) {
-                HeaderBar(showOverflow: $showOverflow)
+                HeaderBar(showOverflow: $showOverflow, canShare: auth.isSignedIn && store.hasSelf) { shareBoard() }
                     .padding(.bottom, 8)
                 // Full-bleed hairline under the title bar (Port-Menu style); negative inset cancels
                 // the outer 12pt padding so it spans edge to edge.
@@ -99,6 +101,17 @@ struct MenuContentView: View {
         }
     }
 
+    private func shareBoard() {
+        let window = store.selectedWindow
+        guard let snapshot = WidgetSnapshot.board(
+            store, window: window, rankDelta: { refresh.rankDelta(for: $0, in: window) },
+            now: .now, rows: BoardShareFormat.maxBoardRows
+        ) else { return }
+        showOverflow = false
+        shareSnapshot = snapshot
+        openAccessoryWindow(id: BoardShareWindow.id, using: openWindow)
+    }
+
     @ViewBuilder private var content: some View {
         // Sign-in lives in a standalone window that survives the browser hand-off.
         if OnboardingFlow.step(isSignedIn: auth.isSignedIn) != .complete {
@@ -164,6 +177,8 @@ private struct OnboardingPrompt: View {
 /// nested popover — so it opens instantly and keeps native toggles and buttons in the same panel.
 struct HeaderBar: View {
     @Binding var showOverflow: Bool
+    let canShare: Bool
+    let shareBoard: () -> Void
     @State private var hovering = false
 
     var body: some View {
@@ -171,6 +186,17 @@ struct HeaderBar: View {
             Text(Self.appName)
                 .font(.headline)
             Spacer()
+            if canShare {
+                Button(action: shareBoard) {
+                    Image(systemName: "square.and.arrow.up")
+                        .foregroundStyle(.secondary)
+                        .frame(width: 26, height: 22)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .help("Share board")
+                .accessibilityLabel("Share board")
+            }
             // Ghost button: transparent at rest, a subtle rounded fill on hover (and while the
             // menu is open).
             Button { showOverflow.toggle() } label: {

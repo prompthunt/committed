@@ -43,7 +43,7 @@ extension StandingRowStyle {
         captionFont: .footnote,
         captionColor: .soft,
         // The Mac's 2×2 squares glyph, tinted on the site's ramp; Live rank's rows match.
-        squares: .shadedSymbol(Color.rowGlyphs),
+        squares: .shadedGrid(Color.rowGlyphs),
         // The troll face reads at a glance only a little larger than the squares glyph.
         trollSize: CGSize(width: 25, height: 21)
     )

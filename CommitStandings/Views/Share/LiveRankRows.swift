@@ -105,7 +105,7 @@ extension StandingRowStyle {
             streakTextStyle: .footnote,
             // Deep lime like the board's; stale steps down to the squares ramp's dimmest green.
             streakMarkColor: stale ? Color.rowGlyphs[1] : .limeDeep,
-            squares: .shadedSymbol(Color.rowGlyphs)
+            squares: .shadedGrid(Color.rowGlyphs)
         )
     }
 }

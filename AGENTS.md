@@ -8,6 +8,14 @@ the shared project account and an optional local CLI profile.
 macOS menu-bar app (SwiftUI) showing a GitHub-contributions leaderboard among friends.
 Distributed as a Developer ID-signed, notarized app that auto-updates via **Sparkle**.
 
+## Feature parity
+
+Ship shared product features and fixes on iPhone (including iPhone Duo), macOS,
+and Windows. Check each app at the start of the task and verify the affected
+flow on each applicable platform before handoff. Use native controls and layouts
+where they fit. If a feature is platform-specific or a port must be deferred,
+record the reason and the remaining work in the issue and pull request.
+
 ## Required project rules
 
 `.agents/rules/` holds required project rules. Read each one that applies before

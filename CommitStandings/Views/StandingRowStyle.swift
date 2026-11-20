@@ -71,9 +71,9 @@ struct StandingRowStyle {
     enum Squares {
         /// The Mac's `square.grid.2x2.fill`, mint to green relative to the leader.
         case symbol
-        /// The same glyph, tinted by `SquareRamp` level with these colors: index 0 is no
+        /// A drawn 2 × 2 grid, tinted by `SquareRamp` level with these colors: index 0 is no
         /// contributions, the last is the leader's quartile (GitHub-style levels).
-        case shadedSymbol([Color])
+        case shadedGrid([Color])
         /// No square: a row too narrow to spare it (a small widget).
         case hidden
     }

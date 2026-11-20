@@ -9,6 +9,7 @@ struct CommitStandingsApp: App {
     @State private var notifications: NotificationService
     @State private var updater: AppUpdater
     @State private var personWindow: PersonWindowModel
+    @State private var shareSnapshot: WidgetSnapshot?
 
     init() {
         // One shared graph for Mac and iPhone (see CommittedServices): durable snapshot so
@@ -26,7 +27,7 @@ struct CommitStandingsApp: App {
 
     var body: some Scene {
         MenuBarExtra {
-            MenuContentView(updater: updater)
+            MenuContentView(shareSnapshot: $shareSnapshot, updater: updater)
                 .environment(store)
                 .environment(refresh)
                 .environment(auth)
@@ -84,6 +85,8 @@ struct CommitStandingsApp: App {
         .defaultPosition(.center)
         .windowResizability(.contentMinSize)
         .windowToolbarStyle(.unifiedCompact)
+
+        BoardShareWindow(snapshot: shareSnapshot)
 
         // One person at a time, opened by clicking a board row: clicking someone else switches it
         // to them, and clicking the person shown brings it forward. Not restored at launch, when

@@ -40,6 +40,7 @@ app_file.write_text(r'''import SwiftUI
     @State private var notifications = NotificationService()
     @State private var updater = AppUpdater(startingUpdater: false)
     @State private var personWindow: PersonWindowModel
+    @State private var shareSnapshot: WidgetSnapshot?
 
     init() {
         let s = StandingsStore(persistence: InMemoryCompetitorPersistence())
@@ -95,8 +96,8 @@ app_file.write_text(r'''import SwiftUI
                     initialDay: UserDefaults.standard.string(forKey: "CapturePersonDay").flatMap { Int($0) },
                     scrollAnchor: UserDefaults.standard.bool(forKey: "CapturePersonScrolledToEnd") ? .bottom : .top
                 ).frame(width: PersonWindow.defaultWidth, height: 640)
-                case "Signed-out popover": MenuContentView(updater: updater).environment(signedOut)
-                default: MenuContentView(updater: updater)
+                case "Signed-out popover": MenuContentView(shareSnapshot: $shareSnapshot, updater: updater).environment(signedOut)
+                default: MenuContentView(shareSnapshot: $shareSnapshot, updater: updater)
                 }
             }
             .environment(store).environment(refresh).environment(auth).environment(roster).environment(notifications)
@@ -117,6 +118,7 @@ app_file.write_text(r'''import SwiftUI
                 Button("Person") { surface = "Person" }.keyboardShortcut("6")
             }
         }
+        BoardShareWindow(snapshot: shareSnapshot)
         Window("People", id: FullRankingsWindow.id) {
             FullRankingsView().environment(store).environment(refresh).environment(roster)
         }.defaultSize(width: 420, height: 480).windowResizability(.contentMinSize).windowToolbarStyle(.unifiedCompact)

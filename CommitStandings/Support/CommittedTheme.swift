@@ -1,8 +1,7 @@
 import SwiftUI
 
 // The iPhone app's and Live rank's look: the marketing site's ink-and-lime world
-// (`site/app/globals.css`), dark only. Compiled into the iPhone app and the Live rank extension,
-// never the Mac app, which keeps the system look.
+// (`site/app/globals.css`), dark only. The Mac uses it for exported board images.
 
 // MARK: - Palette
 
@@ -101,12 +100,20 @@ enum CommittedType {
 
     /// Headlines and big numbers. Tabular digits so ranks and counts don't jitter as they change.
     static func display(_ size: CGFloat, relativeTo style: Font.TextStyle) -> Font {
+        #if os(macOS)
+        .system(size: size, weight: .heavy).monospacedDigit()
+        #else
         .custom(displayFace, size: size, relativeTo: style).monospacedDigit()
+        #endif
     }
 
     /// Numbers that sit beside body text.
     static func numeral(_ size: CGFloat, relativeTo style: Font.TextStyle) -> Font {
+        #if os(macOS)
+        .system(size: size).monospacedDigit()
+        #else
         .custom(regularFace, size: size, relativeTo: style).monospacedDigit()
+        #endif
     }
 
     /// Eyebrows and folios ("CONTRIBUTIONS", "6 PEOPLE · TODAY"): the site's monospace labels

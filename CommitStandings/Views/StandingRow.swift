@@ -217,15 +217,11 @@ struct StandingRow: View {
             } else {
                 Color.clear.frame(width: 16)
             }
-        case .shadedSymbol(let colors):
-            // The same glyph, shaded by quartile of the leader's count.
+        case .shadedGrid(let colors):
             if hasData, let standing, !colors.isEmpty {
                 let level = min(SquareRamp.level(value: standing.contributions, max: maxContributions), colors.count - 1)
-                Image(systemName: "square.grid.2x2.fill")
-                    .imageScale(.small)
-                    .foregroundStyle(colors[level])
+                ContributionGrid(size: 12, color: colors[level])
                     .frame(width: 16)
-                    .accessibilityHidden(true)
             } else {
                 Color.clear.frame(width: 16)
             }
@@ -435,6 +431,32 @@ struct StreakBadge: View {
             .accessibilityElement(children: .ignore)
             .accessibilityLabel(StreakLabel.spoken(streak) ?? "")
         }
+    }
+}
+
+/// Four rounded squares drawn as shapes so they render in exported images.
+struct ContributionGrid: View {
+    let size: CGFloat
+    let color: Color
+
+    var body: some View {
+        let gap = size * 0.12
+        let cell = (size - gap) / 2
+        let square = RoundedRectangle(cornerRadius: cell * 0.22)
+            .fill(color)
+            .frame(width: cell, height: cell)
+
+        VStack(spacing: gap) {
+            HStack(spacing: gap) {
+                square
+                square
+            }
+            HStack(spacing: gap) {
+                square
+                square
+            }
+        }
+        .accessibilityHidden(true)
     }
 }
 
