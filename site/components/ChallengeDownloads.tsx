@@ -6,7 +6,7 @@ const BUTTON = "inline-flex min-h-14 w-full items-center justify-center rounded-
 
 /**
  * The challenge page's downloads: every platform at once, iPhone first, since a challenge arrives
- * on a phone. The site's other download buttons offer only the visitor's desktop download.
+ * on a phone. The site's other download groups adapt to the visitor's device.
  */
 export function ChallengeDownloads() {
   return (

@@ -4,10 +4,10 @@ import { detectDownloadPlatform, downloadTargets } from "./download-platform.ts"
 
 const browser = { userAgent: "", platform: "", maxTouchPoints: 0 };
 
-test("desktop visitors see only their matching download; unknown visitors retain both choices", () => {
-  assert.deepEqual(downloadTargets("windows"), ["Windows"]);
-  assert.deepEqual(downloadTargets("mac"), ["Mac"]);
-  assert.deepEqual(downloadTargets("unknown"), ["Mac", "Windows"]);
+test("desktop visitors see their matching installer and iPhone; unknown visitors see all choices", () => {
+  assert.deepEqual(downloadTargets("windows"), ["Windows", "iPhone"]);
+  assert.deepEqual(downloadTargets("mac"), ["Mac", "iPhone"]);
+  assert.deepEqual(downloadTargets("unknown"), ["Mac", "Windows", "iPhone"]);
 });
 
 test("desktop client hints choose the corresponding installer", () => {
@@ -22,16 +22,16 @@ test("browsers without client hints recognize desktop Windows and Mac user agent
   assert.equal(detectDownloadPlatform(browser), "unknown");
 });
 
-test("iPhones and iPads show only the Mac download, including iPad desktop mode", () => {
+test("iPhones and iPads show the iPhone download first, including iPad desktop mode", () => {
   for (const userAgent of ["Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) Mobile/15E148", "Mozilla/5.0 (iPad; CPU OS 18_0 like Mac OS X)"]) {
     const platform = detectDownloadPlatform({ ...browser, userAgent });
-    assert.equal(platform, "mac");
-    assert.deepEqual(downloadTargets(platform), ["Mac"]);
+    assert.equal(platform, "iphone");
+    assert.deepEqual(downloadTargets(platform), ["iPhone", "Mac"]);
   }
-  assert.equal(detectDownloadPlatform({ ...browser, platform: "MacIntel", maxTouchPoints: 5, userAgent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15) AppleWebKit/605.1.15" }), "mac");
+  assert.equal(detectDownloadPlatform({ ...browser, platform: "MacIntel", maxTouchPoints: 5, userAgent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15) AppleWebKit/605.1.15" }), "iphone");
 });
 
-test("other phones and tablets retain both choices", () => {
+test("other phones and tablets use the all-platform fallback", () => {
   for (const userAgent of ["Mozilla/5.0 (Linux; Android 15; Pixel)", "Mozilla/5.0 (Windows Phone 10.0; Windows NT 10.0; Android)"]) {
     assert.equal(detectDownloadPlatform({ ...browser, userAgent }), "unknown");
   }

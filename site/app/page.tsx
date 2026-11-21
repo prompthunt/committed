@@ -5,7 +5,7 @@ import { FeatureGrid } from "@/components/FeatureGrid";
 import { SquareField } from "@/components/SquareField";
 import { Faq } from "@/components/Faq";
 import { DownloadOptions } from "@/components/DownloadOptions";
-import { DOWNLOAD_URL, WINDOWS_DOWNLOAD_URL, SOURCE_URL } from "@/lib/board";
+import { DOWNLOAD_URL, IPHONE_DOWNLOAD_URL, SOURCE_URL, WINDOWS_DOWNLOAD_URL } from "@/lib/board";
 import { DESCRIPTION, FAQ, SITE_URL, WINDOWS_DOWNLOAD_AVAILABLE } from "@/lib/site";
 
 // What search engines and AI answer engines read: the app itself, and the FAQ shown on the page.
@@ -17,8 +17,8 @@ const STRUCTURED_DATA = [
     description: DESCRIPTION,
     url: SITE_URL,
     applicationCategory: "DeveloperApplication",
-    operatingSystem: ["macOS 26 or later", "Windows 11"],
-    downloadUrl: WINDOWS_DOWNLOAD_AVAILABLE ? [DOWNLOAD_URL, WINDOWS_DOWNLOAD_URL] : DOWNLOAD_URL,
+    operatingSystem: ["iOS 27.1 or later", "macOS 26 or later", "Windows 11"],
+    downloadUrl: [IPHONE_DOWNLOAD_URL, DOWNLOAD_URL, ...(WINDOWS_DOWNLOAD_AVAILABLE ? [WINDOWS_DOWNLOAD_URL] : [])],
     license: "https://opensource.org/licenses/MIT",
     isAccessibleForFree: true,
     offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
@@ -43,11 +43,9 @@ export default function Home() {
           <h1 className="max-w-[14ch] animate-rise text-[clamp(46px,7vw,96px)] leading-[0.94] font-[750] tracking-[-0.055em] text-balance">
             Who shipped more <span className="text-lime">today?</span>
           </h1>
-          <p className="max-w-[30rem] animate-rise text-xl leading-relaxed text-soft [animation-delay:90ms]">Your GitHub leaderboard, in the Mac menu bar or Windows tray.</p>
+          <p className="max-w-[30rem] animate-rise text-xl leading-relaxed text-soft [animation-delay:90ms]">Your GitHub leaderboard on iPhone, in the Mac menu bar, and in the Windows tray.</p>
           <div className="mt-2 flex animate-rise flex-col items-center gap-3.5 [animation-delay:180ms]">
             <DownloadOptions placement="hero" />
-            <span className="text-sm text-muted">macOS 26+ · Windows 11 (x64)</span>
-            <p className="max-w-md text-sm leading-relaxed text-muted">The Windows installer is unsigned. If SmartScreen appears, choose <strong>More info → Run anyway</strong>.</p>
           </div>
         </main>
 
@@ -66,7 +64,6 @@ export default function Home() {
           </h2>
           <div className="mt-2 flex flex-col items-center gap-3.5">
             <DownloadOptions placement="closing" />
-            <span className="text-sm text-muted">Free · macOS 26+ · Windows 11 (x64)</span>
           </div>
         </section>
 

@@ -50,12 +50,12 @@ excluded from download structured data while the flag is off. Enable the flag
 and redeploy only after the Mac publishing script verifies the first combined
 release's Windows assets. Preview builds can enable it for visual review.
 
-The hero, closing and footer show only the visitor's matching desktop download:
-Mac, iPhone and iPad visitors see Mac, and Windows visitors see Windows.
-Other mobile devices and unknown platforms show both choices equally.
-Detection happens locally in the browser after hydration;
-static HTML and JavaScript-disabled visits retain both choices. The Windows
-release gate still applies to every link. Run `npm test` for detection cases.
+The hero, closing and footer always link to the iPhone app on the App Store.
+On iPhone and iPad the App Store link comes first, followed by the Mac download.
+On Mac and Windows the matching installer comes first. Detection happens locally
+in the browser after hydration. Unknown platforms and JavaScript-disabled visits
+show all three options, subject to the Windows release gate. Run `npm test` for
+detection cases.
 
 ## Deploying
 

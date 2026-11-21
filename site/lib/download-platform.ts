@@ -1,4 +1,4 @@
-export type DownloadPlatform = "mac" | "windows" | "unknown";
+export type DownloadPlatform = "iphone" | "mac" | "windows" | "unknown";
 
 type BrowserPlatform = {
   userAgent: string;
@@ -7,12 +7,11 @@ type BrowserPlatform = {
   userAgentData?: { platform: string; mobile: boolean };
 };
 
-/** Match desktop installers; Apple mobile devices offer the Mac download. */
+/** Select the primary download for the device, including iPads in desktop mode. */
 export function detectDownloadPlatform(browser: BrowserPlatform): DownloadPlatform {
   const { userAgent, platform, maxTouchPoints, userAgentData } = browser;
-  // Apple mobile visitors get one Mac download, including iPad's desktop mode.
   if (/iPhone|iPad|iPod/i.test(userAgent) || (/Mac/i.test(platform) && maxTouchPoints > 1)) {
-    return "mac";
+    return "iphone";
   }
   if (userAgentData?.mobile || /Android|Mobile|Windows Phone/i.test(userAgent)) {
     return "unknown";
@@ -28,8 +27,9 @@ export function detectDownloadPlatform(browser: BrowserPlatform): DownloadPlatfo
   return "unknown";
 }
 
-export function downloadTargets(platform: DownloadPlatform): string[] {
-  if (platform === "windows") return ["Windows"];
-  if (platform === "mac") return ["Mac"];
-  return ["Mac", "Windows"];
+export function downloadTargets(platform: DownloadPlatform): ("iPhone" | "Mac" | "Windows")[] {
+  if (platform === "iphone") return ["iPhone", "Mac"];
+  if (platform === "windows") return ["Windows", "iPhone"];
+  if (platform === "mac") return ["Mac", "iPhone"];
+  return ["Mac", "Windows", "iPhone"];
 }
