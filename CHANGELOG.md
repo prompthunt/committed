@@ -14,7 +14,7 @@ User-facing changes by platform and version. See the [desktop releases](https://
 
 - A high daily contribution total alone no longer triggers the troll badge. The badge now looks for an unusually large increase between closely spaced refreshes.
 
-## Desktop 0.1.52 (2026-11-21)
+## Desktop 0.1.52 (2026-11-20)
 
 ### New features
 
