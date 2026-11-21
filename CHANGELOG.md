@@ -2,6 +2,18 @@
 
 User-facing changes by platform and version. See the [desktop releases](https://github.com/prompthunt/commit-standings-releases/releases) and the [App Store](https://apps.apple.com/app/committed-commit-leaderboard/id6831797452) for availability.
 
+## Desktop 0.1.53 (2026-11-20)
+
+### Bug fixes
+
+- A high daily contribution total alone no longer triggers the troll badge. The badge now looks for an unusually large increase between closely spaced refreshes.
+
+## iPhone 1.1.2
+
+### Bug fixes
+
+- A high daily contribution total alone no longer triggers the troll badge. The badge now looks for an unusually large increase between closely spaced refreshes.
+
 ## Desktop 0.1.52 (2026-11-21)
 
 ### New features
