@@ -16,11 +16,20 @@ struct CommittedWidgetSmall: View {
 
     var body: some View {
         let state = snapshot.state
+        // With nobody else on the board there's no rank: your count takes its place.
+        let ranked = state.rank != nil || state.competitorCount > 1
+        let showsStreak = StreakLabel.number(state.streak) != nil
         VStack(alignment: .leading, spacing: 2) {
-            LiveRankWindowLabel(state: state, accessibilityName: "Committed")
+            HStack {
+                LiveRankWindowLabel(state: state, accessibilityName: "Committed")
+                // The share image gives the contribution label the full bottom line.
+                if isShareImage && showsStreak {
+                    Spacer(minLength: 4)
+                    streakBadge(state, ranked: ranked)
+                        .accessibilityHidden(true)
+                }
+            }
             Spacer(minLength: 4)
-            // With nobody else on the board there's no rank: your count takes its place.
-            let ranked = state.rank != nil || state.competitorCount > 1
             if ranked {
                 Text(state.rank.map { "#\($0)" } ?? "–")
                     .font(CommittedType.display(44, relativeTo: .largeTitle))
@@ -44,15 +53,10 @@ struct CommittedWidgetSmall: View {
                         .foregroundStyle(isStale ? Color.limeDeep : Color.lime)
                     ContributionSquare(level: level, size: ranked ? 12 : 18)
                 }
-                // Your streak on the count's line, so the card keeps its four lines. Only beside
-                // your count (`state.streak` is nil without it), from 2 days.
-                if StreakLabel.number(state.streak) != nil {
+                // The widget keeps the streak on the count's line.
+                if !isShareImage && showsStreak {
                     Spacer(minLength: 4)
-                    StreakBadge(streak: state.streak, markSize: ranked ? 14 : 16, relativeTo: .subheadline,
-                                markColor: isStale ? Color.rowGlyphs[1] : .limeDeep)
-                        .font(CommittedType.numeral(ranked ? 15 : 17, relativeTo: .subheadline))
-                        .foregroundStyle(isStale ? Color.muted : Color.soft)
-                        .fixedSize()
+                    streakBadge(state, ranked: ranked)
                 }
             }
             .accessibilityElement(children: .ignore)
@@ -63,6 +67,14 @@ struct CommittedWidgetSmall: View {
         .minimumScaleFactor(0.7)
         .dynamicTypeSize(...DynamicTypeSize.xxLarge)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+    }
+
+    private func streakBadge(_ state: LiveRankState, ranked: Bool) -> some View {
+        StreakBadge(streak: state.streak, markSize: ranked ? 14 : 16, relativeTo: .subheadline,
+                    markColor: isStale ? Color.rowGlyphs[1] : .limeDeep)
+            .font(CommittedType.numeral(ranked ? 15 : 17, relativeTo: .subheadline))
+            .foregroundStyle(isStale ? Color.muted : Color.soft)
+            .fixedSize()
     }
 }
 
