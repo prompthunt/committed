@@ -194,15 +194,19 @@ private struct BoardShareWidget: View {
         switch style {
         case .board: CommittedWidgetLarge(snapshot: snapshot)
         case .race: CommittedWidgetMedium(snapshot: snapshot)
-        case .rank: BoardShareRank(state: snapshot.state)
+        case .rank: BoardShareRank(snapshot: snapshot)
         case .list: CommittedWidgetBoardSmall(snapshot: snapshot)
         }
     }
 }
 
-/// The compact export centers the rank and its heading independently of the trophy and count.
+/// The rank and trophy anchor the top of the card. The avatar and count use the same columns below.
 private struct BoardShareRank: View {
-    let state: LiveRankState
+    let snapshot: WidgetSnapshot
+    private let markSize: CGFloat = 12
+    private let labelSpacing: CGFloat = 6
+
+    private var state: LiveRankState { snapshot.state }
 
     var body: some View {
         let ranked = state.rank != nil || state.competitorCount > 1
@@ -216,18 +220,28 @@ private struct BoardShareRank: View {
             Text(ranked ? state.rank.map { "#\($0)" } ?? "–" : count)
                 .font(CommittedType.display(54, relativeTo: .largeTitle))
                 .displayTracking(54)
+                .minimumScaleFactor(0.45)
                 .foregroundStyle(ranked ? Color.white : .lime)
                 .accessibilityLabel(ranked ? LiveRankText.rankAccessibility(state) : LiveRankText.countAccessibility(state))
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+        .padding(.trailing, 40)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .overlay(alignment: .topTrailing) {
             TrophyMark(size: 36)
         }
         .overlay(alignment: .bottomLeading) {
-            VStack(alignment: .leading, spacing: 3) {
+            VStack(alignment: .leading, spacing: 6) {
+                if !snapshot.selfLogin.isEmpty {
+                    HStack(spacing: labelSpacing) {
+                        AvatarView(username: snapshot.selfLogin, size: markSize)
+                        Text(snapshot.selfLogin)
+                            .font(CommittedType.display(10, relativeTo: .caption))
+                            .foregroundStyle(.white)
+                    }
+                }
                 if ranked {
-                    HStack(spacing: 6) {
-                        ContributionGrid(size: 12, color: (state.contributions ?? 0) > 0 ? .lime : .muted)
+                    HStack(spacing: labelSpacing) {
+                        ContributionGrid(size: markSize, color: (state.contributions ?? 0) > 0 ? .lime : .muted)
                         Text("\(count) \(unit)")
                             .font(CommittedType.numeral(12, relativeTo: .caption))
                             .foregroundStyle(Color.lime)

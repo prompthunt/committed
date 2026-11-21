@@ -65,8 +65,15 @@ struct BoardShareRenderTests {
         snapshot.state = LiveRankState(window: window.rawValue, rank: 6, competitorCount: 27,
                                        contributions: count, above: nil, below: nil,
                                        movementToday: 0, streak: 14, updatedAt: 1_794_172_920)
+        let avatarDirectory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: avatarDirectory) }
+        let cache = AvatarCache(directory: avatarDirectory)
+        #expect(cache.store(try fixtureAvatar(0), for: snapshot.selfLogin))
+        let fallback = try ShareImageRenderer.png(BoardShareCard(snapshot: snapshot, style: .rank,
+                                                                 format: format, avatarCache: nil))
         let png = try ShareImageRenderer.png(BoardShareCard(snapshot: snapshot, style: .rank,
-                                                            format: format, avatarCache: nil))
+                                                            format: format, avatarCache: cache))
+        #expect(png != fallback)
         #if os(macOS)
         let platform = "mac"
         #else
