@@ -1,7 +1,7 @@
 import SwiftUI
 
-// These four card layouts are shared by the iPhone widgets and the board image exports on
-// iPhone and Mac. WidgetKit wraps them in its timeline configurations.
+// WidgetKit wraps these card layouts in its timeline configurations. The board image exports on
+// iPhone and Mac also use the medium, large, and small Board layouts.
 //
 // Every system size heads itself as Live rank does: the trophy and the Window ("Today") at 16 pt,
 // and how long ago the numbers were updated ("13 min, 36 sec") counting up at 12 pt on the right,
@@ -11,25 +11,15 @@ import SwiftUI
 /// age. Read at a glance from the driver's seat, so no rows.
 struct CommittedWidgetSmall: View {
     let snapshot: WidgetSnapshot
-    var isShareImage = false
     @Environment(\.liveRankIsStale) private var isStale
 
     var body: some View {
         let state = snapshot.state
-        // With nobody else on the board there's no rank: your count takes its place.
-        let ranked = state.rank != nil || state.competitorCount > 1
-        let showsStreak = StreakLabel.number(state.streak) != nil
         VStack(alignment: .leading, spacing: 2) {
-            HStack {
-                LiveRankWindowLabel(state: state, accessibilityName: "Committed")
-                // The share image gives the contribution label the full bottom line.
-                if isShareImage && showsStreak {
-                    Spacer(minLength: 4)
-                    streakBadge(state, ranked: ranked)
-                        .accessibilityHidden(true)
-                }
-            }
+            LiveRankWindowLabel(state: state, accessibilityName: "Committed")
             Spacer(minLength: 4)
+            // With nobody else on the board there's no rank: your count takes its place.
+            let ranked = state.rank != nil || state.competitorCount > 1
             if ranked {
                 Text(state.rank.map { "#\($0)" } ?? "–")
                     .font(CommittedType.display(44, relativeTo: .largeTitle))
@@ -38,25 +28,21 @@ struct CommittedWidgetSmall: View {
                     .accessibilityLabel(LiveRankText.rankAccessibility(state))
             }
             HStack(alignment: .center, spacing: 5) {
-                let count = state.contributions.map { "\($0)" } ?? "–"
+                Text(state.contributions.map { "\($0)" } ?? "–")
+                    .font(CommittedType.display(ranked ? 22 : 44, relativeTo: ranked ? .title2 : .largeTitle))
+                    .displayTracking(ranked ? 0 : 44)
+                    .foregroundStyle(isStale ? Color.limeDeep : Color.lime)
                 let level = state.contributions.map { $0 > 0 ? (isStale ? 3 : 4) : 0 } ?? 0
-                if isShareImage {
-                    ContributionGrid(size: ranked ? 12 : 18, color: level == 0 ? .muted : Color.contributionSquares[level])
-                    let label = state.contributions == 1 ? "Contribution" : "Contributions"
-                    Text("\(count) \(label)")
-                        .font(CommittedType.display(ranked ? 14 : 16, relativeTo: .title2))
-                        .foregroundStyle(Color.lime)
-                } else {
-                    Text(count)
-                        .font(CommittedType.display(ranked ? 22 : 44, relativeTo: ranked ? .title2 : .largeTitle))
-                        .displayTracking(ranked ? 0 : 44)
-                        .foregroundStyle(isStale ? Color.limeDeep : Color.lime)
-                    ContributionSquare(level: level, size: ranked ? 12 : 18)
-                }
-                // The widget keeps the streak on the count's line.
-                if !isShareImage && showsStreak {
+                ContributionSquare(level: level, size: ranked ? 12 : 18)
+                // Your streak on the count's line, so the card keeps its four lines. Only beside
+                // your count (`state.streak` is nil without it), from 2 days.
+                if StreakLabel.number(state.streak) != nil {
                     Spacer(minLength: 4)
-                    streakBadge(state, ranked: ranked)
+                    StreakBadge(streak: state.streak, markSize: ranked ? 14 : 16, relativeTo: .subheadline,
+                                markColor: isStale ? Color.rowGlyphs[1] : .limeDeep)
+                        .font(CommittedType.numeral(ranked ? 15 : 17, relativeTo: .subheadline))
+                        .foregroundStyle(isStale ? Color.muted : Color.soft)
+                        .fixedSize()
                 }
             }
             .accessibilityElement(children: .ignore)
@@ -67,14 +53,6 @@ struct CommittedWidgetSmall: View {
         .minimumScaleFactor(0.7)
         .dynamicTypeSize(...DynamicTypeSize.xxLarge)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
-    }
-
-    private func streakBadge(_ state: LiveRankState, ranked: Bool) -> some View {
-        StreakBadge(streak: state.streak, markSize: ranked ? 14 : 16, relativeTo: .subheadline,
-                    markColor: isStale ? Color.rowGlyphs[1] : .limeDeep)
-            .font(CommittedType.numeral(ranked ? 15 : 17, relativeTo: .subheadline))
-            .foregroundStyle(isStale ? Color.muted : Color.soft)
-            .fixedSize()
     }
 }
 

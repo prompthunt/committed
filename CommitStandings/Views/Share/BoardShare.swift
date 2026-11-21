@@ -13,7 +13,7 @@ enum BoardShareStyle: String, CaseIterable, Identifiable, Sendable {
     case board
     /// The medium widget: the person above you, you, and the person below.
     case race
-    /// The small widget: your rank big, your count, and the gap to pass.
+    /// A compact share card with your rank and contribution count.
     case rank
     /// The small Committed Board widget: the leaders, or the top two and your race.
     case list
@@ -194,8 +194,65 @@ private struct BoardShareWidget: View {
         switch style {
         case .board: CommittedWidgetLarge(snapshot: snapshot)
         case .race: CommittedWidgetMedium(snapshot: snapshot)
-        case .rank: CommittedWidgetSmall(snapshot: snapshot, isShareImage: true)
+        case .rank: BoardShareRank(state: snapshot.state)
         case .list: CommittedWidgetBoardSmall(snapshot: snapshot)
+        }
+    }
+}
+
+/// The compact export centers the rank and its heading independently of the trophy and count.
+private struct BoardShareRank: View {
+    let state: LiveRankState
+
+    var body: some View {
+        let ranked = state.rank != nil || state.competitorCount > 1
+        let count = state.contributions.map { "\($0)" } ?? "–"
+        let unit = state.contributions == 1 ? "Contribution" : "Contributions"
+        VStack(alignment: .leading, spacing: 0) {
+            Text(ranked ? heading : unit)
+                .font(CommittedType.display(10, relativeTo: .caption))
+                .foregroundStyle(.white)
+                .accessibilityHidden(true)
+            Text(ranked ? state.rank.map { "#\($0)" } ?? "–" : count)
+                .font(CommittedType.display(54, relativeTo: .largeTitle))
+                .displayTracking(54)
+                .foregroundStyle(ranked ? Color.white : .lime)
+                .accessibilityLabel(ranked ? LiveRankText.rankAccessibility(state) : LiveRankText.countAccessibility(state))
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+        .overlay(alignment: .topTrailing) {
+            TrophyMark(size: 36)
+        }
+        .overlay(alignment: .bottomLeading) {
+            VStack(alignment: .leading, spacing: 3) {
+                if ranked {
+                    HStack(spacing: 6) {
+                        ContributionGrid(size: 12, color: (state.contributions ?? 0) > 0 ? .lime : .muted)
+                        Text("\(count) \(unit)")
+                            .font(CommittedType.numeral(12, relativeTo: .caption))
+                            .foregroundStyle(Color.lime)
+                    }
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel(LiveRankText.countAccessibility(state))
+                }
+                if let status = state.emptyStateLine {
+                    Text(status)
+                        .font(CommittedType.numeral(10, relativeTo: .caption))
+                        .foregroundStyle(Color.soft)
+                }
+            }
+            .padding(.leading, 4)
+            .padding(.bottom, 6)
+        }
+        .lineLimit(1)
+        .minimumScaleFactor(0.7)
+    }
+
+    private var heading: String {
+        switch state.contributionWindow ?? .daily {
+        case .daily: "Today’s Rank"
+        case .weekly: "This Week’s Rank"
+        case .monthly: "Last 30 Days Rank"
         }
     }
 }

@@ -50,6 +50,31 @@ struct BoardShareRenderTests {
         }
     }
 
+    @Test(.enabled(if: ProcessInfo.processInfo.environment["RENDER_DIR"] != nil),
+          arguments: ContributionWindow.allCases, BoardShareFormat.allCases)
+    func rankExportsForComparison(window: ContributionWindow, format: BoardShareFormat) throws {
+        let output = try #require(ProcessInfo.processInfo.environment["RENDER_DIR"])
+        let folder = URL(fileURLWithPath: output, isDirectory: true)
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        var snapshot = WidgetSnapshot.sample(now: Date(timeIntervalSince1970: 1_794_172_920))
+        let count = switch window {
+        case .daily: 260
+        case .weekly: 1_240
+        case .monthly: 4_620
+        }
+        snapshot.state = LiveRankState(window: window.rawValue, rank: 6, competitorCount: 27,
+                                       contributions: count, above: nil, below: nil,
+                                       movementToday: 0, streak: 14, updatedAt: 1_794_172_920)
+        let png = try ShareImageRenderer.png(BoardShareCard(snapshot: snapshot, style: .rank,
+                                                            format: format, avatarCache: nil))
+        #if os(macOS)
+        let platform = "mac"
+        #else
+        let platform = "iphone"
+        #endif
+        try png.write(to: folder.appendingPathComponent("\(platform)-rank-\(window.rawValue)-\(format.rawValue).png"))
+    }
+
     private func fixtureAvatar(_ index: Int) throws -> Data {
         let space = try #require(CGColorSpace(name: CGColorSpace.sRGB))
         let context = try #require(CGContext(data: nil, width: 90, height: 90, bitsPerComponent: 8,
