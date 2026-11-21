@@ -34,8 +34,11 @@ export function DownloadOptions({ placement }: { placement: "hero" | "closing" |
   const platform = useSyncExternalStore(subscribe, clientPlatform, serverPlatform);
   const platforms = downloadTargets(platform);
   const compact = placement === "footer";
+  const hasWindowsOption = platforms.includes("Windows");
+  const buttonWidth = hasWindowsOption ? "w-60" : "w-[10.5rem] sm:w-56";
+  const buttonLayout = `inline-flex min-h-14 ${buttonWidth} max-w-full items-center justify-center gap-2.5 rounded-xl px-3 text-center text-[17px]`;
   const requirements = platforms.map((target) => DOWNLOADS[target].requirement);
-  const showWindowsNote = placement === "hero" && WINDOWS_DOWNLOAD_AVAILABLE && platforms.includes("Windows");
+  const showWindowsNote = placement === "hero" && WINDOWS_DOWNLOAD_AVAILABLE && hasWindowsOption;
 
   return (
     <>
@@ -43,7 +46,7 @@ export function DownloadOptions({ placement }: { placement: "hero" | "closing" |
         {platforms.map((target, index) => {
           const primary = index === 0 || (platform === "unknown" && target === "Windows");
           return target === "Windows" && !WINDOWS_DOWNLOAD_AVAILABLE ? (
-            <span key={target} className={compact ? "py-2.5 text-muted" : "inline-flex min-h-14 items-center rounded-xl border border-white/15 px-6.5 text-[17px] text-muted"}>
+            <span key={target} className={compact ? "py-2.5 text-muted" : `${buttonLayout} border border-white/15 text-muted`}>
               Windows download coming soon
             </span>
           ) : (
@@ -54,7 +57,7 @@ export function DownloadOptions({ placement }: { placement: "hero" | "closing" |
               placement={placement}
               className={compact
                 ? "py-2.5 hover:text-white"
-                : `inline-flex min-h-14 items-center justify-center gap-2.5 rounded-xl px-5 text-[17px] font-semibold sm:px-6.5 ${primary
+                : `${buttonLayout} font-semibold ${primary
                   ? "bg-lime text-ink transition-[filter,box-shadow] duration-200 hover:shadow-[0_0_0_4px_rgba(200,255,46,.2),0_12px_36px_-10px_rgba(200,255,46,.55)] hover:brightness-105"
                   : "border border-white/20 text-white transition-colors hover:border-white/50"}`}
             >
