@@ -79,15 +79,13 @@ account names deliberately retain their existing identifiers for update continui
 
 ## GitHub Releases Updates
 
-After incrementing both version and build in `CommitStandings/Info.plist`, land
-the change on `main`, then publish from `main` with the release script:
+Increment the version and build in `CommitStandings/Info.plist` and add the matching Desktop entry in the [changelog](../CHANGELOG.md). Preview the public notes with `scripts/publish-release.sh --print-notes`. Land the change on `main`, then publish from `main`:
 
 ```sh
 ./scripts/publish-release.sh
 ```
 
-The script uploads all seven assets (four Mac and three Windows), marks the release latest, and verifies the
-public links. Do not hand-assemble a release: missing `Committed.dmg` breaks the
+The script takes the release notes from that version's changelog entry, uploads all seven assets (four Mac and three Windows), marks the release latest, and verifies the public links. Do not hand-assemble a release: missing `Committed.dmg` breaks the
 permanent download link. Appcast payload URLs must use the permanent per-tag
 `releases/download/v<version>/` path.
 

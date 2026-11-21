@@ -27,6 +27,7 @@ matters.
   reader must do.
 - Keep internal jargon, PR and issue numbers, implementation details, test counts, CI, signing
   and hashes out; they belong in the PR.
+- Follow the [public release-notes rule](public-release-notes.md) when drafting and checking What to Test. Its privacy rules apply to external beta notes.
 
 ## Release workflow
 

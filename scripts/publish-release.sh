@@ -7,8 +7,8 @@
 # (…/releases/latest/download/Committed.dmg) keeps resolving. See AGENTS.md → Releasing.
 #
 # Usage:
-#   scripts/publish-release.sh                 # generic release notes
-#   scripts/publish-release.sh "Notes here…"   # custom release notes
+#   scripts/publish-release.sh                # publish with the version's changelog entry
+#   scripts/publish-release.sh --print-notes  # preview the public notes without packaging
 #
 set -euo pipefail
 
@@ -19,9 +19,38 @@ DIST_DIR="${ROOT_DIR}/dist"
 
 VERSION="$(/usr/libexec/PlistBuddy -c 'Print CFBundleShortVersionString' "${INFO_PLIST}")"
 TAG="v${VERSION}"
-NOTES="${1:-Committed ${VERSION}. ⋯ → Check for Updates.}"
-SOURCE_REPO="prompthunt/committed"
+
+if (( $# > 1 )) || { (( $# == 1 )) && [[ "$1" != "--print-notes" ]]; }; then
+  echo 'Usage: scripts/publish-release.sh [--print-notes]. Edit CHANGELOG.md to change the public release notes.' >&2
+  exit 2
+fi
+
 SOURCE_SHA="$(git -C "${ROOT_DIR}" rev-parse HEAD)"
+if (( $# == 1 )); then
+  CHANGELOG="$(cat "${ROOT_DIR}/CHANGELOG.md")"
+else
+  CHANGELOG="$(git -C "${ROOT_DIR}" show "${SOURCE_SHA}:CHANGELOG.md")"
+fi
+
+if ! NOTES="$(awk -v heading="## Desktop ${VERSION}" '
+  /^## / {
+    capture = ($0 == heading || index($0, heading " (") == 1)
+    entries += capture
+    next
+  }
+  capture { print }
+  END { if (entries != 1) exit 1 }
+' <<< "${CHANGELOG}")" || ! grep -q '[^[:space:]]' <<< "${NOTES}"; then
+  echo "ERROR: CHANGELOG.md needs one non-empty '## Desktop ${VERSION}' entry with public release notes." >&2
+  exit 1
+fi
+
+if (( $# == 1 )); then
+  printf '%s\n' "${NOTES}"
+  exit 0
+fi
+
+SOURCE_REPO="prompthunt/committed"
 WINDOWS_DIST_DIR="${WINDOWS_DIST_DIR:-${DIST_DIR}/windows-${SOURCE_SHA}}"
 
 echo "==> Releasing ${TAG} to ${RELEASES_REPO}"
@@ -65,10 +94,10 @@ echo "==> Creating release ${TAG} with: appcast.xml, $(basename "${ZIP}"), $(bas
 gh release create "${TAG}" \
   --repo "${RELEASES_REPO}" \
   --title "Committed ${VERSION}" \
-  --notes "${NOTES}" \
+  --notes-file - \
   --latest \
   "${APPCAST}" "${ZIP}" "${DMG}" "${STABLE_DMG}" \
-  "${WINDOWS_INSTALLER}" "${STABLE_WINDOWS_INSTALLER}" "${WINDOWS_MANIFEST}"
+  "${WINDOWS_INSTALLER}" "${STABLE_WINDOWS_INSTALLER}" "${WINDOWS_MANIFEST}" <<< "${NOTES}"
 
 # 4. Verify the public links the app + humans rely on.
 check() {

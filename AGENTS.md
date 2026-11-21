@@ -25,6 +25,7 @@ starting the task:
 |---|---|
 | Builds, tests, packaging, Simulators or dev servers (starting or finishing) | [Development resource cleanup](.agents/rules/resource-cleanup.md) |
 | Any new or changed screen, window, popover, sheet or interaction (Mac, iPhone, Windows, site) | [UI evidence](.agents/rules/ui-evidence.md) |
+| Writing or publishing a changelog or release notes | [Public changelog and release notes](.agents/rules/public-release-notes.md) |
 | Writing or submitting TestFlight What to Test notes | [TestFlight release notes](.agents/rules/testflight-notes.md) |
 
 Every UI change needs real screenshots in a PR comment, uploaded as direct GitHub
@@ -62,6 +63,7 @@ Do it in this order:
 1. **Bump the version first.** Edit `CommitStandings/Info.plist`:
    `CFBundleShortVersionString` (e.g. `0.1.44`) **and** `CFBundleVersion` (build number,
    must increment — Sparkle ignores a release whose build number didn't change).
+   Add the matching public Desktop entry to `CHANGELOG.md` and preview it with `scripts/publish-release.sh --print-notes`.
 2. Land the change on `main` (branch → PR → merge). Build the release **from `main`**.
 3. Run `scripts/publish-release.sh`. It calls `package-release.sh` (notarize + sign +
    `appcast.xml`), then publishes the release with **all seven assets** and verifies the

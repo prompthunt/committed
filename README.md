@@ -26,10 +26,9 @@ For Mac, the download link always points at the newest release. Then:
 The Mac app is signed with a Developer ID and notarized by Apple, so it opens without security
 warnings. It keeps itself up to date automatically — no need to re-download.
 
-Prefer to see all versions and release notes? Browse the
-[releases page](https://github.com/prompthunt/commit-standings-releases/releases/latest).
+See what's changed in the [changelog](CHANGELOG.md) and browse the [desktop releases](https://github.com/prompthunt/commit-standings-releases/releases).
 
-**Committed for iPhone** (iOS 27.1 or later) isn't publicly available yet; TestFlight comes first.
+[Committed for iPhone](https://apps.apple.com/app/committed-commit-leaderboard/id6831797452) (iOS 27.1 or later) is available on the App Store.
 It has the same board, plus **People** and **Settings** tabs.
 
 ## What it does
