@@ -338,7 +338,7 @@ small {
   height: 12px;
   flex-shrink: 0;
 }
-/* Trolling: a day far above their usual. The count turns red and the troll face, drawn in the
+/* Trolling: an observed contribution burst. The count turns red and the troll face, drawn in the
    text color, takes the squares' place (centered on their slot so counts stay aligned). */
 .contributions.troll {
   color: var(--troll-red);

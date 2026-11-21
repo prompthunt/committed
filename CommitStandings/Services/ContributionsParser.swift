@@ -18,7 +18,7 @@ enum ContributionsParser {
         ContributionHistory(days: try parseDays(html: html), timeZone: timeZone)
     }
 
-    /// `"YYYY-MM-DD"` → count for every day cell. A cell with no readable count is 0.
+    /// `"YYYY-MM-DD"` → the readable count for each day. An unresolved cell is unknown.
     static func parseDays(html: String) throws -> [String: Int] {
         let cells = extractDateCells(html: html)
         if cells.isEmpty {
@@ -37,8 +37,6 @@ enum ContributionsParser {
                 result[key] = count
             } else if let labelCount = cell.ariaLabelCount {
                 result[key] = labelCount
-            } else {
-                result[key] = 0
             }
         }
         if result.isEmpty {
@@ -138,7 +136,7 @@ enum ContributionsParser {
             guard m.numberOfRanges >= 3 else { continue }
             let forID = ns.substring(with: m.range(at: 1))
             let body = ns.substring(with: m.range(at: 2))
-            byID[forID] = parseCount(fromLabel: body) ?? 0
+            byID[forID] = parseCount(fromLabel: body)
         }
         return byID
     }
@@ -164,20 +162,21 @@ enum ContributionsParser {
     }
 }
 
-/// When a day counts as trolling. Tuned on a year of real boards: it caught a 784-contribution day
-/// against a usual big day of 102, while flagging an ordinary heavy committer about once a month.
+/// An unusually large increase observed in one refresh interval.
 enum TrollCheck {
-    /// A trolling day is more than this many times the person's usual big day…
+    /// Five-minute polling with a minute of leeway for timing and network delays.
+    static let maximumInterval: TimeInterval = 360
+    /// A burst is more than this many times the person's usual big day…
     static let multiple = 5
     /// …and more than this many contributions, so quiet accounts' first busy day isn't trolling.
     static let floor = 100
 
     static func isTrolling(count: Int, usual: Int) -> Bool {
-        count > max(floor, multiple * usual)
+        count > floor && (count - 1) / multiple >= usual
     }
 
     /// The count 9 in 10 of these days' active (non-zero) days stay under; 0 with no active days.
-    static func usualBigDay(_ counts: [Int]) -> Int {
+    static func usualBigDay(_ counts: some Sequence<Int>) -> Int {
         let active = counts.filter { $0 > 0 }.sorted()
         guard !active.isEmpty else { return 0 }
         return active[min(active.count - 1, Int(Double(active.count) * 0.9))]

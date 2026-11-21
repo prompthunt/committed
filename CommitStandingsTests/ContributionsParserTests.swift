@@ -66,6 +66,15 @@ struct ContributionsParserTests {
         #expect(history.total(for: .weekly, asOf: asOf) == 0)
     }
 
+    @Test func unreadableCellIsNotAnObservedZero() throws {
+        let html = """
+        <td data-date="2026-05-27" data-count="0"></td>
+        <td data-date="2026-05-28" id="unresolved"></td>
+        <tool-tip for="unresolved">Contribution data unavailable</tool-tip>
+        """
+        #expect(try ContributionsParser.parseDays(html: html) == ["2026-05-27": 0])
+    }
+
     /// GitHub's days are civil dates: they're kept as written, whatever the reading time zone,
     /// and the history records the zone so its Windows know which day is today.
     @Test func parseHistory_keepsCivilDaysAndRecordsTheTimeZone() throws {
@@ -93,48 +102,83 @@ struct ContributionsParserTests {
         return ContributionHistory(days: days, timeZone: Self.utc)
     }
 
-    @Test func trolling_flagsADayFarAboveTheirUsualBigDay() {
-        let history = steadyHistory(20, ["2026-05-28": 784])
-        let burst = history.burst(for: .daily, asOf: ymd(2026, 5, 28))
+    private var noon: Date { ymd(2026, 5, 28).addingTimeInterval(12 * 3_600) }
+
+    private func observeJump(from before: Int, to after: Int, usual: Int = 20,
+                             interval: TimeInterval = 300) -> ContributionHistory {
+        var first = steadyHistory(usual, ["2026-05-28": before])
+        first.observe(after: nil, at: noon)
+        var second = steadyHistory(usual, ["2026-05-28": after])
+        second.observe(after: first, at: noon.addingTimeInterval(interval))
+        return second
+    }
+
+    @Test func trolling_usesTheJumpBetweenCloseRefreshes() {
+        let history = observeJump(from: 19, to: 803)
+        let burst = history.burst(for: .daily, asOf: noon)
         #expect(burst == Burst(day: ymd(2026, 5, 28), count: 784, usual: 20))
-        #expect(burst?.multiple == 39)
-        #expect(StandingCounts(history: history, window: .daily, asOf: ymd(2026, 5, 28)).burst == burst)
+        #expect(StandingCounts(history: history, window: .daily, asOf: noon).burst == burst)
     }
 
-    @Test func trolling_ignoresABusyDayUnderFiveTimesTheirUsual() {
-        let history = steadyHistory(40, ["2026-05-28": 200]) // exactly 5×: not over the line
-        #expect(history.burst(for: .daily, asOf: ymd(2026, 5, 28)) == nil)
+    @Test func trolling_ignoresAHighTotalOnFirstReadOrAfterALongGap() {
+        var first = steadyHistory(20, ["2026-05-28": 803])
+        first.observe(after: nil, at: noon)
+        #expect(first.burst(for: .daily, asOf: noon) == nil)
+        #expect(observeJump(from: 19, to: 803, interval: 361).burst(for: .daily, asOf: noon) == nil)
     }
 
-    @Test func trolling_needsMoreThanAHundred() {
-        // 50× a quiet account's usual, but not over the floor
-        #expect(steadyHistory(2, ["2026-05-28": 100]).burst(for: .daily, asOf: ymd(2026, 5, 28)) == nil)
-        #expect(steadyHistory(2, ["2026-05-28": 101]).burst(for: .daily, asOf: ymd(2026, 5, 28))?.count == 101)
+    @Test func trolling_ignoresGradualContributionsEvenWhenTheyReach803() {
+        var prior: ContributionHistory?
+        for (index, total) in stride(from: 3, through: 803, by: 100).enumerated() {
+            let time = noon.addingTimeInterval(Double(index) * 300)
+            var next = steadyHistory(20, ["2026-05-28": total])
+            next.observe(after: prior, at: time)
+            #expect(next.burst(for: .daily, asOf: time) == nil)
+            prior = next
+        }
+        #expect(prior?.total(for: .daily, asOf: noon) == 803)
     }
 
-    @Test func trolling_newAccountOverTheFloorIsTrolling() {
-        let history = ContributionHistory(days: ["2026-05-28": 150], timeZone: Self.utc)
-        let burst = history.burst(for: .daily, asOf: ymd(2026, 5, 28))
-        #expect(burst == Burst(day: ymd(2026, 5, 28), count: 150, usual: 0))
-        #expect(burst?.multiple == nil)
+    @Test func trolling_keepsTheFloorAndUsualDayThreshold() {
+        #expect(observeJump(from: 40, to: 240, usual: 40).burst(for: .daily, asOf: noon) == nil)
+        #expect(observeJump(from: 0, to: 100, usual: 2).burst(for: .daily, asOf: noon) == nil)
+        #expect(observeJump(from: 0, to: 101, usual: 2, interval: 360).burst(for: .daily, asOf: noon)?.count == 101)
     }
 
-    @Test func trolling_staysInLongerWindowsUntilTheDayLeaves() {
-        let history = steadyHistory(20, ["2026-05-25": 500, "2026-05-28": 20])
-        let asOf = ymd(2026, 5, 28)
-        #expect(history.burst(for: .daily, asOf: asOf) == nil)
-        #expect(history.burst(for: .weekly, asOf: asOf)?.count == 500)
-        #expect(history.burst(for: .monthly, asOf: asOf)?.day == ymd(2026, 5, 25))
+    @Test func trolling_requiresAnObservedCountOnTheSameDay() {
+        let midnight = ymd(2026, 5, 28)
+        var previousDay = steadyHistory()
+        previousDay.observe(after: nil, at: midnight.addingTimeInterval(-60))
+        var today = steadyHistory(20, ["2026-05-28": 803])
+        today.observe(after: previousDay, at: midnight)
+        #expect(today.burst(for: .daily, asOf: midnight) == nil)
+
+        var missingToday = steadyHistory()
+        missingToday.observe(after: nil, at: noon)
+        today.observe(after: missingToday, at: noon.addingTimeInterval(60))
+        #expect(today.burst(for: .daily, asOf: noon) == nil)
     }
 
-    @Test func trolling_judgesEachDayOnlyAgainstTheDaysBeforeIt() {
-        let history = steadyHistory(20, ["2026-05-27": 300, "2026-05-28": 5_000])
-        // The later huge day doesn't raise the bar for the earlier one…
-        #expect(history.burst(for: .daily, asOf: ymd(2026, 5, 27))
-            == Burst(day: ymd(2026, 5, 27), count: 300, usual: 20))
-        // …and a window with two reports the bigger.
-        #expect(history.burst(for: .weekly, asOf: ymd(2026, 5, 28))
-            == Burst(day: ymd(2026, 5, 28), count: 5_000, usual: 20))
+    @Test func trolling_keepsTheObservedBurstInLongerWindows() throws {
+        let encoded = try JSONEncoder().encode(observeJump(from: 19, to: 803))
+        let observed = try JSONDecoder().decode(ContributionHistory.self, from: encoded)
+        let tomorrow = ymd(2026, 5, 29)
+        var next = steadyHistory(20, ["2026-05-28": 803])
+        next.observe(after: observed, at: tomorrow)
+        #expect(next.burst(for: .daily, asOf: tomorrow) == nil)
+        #expect(next.burst(for: .weekly, asOf: tomorrow)?.count == 784)
+        #expect(next.burst(for: .weekly, asOf: ymd(2026, 6, 4)) == nil)
+        #expect(next.burst(for: .monthly, asOf: ymd(2026, 6, 4))?.count == 784)
+    }
+
+    @Test func trolling_ignoresLegacyCachedFlagAndPreservesCount() throws {
+        let standing = Standing(username: "fixture", contributions: 803, window: .daily, lastUpdated: noon,
+                                state: .loaded, burst: Burst(day: noon, count: 803, usual: 20))
+        let data = try JSONEncoder().encode(standing)
+        let legacy = String(decoding: data, as: UTF8.self).replacingOccurrences(of: "observedBurst", with: "burst")
+        let restored = try JSONDecoder().decode(Standing.self, from: Data(legacy.utf8))
+        #expect(restored.contributions == 803)
+        #expect(restored.burst == nil)
     }
 
     @Test func usualBigDay_isTheNinetiethPercentileOfActiveDays() {

@@ -3,7 +3,7 @@ import Foundation
 /// One Competitor's daily contribution counts, as GitHub's calendar gave them, and the time zone
 /// they were read in. Every Window total comes from here. It's pure: each function takes the date
 /// to answer for and uses this history's own calendar, never the clock or the machine's time zone.
-/// Window and month totals, streaks and trolling days all come from it; the Windows core has the
+/// Window and month totals, streaks and observed bursts all come from it; the Windows core has the
 /// same functions in `windows/core/src/history.rs`.
 ///
 /// Days are GitHub's civil dates (`data-date="YYYY-MM-DD"`), kept as written. A day missing from
@@ -13,6 +13,9 @@ struct ContributionHistory: Codable, Equatable, Sendable {
     var days: [String: Int]
     /// The identifier of the time zone the days were read in, which decides which day is today.
     var timeZoneIdentifier: String
+    /// Local refresh evidence. Older histories and freshly parsed calendars carry neither field.
+    private(set) var observedAt: Date?
+    private var observedBursts: [String: Burst]?
 
     init(days: [String: Int], timeZone: TimeZone) {
         self.days = days
@@ -22,6 +25,7 @@ struct ContributionHistory: Codable, Equatable, Sendable {
     private enum CodingKeys: String, CodingKey {
         case days
         case timeZoneIdentifier = "timeZone"
+        case observedAt, observedBursts
     }
 
     var timeZone: TimeZone { TimeZone(identifier: timeZoneIdentifier) ?? .gmt }
@@ -68,25 +72,36 @@ struct ContributionHistory: Codable, Equatable, Sendable {
         return total
     }
 
-    /// The biggest trolling day `window` covers as of `reference`, if any (see `TrollCheck`). Each
-    /// day is judged only against this calendar's days before it, so every device and Window agree
-    /// on the same day; it stays on a longer Window until the day leaves it.
-    func burst(for window: ContributionWindow, asOf reference: Date) -> Burst? {
+    /// Compare successful reads of today's calendar cell. The contribution graph gives daily
+    /// totals, so the evidence is when the increase appeared on GitHub.
+    mutating func observe(after prior: ContributionHistory?, at date: Date) {
         let calendar = calendar
-        let range = days(in: window, asOf: reference)
-        let first = Self.key(for: range.lowerBound, in: calendar)
-        let last = Self.key(for: range.upperBound, in: calendar)
-        // "YYYY-MM-DD" keys sort in date order.
-        let ordered = days.sorted { $0.key < $1.key }
-        var biggest: Burst?
-        for (index, entry) in ordered.enumerated()
-        where entry.key >= first && entry.key <= last && entry.value > TrollCheck.floor {
-            let usual = TrollCheck.usualBigDay(ordered[..<index].map(\.value))
-            guard TrollCheck.isTrolling(count: entry.value, usual: usual), entry.value > (biggest?.count ?? 0),
-                  let day = Self.date(forKey: entry.key, in: calendar) else { continue }
-            biggest = Burst(day: day, count: entry.value, usual: usual)
+        let today = Self.key(for: date, in: calendar)
+        let oldest = Self.key(for: days(in: .monthly, asOf: date).lowerBound, in: calendar)
+        var bursts = observedBursts ?? [:]
+        if let prior = prior, prior.timeZoneIdentifier == timeZoneIdentifier {
+            bursts.merge(prior.observedBursts ?? [:]) { $0.count >= $1.count ? $0 : $1 }
+            if let previousDate = prior.observedAt,
+               calendar.isDate(previousDate, inSameDayAs: date),
+               let previousCount = prior.days[today], let currentCount = days[today] {
+                let increase = currentCount - previousCount
+                let elapsed = date.timeIntervalSince(previousDate)
+                if elapsed > 0, elapsed <= TrollCheck.maximumInterval, increase > TrollCheck.floor {
+                    let usual = TrollCheck.usualBigDay(days.filter { $0.key < today }.values)
+                    if TrollCheck.isTrolling(count: increase, usual: usual), increase > (bursts[today]?.count ?? 0) {
+                        bursts[today] = Burst(day: calendar.startOfDay(for: date), count: increase, usual: usual)
+                    }
+                }
+            }
         }
-        return biggest
+        observedBursts = bursts.filter { oldest <= $0.key && $0.key <= today }
+        observedAt = date
+    }
+
+    /// The biggest observed burst in the window. It stays visible until its day leaves the window.
+    func burst(for window: ContributionWindow, asOf reference: Date) -> Burst? {
+        let range = days(in: window, asOf: reference)
+        return observedBursts?.values.filter { range.contains($0.day) }.max { ($0.count, $0.day) < ($1.count, $1.day) }
     }
 
     /// Days in a row with at least one contribution as of `reference`, counted back from today

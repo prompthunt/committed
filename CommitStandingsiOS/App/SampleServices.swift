@@ -36,7 +36,7 @@ enum SampleServices {
         var includesFailingCompetitor = false
         /// Organizations that won't list their members for Committed, as People shows them.
         var restrictedOrganizations: [String]?
-        /// This person trolls: 784 more today, far above their usual, so their row wears the troll
+        /// This person trolls: 784 contributions between reads, so their row wears the troll
         /// face (screenshot fixture only).
         var trollPerson: String?
         /// Every person's counts multiplied by this, for the widest numbers a real board shows
@@ -122,9 +122,12 @@ enum SampleServices {
                 history.days[ContributionHistory.key(for: reference, in: history.calendar)] = recordDay
             }
             if username == trollPerson {
-                // 784 more today, far above their usual: the real trolling rule marks the row.
+                // Give the fixture a prior observation so it exercises the real burst rule.
+                var prior = history
+                prior.observe(after: nil, at: reference.addingTimeInterval(-60))
                 let key = ContributionHistory.key(for: reference, in: history.calendar)
                 history.days[key, default: 0] += 784
+                history.observe(after: prior, at: reference)
             }
             return .success(StandingCounts(history: history, window: window, asOf: reference))
         }

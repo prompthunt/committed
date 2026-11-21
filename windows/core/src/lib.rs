@@ -111,7 +111,7 @@ pub struct Row {
     pub is_you: bool,
     pub movement: i32,
     pub status: String,
-    /// The window's trolling day, if any: the row wears the troll face. Ranking ignores it.
+    /// The window's observed contribution burst, if any. Ranking ignores it.
     pub burst: Option<parser::Burst>,
 }
 /// One person's view (`BoardCore::person`): their month day by day beside last month, streaks
@@ -177,6 +177,56 @@ struct Snapshot {
     updated: i64,
     #[serde(default)]
     as_of: Option<NaiveDate>,
+    #[serde(default)]
+    bursts: BTreeMap<NaiveDate, parser::Burst>,
+}
+impl Snapshot {
+    fn from_refresh(
+        days: BTreeMap<NaiveDate, u32>,
+        updated: i64,
+        today: NaiveDate,
+        previous: Option<&Self>,
+    ) -> Self {
+        let mut bursts: BTreeMap<_, _> = previous
+            .into_iter()
+            .flat_map(|snapshot| {
+                snapshot
+                    .bursts
+                    .range(history::range(Window::Monthly, today))
+            })
+            .map(|(&day, &burst)| (day, burst))
+            .collect();
+        let previous_count = previous
+            .filter(|snapshot| {
+                snapshot.as_of == Some(today)
+                    && (1..=parser::MAX_BURST_INTERVAL)
+                        .contains(&updated.saturating_sub(snapshot.updated))
+            })
+            .and_then(|snapshot| snapshot.days.get(&today));
+        if let Some(burst) =
+            previous_count.and_then(|&count| parser::observed_burst(&days, today, count))
+        {
+            if bursts
+                .get(&today)
+                .is_none_or(|previous| burst.count > previous.count)
+            {
+                bursts.insert(today, burst);
+            }
+        }
+        Self {
+            days,
+            updated,
+            as_of: Some(today),
+            bursts,
+        }
+    }
+
+    fn burst(&self, window: Window, today: NaiveDate) -> Option<parser::Burst> {
+        self.bursts
+            .range(history::range(window, today))
+            .map(|(_, &burst)| burst)
+            .max_by_key(|burst| burst.count)
+    }
 }
 #[derive(Default, Serialize, Deserialize)]
 struct Saved {
@@ -383,6 +433,7 @@ impl BoardCore {
                 days,
                 updated: self.clock.now(),
                 as_of: Some(self.clock.today()),
+                ..Snapshot::default()
             },
         );
         Ok(())
@@ -476,7 +527,7 @@ fn ranked_rows(state: &State, window: Window, today: NaiveDate, now: i64) -> Vec
                 rank: 0,
                 contributions: snapshot.map(|s| history::total(&s.days, window, today)),
                 streak: snapshot.map(|s| history::current_streak(&s.days, today)),
-                burst: snapshot.and_then(|s| parser::burst(&s.days, history::range(window, today))),
+                burst: snapshot.and_then(|s| s.burst(window, today)),
                 is_you: state.saved.owner.as_ref() == Some(&person.login),
                 movement: 0,
                 status: if state.failed.contains_key(&person.login) {

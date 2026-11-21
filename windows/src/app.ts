@@ -22,11 +22,11 @@ const appIcon = new URL(
   import.meta.url,
 ).href;
 const trollFace = new URL("./assets/troll.png", import.meta.url).href;
-/** "784 in one day, about 7 times their usual big day": the tooltip and spoken trolling note. */
+/** Describe the change between refreshes for the tooltip and spoken note. */
 function trolling(burst: Burst): string {
   const multiple =
     burst.usual > 0 ? Math.floor(burst.count / burst.usual) : null;
-  return `${burst.count.toLocaleString()} in one day${multiple ? `, about ${multiple} times their usual big day` : ""}`;
+  return `Count rose by ${burst.count.toLocaleString()} between refreshes within six minutes${multiple ? `, about ${multiple} times their usual big day` : ""}`;
 }
 const windows: [Window, string][] = [
   ["today", "Today"],

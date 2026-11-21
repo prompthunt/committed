@@ -178,22 +178,24 @@ final class RefreshCoordinator {
             store.markLoading(username: username, window: window)
         }
         let client = self.client
+        let now = self.now
 
-        let results = await withTaskGroup(of: (String, Result<StandingCounts, ContributionsError>).self) { group in
+        let results = await withTaskGroup(of: (String, Result<StandingCounts, ContributionsError>, Date).self) { group in
             var pending = usernames.makeIterator()
             for username in usernames.prefix(6) {
                 _ = pending.next()
                 group.addTask {
                     let result = await client.standingCounts(for: username, window: window, asOf: reference)
-                    return (username, result)
+                    return (username, result, now())
                 }
             }
-            var collected: [(String, Result<StandingCounts, ContributionsError>)] = []
+            var collected: [(String, Result<StandingCounts, ContributionsError>, Date)] = []
             for await item in group {
                 collected.append(item)
                 if let username = pending.next(), !Task.isCancelled {
                     group.addTask {
-                        (username, await client.standingCounts(for: username, window: window, asOf: reference))
+                        let result = await client.standingCounts(for: username, window: window, asOf: reference)
+                        return (username, result, now())
                     }
                 }
             }
@@ -202,16 +204,14 @@ final class RefreshCoordinator {
 
         guard !Task.isCancelled, generation == requestGeneration else { return [:] }
         var histories: [String: ContributionHistory] = [:]
-        for (username, result) in results {
-            if case .success(let counts) = result, let history = counts.history {
-                histories[username] = history
-            }
-            applyResult(
+        for (username, result, observedAt) in results {
+            histories[username] = applyResult(
                 result,
                 username: username,
                 window: window,
                 reference: reference,
-                prior: priorStandings[username]
+                prior: priorStandings[username],
+                observedAt: observedAt
             )
         }
         store.updateHistories(histories)
@@ -221,7 +221,7 @@ final class RefreshCoordinator {
     /// `window`'s count worked out from days already fetched in this refresh: no page needed.
     private func applyDerived(_ history: ContributionHistory, username: String, window: ContributionWindow, reference: Date) {
         applyResult(
-            .success(StandingCounts(contributions: history.total(for: window, asOf: reference), history: history)),
+            .success(StandingCounts(history: history, window: window, asOf: reference)),
             username: username,
             window: window,
             reference: reference,
@@ -346,9 +346,9 @@ final class RefreshCoordinator {
             store.markLoading(username: username, window: window)
             let result = await client.standingCounts(for: username, window: window, asOf: reference)
             guard !Task.isCancelled, generation == requestGeneration, !store.isHidden(username) else { return }
-            applyResult(result, username: username, window: window, reference: reference, prior: prior)
-            if case .success(let counts) = result, let history = counts.history {
-                fetched = history
+            fetched = applyResult(result, username: username, window: window, reference: reference,
+                                  prior: prior, observedAt: now())
+            if let history = fetched {
                 store.updateHistories([username: history])
             }
         }
@@ -360,23 +360,32 @@ final class RefreshCoordinator {
     /// on success, write the new counts; on failure, preserve any prior loaded
     /// counts and `lastUpdated` so the UI shows stale data with a `.failed`
     /// badge rather than blanking the row.
+    @discardableResult
     private func applyResult(
         _ result: Result<StandingCounts, ContributionsError>,
         username: String,
         window: ContributionWindow,
         reference: Date,
-        prior: Standing?
-    ) {
+        prior: Standing?,
+        observedAt: Date? = nil
+    ) -> ContributionHistory? {
         switch result {
         case .success(let counts):
+            var history = counts.history
+            if let observedAt, history != nil {
+                let previous = store.history(for: username)
+                if let previousAt = previous?.observedAt, previousAt > observedAt { return nil }
+                history?.observe(after: previous, at: observedAt)
+            }
             store.updateStanding(Standing(
                 username: username,
                 contributions: counts.contributions,
                 window: window,
                 lastUpdated: reference,
                 state: .loaded,
-                burst: counts.burst
+                burst: history?.burst(for: window, asOf: reference) ?? counts.burst
             ))
+            return history
         case .failure(let error):
             if let prior, prior.window == window, prior.lastUpdated != .distantPast {
                 // Preserve the last good count + timestamp; flag it stale rather than blank. The
@@ -399,6 +408,7 @@ final class RefreshCoordinator {
                     state: .failed(message(for: error))
                 ))
             }
+            return nil
         }
     }
 

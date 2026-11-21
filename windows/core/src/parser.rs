@@ -1,8 +1,7 @@
 use chrono::NaiveDate;
 use scraper::{Html, Selector};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
-use std::ops::RangeInclusive;
 
 fn count(label: &str) -> Option<u32> {
     let label = label.trim().to_ascii_lowercase();
@@ -20,7 +19,7 @@ pub fn parse(html: &str) -> Result<BTreeMap<NaiveDate, u32>, String> {
         .filter_map(|node| {
             Some((
                 node.value().attr("for")?.to_string(),
-                count(&node.text().collect::<String>()).unwrap_or(0),
+                count(&node.text().collect::<String>())?,
             ))
         })
         .collect();
@@ -45,22 +44,25 @@ pub fn parse(html: &str) -> Result<BTreeMap<NaiveDate, u32>, String> {
             node.select(&Selector::parse("[aria-label]").unwrap())
                 .find_map(|n| n.value().attr("aria-label").and_then(count))
         });
-        days.insert(date, direct.or(tooltip).or(label).unwrap_or(0));
+        if let Some(count) = direct.or(tooltip).or(label) {
+            days.insert(date, count);
+        }
     }
     if days.is_empty() {
-        Err("No day cells found".into())
+        Err("No day counts resolved".into())
     } else {
         Ok(days)
     }
 }
-/// A trolling day is more than this many times the person's usual big day…
+/// Five-minute polling with one minute of leeway. Matches Swift's `TrollCheck`.
+pub const MAX_BURST_INTERVAL: i64 = 360;
+/// A burst is more than this many times the person's usual big day…
 pub const TROLL_MULTIPLE: u32 = 5;
 /// …and more than this many contributions. Matches the Mac and iPhone (`TrollCheck`).
 pub const TROLL_FLOOR: u32 = 100;
 
-/// One day far above someone's usual. The board marks the row with the troll face; it
-/// doesn't change the count or the rank.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
+/// An increase observed between two closely spaced calendar reads on the same day.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Burst {
     pub date: NaiveDate,
     pub count: u32,
@@ -79,20 +81,22 @@ pub fn usual_big_day(counts: impl Iterator<Item = u32>) -> u32 {
     active[index.min(active.len() - 1)]
 }
 
-/// The biggest trolling day in `range` (a Window's days, `history::range`), each day judged only
-/// against the calendar's days before it. Swift's `ContributionHistory.burst(for:asOf:)`.
-pub fn burst(days: &BTreeMap<NaiveDate, u32>, range: RangeInclusive<NaiveDate>) -> Option<Burst> {
-    days.range(range)
-        .filter(|(_, &count)| count > TROLL_FLOOR)
-        .filter_map(|(&date, &count)| {
-            let usual = usual_big_day(days.range(..date).map(|(_, &c)| c));
-            (count > TROLL_FLOOR.max(TROLL_MULTIPLE.saturating_mul(usual))).then_some(Burst {
-                date,
-                count,
-                usual,
-            })
-        })
-        .max_by_key(|burst| burst.count)
+/// Check the increase between two successful reads of today's cell.
+pub fn observed_burst(
+    days: &BTreeMap<NaiveDate, u32>,
+    today: NaiveDate,
+    previous_count: u32,
+) -> Option<Burst> {
+    let increase = days.get(&today)?.saturating_sub(previous_count);
+    if increase <= TROLL_FLOOR {
+        return None;
+    }
+    let usual = usual_big_day(days.range(..today).map(|(_, &count)| count));
+    (increase > TROLL_MULTIPLE.saturating_mul(usual)).then_some(Burst {
+        date: today,
+        count: increase,
+        usual,
+    })
 }
 
 #[cfg(test)]
@@ -108,11 +112,30 @@ mod tests {
     }
 
     #[test]
-    fn flags_a_day_far_above_their_usual_big_day() {
+    fn unreadable_cell_is_not_an_observed_zero() {
+        let html = r#"<td data-date="2026-05-27" data-count="0"></td>
+            <td data-date="2026-05-28" id="unresolved"></td>
+            <tool-tip for="unresolved">Contribution data unavailable</tool-tip>"#;
+        assert_eq!(parse(html).unwrap(), BTreeMap::from([(day(27), 0)]));
+    }
+
+    fn observe(
+        count: u32,
+        time: i64,
+        date: NaiveDate,
+        prior: Option<&crate::Snapshot>,
+    ) -> crate::Snapshot {
         let mut days = steady(20);
-        days.insert(day(28), 784);
+        days.insert(date, count);
+        crate::Snapshot::from_refresh(days, time, date, prior)
+    }
+
+    #[test]
+    fn flags_the_increase_between_close_reads() {
+        let first = observe(19, 1_000, day(28), None);
+        let second = observe(803, 1_360, day(28), Some(&first));
         assert_eq!(
-            burst(&days, day(28)..=day(28)),
+            second.burst(crate::Window::Today, day(28)),
             Some(Burst {
                 date: day(28),
                 count: 784,
@@ -122,43 +145,56 @@ mod tests {
     }
 
     #[test]
-    fn five_times_usual_is_not_over_the_line() {
-        let mut days = steady(40);
-        days.insert(day(28), 200);
-        assert_eq!(burst(&days, day(28)..=day(28)), None);
+    fn ignores_first_reads_long_gaps_and_day_boundaries() {
+        let first = observe(803, 1_000, day(28), None);
+        assert!(first.burst(crate::Window::Today, day(28)).is_none());
+        let prior = observe(19, 1_000, day(28), None);
+        let later = observe(803, 1_361, day(28), Some(&prior));
+        assert!(later.burst(crate::Window::Today, day(28)).is_none());
+        let tomorrow = observe(803, 1_060, day(29), Some(&prior));
+        assert!(tomorrow.burst(crate::Window::Today, day(29)).is_none());
     }
 
     #[test]
-    fn needs_more_than_a_hundred() {
+    fn ignores_a_total_of_803_accumulated_gradually() {
+        let mut prior = None;
+        for (index, count) in (3..=803).step_by(100).enumerate() {
+            let snapshot = observe(count, 1_000 + index as i64 * 300, day(28), prior.as_ref());
+            assert!(snapshot.burst(crate::Window::Today, day(28)).is_none());
+            prior = Some(snapshot);
+        }
+        assert_eq!(prior.unwrap().days.get(&day(28)), Some(&803));
+    }
+
+    #[test]
+    fn keeps_the_floor_and_usual_day_threshold() {
+        let mut days = steady(40);
+        days.insert(day(28), 240);
+        assert_eq!(observed_burst(&days, day(28), 40), None);
         let mut days = steady(2);
         days.insert(day(28), 100);
-        assert_eq!(burst(&days, day(28)..=day(28)), None);
+        assert_eq!(observed_burst(&days, day(28), 0), None);
         days.insert(day(28), 101);
-        assert_eq!(burst(&days, day(28)..=day(28)).map(|b| b.count), Some(101));
+        assert_eq!(
+            observed_burst(&days, day(28), 0).map(|b| b.count),
+            Some(101)
+        );
+        assert_eq!(observed_burst(&days, day(28), 102), None);
     }
 
     #[test]
-    fn stays_in_longer_windows_until_the_day_leaves() {
-        let mut days = steady(20);
-        days.insert(day(25), 500);
-        days.insert(day(28), 20);
-        assert_eq!(burst(&days, day(28)..=day(28)), None);
+    fn keeps_observed_bursts_in_longer_windows() {
+        let first = observe(19, 1_000, day(28), None);
+        let burst = observe(803, 1_300, day(28), Some(&first));
+        let tomorrow = observe(20, 90_000, day(29), Some(&burst));
+        assert!(tomorrow.burst(crate::Window::Today, day(29)).is_none());
         assert_eq!(
-            burst(&days, day(22)..=day(28)).map(|b| b.date),
-            Some(day(25))
+            tomorrow.burst(crate::Window::Week, day(29)).unwrap().count,
+            784
         );
-    }
-
-    #[test]
-    fn a_later_day_does_not_raise_the_bar_for_an_earlier_one() {
-        let mut days = steady(20);
-        days.insert(day(27), 300);
-        days.insert(day(28), 5_000);
-        assert_eq!(burst(&days, day(27)..=day(27)).map(|b| b.usual), Some(20));
-        assert_eq!(
-            burst(&days, day(22)..=day(28)).map(|b| b.count),
-            Some(5_000)
-        );
+        let next_week = NaiveDate::from_ymd_opt(2026, 6, 4).unwrap();
+        assert!(tomorrow.burst(crate::Window::Week, next_week).is_none());
+        assert!(tomorrow.burst(crate::Window::Monthly, next_week).is_some());
     }
 
     #[test]

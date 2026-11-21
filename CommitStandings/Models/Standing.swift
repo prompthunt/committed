@@ -17,9 +17,14 @@ struct Standing: Identifiable, Equatable, Codable {
     var window: ContributionWindow
     var lastUpdated: Date
     var state: LoadState
-    /// The biggest trolling day in the window, if any (see `TrollCheck`). The row marks it with
-    /// the troll face; ranking ignores it. Older snapshots without it decode as nil.
+    /// The biggest observed burst in the window, if any. The badge doesn't affect ranking.
     var burst: Burst?
+
+    private enum CodingKeys: String, CodingKey {
+        case username, contributions, window, lastUpdated, state
+        // The old `burst` key carried a flag inferred from a whole day's count.
+        case burst = "observedBurst"
+    }
 
     var id: String { username }
 
@@ -40,9 +45,7 @@ struct Standing: Identifiable, Equatable, Codable {
     }
 }
 
-/// One day far above someone's usual: more than `TrollCheck.multiple` times their usual big day
-/// and over `TrollCheck.floor`. Committed calls it trolling and marks the row; it doesn't change
-/// the count or the rank.
+/// An increase observed between two closely spaced calendar reads on the same day.
 struct Burst: Equatable, Codable, Sendable {
     var day: Date
     var count: Int
@@ -56,7 +59,7 @@ struct Burst: Equatable, Codable, Sendable {
 }
 
 /// Result of fetching a competitor's standing: the Window's contributions count, the Window's
-/// biggest trolling day when there is one and, from the real client, the daily counts both were
+/// biggest observed burst when there is one and, from the real client, the daily counts both were
 /// worked out from. Stubs may leave `history` nil.
 struct StandingCounts: Equatable, Sendable {
     var contributions: Int
@@ -69,7 +72,7 @@ struct StandingCounts: Equatable, Sendable {
         self.burst = burst
     }
 
-    /// `window`'s total and trolling day as of `reference`, both from `history`.
+    /// `window`'s total and observed burst as of `reference`, both from `history`.
     init(history: ContributionHistory, window: ContributionWindow, asOf reference: Date) {
         self.init(
             contributions: history.total(for: window, asOf: reference),

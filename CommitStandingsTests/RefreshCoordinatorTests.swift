@@ -622,8 +622,9 @@ struct RefreshDailyCountsTests {
 
         await refresh.refreshAll(reason: .manual)
 
-        #expect(store.history(for: "me") == me)
-        #expect(store.history(for: "alice") == alice)
+        #expect(store.history(for: "me")?.days == me.days)
+        #expect(store.history(for: "alice")?.days == alice.days)
+        #expect(store.history(for: "alice")?.observedAt == clock.date)
         #expect(store.standing(for: "alice", window: .daily)?.contributions == 2)
     }
 
@@ -633,12 +634,36 @@ struct RefreshDailyCountsTests {
         let clock = clock
         let refresh = RefreshCoordinator(store: store, client: fetcher, interval: 99999, now: { clock.date })
         await refresh.refreshAll(reason: .manual)
+        let first = store.history(for: "alice")
 
         await fetcher.set(nil, for: "alice")
         clock.date = clock.date.addingTimeInterval(600)
         await refresh.refreshAll(reason: .timer)
 
-        #expect(store.history(for: "alice") == alice)
+        #expect(store.history(for: "alice") == first)
+    }
+
+    @Test func aConfirmedBurstIsSharedByTheBoardWindowAndDerivedWindows() async {
+        let store = makeStore()
+        let clock = clock
+        let fetcher = CalendarFetcher(["me": me, "alice": alice])
+        let refresh = RefreshCoordinator(store: store, client: fetcher, interval: 99999, now: { clock.date })
+        store.selectedWindow = .weekly
+        refresh.additionalWindows = { [.daily, .monthly] }
+        await refresh.refreshAll(reason: .manual)
+        #expect(store.standing(for: "alice", window: .weekly)?.burst == nil)
+
+        var next = alice
+        next.days["2026-05-28"] = 803
+        await fetcher.set(next, for: "alice")
+        clock.date = clock.date.addingTimeInterval(300)
+        await refresh.refreshOne(username: "alice", reason: .manual)
+
+        #expect(store.standing(for: "alice", window: .daily)?.contributions == 803)
+        #expect(store.standing(for: "alice", window: .weekly)?.contributions == 809)
+        for window in ContributionWindow.allCases {
+            #expect(store.standing(for: "alice", window: window)?.burst?.count == 801)
+        }
     }
 
     /// Live rank's Window on iPhone comes from the same page as the board's: one page per person
@@ -671,7 +696,7 @@ struct RefreshDailyCountsTests {
         await refresh.refreshOne(username: "alice", reason: .visibilityChanged)
 
         #expect(await fetcher.pages == 1)
-        #expect(store.history(for: "alice") == alice)
+        #expect(store.history(for: "alice")?.days == alice.days)
         #expect(store.standing(for: "alice", window: .weekly)?.contributions == 8)
     }
 }

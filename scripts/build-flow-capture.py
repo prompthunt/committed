@@ -56,7 +56,7 @@ app_file.write_text(r'''import SwiftUI
         s.updateHistories(Dictionary(uniqueKeysWithValues: loaded.map { ($0.username, captureHistory($0.username, asOf: now)) }))
         for window in ContributionWindow.allCases {
             for entry in loaded {
-                let counts = StandingCounts(history: captureHistory(entry.username, asOf: now), window: window, asOf: now)
+                let counts = captureStanding(entry.username, window: window, asOf: now)
                 s.updateStanding(Standing(username: entry.username, contributions: counts.contributions,
                     window: window, lastUpdated: now, state: .loaded, burst: counts.burst))
             }
@@ -150,13 +150,24 @@ private func captureNow() -> Date {
 
 private struct CaptureCounts: ContributionsFetching {
     func standingCounts(for username: String, window: ContributionWindow, asOf reference: Date) async -> Result<StandingCounts, ContributionsError> {
-        .success(StandingCounts(history: captureHistory(username, asOf: reference), window: window, asOf: reference))
+        .success(captureStanding(username, window: window, asOf: reference))
     }
+}
+
+private func captureStanding(_ username: String, window: ContributionWindow, asOf reference: Date) -> StandingCounts {
+    var history = captureHistory(username, asOf: reference)
+    if TROLL_FIXTURE, username == "hubot" {
+        var prior = history
+        prior.observe(after: nil, at: reference.addingTimeInterval(-60))
+        let key = ContributionHistory.key(for: reference, in: history.calendar)
+        history.days[key, default: 0] += 784
+        history.observe(after: prior, at: reference)
+    }
+    return StandingCounts(history: history, window: window, asOf: reference)
 }
 
 /// A made-up year of days: a fixed count a day, a streak of the listed length (nothing the day
 /// before it), then most days. monalisa's runs the whole calendar ("365+"); defunkt has none.
-/// With `--troll`, hubot has 784 more today: the real trolling rule marks the row.
 private func captureHistory(_ username: String, asOf reference: Date) -> ContributionHistory {
     let perDay = ["octocat": 5, "hubot": 4, "monalisa": 3, "defunkt": 2, "mojombo": 1][username] ?? 1
     let streak = ["octocat": 14, "hubot": 6, "monalisa": 371, "defunkt": 0, "mojombo": 2][username] ?? 1
@@ -169,8 +180,9 @@ private func captureHistory(_ username: String, asOf reference: Date) -> Contrib
         let active = offset < streak || (offset > max(streak, 1) && offset % 5 != 0)
         days[ContributionHistory.key(for: day, in: calendar)] = active ? perDay * (1 + offset % 3) : 0
     }
-    if TROLL_FIXTURE, username == "hubot" {
-        days[ContributionHistory.key(for: today, in: calendar), default: 0] += 784
+    // `-CaptureBusy YES` gives you a busy day without a recorded burst.
+    if username == "octocat", UserDefaults.standard.bool(forKey: "CaptureBusy") {
+        days[ContributionHistory.key(for: today, in: calendar)] = 803
     }
     return ContributionHistory(days: days, timeZone: .current)
 }

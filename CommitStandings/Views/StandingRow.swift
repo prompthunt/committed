@@ -132,17 +132,17 @@ struct StandingRow: View {
             .accessibilityHidden(true)
     }
 
-    /// The window's trolling day, once the row has data.
+    /// The window's observed burst, once the row has data.
     private var burst: Burst? {
         hasData ? standing?.burst : nil
     }
 
-    /// "784 in one day, about 7 times their usual big day", for the tooltip and VoiceOver.
+    /// Describe the observed change without assuming when the contributions happened.
     private var trollDescription: String? {
         guard let burst else { return nil }
-        let count = burst.count.formatted()
-        guard let multiple = burst.multiple else { return "\(count) in one day" }
-        return "\(count) in one day, about \(multiple) times their usual big day"
+        let increase = "Count rose by \(burst.count.formatted()) between refreshes within six minutes"
+        guard let multiple = burst.multiple else { return increase }
+        return "\(increase), about \(multiple) times their usual big day"
     }
 
     /// Your own row gets the same treatment as the hero card: a soft tint fill with a thin tint

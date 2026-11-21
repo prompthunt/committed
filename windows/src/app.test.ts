@@ -82,12 +82,12 @@ test("a trolling row turns its count red and swaps the squares for the troll fac
   );
   const face = document.querySelector<HTMLElement>(".troll-face");
   expect(face?.title).toBe(
-    "Problem? 784 in one day, about 7 times their usual big day.",
+    "Problem? Count rose by 784 between refreshes within six minutes, about 7 times their usual big day.",
   );
   expect(document.querySelector(".contribution-squares")).toBeNull();
   expect(
     document.querySelector(
-      '[aria-label="Rank 1, Mona, 784 Contributions, you, trolling: 784 in one day, about 7 times their usual big day"]',
+      '[aria-label="Rank 1, Mona, 784 Contributions, you, trolling: Count rose by 784 between refreshes within six minutes, about 7 times their usual big day"]',
     ),
   ).not.toBeNull();
   dispose();

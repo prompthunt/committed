@@ -231,7 +231,7 @@ impl BoardCore {
                 })
                 .await
                 .and_then(|html| parser::parse(&html));
-            (login, result)
+            (login, result, self.clock.now(), self.clock.today())
         }))
         .buffer_unordered(6)
         .collect()
@@ -241,17 +241,16 @@ impl BoardCore {
             return Ok(());
         }
         state.failed.clear();
-        for (login, result) in results {
+        for (login, result, updated, today) in results {
             match result {
                 Ok(days) => {
-                    state.saved.counts.insert(
-                        login,
-                        Snapshot {
-                            days,
-                            updated: self.clock.now(),
-                            as_of: Some(self.clock.today()),
-                        },
+                    let snapshot = Snapshot::from_refresh(
+                        days,
+                        updated,
+                        today,
+                        state.saved.counts.get(&login),
                     );
+                    state.saved.counts.insert(login, snapshot);
                 }
                 Err(_) => {
                     state

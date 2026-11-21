@@ -20,7 +20,7 @@ import UIKit
 /// (`-ScreenshotPersonEnd` scrolls it to the end), `-ScreenshotChallenge <login>` opens that person's
 /// view and their Challenge share once their race loads (as a notification's Share your race does),
 /// `-ScreenshotNotificationResponse <action>:<login>` responds to a relay pass notification at launch,
-/// `-ScreenshotTroll <login>` gives that person a trolling day (784 more, the troll face),
+/// `-ScreenshotTroll <login>` gives that person an observed burst (784 more between reads, the troll face),
 /// `-ScreenshotCalendarFrom <login>=<YYYY-MM-DD>` starts that person's calendar on that day once the
 /// board loads (empty weeks in their Weekly record),
 /// `-ScreenshotRecordDay <n>` makes your count today n (a big one sets a record: the record card

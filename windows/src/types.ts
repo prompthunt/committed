@@ -15,7 +15,7 @@ export interface Row extends Person {
   is_you: boolean;
   movement: number;
   status: "loaded" | "loading" | "cached" | "failed" | "missing";
-  /** The window's trolling day, if any: far above their usual, so the row wears the troll face. */
+  /** The window's observed contribution burst, if any. */
   burst?: Burst | null;
 }
 export interface Burst {
