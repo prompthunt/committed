@@ -21,11 +21,8 @@ extension PrivateContributionsTipStyle {
 /// The Mac's private-contributions tip (`PrivateContributionsTip`: the same view, copy and
 /// dismissal) in the iPhone's style.
 struct PrivateWorkTip: View {
-    /// Your own person view shows it always, like the Mac's About Committed.
-    var dismissible = true
-
     var body: some View {
-        PrivateContributionsTip(dismissible: dismissible)
+        PrivateContributionsTip()
             .environment(\.privateContributionsTipStyle, .committed)
             .buttonStyle(TileButtonStyle())
     }

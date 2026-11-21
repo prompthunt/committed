@@ -50,7 +50,7 @@ struct PersonScreen: View {
     private func column(_ part: PersonViewPart) -> some View {
         ScrollView {
             PersonViewContent(person: person, initialDay: Self.initialDay, part: part) {
-                PrivateWorkTip(dismissible: false)
+                PrivateWorkTip()
             } raceAccessory: {
                 // Hidden on the Sample board and until the race loads.
                 if let challenge = model.challenge(for: person) {
