@@ -194,7 +194,7 @@ private struct BoardShareWidget: View {
         switch style {
         case .board: CommittedWidgetLarge(snapshot: snapshot)
         case .race: CommittedWidgetMedium(snapshot: snapshot)
-        case .rank: CommittedWidgetSmall(snapshot: snapshot, usesContributionGrid: true)
+        case .rank: CommittedWidgetSmall(snapshot: snapshot, isShareImage: true)
         case .list: CommittedWidgetBoardSmall(snapshot: snapshot)
         }
     }

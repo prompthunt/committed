@@ -11,7 +11,7 @@ import SwiftUI
 /// age. Read at a glance from the driver's seat, so no rows.
 struct CommittedWidgetSmall: View {
     let snapshot: WidgetSnapshot
-    var usesContributionGrid = false
+    var isShareImage = false
     @Environment(\.liveRankIsStale) private var isStale
 
     var body: some View {
@@ -29,14 +29,19 @@ struct CommittedWidgetSmall: View {
                     .accessibilityLabel(LiveRankText.rankAccessibility(state))
             }
             HStack(alignment: .center, spacing: 5) {
-                Text(state.contributions.map { "\($0)" } ?? "–")
-                    .font(CommittedType.display(ranked ? 22 : 44, relativeTo: ranked ? .title2 : .largeTitle))
-                    .displayTracking(ranked ? 0 : 44)
-                    .foregroundStyle(isStale ? Color.limeDeep : Color.lime)
+                let count = state.contributions.map { "\($0)" } ?? "–"
                 let level = state.contributions.map { $0 > 0 ? (isStale ? 3 : 4) : 0 } ?? 0
-                if usesContributionGrid {
+                if isShareImage {
                     ContributionGrid(size: ranked ? 12 : 18, color: level == 0 ? .muted : Color.contributionSquares[level])
+                    let label = state.contributions == 1 ? "Contribution" : "Contributions"
+                    Text("\(count) \(label)")
+                        .font(CommittedType.display(ranked ? 14 : 16, relativeTo: .title2))
+                        .foregroundStyle(Color.lime)
                 } else {
+                    Text(count)
+                        .font(CommittedType.display(ranked ? 22 : 44, relativeTo: ranked ? .title2 : .largeTitle))
+                        .displayTracking(ranked ? 0 : 44)
+                        .foregroundStyle(isStale ? Color.limeDeep : Color.lime)
                     ContributionSquare(level: level, size: ranked ? 12 : 18)
                 }
                 // Your streak on the count's line, so the card keeps its four lines. Only beside
