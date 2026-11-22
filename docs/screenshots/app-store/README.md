@@ -60,6 +60,50 @@ the deck is `app-store-screenshots.json`, and its README lists every source.
 Look at each PNG before committing, then set `sourceCommit` in `manifest.json` to the commit the
 deck came from and run `python3 scripts/screenshot_evidence.py --base origin/main`.
 
+## Newer screens
+
+`AppStoreFeatureScreenTests` renders the screens 1.1 added, from the Sample board with a record set
+today and Ezra Q and Odile M pinned: the Board with Your rivals and the record card, Ezra Q's person
+view, their Challenge story (1080 × 1920), your own view, Share board and People. With `RENDER_DIR`
+set they're written to `screens/feature-*.png` beside the others. Renders, not runtime captures.
+
+## Your real board (local only)
+
+Agents can run the app and render these screens on the owner's real board without a GitHub token.
+Only the roster needs the owner, because GitHub's people calls need a token; the counts come from
+each person's public contribution calendar, read anonymously by the app's own `ContributionsClient`.
+
+1. The owner keeps a roster outside the repo, `~/.config/committed/board.json`:
+
+   ```json
+   { "owner": "addisonk", "people": ["odile-m", "ezra-q"], "hidden": [], "pins": ["ezra-q"] }
+   ```
+
+2. Read everyone's calendar into a snapshot and render its screens into `build/app-store/real/`:
+
+   ```sh
+   TEST_RUNNER_RENDER_DIR="$PWD/build/app-store" \
+   TEST_RUNNER_REAL_BOARD_ROSTER="$HOME/.config/committed/board.json" \
+   TEST_RUNNER_REAL_BOARD_FILE="$HOME/.config/committed/board-snapshot.json" \
+     python3 scripts/ios_check.py ios --only-testing CommitStandingsiOSTests/RealBoardTests
+   ```
+
+   Leave out `REAL_BOARD_ROSTER` to render the saved snapshot again without reading GitHub.
+
+3. To use the app on it, launch a Debug build with the snapshot:
+
+   ```sh
+   xcrun simctl launch 94D56458-B90B-484A-BA5E-16748D2CBEE5 com.addisonk.CommitStandings.iOS \
+     -ScreenshotFixture -ScreenshotBoardFile "$HOME/.config/committed/board-snapshot.json"
+   ```
+
+   The clock is set to the snapshot's time, nothing moves between refreshes, avatars are the real
+   GitHub ones, and nothing is saved over the phone's real board or token.
+
+The snapshot holds logins and public counts only, but the board is the owner's choice of people:
+keep the roster, snapshot and renders out of the repo, and put real people in the listing only
+with the owner's go-ahead.
+
 ## Upload
 
 Upload to a version that's still being prepared: App Store Connect locks a version's screenshots

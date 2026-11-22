@@ -149,7 +149,7 @@ enum AppStoreScreenshots {
 
     /// App Store Connect refuses screenshots with an alpha channel, so the frame is flattened onto
     /// an RGB bitmap with no alpha and written with ImageIO (`UIImage.pngData()` keeps RGBA).
-    private static func opaquePNG(_ view: some View) throws -> Data {
+    static func opaquePNG(_ view: some View) throws -> Data {
         let renderer = ImageRenderer(content: view)
         renderer.scale = 3
         renderer.isOpaque = true
@@ -273,7 +273,7 @@ private struct PhoneFrame<Screen: View>: View {
 // MARK: - Screens (440 × 956 pt)
 
 /// The status bar and Dynamic Island of a 6.9" iPhone at 9:41, with the home indicator.
-private struct DeviceChrome: View {
+struct DeviceChrome: View {
     var body: some View {
         ZStack(alignment: .top) {
             Capsule().fill(.black).frame(width: 126, height: 37).padding(.top, 11)
@@ -302,7 +302,7 @@ private struct DeviceChrome: View {
 }
 
 /// A capture of the app's window, under the status bar.
-private struct AppScreen: View {
+struct AppScreen: View {
     let image: UIImage
 
     var body: some View {
@@ -417,7 +417,7 @@ private struct HomeScreen: View {
 /// The real app in a window at 440 × 956 pt, with a 6.9" iPhone's safe areas (status bar and home
 /// indicator) and its bars at the bottom rather than in the iPhone Duo's side bar.
 @MainActor
-private final class AppScreenWindow {
+final class AppScreenWindow {
     private let window: UIWindow
     private let controller: UIViewController
 
@@ -492,7 +492,7 @@ private final class AppScreenWindow {
 }
 
 @MainActor
-private final class StillBackgroundTime: BackgroundTimeProviding {
+final class StillBackgroundTime: BackgroundTimeProviding {
     func begin(_ name: String) -> Int { 0 }
     func end(_ token: Int) {}
 }

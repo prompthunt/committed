@@ -35,6 +35,9 @@ import UIKit
 /// (or `off`) set the board owner's notification choices,
 /// `-ScreenshotNotificationsDenied` reads iOS's permission as denied,
 /// `-ScreenshotNoRelay` runs a relay build as one without the relay,
+/// `-ScreenshotBoardFile <snapshot.json>` runs the fixture on a real board saved from public data
+/// (`BoardSnapshot`, written by `RealBoardTests`) instead of the Sample board, with real avatars and
+/// the clock at the snapshot's time,
 /// and `-RelayDisclosureAccepted` starts with the Committed relay disclosure already accepted (for
 /// builds with `COMMITTED_RELAY_URL`; without it, a relay build shows the disclosure sheet).
 ///
@@ -274,6 +277,8 @@ enum ScreenshotFixture {
     /// pattern, seeded by login) saved to the App Group cache like real ones, so the board and
     /// Live rank show the avatar shape without any real account's photo.
     static func avatars(cache: AvatarCache = .shared) -> any AvatarPrefetching {
+        // A real board shows real people's GitHub avatars, as the connected app does.
+        if boardSnapshot != nil { return GitHubAvatarPrefetcher.live() }
         let avatars = GeneratedAvatars(cache: cache)
         // Saved before the first frame, so the board shows them from the start, not only after
         // a refresh re-renders its rows.
@@ -321,7 +326,13 @@ enum ScreenshotFixture {
     /// The app's clock: `-ScreenshotDate <ISO 8601>`, or the real time.
     static var now: @Sendable () -> Date {
         let date = value(after: "-ScreenshotDate").flatMap { try? Date($0, strategy: .iso8601) }
+            ?? boardSnapshot?.fetchedAt
         return { date ?? Date() }
+    }
+
+    /// `-ScreenshotBoardFile <snapshot.json>`: a real board saved from public data (`BoardSnapshot`).
+    static var boardSnapshot: BoardSnapshot? {
+        value(after: "-ScreenshotBoardFile").flatMap { try? BoardSnapshot.load(from: URL(fileURLWithPath: $0)) }
     }
 
     /// The Sample board's services (`SampleServices`) with the fixture's extras: one person who
@@ -334,6 +345,7 @@ enum ScreenshotFixture {
     static func services(extraPeople: Int = 0, failingCompetitor: Bool = true) -> CommittedServices {
         // `-ScreenshotRestrictedOrg <name>`: an organization that won't list its members for
         // Committed, as People shows it.
+        if let snapshot = boardSnapshot { return services(snapshot) }
         let services = SampleServices.make(SampleServices.Options(
             extraPeople: extraPeople,
             includesFailingCompetitor: failingCompetitor,
@@ -366,6 +378,25 @@ enum ScreenshotFixture {
                 history.days = history.days.filter { $0.key >= start.first }
                 services.store.updateHistories([start.login: history])
             }
+        }
+        return services
+    }
+
+    /// The fixture on a real board: the snapshot's people, hidden people and rivals (plus
+    /// `-ScreenshotHide` and `-ScreenshotPin`), loaded at once. Nothing moves between refreshes.
+    private static func services(_ snapshot: BoardSnapshot) -> CommittedServices {
+        let services = SnapshotServices.make(snapshot, now: now)
+        let hide = snapshot.hidden + (value(after: "-ScreenshotHide")?.split(separator: ",").map(String.init) ?? [])
+        let pins = snapshot.pins + (value(after: "-ScreenshotPin")?.split(separator: ",").map(String.init) ?? [])
+        if let window = value(after: "-ScreenshotWindow").flatMap(ContributionWindow.init(rawValue:)) {
+            services.store.selectedWindow = window
+        }
+        Task {
+            await services.auth.refreshIdentity()
+            await services.roster.refresh(force: true)
+            for login in hide { services.store.setHidden(true, username: login) }
+            for login in pins { services.store.setPinned(true, username: login) }
+            await services.refresh.refreshAll(reason: .manual)
         }
         return services
     }
