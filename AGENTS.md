@@ -96,8 +96,8 @@ After publishing, confirm (the script does this automatically):
 
 ## iPhone TestFlight and the App Store
 
-**Every TestFlight build also goes to the App Store**, unless the request says TestFlight only.
-Upload every iPhone build with `scripts/testflight.sh`, from a clean `main`. It releases each build to
+**Ship merged, verified iPhone app changes to both TestFlight and the App Store** unless the request
+says TestFlight only. Upload with `scripts/testflight.sh` from a clean `main`. It releases each build to
 both TestFlight groups (internal **Prompt Hunt**, and external **Friends** after beta review), then
 `scripts/appstore_submit.py` submits it to App Review as the version `appstore/metadata` is for,
 released as soon as Apple approves it. Pass `--testflight-only` only when someone asked for that.
@@ -108,7 +108,8 @@ For a new version, bump `MARKETING_VERSION` on the iOS targets, rename
 `appstore/metadata/version/<old>` to the new number and rewrite its What's New; the script refuses
 to upload when they differ. While an earlier version is still in review, App Store Connect can't
 create the next one: the build stays on TestFlight and the script prints the
-`appstore_submit.py --build-number <n>` command to run once that version is released.
+`appstore_submit.py --build-number <n>` command. When the earlier version is released, submit the
+waiting build and verify its App Review status in App Store Connect.
 
 Every build's **What to Test** notes follow [TestFlight release notes](.agents/rules/testflight-notes.md):
 read and apply the [release-notes skill](.agents/skills/release-notes/SKILL.md) each time, then pass

@@ -4,5 +4,5 @@
   "promotionalText": "See who shipped more today. Committed ranks you against friends and teammates by GitHub Contributions, with Live rank in the Dynamic Island and widgets.",
   "supportUrl": "https://gitcommitted.app/support",
   "marketingUrl": "https://gitcommitted.app",
-  "whatsNew": "A high daily contribution total alone no longer triggers the troll badge. The badge now looks for an unusually large increase between closely spaced refreshes."
+  "whatsNew": "A high daily contribution total alone no longer triggers the troll badge. The badge now looks for an unusually large increase between closely spaced refreshes.\n\nYou can dismiss the private-contributions tip from Your month or the Board. It stays hidden in both places."
 }
