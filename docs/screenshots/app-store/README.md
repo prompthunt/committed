@@ -67,6 +67,12 @@ today and Ezra Q and Odile M pinned: the Board with Your rivals and the record c
 view, their Challenge story (1080 × 1920), your own view, Share board and People. With `RENDER_DIR`
 set they're written to `screens/feature-*.png` beside the others. Renders, not runtime captures.
 
+`AppStoreListingScreenTests` adds two from the plain Sample board pulled to refresh once (Ari Linden
+#3, just past Ezra Q, 2 behind Odile M): the Board share image itself (`listing-share-story.png`,
+1080 × 1920), and the Lock Screen with Committed's accessory widgets and the notifications that
+board sends at that moment, a pass and a close call in the shipped copy, above Live rank
+(`listing-notifications.png`). A test checks the notifications match the board.
+
 ## Your real board (local only)
 
 Agents can run the app and render these screens on the owner's real board without a GitHub token.

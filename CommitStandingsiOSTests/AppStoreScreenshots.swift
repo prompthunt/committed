@@ -315,7 +315,7 @@ struct AppScreen: View {
 }
 
 /// A dark wallpaper lit with the site's contribution squares.
-private struct Wallpaper: View {
+struct Wallpaper: View {
     var light: UnitPoint
 
     var body: some View {
@@ -372,7 +372,7 @@ private struct LockScreen: View {
     }
 }
 
-private struct LockScreenButton: View {
+struct LockScreenButton: View {
     let symbol: String
 
     var body: some View {
