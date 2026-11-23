@@ -12,7 +12,7 @@ IMAGES = {'.png', '.jpg', '.jpeg', '.webp', '.heic'}
 # Store screenshot editor's sources: its README records where each comes from, and the frames it
 # makes are evidenced in docs/screenshots/app-store/.
 # Keep exceptions explicit; never exempt docs/screenshots/.
-ASSETS = ('appstore/screenshots/public/', 'CommitStandings/Assets.xcassets/', 'CommitStandingsiOS/Assets.xcassets/',
+ASSETS = ('appstore/screenshots/public/', 'artwork/', 'CommitStandings/Assets.xcassets/', 'CommitStandingsiOS/Assets.xcassets/',
           'CommitStandingsLiveRank/Assets.xcassets/', 'docs/design/', 'fixtures/',
           'site/public/', 'site/src/assets/', 'video/', 'windows/src-tauri/icons/', 'windows/src/assets/')
 
