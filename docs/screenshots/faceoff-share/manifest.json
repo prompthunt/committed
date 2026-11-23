@@ -1,0 +1,43 @@
+{
+  "device": "iPhone Duo Simulator (shared persistent Duo 94D56458-B90B-484A-BA5E-16748D2CBEE5), closed, portrait",
+  "os": "iOS 27.1",
+  "notes": "Runtime captures of a Debug build, Sample board data (-ScreenshotFixture; \"you\" is ari-linden), captured with xcrun simctl io --display=1 inside one apple-session lease. Not captured: the open iPhone Duo second pane, accessibility text sizes, Mac and Windows (not built yet).",
+  "screenshots": [
+    {
+      "file": "person-bar.png",
+      "caption": "Someone else's person view on the closed iPhone Duo: the new Share icon in the right-hand bar under Rival and GitHub, above the Challenge button",
+      "capture": {
+        "sourceCommit": "25c0741e2137940df8d5764d99f6b6f6b4b9c8a7",
+        "fixture": true
+      },
+      "notes": "Launch arguments: -ScreenshotFixture -ScreenshotDate 2026-11-12T19:00:00Z -dismissedPrivateContribTip YES -ScreenshotPerson ezra-q -ScreenshotWindow weekly"
+    },
+    {
+      "file": "sheet-today-square.png",
+      "caption": "Share face-off, Today, Square: ari-linden (you on the Sample board) 7 vs ezra-q 6",
+      "capture": {
+        "sourceCommit": "25c0741e2137940df8d5764d99f6b6f6b4b9c8a7",
+        "fixture": true
+      },
+      "notes": "Launch arguments: -ScreenshotFixture -ScreenshotDate 2026-11-12T19:00:00Z -dismissedPrivateContribTip YES -ScreenshotPerson ezra-q -ScreenshotWindow daily -ScreenshotFaceOff"
+    },
+    {
+      "file": "sheet-7-days-square.png",
+      "caption": "Share face-off, 7 days, Square: 38 vs 52, ezra-q's in lime",
+      "capture": {
+        "sourceCommit": "25c0741e2137940df8d5764d99f6b6f6b4b9c8a7",
+        "fixture": true
+      },
+      "notes": "Launch arguments: -ScreenshotFixture -ScreenshotDate 2026-11-12T19:00:00Z -dismissedPrivateContribTip YES -ScreenshotPerson ezra-q -ScreenshotWindow weekly -ScreenshotFaceOff"
+    },
+    {
+      "file": "sheet-30-days-story.png",
+      "caption": "Share face-off, 30 days, Story: 171 vs 160 under \"Who shipped more in 30 days?\"",
+      "capture": {
+        "sourceCommit": "25c0741e2137940df8d5764d99f6b6f6b4b9c8a7",
+        "fixture": true
+      },
+      "notes": "Launch arguments: -ScreenshotFixture -ScreenshotDate 2026-11-12T19:00:00Z -dismissedPrivateContribTip YES -ScreenshotPerson ezra-q -ScreenshotWindow monthly -ScreenshotFaceOff -ScreenshotFaceOffStory"
+    }
+  ]
+}
