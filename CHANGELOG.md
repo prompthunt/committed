@@ -8,6 +8,12 @@ User-facing changes by platform and version. See the [desktop releases](https://
 
 - A high daily contribution total alone no longer triggers the troll badge. The badge now looks for an unusually large increase between closely spaced refreshes.
 
+## iPhone 1.1.3
+
+### New features
+
+- Share a face-off from anyone's profile: an image of you and them side by side on Today, 7 days or 30 days. It shows contributions only. Choose Square or Story, or switch to someone else on your board.
+
 ## iPhone 1.1.2
 
 ### Bug fixes
