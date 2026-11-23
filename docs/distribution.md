@@ -79,7 +79,40 @@ account names deliberately retain their existing identifiers for update continui
 
 ## GitHub Releases Updates
 
-Increment the version and build in `CommitStandings/Info.plist` and add the matching Desktop entry in the [changelog](../CHANGELOG.md). Preview the public notes with `scripts/publish-release.sh --print-notes`. Land the change on `main`, then publish from `main`:
+Increment the version and build in `CommitStandings/Info.plist` and add the matching Desktop entry in the [changelog](../CHANGELOG.md). Preview the public notes with `scripts/publish-release.sh --print-notes`. Land the change on `main`. The automatic release job below publishes it.
+
+### Automatic releases
+
+`scripts/auto_release.py` runs as the launchd agent `com.prompthunt.committed.auto-release`
+on the publishing Mac, every 30 minutes and at login. Each run:
+
+1. Resets a dedicated checkout (`~/.local/share/committed-release/checkout`, a worktree of
+   `~/Projects/committed`) to `origin/main`. The script refuses to reset any other path.
+2. Reads the version and build from `Info.plist` and the newest item in the published
+   `appcast.xml`. It continues only when both are higher. A version bump without a build
+   bump opens an issue instead, as does a missing changelog entry.
+3. Starts **Prepare Windows release** for the exact commit if it has no successful run, then
+   exits. A later run continues after the build succeeds. It retries the Windows build
+   once, then opens an issue.
+4. Runs `apple-session run --app "Committed" --worktree <checkout> -- scripts/publish-release.sh`.
+   It makes two publish attempts per commit at most. Success and failure post a macOS
+   notification; failure also opens one issue in `prompthunt/committed`.
+
+```sh
+python3 scripts/auto_release.py status     # what a run would do now (no Windows dispatch, no publish)
+python3 scripts/auto_release.py run        # check and publish now, sharing the agent's lock
+python3 scripts/auto_release.py install    # create the checkout and load the agent
+python3 scripts/auto_release.py uninstall  # unload the agent
+```
+
+The agent runs the script from the dedicated checkout, so changes to it take effect once
+they merge. Logs go to `~/.local/state/committed-release/logs/`. `state.json` there counts
+attempts per commit and records which issues were opened. To retry a commit after a
+fix, delete its entry. The job never bumps versions. If a release was created but failed
+its link checks, the appcast already reports that version, so the job won't publish it
+again; fix that release by hand.
+
+`publish-release.sh` is what the job runs, and can also be run by hand from a clean `main`:
 
 ```sh
 ./scripts/publish-release.sh
@@ -89,13 +122,14 @@ The script takes the release notes from that version's changelog entry, uploads 
 permanent download link. Appcast payload URLs must use the permanent per-tag
 `releases/download/v<version>/` path.
 
-Before publishing, run **Prepare Windows release** on `main` in the source repo:
+Publishing needs a successful **Prepare Windows release** run for the same commit. The
+automatic job starts it; by hand:
 
 ```sh
 gh workflow run windows-release.yml --repo prompthunt/committed --ref main
 ```
 
-Wait for that workflow to succeed. It builds an unsigned x64 per-user NSIS
+The workflow builds an unsigned x64 per-user NSIS
 installer, signs the updater payload using `TAURI_SIGNING_PRIVATE_KEY` and
 `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`, and uploads `windows-release-<full-sha>`.
 It never publishes a release. The Mac publishing script downloads this artifact

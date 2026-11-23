@@ -52,28 +52,26 @@ Keep the former `addisonk/commit-standings` and
 `basic-intelligence/commit-standings-releases` locations empty: recreating either
 repository removes GitHub's redirects, including URLs used by installed apps.
 
-**Use the script — don't hand-assemble `gh release create`:**
+**Merging a version bump is the release.** A launchd agent on Addison's Mac
+(`scripts/auto_release.py`) checks `main` every 30 minutes. When main's version and build
+are both above the latest published appcast, it starts the **Prepare Windows release**
+workflow for that commit, then runs `scripts/publish-release.sh` in the `apple-session`
+queue. That script packages, notarizes, uploads **all seven assets** and verifies the
+public links. Failures post a Mac notification and open an issue here.
 
-```bash
-scripts/publish-release.sh        # packages from the current checkout, publishes, verifies links
-```
-
-Do it in this order:
-
-1. **Bump the version first.** Edit `CommitStandings/Info.plist`:
+1. **Bump the version.** Edit `CommitStandings/Info.plist`:
    `CFBundleShortVersionString` (e.g. `0.1.44`) **and** `CFBundleVersion` (build number,
    must increment — Sparkle ignores a release whose build number didn't change).
    Add the matching public Desktop entry to `CHANGELOG.md` and preview it with `scripts/publish-release.sh --print-notes`.
-2. Land the change on `main` (branch → PR → merge). Build the release **from `main`**.
-3. Run `scripts/publish-release.sh`. It calls `package-release.sh` (notarize + sign +
-   `appcast.xml`), then publishes the release with **all seven assets** and verifies the
-   public links return 200. On a Mac with the shared queue, run it as the native session:
-   `apple-session run --app "Committed" --worktree "$PWD" -- scripts/publish-release.sh`.
+2. Land the change on `main` (branch → PR → merge). The agent publishes it, usually within
+   an hour (the Windows build takes about 20 minutes).
+3. To see where a release stands, or to ship it sooner, use the agent's own entry point,
+   which holds its lock: `python3 scripts/auto_release.py status` or `… run`. Never
+   hand-assemble `gh release create`.
 
-First prepare the Windows artifact on `main` with the **Prepare Windows release**
-workflow. The publishing script downloads and validates its exact commit and version.
 Publish only from a Mac. Windows builds are unsigned; Tauri updater signatures use a
-separate key stored in the source repo's Actions secrets. See `docs/distribution.md`.
+separate key stored in the source repo's Actions secrets. See `docs/distribution.md` →
+Automatic releases for setup, state and recovery.
 
 **Every release MUST upload these seven assets** (the script enforces it):
 
