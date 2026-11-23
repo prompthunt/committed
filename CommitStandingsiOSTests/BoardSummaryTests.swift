@@ -1,4 +1,5 @@
 import Foundation
+import UIKit
 import Testing
 @testable import CommitStandingsiOS
 
@@ -34,6 +35,41 @@ struct BoardSummaryTests {
         #expect(result?.firstName == "Addison")
         #expect(result?.username == "me")
         #expect(result?.accessibilityDescription == "You, @me, rank 2 of 3, 7 contributions for today, 5 to pass ada")
+    }
+
+    private let kai = Competitor(username: "kai", isSelf: false)
+    private let zed = Competitor(username: "zed", isSelf: false)
+
+    /// 1st, 2nd and 3rd earn a trophy, in rank order, on a board of at least four.
+    @Test(arguments: [(30, Podium.gold), (10, Podium.silver), (8, Podium.bronze)])
+    func topThreeOnARealFieldGetATrophy(mine: Int, expected: Podium) {
+        let result = summary([me, ada, lin, kai],
+                             [standing("me", mine), standing("ada", 20), standing("lin", 9), standing("kai", 2)])
+        #expect(result?.podium == expected)
+        #expect(result?.accessibilityDescription.contains(expected.spokenPlace) == true)
+    }
+
+    @Test func fourthPlaceAndBeyondGetNoTrophy() {
+        let result = summary([me, ada, lin, kai],
+                             [standing("me", 1), standing("ada", 20), standing("lin", 9), standing("kai", 2)])
+        #expect(result?.rank == 4)
+        #expect(result?.podium == nil)
+    }
+
+    /// A trophy means you beat people: not on a board of three, or before your count has loaded.
+    @Test func noTrophyOnAThinBoardOrWithoutARank() {
+        let thin = summary([me, ada, lin], [standing("me", 30), standing("ada", 2), standing("lin", 1)])
+        #expect(thin?.rank == 1)
+        #expect(thin?.podium == nil)
+        #expect(Podium(rank: nil, competitorCount: 10) == nil)
+        #expect(Podium(rank: 3, competitorCount: Podium.minimumField) == .bronze)
+        #expect(Podium(rank: 4, competitorCount: 10) == nil)
+    }
+
+    @Test func everyPlaceHasItsBundledArtwork() {
+        for podium in Podium.allCases {
+            #expect(NSDataAsset(name: podium.assetName, bundle: .main) != nil, "\(podium.assetName)")
+        }
     }
 
     /// The same line Live rank shows: the gap to the person directly above you.

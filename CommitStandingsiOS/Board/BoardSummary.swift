@@ -1,5 +1,42 @@
 import Foundation
 
+/// The top three places, which get a trophy of their own on the hero card. It shows only on a
+/// real field (at least `minimumField` people), so a trophy means you beat people.
+enum Podium: Int, Equatable, CaseIterable {
+    case gold = 1, silver, bronze
+
+    static let minimumField = 4
+
+    init?(rank: Int?, competitorCount: Int) {
+        guard let rank, competitorCount >= Self.minimumField, let podium = Podium(rawValue: rank) else { return nil }
+        self = podium
+    }
+
+    var place: Int { rawValue }
+    /// The bundled artwork (`Assets.xcassets/Trophy*.dataset`, made by `scripts/trophy-artwork.py`).
+    var assetName: String {
+        switch self {
+        case .gold: "TrophyGold"
+        case .silver: "TrophySilver"
+        case .bronze: "TrophyBronze"
+        }
+    }
+    var ordinal: String {
+        switch self {
+        case .gold: "1st"
+        case .silver: "2nd"
+        case .bronze: "3rd"
+        }
+    }
+    var spokenPlace: String {
+        switch self {
+        case .gold: "first place"
+        case .silver: "second place"
+        case .bronze: "third place"
+        }
+    }
+}
+
 /// What the top of the board says about you: who you are, where you rank, your Contributions for
 /// the Window, today's movement, and how fresh the numbers are. It's `LiveRankState.derive` (built
 /// on `Ranking.order`, the rows' ordering) plus who you are and when the numbers were fetched.
@@ -56,10 +93,15 @@ struct BoardSummary: Equatable {
         )
     }
 
+    /// Your trophy, when you're 1st, 2nd or 3rd on a board of at least `Podium.minimumField`.
+    var podium: Podium? { Podium(rank: rank, competitorCount: competitorCount) }
+
     /// One VoiceOver sentence for the whole summary.
     var accessibilityDescription: String {
         var parts = ["You, @\(username)"]
-        if let rank { parts.append("rank \(rank) of \(competitorCount)") }
+        if let rank {
+            parts.append("rank \(rank) of \(competitorCount)" + (podium.map { ", \($0.spokenPlace)" } ?? ""))
+        }
         if let contributions {
             parts.append("\(contributions) contributions for \(window.accessibilityDescription)")
         } else {
