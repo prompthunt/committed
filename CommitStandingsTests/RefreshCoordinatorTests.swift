@@ -384,6 +384,74 @@ struct RefreshCoordinatorTests {
         await task.value
         #expect(store.standing(for: "octocat", window: .daily) == nil, "removed competitor's standing should not be written")
     }
+
+    @Test func cancelledRefreshAll_restoresRowsInsteadOfLeavingThemLoading() async throws {
+        let store = StandingsStore(persistence: InMemoryCompetitorPersistence())
+        _ = try store.addSelf(username: "me")
+        // More people than the six fetched at once, so some never start before the cancel.
+        let rivals = (1...8).map { "rival\($0)" }
+        for rival in rivals { _ = try store.addRival(username: rival) }
+        let earlier = Date(timeIntervalSince1970: 1_000_000)
+        store.updateStanding(Standing(username: "me", contributions: 4, window: .daily, lastUpdated: earlier, state: .loaded))
+        store.updateStanding(Standing(username: "rival1", contributions: 9, window: .daily, lastUpdated: earlier, state: .loaded))
+        let fetcher = StubFetcher(delayNanos: 5_000_000_000)
+        let coord = RefreshCoordinator(store: store, client: fetcher, interval: 9_999)
+        let task = Task { await coord.refreshAll(reason: .menuOpened) }
+        while await fetcher.calls(for: "me") == 0 { await Task.yield() }
+        task.cancel()
+        await task.value
+
+        #expect(store.standing(for: "me", window: .daily)
+                == Standing(username: "me", contributions: 4, window: .daily, lastUpdated: earlier, state: .loaded))
+        #expect(store.standing(for: "rival1", window: .daily)
+                == Standing(username: "rival1", contributions: 9, window: .daily, lastUpdated: earlier, state: .loaded))
+        for rival in rivals.dropFirst() {
+            #expect(store.standing(for: rival, window: .daily) == nil, "\(rival) had no count before; no placeholder left behind")
+        }
+        #expect(!coord.isRefreshing)
+    }
+
+    @Test func cancelledRefreshOne_restoresTheRow() async throws {
+        let store = StandingsStore(persistence: InMemoryCompetitorPersistence())
+        _ = try store.addSelf(username: "me")
+        _ = try store.addRival(username: "octocat")
+        _ = try store.addRival(username: "newcomer")
+        let earlier = Date(timeIntervalSince1970: 1_000_000)
+        let prior = Standing(username: "octocat", contributions: 12, window: .daily, lastUpdated: earlier, state: .loaded)
+        store.updateStanding(prior)
+        let fetcher = StubFetcher(delayNanos: 5_000_000_000)
+        let coord = RefreshCoordinator(store: store, client: fetcher, interval: 9_999)
+
+        let task = Task { await coord.refreshOne(username: "octocat", reason: .manual) }
+        while await fetcher.calls(for: "octocat") == 0 { await Task.yield() }
+        task.cancel()
+        await task.value
+        #expect(store.standing(for: "octocat", window: .daily) == prior)
+
+        let fresh = Task { await coord.refreshOne(username: "newcomer", reason: .competitorAdded) }
+        while await fetcher.calls(for: "newcomer") == 0 { await Task.yield() }
+        fresh.cancel()
+        await fresh.value
+        #expect(store.standing(for: "newcomer", window: .daily) == nil)
+    }
+
+    @Test func cancelledRefreshOne_keepsAFailureThatHadNoCount() async throws {
+        let store = StandingsStore(persistence: InMemoryCompetitorPersistence())
+        _ = try store.addSelf(username: "me")
+        _ = try store.addRival(username: "ghost")
+        // The last refresh failed before any count arrived: the row shows the error, not a dash.
+        let prior = Standing(username: "ghost", contributions: 0, window: .daily, lastUpdated: .distantPast,
+                             state: .failed("Not found"))
+        store.updateStanding(prior)
+        let fetcher = StubFetcher(delayNanos: 5_000_000_000)
+        let coord = RefreshCoordinator(store: store, client: fetcher, interval: 9_999)
+
+        let task = Task { await coord.refreshOne(username: "ghost", reason: .manual) }
+        while await fetcher.calls(for: "ghost") == 0 { await Task.yield() }
+        task.cancel()
+        await task.value
+        #expect(store.standing(for: "ghost", window: .daily) == prior)
+    }
 }
 
 private actor ConcurrencyCountingFetcher: ContributionsFetching {

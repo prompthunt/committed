@@ -488,29 +488,55 @@ struct SkeletonCell: View {
     }
 }
 
+/// The "refreshing" pulse: opacity eases from 1 down to 0.4 and back, 0.85 s each way, worked
+/// out from the time since the pulse began. Not a `repeatForever` animation: switching one off
+/// with a nil animation doesn't end it, so it kept redrawing every frame, menu closed or not.
+enum PulsePhase {
+    static let period: TimeInterval = 1.7
+    static let dimmedOpacity = 0.4
+
+    static func opacity(elapsed: TimeInterval) -> Double {
+        let cycles = elapsed / period
+        let fractionOfCycle = cycles - cycles.rounded(.down)
+        let depth = fractionOfCycle < 0.5 ? fractionOfCycle * 2 : (1 - fractionOfCycle) * 2
+        let eased = (1 - cos(.pi * depth)) / 2
+        return 1 - (1 - dimmedOpacity) * eased
+    }
+
+    /// Only while there's something refreshing, motion is allowed, and someone can see it.
+    static func shouldPulse(active: Bool, reduceMotion: Bool, hostVisible: Bool) -> Bool {
+        active && !reduceMotion && hostVisible
+    }
+}
+
+extension EnvironmentValues {
+    /// Whether the window hosting this view is on screen. The Mac menu bar panel sets it false
+    /// while closed, so its views stop all motion instead of redrawing out of sight.
+    @Entry var motionHostVisible: Bool = true
+}
+
 /// Gently animates opacity while `active`, signalling "this value is refreshing"
-/// without a layout-shifting spinner. Settles back to fully opaque when inactive.
+/// without a layout-shifting spinner. Settles back to fully opaque when inactive. A paused
+/// timeline schedules no frames, so an inactive or hidden pulse costs nothing.
 private struct PulseModifier: ViewModifier {
     let active: Bool
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var dimmed = false
+    @Environment(\.motionHostVisible) private var hostVisible
+    @State private var startedAt = Date.now
 
-    private var shouldPulse: Bool { active && !reduceMotion }
+    private var shouldPulse: Bool {
+        PulsePhase.shouldPulse(active: active, reduceMotion: reduceMotion, hostVisible: hostVisible)
+    }
 
     func body(content: Content) -> some View {
-        content
-            .opacity(shouldPulse && dimmed ? 0.4 : 1.0)
-            .onChange(of: shouldPulse, initial: true) { _, isActive in
-                if isActive {
-                    withAnimation(.easeInOut(duration: 0.85).repeatForever(autoreverses: true)) {
-                        dimmed = true
-                    }
-                } else {
-                    withAnimation(nil) {
-                        dimmed = false
-                    }
-                }
-            }
+        TimelineView(.animation(minimumInterval: 1.0 / 30, paused: !shouldPulse)) { context in
+            content
+                .opacity(shouldPulse ? PulsePhase.opacity(elapsed: context.date.timeIntervalSince(startedAt)) : 1.0)
+        }
+        .onChange(of: active, initial: true) { _, isActive in
+            // Rows that start refreshing together begin at full opacity and breathe in unison.
+            if isActive { startedAt = .now }
+        }
     }
 }
 

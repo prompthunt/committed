@@ -202,7 +202,16 @@ final class RefreshCoordinator {
             return collected
         }
 
-        guard !Task.isCancelled, generation == requestGeneration else { return [:] }
+        guard !Task.isCancelled, generation == requestGeneration else {
+            // Cut off (for example the menu closed mid-refresh): don't leave rows marked as
+            // refreshing. After a sign-out the store was reset, so there is nothing to restore.
+            if generation == requestGeneration {
+                for username in usernames {
+                    store.cancelLoading(username: username, window: window, restoring: priorStandings[username])
+                }
+            }
+            return [:]
+        }
         var histories: [String: ContributionHistory] = [:]
         for (username, result, observedAt) in results {
             histories[username] = applyResult(
@@ -345,7 +354,12 @@ final class RefreshCoordinator {
             let prior = store.standing(for: username, window: window)
             store.markLoading(username: username, window: window)
             let result = await client.standingCounts(for: username, window: window, asOf: reference)
-            guard !Task.isCancelled, generation == requestGeneration, !store.isHidden(username) else { return }
+            guard !Task.isCancelled, generation == requestGeneration, !store.isHidden(username) else {
+                if generation == requestGeneration {
+                    store.cancelLoading(username: username, window: window, restoring: prior)
+                }
+                return
+            }
             fetched = applyResult(result, username: username, window: window, reference: reference,
                                   prior: prior, observedAt: now())
             if let history = fetched {

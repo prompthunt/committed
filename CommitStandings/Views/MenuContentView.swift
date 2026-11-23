@@ -10,6 +10,7 @@ struct MenuContentView: View {
     @Binding var shareSnapshot: WidgetSnapshot?
     @State private var showOverflow = false
     @State private var contentHeight: CGFloat?
+    @State private var panelVisible = true
     // Persisted so dismissing a version stays dismissed across launches; an empty string
     // (the default) means nothing has been dismissed.
     @AppStorage("dismissedUpdateVersion") private var dismissedUpdateVersion: String = ""
@@ -90,6 +91,8 @@ struct MenuContentView: View {
                 ? AnyShapeStyle(.background) : AnyShapeStyle(.regularMaterial),
             for: .window
         )
+        .background(WindowVisibilityObserver(isVisible: $panelVisible))
+        .environment(\.motionHostVisible, panelVisible)
         .onExitCommand { showOverflow = false }
         .onChange(of: store.selectedWindow) {
             // Only refresh when the new window's data is actually stale/missing — otherwise
@@ -243,5 +246,54 @@ private struct StubClient: ContributionsFetching {
         asOf reference: Date
     ) async -> Result<StandingCounts, ContributionsError> {
         .success(StandingCounts(contributions: 42))
+    }
+}
+
+/// Reports whether the window hosting this view is on screen. A `.window`-style menu bar extra
+/// keeps its content alive after the panel closes, so anything animating inside it would keep
+/// redrawing out of sight; this tells it when to stop.
+private struct WindowVisibilityObserver: NSViewRepresentable {
+    @Binding var isVisible: Bool
+
+    func makeNSView(context: Context) -> ObserverView {
+        let view = ObserverView()
+        view.onChange = { isVisible = $0 }
+        return view
+    }
+
+    func updateNSView(_ view: ObserverView, context: Context) {
+        view.onChange = { isVisible = $0 }
+    }
+
+    final class ObserverView: NSView {
+        var onChange: ((Bool) -> Void)?
+        nonisolated(unsafe) private var observation: NSObjectProtocol?
+        private var reported: Bool?
+
+        deinit {
+            if let observation { NotificationCenter.default.removeObserver(observation) }
+        }
+
+        override func viewDidMoveToWindow() {
+            super.viewDidMoveToWindow()
+            if let observation { NotificationCenter.default.removeObserver(observation) }
+            observation = nil
+            if let window {
+                observation = NotificationCenter.default.addObserver(
+                    forName: NSWindow.didChangeOcclusionStateNotification, object: window, queue: .main
+                ) { [weak self] _ in
+                    MainActor.assumeIsolated { self?.reportCurrent() }
+                }
+            }
+            reportCurrent()
+        }
+
+        private func reportCurrent() {
+            let visible = window.map { $0.isVisible && $0.occlusionState.contains(.visible) } ?? false
+            guard visible != reported else { return }
+            reported = visible
+            // Not during SwiftUI's own view update.
+            DispatchQueue.main.async { [weak self] in self?.onChange?(visible) }
+        }
     }
 }
