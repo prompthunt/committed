@@ -420,8 +420,17 @@ struct FaceOffShareButton: View {
             .tint(.lime)
             .accessibilityHint("Shares a picture of you and \(person.login) side by side")
             .sheet(item: $sharing) { request in
-                FaceOffShareSheet(friend: request.friend, window: request.window)
+                FaceOffShareSheet(friend: request.friend, window: request.window, format: request.format)
             }
+            #if DEBUG
+            .task {
+                // After the push settles and the calendars load, so the sheet has a screen to present from.
+                guard ScreenshotFixture.opensFaceOff else { return }
+                try? await Task.sleep(for: .seconds(4))
+                sharing = FaceOffRequest(friend: person.login, window: store.selectedWindow,
+                                         format: ScreenshotFixture.faceOffFormat)
+            }
+            #endif
         }
     }
 }
@@ -430,4 +439,5 @@ private struct FaceOffRequest: Identifiable {
     let id = UUID()
     let friend: String
     let window: ContributionWindow
+    var format: BoardShareFormat = .square
 }

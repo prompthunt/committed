@@ -127,6 +127,17 @@ enum ScreenshotFixture {
         ProcessInfo.processInfo.arguments.contains("-ScreenshotShare")
     }
 
+    /// `-ScreenshotFaceOff`: open Share face-off a few seconds after launch on the person view that
+    /// `-ScreenshotPerson` opened, as tapping its share icon would; `-ScreenshotFaceOffStory` starts
+    /// it on Story instead of Square. Honored on any Debug launch.
+    static var opensFaceOff: Bool {
+        ProcessInfo.processInfo.arguments.contains("-ScreenshotFaceOff")
+    }
+
+    static var faceOffFormat: BoardShareFormat {
+        ProcessInfo.processInfo.arguments.contains("-ScreenshotFaceOffStory") ? .story : .square
+    }
+
     /// `-ScreenshotShareRecord`: tap the record card's Share a few seconds after launch, once the
     /// board has loaded, so captures can show the share sheet with the card's image.
     static var sharesRecord: Bool {
