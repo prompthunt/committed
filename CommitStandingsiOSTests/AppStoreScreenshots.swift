@@ -385,7 +385,7 @@ struct LockScreenButton: View {
 
 /// The Home Screen with every Committed widget: the rank card and the Committed Board widget,
 /// then the medium and large widgets.
-private struct HomeScreen: View {
+struct HomeScreen: View {
     let snapshot: WidgetSnapshot
 
     var body: some View {

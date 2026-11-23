@@ -96,11 +96,15 @@ extension AppStoreScreenshots {
 
     /// The owner's real board from a snapshot: its people, hidden people and rivals, with real
     /// avatars saved first so the screens show faces, and the clock at the snapshot's time.
-    static func snapshotModel(_ snapshot: BoardSnapshot) async -> AppModel {
+    /// `activities` and `widgets` record what Live rank and the widgets would show.
+    static func snapshotModel(_ snapshot: BoardSnapshot,
+                              activities: any LiveRankActivities = NoLiveRankActivities(),
+                              widgets: WidgetPublisher = WidgetPublisher(save: { _ in }, reload: {})) async -> AppModel {
         let now = snapshot.fetchedAt
         await GitHubAvatarPrefetcher.live().prefetch(snapshot.everyone)
         let model = AppModel(services: SnapshotServices.make(snapshot, now: { now }),
-                             backgroundTime: StillBackgroundTime(), now: { now })
+                             backgroundTime: StillBackgroundTime(), liveRankActivities: activities,
+                             widgets: widgets, now: { now })
         await model.sceneDidBecomeActive()
         for login in snapshot.hidden { model.store.setHidden(true, username: login) }
         for login in snapshot.pins { model.store.setPinned(true, username: login) }
@@ -147,7 +151,7 @@ struct AppStoreFeatureScreenTests {
 }
 
 /// The owner's real board, only when asked: `TEST_RUNNER_REAL_BOARD_FILE=<snapshot.json>` renders
-/// its screens into `RENDER_DIR/real/`, and `TEST_RUNNER_REAL_BOARD_ROSTER=<roster.json>` first
+/// its screens (the newer ones, the widgets, the share image and the Lock Screen) into `RENDER_DIR/real/`, and `TEST_RUNNER_REAL_BOARD_ROSTER=<roster.json>` first
 /// (re)reads everyone's public calendar into that snapshot. Both files live outside the repo.
 @MainActor
 @Suite(.serialized)
@@ -168,11 +172,24 @@ struct RealBoardTests {
         if !unread.isEmpty { print("RealBoardTests: no calendar for \(unread.joined(separator: ", "))") }
 
         guard let directory = Self.environment["RENDER_DIR"].map(URL.init(fileURLWithPath:)) else { return }
-        let model = await AppStoreScreenshots.snapshotModel(snapshot)
+        let activities = FakeLiveRankActivities()
+        let widgets = RecordingWidgets()
+        let model = await AppStoreScreenshots.snapshotModel(snapshot, activities: activities, widgets: widgets.publisher)
         let rival = snapshot.pins.first ?? Self.closestRival(in: snapshot)
-        let screens = try await AppStoreScreenshots.featureScreens(
+        var screens = try await AppStoreScreenshots.featureScreens(
             model: model, rival: try #require(rival, "nobody to race"), now: snapshot.fetchedAt, settle: .seconds(3)
         )
+        let surfaces = SampleBoardSurfaces(
+            snapshot: try #require(widgets.last, "the widgets got nothing"),
+            liveRank: try #require(activities.running.first?.state, "Live rank didn't start"),
+            selfLogin: snapshot.owner
+        )
+        screens.append(AppStoreScreen(name: "widgets", png: try AppStoreScreenshots.opaquePNG(
+            HomeScreen(snapshot: surfaces.snapshot).environment(\.colorScheme, .dark)
+        ), people: Set([surfaces.snapshot.selfLogin] + surfaces.snapshot.top.map(\.login))))
+        screens += try AppStoreScreenshots.listingScreens(model: model, surfaces: surfaces, now: snapshot.fetchedAt)
+        let banners = AppStoreScreenshots.notifications(for: surfaces.liveRank)
+        print("RealBoardTests: Lock Screen notifications: \(banners.map(\.title))")
         try AppStoreScreenshots.write(screens, to: directory.appendingPathComponent("real"))
     }
 

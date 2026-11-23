@@ -115,6 +115,17 @@ Every build's **What to Test** notes follow [TestFlight release notes](.agents/r
 read and apply the [release-notes skill](.agents/skills/release-notes/SKILL.md) each time, then pass
 the notes with `scripts/testflight.sh --notes-file <file>`. The script won't upload without them.
 
+### App Store screenshots
+
+**Always use Addison's real board** for App Store screenshots and for every draft of them you show,
+never the Sample board. `RealBoardTests` renders every listing screen from the roster at
+`~/.config/committed/board.json` into `build/app-store/real/`; see
+[docs/screenshots/app-store/README.md](docs/screenshots/app-store/README.md) → "Your real board".
+Addison has approved showing the people on that board, with their logins and GitHub avatars, in the
+public listing and in the exported PNGs in `docs/screenshots/app-store/`. Keep the roster, the
+snapshot and the raw renders out of the repo. The Sample board is only for the automated screenshot
+tests, which check that no real person appears.
+
 ## Hard invariants (regressions here have broken updates before)
 
 1. **App stays UN-sandboxed.** No `com.apple.security.app-sandbox` entitlement. Sandboxing

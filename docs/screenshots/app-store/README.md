@@ -94,7 +94,10 @@ each person's public contribution calendar, read anonymously by the app's own `C
      python3 scripts/ios_check.py ios --only-testing CommitStandingsiOSTests/RealBoardTests
    ```
 
-   Leave out `REAL_BOARD_ROSTER` to render the saved snapshot again without reading GitHub.
+   Besides the newer screens it writes `widgets.png` (the Home Screen), `share-story.png` (the
+   Board share image, 1080 × 1920) and `notifications.png` (the Lock Screen, with only the
+   notifications that board sends right then). Leave out `REAL_BOARD_ROSTER` to render the saved
+   snapshot again without reading GitHub.
 
 3. To use the app on it, launch a Debug build with the snapshot:
 
@@ -106,9 +109,9 @@ each person's public contribution calendar, read anonymously by the app's own `C
    The clock is set to the snapshot's time, nothing moves between refreshes, avatars are the real
    GitHub ones, and nothing is saved over the phone's real board or token.
 
-The snapshot holds logins and public counts only, but the board is the owner's choice of people:
-keep the roster, snapshot and renders out of the repo, and put real people in the listing only
-with the owner's go-ahead.
+The listing uses this board, not the Sample board: Addison has approved the people on it, with
+their logins and avatars, for the App Store and the exported PNGs here. Keep the roster, snapshot
+and raw renders out of the repo.
 
 ## Upload
 

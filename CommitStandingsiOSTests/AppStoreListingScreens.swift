@@ -4,8 +4,9 @@ import Testing
 import UIKit
 @testable import CommitStandingsiOS
 
-// Two more bare screens for the screenshot editor, all from the Sample board pulled to refresh
-// once (Ari Linden #3, just past Ezra Q, 2 behind Odile M), as `AppStoreScreenshots.render` uses:
+// Two more bare screens for the screenshot editor, from the Sample board pulled to refresh once
+// (Ari Linden #3, just past Ezra Q, 2 behind Odile M), as `AppStoreScreenshots.render` uses, or
+// from the owner's real board (`RealBoardTests`):
 // - share-story: the Board share image itself, 1080 × 1920, as it lands in a story or a message.
 // - notifications: the Lock Screen with Committed's accessory widgets, and the notifications that
 //   board sends at that moment, in the app's own words, above Live rank.
@@ -13,25 +14,32 @@ import UIKit
 @MainActor
 extension AppStoreScreenshots {
     static func listingScreens() async throws -> [AppStoreScreen] {
-        var screens: [AppStoreScreen] = []
-
         let model = AppModel(services: SampleServices.make(), backgroundTime: StillBackgroundTime())
         await model.sceneDidBecomeActive()
         await model.pullToRefresh()
+        // No saved avatars on the Sample board: initials, as its own Share board draws them.
+        return try listingScreens(model: model, surfaces: try await SampleBoardSurfaces.load(), now: .now,
+                                  avatarCache: nil, date: "Sunday, November 8")
+    }
+
+    /// The share image of `model`'s board as of `now`, and the Lock Screen for `surfaces` (its
+    /// widgets and Live rank) dated `date`, the day of the board by default.
+    static func listingScreens(model: AppModel, surfaces: SampleBoardSurfaces, now: Date,
+                               avatarCache: AvatarCache? = .shared, date: String? = nil) throws -> [AppStoreScreen] {
+        var screens: [AppStoreScreen] = []
         let shared = try #require(WidgetSnapshot.board(
             model.store, window: model.store.selectedWindow,
-            rankDelta: { model.refresh.rankDelta(for: $0) }, now: .now,
+            rankDelta: { model.refresh.rankDelta(for: $0) }, now: now,
             rows: BoardShareFormat.maxBoardRows
         ))
-        // No saved avatars on the Sample board: initials, as its own Share board draws them.
-        let story = try ShareImageRenderer.png(BoardShareCard(snapshot: shared, style: .board, format: .story, avatarCache: nil))
+        let story = try ShareImageRenderer.png(BoardShareCard(snapshot: shared, style: .board, format: .story, avatarCache: avatarCache))
         screens.append(AppStoreScreen(name: "share-story", png: story, people: Set([shared.selfLogin] + shared.top.map(\.login))))
 
-        let surfaces = try await SampleBoardSurfaces.load()
         let live = surfaces.liveRank
+        let day = date ?? now.formatted(.dateTime.weekday(.wide).month(.wide).day())
         screens.append(AppStoreScreen(
             name: "notifications",
-            png: try opaquePNG(NotificationsLockScreen(surfaces: surfaces, banners: notifications(for: live))
+            png: try opaquePNG(NotificationsLockScreen(surfaces: surfaces, banners: notifications(for: live), date: day)
                 .environment(\.colorScheme, .dark)),
             people: Set([surfaces.selfLogin] + [live.above?.login, live.below?.login].compactMap { $0 })
         ))
@@ -95,6 +103,7 @@ struct NotificationBanner: View, Equatable {
 private struct NotificationsLockScreen: View {
     let surfaces: SampleBoardSurfaces
     let banners: [NotificationBanner]
+    let date: String
 
     var body: some View {
         ZStack {
@@ -103,7 +112,7 @@ private struct NotificationsLockScreen: View {
                 Image(systemName: "lock.fill")
                     .font(.system(size: 20, weight: .semibold))
                     .padding(.top, 70)
-                Text("Sunday, November 8")
+                Text(date)
                     .font(.system(size: 21, weight: .semibold))
                     .padding(.top, 10)
                 Text("9:41")
