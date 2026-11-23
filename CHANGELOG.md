@@ -2,6 +2,13 @@
 
 User-facing changes by platform and version. See the [desktop releases](https://github.com/prompthunt/commit-standings-releases/releases) and the [App Store](https://apps.apple.com/app/committed-commit-leaderboard/id6831797452) for availability.
 
+## Desktop 0.1.54 (2026-11-23)
+
+### Bug fixes
+
+- On Mac, Committed no longer uses CPU while the menu is closed. The pulse on refreshing counts kept animating out of sight after a refresh finished.
+- On Mac, counts no longer keep pulsing after a refresh is interrupted, for example by closing the menu mid-refresh. They go back to the last numbers.
+
 ## Desktop 0.1.53 (2026-11-20)
 
 ### Bug fixes
