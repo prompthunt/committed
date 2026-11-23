@@ -179,11 +179,14 @@ struct RealBoardTests {
         var screens = try await AppStoreScreenshots.featureScreens(
             model: model, rival: try #require(rival, "nobody to race"), now: snapshot.fetchedAt, settle: .seconds(3)
         )
-        let surfaces = SampleBoardSurfaces(
-            snapshot: try #require(widgets.last, "the widgets got nothing"),
-            liveRank: try #require(activities.running.first?.state, "Live rank didn't start"),
-            selfLogin: snapshot.owner
-        )
+        // The widgets and Live rank count their age on the real clock, so they're stamped as just
+        // updated: they show what the phone shows right after a refresh, not how long this ran.
+        let justNow = Int(Date().timeIntervalSince1970)
+        var widgetSnapshot = try #require(widgets.last, "the widgets got nothing")
+        widgetSnapshot.state.updatedAt = justNow
+        var liveRank = try #require(activities.running.first?.state, "Live rank didn't start")
+        liveRank.updatedAt = justNow
+        let surfaces = SampleBoardSurfaces(snapshot: widgetSnapshot, liveRank: liveRank, selfLogin: snapshot.owner)
         screens.append(AppStoreScreen(name: "widgets", png: try AppStoreScreenshots.opaquePNG(
             HomeScreen(snapshot: surfaces.snapshot).environment(\.colorScheme, .dark)
         ), people: Set([surfaces.snapshot.selfLogin] + surfaces.snapshot.top.map(\.login))))

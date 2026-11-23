@@ -69,7 +69,7 @@ set they're written to `screens/feature-*.png` beside the others. Renders, not r
 
 `AppStoreListingScreenTests` adds two from the plain Sample board pulled to refresh once (Ari Linden
 #3, just past Ezra Q, 2 behind Odile M): the Board share image itself (`listing-share-story.png`,
-1080 × 1920), and the Lock Screen with Committed's accessory widgets and the notifications that
+1080 × 1920), the square one sent to a group chat with your rank (`listing-share-message.png`), and the Lock Screen with Committed's accessory widgets and the notifications that
 board sends at that moment, a pass and a close call in the shipped copy, above Live rank
 (`listing-notifications.png`). A test checks the notifications match the board.
 
@@ -95,9 +95,10 @@ each person's public contribution calendar, read anonymously by the app's own `C
    ```
 
    Besides the newer screens it writes `widgets.png` (the Home Screen), `share-story.png` (the
-   Board share image, 1080 × 1920) and `notifications.png` (the Lock Screen, with only the
-   notifications that board sends right then). Leave out `REAL_BOARD_ROSTER` to render the saved
-   snapshot again without reading GitHub.
+   Board share image, 1080 × 1920), `share-message.png` (the square one in a group chat) and `notifications.png` (the Lock Screen, with only the
+   notifications that board sends right then). Keep `REAL_BOARD_ROSTER` for screenshots: the Board's
+   "Updated …" line counts from when the calendars were read. Leave it out only to check a render
+   against the saved snapshot without reading GitHub.
 
 3. To use the app on it, launch a Debug build with the snapshot:
 
