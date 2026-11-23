@@ -104,8 +104,10 @@ struct HomeScreenWidget<Content: View>: View {
     }
 }
 
-/// A Lock Screen accessory widget, drawn in white over a translucent plate as the Lock Screen
-/// tints it. Wrap `CommittedWidgetRectangular`, `…Inline` or `…Circular`.
+/// A Lock Screen accessory widget, drawn in white as the Lock Screen tints it, on the translucent
+/// plate of `AccessoryWidgetBackground` for the circular one. The rectangular and inline ones have
+/// no background in the app (`CommittedWidgetView`). Wrap `CommittedWidgetRectangular`, `…Inline`
+/// or `…Circular`.
 struct LockScreenAccessory<Content: View>: View {
     let size: CGSize
     var plate = true
@@ -116,12 +118,8 @@ struct LockScreenAccessory<Content: View>: View {
             .foregroundStyle(.white)
             .frame(width: size.width, height: size.height)
             .background {
-                if plate {
-                    if size == SurfaceSize.accessoryCircular {
-                        Circle().fill(.white.opacity(0.14))
-                    } else {
-                        RoundedRectangle(cornerRadius: 12, style: .continuous).fill(.white.opacity(0.08))
-                    }
+                if plate, size == SurfaceSize.accessoryCircular {
+                    Circle().fill(.white.opacity(0.14))
                 }
             }
             .environment(\.colorScheme, .dark)

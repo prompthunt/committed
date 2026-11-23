@@ -10,8 +10,8 @@ import UIKit
 // - share-story: the Board share image itself, 1080 × 1920, as it lands in a story.
 // - share-message: the square share image (1080 × 1080) sent to a group chat with your rank, as
 //   texting it to friends looks.
-// - notifications: the Lock Screen with Committed's accessory widgets, and the notifications that
-//   board sends at that moment, in the app's own words, above Live rank.
+// - notifications: the Lock Screen with the notifications that board sends at that moment, in the
+//   app's own words, above Live rank.
 
 @MainActor
 extension AppStoreScreenshots {
@@ -21,7 +21,7 @@ extension AppStoreScreenshots {
         await model.pullToRefresh()
         // No saved avatars on the Sample board: initials, as its own Share board draws them.
         return try listingScreens(model: model, surfaces: try await SampleBoardSurfaces.load(), now: .now,
-                                  avatarCache: nil, date: "Sunday, November 8")
+                                  avatarCache: nil, date: "Sun Nov 8")
     }
 
     /// The share image of `model`'s board as of `now`, and the Lock Screen for `surfaces` (its
@@ -46,7 +46,7 @@ extension AppStoreScreenshots {
         ), people: sharedPeople))
 
         let live = surfaces.liveRank
-        let day = date ?? now.formatted(.dateTime.weekday(.wide).month(.wide).day())
+        let day = date ?? LockScreenClock.date(now)
         screens.append(AppStoreScreen(
             name: "notifications",
             png: try opaquePNG(NotificationsLockScreen(surfaces: surfaces, banners: notifications(for: live), date: day)
@@ -223,8 +223,7 @@ private struct MessagesScreen: View {
     }
 }
 
-/// The Lock Screen at 9:41: Committed's accessory widgets under the clock, then the notifications
-/// above Live rank's card.
+/// The Lock Screen at 9:41: the clock, then the notifications above Live rank's card.
 private struct NotificationsLockScreen: View {
     let surfaces: SampleBoardSurfaces
     let banners: [NotificationBanner]
@@ -234,25 +233,7 @@ private struct NotificationsLockScreen: View {
         ZStack {
             Wallpaper(light: UnitPoint(x: 0.5, y: 0.95))
             VStack(spacing: 0) {
-                Image(systemName: "lock.fill")
-                    .font(.system(size: 20, weight: .semibold))
-                    .padding(.top, 70)
-                Text(date)
-                    .font(.system(size: 21, weight: .semibold))
-                    .padding(.top, 10)
-                Text("9:41")
-                    .font(.system(size: 112, weight: .bold, design: .rounded))
-                    .monospacedDigit()
-                    .padding(.top, -10)
-                HStack(spacing: 14) {
-                    LockScreenAccessory(size: SurfaceSize.accessoryRectangular) {
-                        CommittedWidgetRectangular(snapshot: surfaces.snapshot).padding(.horizontal, 8)
-                    }
-                    LockScreenAccessory(size: SurfaceSize.accessoryCircular) {
-                        CommittedWidgetCircular(snapshot: surfaces.snapshot)
-                    }
-                }
-                .padding(.top, 2)
+                LockScreenClock(date: date)
                 Spacer(minLength: 0)
                 VStack(spacing: 10) {
                     ForEach(banners.indices, id: \.self) { banners[$0] }
@@ -271,7 +252,7 @@ private struct NotificationsLockScreen: View {
             .foregroundStyle(.white)
         }
         .frame(width: AppStoreScreenshots.size.width, height: AppStoreScreenshots.size.height)
-        .overlay { DeviceChrome() }
+        .overlay { DeviceChrome(isLockScreen: true) }
     }
 }
 
