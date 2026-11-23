@@ -322,7 +322,9 @@ def install() -> int:
         "EnvironmentVariables": {"PATH": AGENT_PATH, "HOME": str(HOME)},
         "StandardOutPath": str(STATE_DIR / "logs/agent.log"),
         "StandardErrorPath": str(STATE_DIR / "logs/agent.log"),
-        "ProcessType": "Background",
+        # Standard, not Background: Background throttles CPU and disk so hard that even
+        # Python startup stalls, and publishing runs a full Xcode archive and notarization.
+        "ProcessType": "Standard",
     }
     PLIST_PATH.parent.mkdir(parents=True, exist_ok=True)
     PLIST_PATH.write_bytes(plistlib.dumps(agent))
