@@ -700,6 +700,19 @@ final class AppModel {
         return Challenge(you: you, person: person)
     }
 
+    // MARK: - Face-off
+
+    /// You against `login` over `window` as of now, for Share face-off: nil until both calendars
+    /// have loaded, and on your own view.
+    func faceOff(with login: String, window: ContributionWindow) -> FaceOff? {
+        FaceOff(store: store, friend: login, window: window, asOf: now())
+    }
+
+    /// Everyone on your board but you, for Share face-off's "Compare with".
+    var faceOffPeople: [String] {
+        store.visibleCompetitors.filter { !$0.isSelf }.map(\.username)
+    }
+
     /// Opens `login`'s view on the Board and presents their Challenge share as soon as their race
     /// has loaded, as tapping Challenge would. Nothing opens on the Sample board.
     func requestChallenge(_ login: String) {

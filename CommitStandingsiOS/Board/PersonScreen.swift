@@ -187,6 +187,12 @@ struct PersonDestination: View {
                         ToolbarItem(placement: .topBarTrailing) {
                             PersonProfileLink(person: person)
                         }
+                        // On the right with the rest, as Share board's is on the Board.
+                        if !person.isYou {
+                            ToolbarItem(placement: .topBarTrailing) {
+                                FaceOffShareButton(person: person)
+                            }
+                        }
                     }
             } else {
                 Color.ink
@@ -218,6 +224,7 @@ struct PersonPane: View {
                 HStack(spacing: 18) {
                     RivalPinButton(person: person)
                     PersonProfileLink(person: person)
+                    FaceOffShareButton(person: person)
                 }
                 .font(.callout.weight(.semibold))
             }
