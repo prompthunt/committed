@@ -21,6 +21,8 @@ ENDPOINT = "https://fal.run/openai/gpt-image-2.6/flare/text-to-image"
 COST_PER_IMAGE = 0.05  # USD, high quality 1024x1024 (the 2.5 flare price; check fal's page before a big batch)
 
 # The frozen style. Change it only to regenerate the whole set, so all three places match.
+# The shipped set was the first numbered generation edited with the same model (numeral replaced by a
+# chevron and gem, cat ears added); this prompt describes that result, so a fresh run lands close to it.
 PLACES = {
     1: ("gold", "warm polished gold with bright highlights, a small crown-like sparkle"),
     2: ("silver", "cool polished silver with soft blue-white highlights"),
@@ -29,7 +31,8 @@ PLACES = {
 PROMPT = (
     "A single premium achievement trophy cup, {look}. Glossy 3D render, soft studio lighting, "
     "subtle rim light, rounded friendly proportions like a game reward, two curved handles, "
-    "stepped base with a blank plaque, the numeral {n} embossed large and crisp on the cup. "
+    "stepped base with a blank plaque, a pair of small pointed cat ears rising from the rim between the "
+    "handles, and a rank chevron with a faceted gem embossed on the cup, no numerals or letters. "
     "Front view, centered, fills the frame with a little margin. "
     "No other text. No background, no floor, no shadow outside the object."
 )
@@ -47,7 +50,7 @@ MASTERS = ROOT / "artwork" / "trophies" / "masters"
 
 def prompt_for(place):
     name, look = PLACES[place]
-    return PROMPT.format(look=look, n=place)
+    return PROMPT.format(look=look)
 
 
 def plan(_):
