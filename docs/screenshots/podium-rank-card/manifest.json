@@ -1,0 +1,52 @@
+{
+  "device": "iPhone Duo Simulator (shared persistent Duo 94D56458-B90B-484A-BA5E-16748D2CBEE5), closed, portrait",
+  "os": "iOS 27.1",
+  "notes": "Runtime captures of a Debug build, Sample board data (-ScreenshotFixture; \"you\" is ari-linden), captured with xcrun simctl io --display=1 inside one apple-session lease. -ScreenshotRecordDay only sets your count for today to reach a higher rank on the Sample board; it is also why the New record card can show above the hero card on a first capture. \"2d ago\" is the fixture clock. The build was verified from the commit before it was rebased onto main; main's later commits touch the Mac app, not these files. Not captured: the open Duo second pane, Mac and Windows (not built yet).",
+  "screenshots": [
+    {
+      "file": "podium-1-gold.png",
+      "caption": "Board, Today: 1st place, the gold rank card: trophy, TODAY'S RANK, #1, name, Contributions and day streak chips",
+      "capture": {
+        "sourceCommit": "b9af70a1e3dc39ca60198ca9949b9c317a41f714",
+        "fixture": true
+      },
+      "notes": "Launch arguments: -ScreenshotFixture -ScreenshotDate 2026-11-25T19:00:00Z -dismissedPrivateContribTip YES -ScreenshotHide niko-vane -ScreenshotRecordDay 15"
+    },
+    {
+      "file": "podium-2-silver.png",
+      "caption": "Board, Today: 2nd place, the silver rank card",
+      "capture": {
+        "sourceCommit": "b9af70a1e3dc39ca60198ca9949b9c317a41f714",
+        "fixture": true
+      },
+      "notes": "Launch arguments: -ScreenshotFixture -ScreenshotDate 2026-11-25T19:00:00Z -dismissedPrivateContribTip YES -ScreenshotHide niko-vane -ScreenshotRecordDay 11"
+    },
+    {
+      "file": "podium-3-bronze.png",
+      "caption": "Board, Today: 3rd place, the bronze rank card",
+      "capture": {
+        "sourceCommit": "b9af70a1e3dc39ca60198ca9949b9c317a41f714",
+        "fixture": true
+      },
+      "notes": "Launch arguments: -ScreenshotFixture -ScreenshotDate 2026-11-25T19:00:00Z -dismissedPrivateContribTip YES -ScreenshotHide niko-vane -ScreenshotRecordDay 8"
+    },
+    {
+      "file": "control-4th.png",
+      "caption": "Board, Today: 4th place (#4 of 5), no trophy: the plain hero card, now with \"14 day streak\" written out and a tiny \"2d ago\" bottom right",
+      "capture": {
+        "sourceCommit": "b9af70a1e3dc39ca60198ca9949b9c317a41f714",
+        "fixture": true
+      },
+      "notes": "Launch arguments: -ScreenshotFixture -ScreenshotDate 2026-11-25T19:00:00Z -dismissedPrivateContribTip YES -ScreenshotHide niko-vane -ScreenshotRecordDay 5"
+    },
+    {
+      "file": "podium-1-gold-large-text.png",
+      "caption": "Board, Today: 1st place at accessibility extra large text, the two chips stacked",
+      "capture": {
+        "sourceCommit": "b9af70a1e3dc39ca60198ca9949b9c317a41f714",
+        "fixture": true
+      },
+      "notes": "Launch arguments: -ScreenshotFixture -ScreenshotDate 2026-11-25T19:00:00Z -dismissedPrivateContribTip YES -ScreenshotHide niko-vane -ScreenshotRecordDay 15 and the simulator's content size set to accessibility-extra-large, then restored to large"
+    }
+  ]
+}

@@ -2,6 +2,16 @@
 
 User-facing changes by platform and version. See the [desktop releases](https://github.com/prompthunt/commit-standings-releases/releases) and the [App Store](https://apps.apple.com/app/committed-commit-leaderboard/id6831797452) for availability.
 
+## iPhone 1.1.4
+
+### New features
+
+- Finish 1st, 2nd or 3rd on a board of four or more and your summary card becomes a rank card with a gold, silver or bronze trophy, your rank, your Contributions and your streak.
+
+### Improvements
+
+- The summary card is simpler: your streak reads "12 day streak", and how recently the numbers refreshed is a small "5m ago" in the corner. The line showing how many Contributions it takes to pass the person ahead is gone.
+
 ## Desktop 0.1.54 (2026-11-23)
 
 ### Bug fixes

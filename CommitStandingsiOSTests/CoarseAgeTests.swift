@@ -25,4 +25,15 @@ struct CoarseAgeTests {
         #expect(age(86_400) == "1 day ago")
         #expect(age(3 * 86_400) == "3 days ago")
     }
+
+    @Test func compactAgeIsAsShortAsItCanBe() {
+        func compact(_ seconds: TimeInterval) -> String {
+            CoarseAge.compact(since: now.addingTimeInterval(-seconds), now: now)
+        }
+        #expect(compact(30) == "just now")
+        #expect(compact(5 * 60) == "5m ago")
+        #expect(compact(59 * 60 + 59) == "59m ago")
+        #expect(compact(2 * 3600) == "2h ago")
+        #expect(compact(3 * 86_400) == "3d ago")
+    }
 }

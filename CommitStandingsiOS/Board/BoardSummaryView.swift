@@ -1,15 +1,14 @@
 import SwiftUI
 
-/// You first, as the site's hero: a folio ("01 · TODAY"), your rank set huge over a lit field of
-/// contribution squares, your Contributions for the Window in lime, your streak, today's movement,
+/// You first, as the site's hero: your rank set huge, your Contributions for the Window in lime, your streak, today's movement,
 /// the gap to pass the person ahead, and how long ago the numbers refreshed. People sync shows
 /// under the card only while it's running or has failed. When your rank improves, squares burst
-/// out of it. In 1st, 2nd or 3rd place on a board of four or more, a gold, silver or bronze trophy
-/// (`PodiumTrophy`) takes the card's corner, the only place that art appears.
+/// out of it. In 1st, 2nd or 3rd place on a board of four or more the card becomes a rank card
+/// in the place's metal (`CardChrome`): the gold, silver or bronze trophy (`PodiumTrophy`) on top,
+/// the Window's rank title and your place under it, then your Contributions and streak as chips.
 ///
-/// Text on the card is white, soft, or lime, never muted: the field can sit under any of it
-/// (`FieldTone.hero`, checked in `ThemeTests`). Every size follows Dynamic Type; at accessibility
-/// sizes the numbers stack under your name and the rank stops growing at accessibility 2.
+/// Text on the card is white, soft, or lime, never muted. Every size follows Dynamic Type; at
+/// accessibility sizes the numbers stack under your name and the rank stops growing at accessibility 2.
 /// VoiceOver reads the card as one sentence (`BoardSummary.accessibilityDescription`).
 struct BoardSummaryView: View {
     @Environment(StandingsStore.self) private var store
@@ -19,8 +18,9 @@ struct BoardSummaryView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @ScaledMetric(relativeTo: .title) private var avatarSize: CGFloat = 34
     @ScaledMetric(relativeTo: .largeTitle) private var trophySize: CGFloat = 58
-    /// The 1st–3rd trophy, which sits beside your rank.
-    @ScaledMetric(relativeTo: .largeTitle) private var podiumTrophySize: CGFloat = 152
+    /// The 1st–3rd trophy, at the top of the card.
+    @ScaledMetric(relativeTo: .largeTitle) private var podiumTrophySize: CGFloat = 88
+    @ScaledMetric(relativeTo: .footnote) private var podiumAvatarSize: CGFloat = 22
     /// Bumped each time your rank improves, to fire `RankBurst`.
     @State private var bursts = 0
 
@@ -59,84 +59,120 @@ struct BoardSummaryView: View {
             && summary.contributions != nil
 
         return VStack(alignment: .leading, spacing: 18) {
-            FolioRow(leading: Self.folio(summary.window), trailing: "Your rank")
             if let podium = summary.podium {
                 podiumBody(summary, podium: podium, stacked: stacked, pulsing: isRefreshingMine)
             } else {
                 identity(summary, stacked: stacked)
                 numbers(summary, stacked: stacked, pulsing: isRefreshingMine)
+                footer(summary)
             }
-            footer(summary)
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 18)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background {
-            AnimatedSquareField(light: UnitPoint(x: 0.86, y: 0.4), reach: 0.7, cell: 15, tone: .hero)
-                // Behind the numbers: away from your name, and faded out above the folio and
-                // below the numbers, so the label and footer rows sit on the bare tile.
-                .mask {
-                    LinearGradient(colors: [.clear, .black.opacity(0.55), .black], startPoint: .leading, endPoint: .trailing)
-                        .mask(LinearGradient(stops: [
-                            .init(color: .clear, location: 0.1), .init(color: .black, location: 0.3),
-                            .init(color: .black, location: 0.52), .init(color: .clear, location: 0.78),
-                        ], startPoint: .top, endPoint: .bottom))
-                }
-        }
-        .tileCard(cornerRadius: 22)
-        .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+        .modifier(CardChrome(podium: summary.podium))
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(summary.accessibilityDescription)
         .accessibilityValue(refreshAgeText(summary.lastUpdated, now: .now) ?? "")
     }
 
-    /// 1st, 2nd or 3rd: the trophy takes the right of the card, as on the Share rank image, with
-    /// your rank beside it and your Contributions under the rank. It's the only place the trophy
-    /// art appears, so it stays special.
+    /// 1st, 2nd or 3rd, laid out like a rank card: the trophy up top and the one hero, the
+    /// Window's rank title and your place under it, your name as a caption, then your
+    /// Contributions and streak as equal chips. It's the only place the trophy art appears.
     @ViewBuilder
     private func podiumBody(_ summary: BoardSummary, podium: Podium, stacked: Bool, pulsing: Bool) -> some View {
-        if stacked {
-            VStack(alignment: .leading, spacing: 14) {
-                identity(summary, stacked: true)
-                PodiumTrophy(podium: podium, size: podiumTrophySize * 0.8)
-                rank(summary)
-                podiumCount(summary, pulsing: pulsing)
+        VStack(alignment: .center, spacing: 0) {
+            PodiumTrophy(podium: podium, size: podiumTrophySize * (stacked ? 0.85 : 1))
+            Text(summary.window.rankTitle)
+                .font(.system(.caption, design: .monospaced, weight: .semibold))
+                .tracking(1.8)
+                .foregroundStyle(podium.metal[0])
+                .padding(.top, 16)
+            if let rank = summary.rank {
+                Text("#\(rank)")
+                    .font(CommittedType.display(52, relativeTo: .largeTitle))
+                    .displayTracking(52)
+                    .foregroundStyle(.white)
+                    .contentTransition(.numericText(value: Double(rank)))
+                    .animation(reduceMotion ? nil : .snappy, value: rank)
+                    .overlay { RankBurst(trigger: bursts) }
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.6)
+                    .padding(.top, 4)
+                    .dynamicTypeSize(...DynamicTypeSize.accessibility2)
             }
-        } else {
-            ZStack(alignment: .topTrailing) {
-                VStack(alignment: .leading, spacing: 12) {
-                    // Leave the trophy its corner: a long name truncates before it runs under it.
-                    identity(summary, stacked: false)
-                        .padding(.trailing, podiumTrophySize * 0.7)
-                    rank(summary)
-                    podiumCount(summary, pulsing: pulsing)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                PodiumTrophy(podium: podium, size: podiumTrophySize)
-                    .offset(x: 14, y: -8)
+            HStack(spacing: 8) {
+                AvatarView(username: summary.username, size: podiumAvatarSize)
+                    .overlay { Circle().strokeBorder(podium.metal[1], lineWidth: 1.5) }
+                Text(summary.firstName ?? summary.username)
+                    .font(.footnote.weight(.semibold))
+                    .textCase(.uppercase)
+                    .tracking(1.1)
+                    .foregroundStyle(.white)
+                    .lineLimit(stacked ? 2 : 1)
+                    .truncationMode(.middle)
             }
+            .padding(.top, 12)
+            podiumStats(summary, pulsing: pulsing)
+                .padding(.top, 14)
+            podiumAge(summary)
+                .padding(.top, 8)
         }
+        .frame(maxWidth: .infinity)
     }
 
-    /// "62 CONTRIBUTIONS" in lime under the rank, as on the Share rank image.
-    private func podiumCount(_ summary: BoardSummary, pulsing: Bool) -> some View {
-        HStack(alignment: .firstTextBaseline, spacing: 8) {
+    /// Contributions and streak as two chips of one size, side by side or stacked when they don't fit.
+    private func podiumStats(_ summary: BoardSummary, pulsing: Bool) -> some View {
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: 8) { statChips(summary, pulsing: pulsing) }
+            VStack(spacing: 8) { statChips(summary, pulsing: pulsing) }
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.top, 14)
+        .overlay(alignment: .top) { Rectangle().fill(Color.white.opacity(0.09)).frame(height: 1) }
+        .dynamicTypeSize(...DynamicTypeSize.accessibility2)
+    }
+
+    @ViewBuilder
+    private func statChips(_ summary: BoardSummary, pulsing: Bool) -> some View {
+        HStack(spacing: 7) {
+            ContributionGrid(size: 13, color: .lime)
             Text(summary.contributions?.formatted() ?? "—")
-                .font(CommittedType.display(34, relativeTo: .title))
-                .displayTracking(34)
                 .foregroundStyle(Color.lime)
+                .monospacedDigit()
                 .contentTransition(.numericText(value: Double(summary.contributions ?? 0)))
                 .animation(reduceMotion ? nil : .snappy, value: summary.contributions)
-                .lineLimit(1)
-                .minimumScaleFactor(0.6)
                 .phaseAnimator(pulsing && !reduceMotion ? [1.0, 0.4] : [1.0]) { content, opacity in
                     content.opacity(opacity)
                 } animation: { _ in .easeInOut(duration: 0.85) }
-            Text("Contributions")
-                .eyebrow()
-                .foregroundStyle(Color.soft)
+            Text("Contributions").foregroundStyle(Color.soft)
         }
-        .dynamicTypeSize(...DynamicTypeSize.accessibility2)
+        .statChip()
+        if StreakLabel.number(summary.streak) != nil {
+            HStack(spacing: 7) {
+                StreakBadge(streak: summary.streak, markSize: 13, relativeTo: .footnote, markColor: .lime)
+                    .foregroundStyle(.white)
+                Text("day streak")
+                    .foregroundStyle(Color.soft)
+                    .accessibilityHidden(true)  // the badge already says "12-day streak"
+            }
+            .statChip()
+        }
+    }
+
+    /// How fresh the numbers are: tiny, under the stats.
+    private func podiumAge(_ summary: BoardSummary) -> some View {
+        TimelineView(.periodic(from: .now, by: 30)) { context in
+            let age = summary.lastUpdated.map { CoarseAge.compact(since: $0, now: context.date) }
+                ?? (refresh.isRefreshing ? "Updating…" : nil)
+            if let age {
+                Text(age)
+                    .font(.caption2)
+                    .foregroundStyle(Color.soft)
+                    .lineLimit(1)
+                    .frame(maxWidth: .infinity, alignment: .trailing)
+            }
+        }
     }
 
     private func identity(_ summary: BoardSummary, stacked: Bool) -> some View {
@@ -221,17 +257,26 @@ struct BoardSummaryView: View {
     @ViewBuilder
     private func footer(_ summary: BoardSummary) -> some View {
         TimelineView(.periodic(from: .now, by: 30)) { context in
-            let age = refreshAgeText(summary.lastUpdated, now: context.date) ?? (refresh.isRefreshing ? "Updating…" : nil)
-            let news = dynamicTypeSize.isAccessibilitySize
+            let age = summary.lastUpdated.map { CoarseAge.compact(since: $0, now: context.date) }
+                ?? (refresh.isRefreshing ? "Updating…" : nil)
+            let stacked = dynamicTypeSize.isAccessibilitySize
+            let news = stacked
                 ? AnyLayout(VStackLayout(alignment: .leading, spacing: 4))
                 : AnyLayout(HStackLayout(alignment: .firstTextBaseline, spacing: 14))
-            // The news (your streak, movement, the gap to pass), then how fresh the numbers are.
-            VStack(alignment: .leading, spacing: 4) {
+            // The news (your streak, today's movement), and how fresh the numbers are, small
+            // and quiet in the bottom right corner.
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
                 news {
-                    // Your streak: the mark in lime (it's yours, like the count above), the number white.
-                    StreakBadge(streak: summary.streak, markSize: 14, relativeTo: .footnote, markColor: .lime)
+                    // Your streak, written out: the mark in lime (it's yours, like the count above).
+                    if StreakLabel.number(summary.streak) != nil {
+                        HStack(alignment: .firstTextBaseline, spacing: 5) {
+                            StreakBadge(streak: summary.streak, markSize: 14, relativeTo: .footnote, markColor: .lime)
+                                .foregroundStyle(.white)
+                            Text("day streak")
+                                .accessibilityHidden(true)  // the badge already says "12-day streak"
+                        }
                         .fontWeight(.semibold)
-                        .foregroundStyle(.white)
+                    }
                     if let movement = summary.movementToday {
                         HStack(spacing: 4) {
                             Image(systemName: movement > 0 ? "chevron.up" : "chevron.down")
@@ -241,16 +286,16 @@ struct BoardSummaryView: View {
                         .fontWeight(.semibold)
                         .foregroundStyle(movement > 0 ? Color.lime : Color.soft)
                     }
-                    if let passLine = summary.passLine {
-                        Text(passLine)
-                            .fontWeight(.semibold)
-                            .foregroundStyle(Color.lime)
-                            .monospacedDigit()
-                    }
                 }
-                if let age { Text(age) }
+                .font(.footnote)
+                Spacer(minLength: 8)
+                if let age {
+                    Text(age)
+                        .font(.caption2)
+                        .lineLimit(1)
+                        .fixedSize()
+                }
             }
-            .font(.footnote)
             .foregroundStyle(Color.soft)
         }
     }
@@ -265,15 +310,62 @@ struct BoardSummaryView: View {
         guard let lastUpdated else { return nil }
         return "Updated \(CoarseAge.text(since: lastUpdated, now: now))"
     }
+}
 
-    /// "01 · TODAY": the Window's place in the switch, as the site numbers its cards.
-    static func folio(_ window: ContributionWindow) -> String {
-        let number = (ContributionWindow.allCases.firstIndex(of: window) ?? 0) + 1
-        return String(format: "%02d · %@", number, window.shortTitle)
+/// The hero card's surface. Plain for everyone; for 1st–3rd a rank-card frame in the place's metal:
+/// a bevelled edge that catches light top and bottom, and a soft wash of light falling from the
+/// top edge. Everything stays inside the frame.
+private struct CardChrome: ViewModifier {
+    let podium: Podium?
+    private let shape = RoundedRectangle(cornerRadius: 22, style: .continuous)
+
+    func body(content: Content) -> some View {
+        if let podium {
+            content
+                .background {
+                    ZStack {
+                        shape.fill(Color.tile)
+                        shape.fill(RadialGradient(
+                            colors: [podium.metal[0].opacity(0.20), podium.metal[1].opacity(0.06), .clear],
+                            center: UnitPoint(x: 0.5, y: -0.1), startRadius: 0, endRadius: 340))
+                        shape.fill(LinearGradient(
+                            colors: [.clear, podium.metal[2].opacity(0.10)],
+                            startPoint: UnitPoint(x: 0.5, y: 0.55), endPoint: .bottom))
+                    }
+                }
+                .overlay { shape.strokeBorder(podium.edge, lineWidth: 3) }
+                .clipShape(shape)
+        } else {
+            content
+                .tileCard(cornerRadius: 22)
+                .clipShape(shape)
+        }
     }
 }
 
-/// The bundled 1st, 2nd or 3rd trophy over a soft glow in the metal's own colour. It springs in
+private extension View {
+    /// One of the podium card's stat chips: a soft capsule, one size for every stat.
+    func statChip() -> some View {
+        font(.footnote.weight(.bold))
+            .lineLimit(1)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 7)
+            .background(Color.white.opacity(0.06), in: Capsule())
+    }
+}
+
+private extension ContributionWindow {
+    /// The rank's title on a podium card.
+    var rankTitle: String {
+        switch self {
+        case .daily: "TODAY'S RANK"
+        case .weekly: "7-DAY RANK"
+        case .monthly: "30-DAY RANK"
+        }
+    }
+}
+
+/// The bundled 1st, 2nd or 3rd trophy. It springs in
 /// when the card first shows it, and again if the place changes (reduced motion: no spring).
 /// Decorative: VoiceOver gets the place from the card's sentence.
 struct PodiumTrophy: View {
@@ -283,17 +375,14 @@ struct PodiumTrophy: View {
     @State private var shown = false
 
     var body: some View {
-        ZStack {
-            RadialGradient(colors: [podium.glow.opacity(0.42), podium.glow.opacity(0)],
-                           center: .center, startRadius: 0, endRadius: size * 0.62)
-                .frame(width: size * 1.3, height: size * 1.3)
+        Group {
             if let image = Self.image(named: podium.assetName) {
                 Image(uiImage: image)
                     .resizable()
                     .interpolation(.high)
                     .scaledToFit()
                     .frame(width: size, height: size)
-                    .shadow(color: .black.opacity(0.5), radius: 10, y: 6)
+                    .shadow(color: .black.opacity(0.5), radius: 8, y: 5)
             }
         }
         .frame(width: size, height: size)
@@ -318,13 +407,18 @@ struct PodiumTrophy: View {
 }
 
 private extension Podium {
-    /// The glow behind the trophy: the metal's own light.
-    var glow: Color {
+    /// The metal, light to dark, for the frame, rank title and stat marks.
+    var metal: [Color] {
         switch self {
-        case .gold: Color(red: 1.0, green: 0.78, blue: 0.25)
-        case .silver: Color(red: 0.72, green: 0.82, blue: 0.95)
-        case .bronze: Color(red: 0.86, green: 0.52, blue: 0.26)
+        case .gold: [Color(red: 1.0, green: 0.88, blue: 0.5), Color(red: 0.96, green: 0.66, blue: 0.16), Color(red: 0.66, green: 0.42, blue: 0.06)]
+        case .silver: [Color(red: 0.92, green: 0.96, blue: 1.0), Color(red: 0.6, green: 0.72, blue: 0.9), Color(red: 0.36, green: 0.46, blue: 0.66)]
+        case .bronze: [Color(red: 0.97, green: 0.7, blue: 0.45), Color(red: 0.82, green: 0.48, blue: 0.22), Color(red: 0.5, green: 0.25, blue: 0.1)]
         }
+    }
+
+    /// The frame's edge: light catches the top and bottom, the sides fall into shadow.
+    var edge: LinearGradient {
+        LinearGradient(colors: [metal[0], metal[1], metal[2], metal[1], metal[0]], startPoint: .top, endPoint: .bottom)
     }
 }
 
